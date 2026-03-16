@@ -1,13 +1,18 @@
-from typing import Any
+"""
+Base class module.
 
-from sqlalchemy.orm import DeclarativeBase, declared_attr
+This module defines the SQLAlchemy DeclarativeBase class that all
+ORM models inherit from.
+"""
+
+from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    id: Any
-    __name__: str
+    """Base class for all SQLAlchemy ORM models.
 
-    # Generate __tablename__ automatically
-    @declared_attr
-    def __tablename__(cls) -> str:
-        return cls.__name__.lower()
+    All database models should inherit from this class to ensure
+    proper table creation and metadata management.
+    """
+
+    pass
