@@ -5,16 +5,16 @@ This module provides services for parsing document files (PDF, DOCX pending) and
 extracting structured information from resume text using LLMs.
 """
 
-from langextract.core.data import AnnotatedDocument
 import os
 
+import docx2txt
 import pymupdf
 from langextract import extract
+from langextract.core.data import AnnotatedDocument
 from langextract.providers.ollama import OllamaLanguageModel
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from app.core.config import settings
-from packages.resume_screening.v1.schemas.schemas import ResumeData
 from packages.resume_screening.v1.services.prompts import (
     RESUME_EXTRACTION_EXAMPLES,
     RESUME_EXTRACTION_PROMPT,
@@ -80,9 +80,6 @@ class DocumentParser:
     def _extract_from_docx(file_path: str) -> str:
         """Extract text from a DOCX document.
 
-        Note:
-            Currently a stub. Consider using `python-docx` for implementation.
-
         Args:
             file_path: Path to the DOCX file.
 
@@ -90,12 +87,20 @@ class DocumentParser:
             Extracted text content.
 
         Raises:
-            NotImplementedError: As the method is not yet implemented.
+            RuntimeError: If there is an error during DOCX parsing.
         """
-        # TODO: Implement DOCX extraction
-        raise NotImplementedError(
-            "DOCX extraction is not fully implemented yet. Please use a text extraction solution like python-docx."
-        )
+
+        try:
+            # doc = docx.Document(file_path)
+            # doc = docx.Document(file_path)
+            # full_text = []
+            # for para in doc.paragraphs:
+            #     if para.text:
+            #         full_text.append(para.text)
+            # return "\n".join(full_text)
+            return docx2txt.process(file_path)
+        except Exception as e:
+            raise RuntimeError(f"Error parsing DOCX: {str(e)}")
 
 
 class ResumeLLMExtractor:

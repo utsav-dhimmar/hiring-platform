@@ -30,16 +30,19 @@ def main():
     extractor = ResumeLLMExtractor()
     #  For running locally you have to change the path of the pdf files
     test_pdf_path = [
-        r"D:\codes\projects\resume-test\r_r_3.pdf",
-        r"D:\codes\projects\resume-test\r_k_2.pdf",
-        r"D:\codes\projects\resume-test\r_my_1.pdf",
+        # r"D:\codes\projects\resume-test\r_r_3.pdf",
+        # r"D:\codes\projects\resume-test\r_k_2.pdf",
+        # r"D:\codes\projects\resume-test\r_my_1.pdf",
+        r"D:\codes\projects\resume-test\kristi.docx",
     ]
     try:
         for pdf_path in test_pdf_path:
             print("\n" + "=" * 50)
             print(f"Processing: {pdf_path}")
             pdf_text = DocumentParser.extract_text(pdf_path)
+            print(pdf_text)
             print(f"PDF Text Extracted ({len(pdf_text)} chars).")
+            # sys.exit(0)
             print("Passing to LLM...")
             pdf_extracted_data = extractor.extract_resume_info(pdf_text)
             print("Result:", pdf_extracted_data)
