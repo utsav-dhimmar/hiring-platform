@@ -21,9 +21,7 @@ class GlobalErrorHandlerMiddleware(BaseHTTPMiddleware):
         except Exception as exc:  # noqa: BLE001
             return self._handle_exception(request, exc)
 
-    def _handle_exception(
-        self, request: Request, exc: Exception
-    ) -> JSONResponse:
+    def _handle_exception(self, request: Request, exc: Exception) -> JSONResponse:
         """Handle uncaught exceptions and return a structured error response."""
         error_id = id(exc)
 

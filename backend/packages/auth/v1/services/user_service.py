@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging_config import get_logger
 from packages.auth.v1.models.user import User
 from packages.auth.v1.repository.user_repository import user_repository
-from packages.auth.v1.schema.user import UserCreate
+from packages.auth.v1.schema.user import UserCreate, UserCreateInternal
 
 logger = get_logger(__name__)
 
@@ -60,7 +60,7 @@ class UserService:
                 detail="The user with this email already exists in the system.",
             )
 
-        db_obj = User(
+        db_obj = UserCreateInternal(
             email=user_in.email,
             hashed_password=user_in.password,
             full_name=user_in.full_name,
@@ -69,9 +69,7 @@ class UserService:
         logger.info(f"Created new user with email: {user_in.email}")
         return created_user
 
-    async def get_users(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ):
+    async def get_users(self, db: AsyncSession, skip: int = 0, limit: int = 100):
         """Get a list of users with pagination.
 
         Args:

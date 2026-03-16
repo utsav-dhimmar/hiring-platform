@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging_config import get_logger
 from packages.auth.v1.models.user import User
+from packages.auth.v1.schema.user import UserCreateInternal, User as UserSchema
 
 logger = get_logger(__name__)
 
@@ -38,12 +39,12 @@ class UserRepository:
         """
         return await self.crud.get(db=db, email=email)
 
-    async def create(self, db: AsyncSession, user: User):
+    async def create(self, db: AsyncSession, user: UserCreateInternal):
         """Create a new user.
 
         Args:
             db: The async database session.
-            user: The User object to create.
+            user: The UserCreateInternal schema to create.
 
         Returns:
             The created user object.
@@ -53,7 +54,9 @@ class UserRepository:
         #     for key in user.__table__.columns.keys()
         #     if key != "id"
         # }
-        return await self.crud.create(db=db, object=user)
+        return await self.crud.create(
+            db=db, object=user, schema_to_select=UserSchema, return_as_model=True
+        )
 
     async def list(self, db: AsyncSession, skip: int = 0, limit: int = 100):
         """List users with pagination.

@@ -30,9 +30,7 @@ async def lifespan(app: FastAPI):
     Args:
         app: The FastAPI application instance.
     """
-    logger.info(
-        f"Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode"
-    )
+    logger.info(f"Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode")
     await init_db()
     logger.info("Database initialized successfully")
     yield

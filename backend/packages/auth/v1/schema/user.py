@@ -38,6 +38,18 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
 
 
+class UserCreateInternal(UserBase):
+    """Internal user creation schema with hashed password.
+
+    Attributes:
+        email: The email address of the user (required).
+        hashed_password: The hashed password.
+    """
+
+    email: EmailStr
+    hashed_password: str
+
+
 class UserUpdate(UserBase):
     """Schema for updating an existing user.
 
