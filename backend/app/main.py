@@ -1,70 +1,68 @@
+"""
+Main application module.
+
+This module initializes the FastAPI application, configures CORS middleware,
+and sets up the API router. It also handles the application lifespan events
+for database initialization.
+"""
+
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, status
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.v1.api import api_router
 from app.core.config import settings
-from app.core.exceptions import (
-    global_exception_handler,
-    sqlalchemy_exception_handler,
-    validation_exception_handler,
-)
-from app.core.logging import logger
-from app.core.middleware import ResponseTimeMiddleware
-from app.db.session import engine
+from app.core.logging_config import get_logger, setup_logging
+from app.core.middleware import GlobalErrorHandlerMiddleware
+from app.db.session import init_db
+
+setup_logging(debug=settings.DEBUG)
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Application lifespan context manager.
 
-    logger.info("Starting up application...")
-    try:
-        async with engine.begin() as conn:
-            logger.info("Database connection verified.")
+    Initializes the database on startup and handles cleanup on shutdown.
 
-    except Exception as e:
-        logger.error(f"Database connection error: {e}")
-
+    Args:
+        app: The FastAPI application instance.
+    """
+    logger.info(
+        f"Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode"
+    )
+    await init_db()
+    logger.info("Database initialized successfully")
     yield
-
-    logger.info("Shutting down application...")
-    await engine.dispose()
+    logger.info("Shutting down application")
 
 
 app = FastAPI(
-    title=settings.PROJECT_NAME, debug=settings.DEBUG, lifespan=lifespan
+    title=settings.PROJECT_NAME,
+    debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
-# Exception Handlers
-app.add_exception_handler(Exception, global_exception_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
-app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_middleware(
+    CORSMiddleware,  # ty:ignore[invalid-argument-type]
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Middlewares
-app.add_middleware(ResponseTimeMiddleware)
+app.add_middleware(GlobalErrorHandlerMiddleware)  # ty:ignore[invalid-argument-type]
 
-# CORS configuration
-if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[
-            str(origin).strip("/") for origin in settings.BACKEND_CORS_ORIGINS
-        ],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/")
-def say_hi():
-    return JSONResponse(
-        {"message": f"Welcome to {settings.PROJECT_NAME} API"},
-        status_code=status.HTTP_200_OK,
-    )
+async def root():
+    """Root endpoint returning a welcome message.
+
+    Returns:
+        dict: A dictionary containing a welcome message with the project name.
+    """
+    return {"message": f"Welcome to {settings.PROJECT_NAME}"}

@@ -48,10 +48,22 @@ Documentation:
 
 ## Project Structure
 
-- `app/api`: API route definitions and logic.
-- `app/core`: Configuration, logging, and security.
-- `app/db`: Database connection and session management.
-- `app/models`: SQLAlchemy data models.
-- `app/schema`: Pydantic data schemas.
-- `app/services`: Business logic services.
-- `app/utils`: Helper functions and utilities.
+```text
+backend/
+├── app/                     # Core application module
+│   ├── main.py              # FastAPI entry point
+│   ├── api/v1/api.py        # Top-level router composition
+│   ├── core/config.py       # Pydantic settings (.env)
+│   └── db/                  # Database session & base model
+│       ├── base_class.py
+│       └── session.py
+├── packages/                # Feature packages
+│   └── auth/v1/             # Auth domain
+│       ├── api/routes/      # API route handlers
+│       ├── models/          # SQLAlchemy models
+│       ├── repository/      # Data access layer
+│       ├── schema/          # Pydantic schemas
+│       └── services/        # Business logic
+├── pyproject.toml
+└── .env
+```
