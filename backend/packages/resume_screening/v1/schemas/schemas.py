@@ -1,7 +1,7 @@
 """
 Pydantic schemas for resume screening.
 
-This module defines the data structures used for representing extracted 
+This module defines the data structures used for representing extracted
 resume information.
 """
 
@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 class ResumeData(BaseModel):
     """Data model for extracted resume information.
 
-    Contains lists of strings for various resume sections. Only explicitly 
+    Contains lists of strings for various resume sections. Only explicitly
     mentioned sections should be extracted.
     """
 

@@ -1,11 +1,11 @@
 """
 Prompts and examples for resume extraction.
 
-This module contains the LLM prompt templates and few-shot examples used 
+This module contains the LLM prompt templates and few-shot examples used
 by the extraction service to guide the LLM in structured data extraction.
 """
 
-from langextract.core.data import ExampleData,Extraction
+from langextract.core.data import ExampleData, Extraction
 
 import textwrap
 import langextract as lx
@@ -65,17 +65,17 @@ RESUME_EXTRACTION_EXAMPLES = [
         Certified Scrum Master (CSM) | Scrum Alliance | 2019
         """,
         extractions=[
-           Extraction(
+            Extraction(
                 extraction_class="name",
                 extraction_text="John Doe",
                 attributes={},
             ),
-           Extraction(
+            Extraction(
                 extraction_class="skill",
                 extraction_text="Python, JavaScript, React, AWS, Docker, Kubernetes, Machine Learning, Agile/Scrum",
                 attributes={"category": "technical"},
             ),
-           Extraction(
+            Extraction(
                 extraction_class="experience",
                 extraction_text="Senior Software Engineer | TechCorp Inc. | Jan 2023 - Present\n- Led development of microservices architecture serving 1M+ users\n- Managed team of 5 engineers and implemented CI/CD pipelines\n- Reduced deployment time by 60% through automation",
                 attributes={
@@ -84,7 +84,7 @@ RESUME_EXTRACTION_EXAMPLES = [
                     "start_date": "Jan 2023",
                     "end_date": "Present",
                     "duration": "3+ years",
-                    "is_current": "true"
+                    "is_current": "true",
                 },
             ),
             Extraction(
@@ -96,7 +96,7 @@ RESUME_EXTRACTION_EXAMPLES = [
                     "start_date": "Jun 2022",
                     "end_date": "Dec 2023",
                     "duration": "1.5 years",
-                    "is_current": "false"
+                    "is_current": "false",
                 },
             ),
             Extraction(
@@ -108,7 +108,7 @@ RESUME_EXTRACTION_EXAMPLES = [
                     "start_date": "2020",
                     "end_date": "2022",
                     "gpa": "3.8/4.0",
-                    "level": "graduate"
+                    "level": "graduate",
                 },
             ),
             Extraction(
@@ -119,7 +119,7 @@ RESUME_EXTRACTION_EXAMPLES = [
                     "institution": "MIT",
                     "start_date": "2016",
                     "end_date": "2020",
-                    "level": "undergraduate"
+                    "level": "undergraduate",
                 },
             ),
             # Certifications
@@ -130,7 +130,7 @@ RESUME_EXTRACTION_EXAMPLES = [
                     "name": "AWS Certified Solutions Architect - Professional",
                     "issuer": "Amazon Web Services",
                     "date": "2023",
-                    "type": "cloud"
+                    "type": "cloud",
                 },
             ),
             Extraction(
@@ -140,7 +140,7 @@ RESUME_EXTRACTION_EXAMPLES = [
                     "name": "Certified Scrum Master (CSM)",
                     "issuer": "Scrum Alliance",
                     "date": "2021",
-                    "type": "methodology"
+                    "type": "methodology",
                 },
             ),
             Extraction(

@@ -83,5 +83,9 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = "qwen3.5:cloud"
     OLLAMA_API_KEY: str = ""
 
+    # LangExtract Retry
+    LANGEXTRACT_RETRY_ATTEMPTS: int = 3
+    LANGEXTRACT_RETRY_DELAY: int = 60
+
 
 settings = Settings()

@@ -1,16 +1,17 @@
 """
 Resume extraction services.
 
-This module provides services for parsing document files (PDF, DOCX pending) and 
+This module provides services for parsing document files (PDF, DOCX pending) and
 extracting structured information from resume text using LLMs.
 """
 
 from langextract.core.data import AnnotatedDocument
 import os
 
-import pymupdf  
+import pymupdf
 from langextract import extract
 from langextract.providers.ollama import OllamaLanguageModel
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 from app.core.config import settings
 from packages.resume_screening.v1.schemas.schemas import ResumeData
@@ -117,17 +118,24 @@ class ResumeLLMExtractor:
             timeout=300,
         )
 
-    def extract_resume_info(self, text: str)->AnnotatedDocument | list[AnnotatedDocument]:
+    @retry(
+        stop=stop_after_attempt(settings.LANGEXTRACT_RETRY_ATTEMPTS),
+        wait=wait_fixed(settings.LANGEXTRACT_RETRY_DELAY),
+        reraise=True,
+    )
+    def extract_resume_info(
+        self, text: str
+    ) -> AnnotatedDocument | list[AnnotatedDocument]:
         """Extract structured information from resume text using LangExtract.
 
-        Uses LLM with few-shot examples to identify and extract sections like 
+        Uses LLM with few-shot examples to identify and extract sections like
         skills, experience, and education from the provided text.
 
         Args:
             text: Raw text content from a resume.
 
         Returns:
-            An AnnotatedDocument or list of AnnotatedDocuments containing 
+            An AnnotatedDocument or list of AnnotatedDocuments containing
             extracted information.
 
         Raises:

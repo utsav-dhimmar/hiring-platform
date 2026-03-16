@@ -1,7 +1,7 @@
 """
 Unit tests for the resume extraction service.
 
-This module contains tests for DocumentParser and ResumeLLMExtractor, 
+This module contains tests for DocumentParser and ResumeLLMExtractor,
 using mocked PyMuPDF and LLM responses.
 """
 
