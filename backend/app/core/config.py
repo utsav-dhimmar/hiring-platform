@@ -27,6 +27,8 @@ class Settings(BaseSettings):
         POSTGRES_DB: PostgreSQL database name. Defaults to "app".
         SQLALCHEMY_DATABASE_URI: Optional explicit database URI override.
         BACKEND_CORS_ORIGINS: List of allowed CORS origins.
+        OLLAMA_URL: Ollama Url
+        OLLAMA_MODEL: Ollama Cloud model name
     """
 
     model_config = SettingsConfigDict(
@@ -75,6 +77,11 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://localhost:8000",
     ]
+
+    # Ollama
+    OLLAMA_URL: str = "https://ollama.com"
+    OLLAMA_MODEL: str = "qwen3.5:cloud"
+    OLLAMA_API_KEY: str = ""
 
 
 settings = Settings()
