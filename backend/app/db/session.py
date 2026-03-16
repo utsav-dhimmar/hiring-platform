@@ -42,6 +42,10 @@ async def init_db():
     This function creates all tables defined by SQLAlchemy models
     that inherit from the Base class.
     """
+    # Import all models here so SQLAlchemy metadata
+    # is aware of all tables before create_all is called
+    import packages.auth.v1.models  # noqa: F401
+
     logger.info("Creating database tables...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
