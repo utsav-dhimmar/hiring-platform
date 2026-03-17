@@ -54,6 +54,16 @@ class User(Base):
         nullable=False,
     )
 
+    refresh_token: Mapped[str | None] = mapped_column(
+        String(512),
+        nullable=True,
+    )
+
+    refresh_token_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     is_active: Mapped[bool] = mapped_column(
         Boolean(),
         default=True,
