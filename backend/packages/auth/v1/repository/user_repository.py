@@ -6,11 +6,12 @@ using FastCRUD and SQLAlchemy async sessions.
 """
 
 from fastcrud import FastCRUD
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.logging_config import get_logger
 from app.v1.db.models.user import User
-from packages.auth.v1.schema.user import UserCreateInternal, User as UserSchema
+from packages.auth.v1.schema.user import UserCreateInternal, UserModel, UserRead
 
 logger = get_logger(__name__)
 
@@ -37,43 +38,69 @@ class UserRepository:
         Returns:
             The user object if found, None otherwise.
         """
-        return await self.crud.get(db=db, email=email)
+        return await self.crud.get(
+            db=db, email=email, return_as_model=True, schema_to_select=UserModel
+        )
 
-    async def create(self, db: AsyncSession, user: UserCreateInternal):
-        """Create a new user.
+    async def get_by_id(self, db: AsyncSession, user_id):
+        """Get a user by their unique ID.
 
         Args:
             db: The async database session.
-            user: The UserCreateInternal schema to create.
+            user_id: The UUID of the user to retrieve.
+
+        Returns:
+            The user object if found, None otherwise.
+        """
+        return await self.crud.get(
+            db=db,
+            id=user_id,
+            schema_to_select=UserRead,
+            return_as_model=True,
+        )
+
+    async def create(self, db: AsyncSession, user: UserCreateInternal):
+        """Create a new user in the database.
+
+        Args:
+            db: The async database session.
+            user: The internal user creation data with hashed password.
 
         Returns:
             The created user object.
         """
-        # user_dict = {
-        #     key: getattr(user, key)
-        #     for key in user.__table__.columns.keys()
-        #     if key != "id"
-        # }
         return await self.crud.create(
-            db=db, object=user, schema_to_select=UserSchema, return_as_model=True
+            db=db,
+            object=user,
+            schema_to_select=UserRead,
+            return_as_model=True,
         )
 
-    async def list(self, db: AsyncSession, skip: int = 0, limit: int = 100):
-        """List users with pagination.
+    async def update_refresh_token(
+        self,
+        db: AsyncSession,
+        *,
+        user_id,
+        refresh_token: str,
+        refresh_token_expires_at,
+    ) -> None:
+        """Update a user's refresh token and its expiration.
 
         Args:
             db: The async database session.
-            skip: Number of records to skip (offset).
-            limit: Maximum number of records to return.
-
-        Returns:
-            List of user objects.
+            user_id: The ID of the user to update.
+            refresh_token: The new refresh token string.
+            refresh_token_expires_at: The expiration datetime for the refresh token.
         """
-        users_data = await self.crud.get_multi(db=db, offset=skip, limit=limit)
-        logger.debug(
-            f"Retrieved {len(users_data['data'])} users (skip={skip}, limit={limit})"
+        await db.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(
+                refresh_token=refresh_token,
+                refresh_token_expires_at=refresh_token_expires_at,
+            )
         )
-        return users_data["data"]
+        await db.commit()
 
 
 user_repository = UserRepository()
