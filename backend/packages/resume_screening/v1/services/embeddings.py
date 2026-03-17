@@ -75,6 +75,23 @@ def get_semantic_score(resume_text: str, jd_text: str) -> float:
 
     vec1 = np.array(encode_resume(resume_text))
     vec2 = np.array(encode_jd(jd_text))
+    if vec1.size == 0 or vec2.size == 0:
+        return 0.0
+    score = float(np.dot(vec1, vec2))
+    return round(max(0.0, score) * 100.0, 2)
+
+
+def get_semantic_score_from_embeddings(
+    resume_embedding: list[float],
+    jd_embedding: list[float],
+) -> float:
+    if not resume_embedding or not jd_embedding:
+        return 0.0
+
+    vec1 = np.array(resume_embedding)
+    vec2 = np.array(jd_embedding)
+    if vec1.size == 0 or vec2.size == 0:
+        return 0.0
     score = float(np.dot(vec1, vec2))
     return round(max(0.0, score) * 100.0, 2)
 
