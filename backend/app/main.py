@@ -16,6 +16,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.v1.core.config import settings
 from app.v1.core.logging_config import get_logger, setup_logging
 from app.v1.core.middleware import GlobalErrorHandlerMiddleware
+from app.v1.core.resume_executor import (
+    initialize_resume_executor,
+    shutdown_resume_executor,
+)
 from app.v1.db.session import init_db
 
 setup_logging(debug=settings.DEBUG)
@@ -33,8 +37,10 @@ async def lifespan(app: FastAPI):
     """
     logger.info(f"Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode")
     await init_db()
+    initialize_resume_executor()
     logger.info("Database initialized successfully")
     yield
+    shutdown_resume_executor()
     logger.info("Shutting down application")
 
 

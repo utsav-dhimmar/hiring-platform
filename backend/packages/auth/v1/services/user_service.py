@@ -126,10 +126,7 @@ class UserService:
             HTTPException: If authentication fails (401) or user is inactive (403).
         """
         user = await self.get_user_by_email(db=db, email=credentials.email)
-        print(user, credentials)
-        if not user or not verify_password(
-            credentials.password, user.password_hash
-        ):
+        if not user or not verify_password(credentials.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password.",

@@ -12,7 +12,12 @@ import pymupdf
 from langextract import extract
 from langextract.core.data import AnnotatedDocument
 from langextract.providers.ollama import OllamaLanguageModel
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import (
+    retry,
+    retry_if_not_exception_type,
+    stop_after_attempt,
+    wait_fixed,
+)
 
 from app.v1.core.config import settings
 from packages.resume_screening.v1.services.prompts import (
@@ -124,6 +129,7 @@ class ResumeLLMExtractor:
         )
 
     @retry(
+        retry=retry_if_not_exception_type(ValueError),
         stop=stop_after_attempt(settings.LANGEXTRACT_RETRY_ATTEMPTS),
         wait=wait_fixed(settings.LANGEXTRACT_RETRY_DELAY),
         reraise=True,

@@ -60,9 +60,9 @@ def test_extract_pdf_FileNotFound():
         DocumentParser.extract_text("nonexistent.pdf")
 
 
-def test_extract_docx_NotImplemented():
-    """Test that extract_text raises NotImplementedError for DOCX files."""
-    with pytest.raises(NotImplementedError):
+def test_extract_docx_parse_error():
+    """Test that extract_text wraps DOCX parsing failures in RuntimeError."""
+    with pytest.raises(RuntimeError, match="Error parsing DOCX"):
         # Even if file doesn't exist, our parser checks existence first.
         # So we mock os.path.exists
         with patch("os.path.exists", return_value=True):

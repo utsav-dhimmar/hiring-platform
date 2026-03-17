@@ -4,12 +4,14 @@ Security utilities module.
 This module provides functions for password hashing, verification,
 and JWT token creation for authentication and authorization.
 """
+
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
 
 from app.v1.core.config import settings
+
 
 # TODO: use pwdlib insted of raw bcrypt
 def hash_password(password: str) -> str:
@@ -80,9 +82,7 @@ def create_refresh_token(*, subject: str, email: str) -> tuple[str, datetime]:
     Returns:
         A tuple containing the encoded JWT token and its expiration datetime.
     """
-    expires_at = datetime.now(UTC) + timedelta(
-        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-    )
+    expires_at = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": subject,
         "email": email,
