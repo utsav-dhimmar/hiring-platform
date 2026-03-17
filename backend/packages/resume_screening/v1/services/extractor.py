@@ -1,7 +1,7 @@
 """
 Resume extraction services.
 
-This module provides services for parsing document files (PDF, DOCX pending) and
+This module provides services for parsing document files (PDF, DOCX) and
 extracting structured information from resume text using LLMs.
 """
 
@@ -14,7 +14,7 @@ from langextract.core.data import AnnotatedDocument
 from langextract.providers.ollama import OllamaLanguageModel
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-from app.core.config import settings
+from app.v1.core.config import settings
 from packages.resume_screening.v1.services.prompts import (
     RESUME_EXTRACTION_EXAMPLES,
     RESUME_EXTRACTION_PROMPT,
@@ -24,7 +24,7 @@ from packages.resume_screening.v1.services.prompts import (
 class DocumentParser:
     """Handles text extraction from various document formats.
 
-    Supports PDF and DOCX (pending) text extraction.
+    Supports PDF and DOCX text extraction.
     """
 
     @staticmethod
