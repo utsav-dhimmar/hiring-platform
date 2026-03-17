@@ -2,6 +2,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.logging_config import get_logger
@@ -37,6 +38,26 @@ async def login_user(
 ) -> Any:
     logger.info(f"Login attempt for email: {credentials.email}")
     return await user_service.login_user(db=db, credentials=credentials)
+
+
+@router.post(
+    "/login/swagger",
+    response_model=LoginResponse,
+    summary="Swagger login",
+)
+async def swagger_login_user(
+    *,
+    db: AsyncSession = Depends(get_db),
+    credentials: OAuth2PasswordRequestForm = Depends(),
+) -> Any:
+    logger.info(f"Swagger login attempt for email: {credentials.username}")
+    return await user_service.login_user(
+        db=db,
+        credentials=UserLogin(
+            email=credentials.username,
+            password=credentials.password,
+        ),
+    )
 
 
 @router.get("/{userid}", response_model=UserRead)

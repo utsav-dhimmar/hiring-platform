@@ -12,6 +12,7 @@ from app.v1.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+
 # TODO: validate through pydantic Field
 class Settings(BaseSettings):
     """Application settings loaded from environment variables.
@@ -46,7 +47,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "HR Platform"
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
-    SECRET_KEY: str = "" # generate using openssl rand -hex 32 on linux or any other way
+    SECRET_KEY: str = (
+        ""  # generate using openssl rand -hex 32 on linux or any other way
+    )
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
@@ -96,6 +99,11 @@ class Settings(BaseSettings):
     LANGEXTRACT_RETRY_ATTEMPTS: int = 3
     LANGEXTRACT_RETRY_DELAY: int = 60
 
+    # Resume uploads
+    RESUME_MAX_SIZE_MB: int = 5
+    RESUME_UPLOAD_DIR: str = "uploads/resumes"
+    ALLOWED_RESUME_EXTENSIONS: list[str] = ["pdf", "docx"]
+    RESUME_PROCESSING_MAX_WORKERS: int = 4
 
     # admin user
     ADMIN_ROLE_NAME: str = "admin"

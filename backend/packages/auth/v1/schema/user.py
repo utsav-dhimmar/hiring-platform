@@ -16,6 +16,7 @@ class UserModel(BaseModel):
 
     Includes sensitive information like password hashes and internal fields.
     """
+
     id: uuid.UUID
     full_name: str | None = None
     email: EmailStr
@@ -35,6 +36,7 @@ class UserRegister(BaseModel):
 
     Used when a user signs up on the platform.
     """
+
     email: EmailStr
     password: str
     full_name: str
@@ -45,6 +47,7 @@ class UserCreate(BaseModel):
 
     Includes role assignment and status.
     """
+
     email: EmailStr
     password: str
     full_name: str | None = None
@@ -54,6 +57,7 @@ class UserCreate(BaseModel):
 
 class UserLogin(BaseModel):
     """Schema for user login credentials."""
+
     email: EmailStr
     password: str
 
@@ -63,6 +67,7 @@ class UserCreateInternal(BaseModel):
 
     Includes the password hash instead of plain text password.
     """
+
     email: EmailStr
     password_hash: str
     full_name: str | None = None
@@ -75,6 +80,7 @@ class UserRead(BaseModel):
 
     Matches the user data returned in API responses, excluding sensitive fields.
     """
+
     id: uuid.UUID
     full_name: str | None = None
     email: EmailStr
@@ -91,6 +97,7 @@ class LoginResponse(BaseModel):
 
     Contains authentication tokens and the authenticated user's details.
     """
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
