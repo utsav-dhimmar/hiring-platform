@@ -55,6 +55,10 @@ def _fit_vector_dim(vector: list[float]) -> list[float]:
     return vector + ([0.0] * (target_dim - len(vector)))
 
 
+def preload_embedding_model() -> SentenceTransformer:
+    return get_embedding_model()
+
+
 def _encode_text(text: str, instruction: str) -> list[float]:
     normalized_text = text.strip()
     if not normalized_text:
