@@ -12,6 +12,7 @@ dependencies = [
     "fastcrud>=0.21.0",
     "langextract>=1.1.1",
     "pydantic>=2.12.5",
+    "pgvector>=0.3.0",
     "pydantic-settings>=2.11.0",
     "pymupdf>=1.27.2",
     "pytest>=9.0.2",

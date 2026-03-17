@@ -1,0 +1,91 @@
+import uuid
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
+
+from app.v1.db.base_class import Base
+
+
+def generate_uuid7():
+    return uuid.uuid7()
+
+
+class Resume(Base):
+    """Resume ORM model.
+
+    Represents a parsed resume linked to a candidate and a file.
+
+    Attributes:
+        id: The primary key (UUID7).
+        candidate_id: FK to the candidate this resume belongs to.
+        file_id: FK to the file record where the resume is stored.
+        uploaded_at: Timestamp when resume was uploaded.
+        parsed: Whether the resume has been parsed by AI/LLM.
+        parse_summary: Flexible JSONB extracted from the resume.
+        resume_score: AI score between 0 and 100.
+        pass_fail: Whether the candidate passed or failed screening.
+        pass_threshold: The threshold used for pass/fail (default 0.65).
+    """
+
+    __tablename__ = "resumes"
+
+    # PRIMARY KEY
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid7,
+    )
+
+    # FOREIGN KEYS
+    candidate_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("candidates.id"),
+        nullable=False,
+    )
+
+    file_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("files.id"),
+        nullable=False,
+    )
+
+    # TIMESTAMPS
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    # AI / PARSING FIELDS
+    parsed: Mapped[bool] = mapped_column(
+        Boolean(),
+        default=False,
+        nullable=False,
+    )
+
+    parse_summary: Mapped[dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
+
+    resume_score: Mapped[float | None] = mapped_column(
+        Numeric,
+        nullable=True,
+    )
+
+    pass_fail: Mapped[bool | None] = mapped_column(
+        Boolean(),
+        nullable=True,
+    )
+
+    pass_threshold: Mapped[float] = mapped_column(
+        Numeric,
+        default=0.65,
+        nullable=False,
+    )
+
+    # RELATIONSHIPS
+    candidate = relationship("Candidate", foreign_keys=[candidate_id])
+    file = relationship("File", foreign_keys=[file_id])

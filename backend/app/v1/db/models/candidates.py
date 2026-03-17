@@ -1,0 +1,102 @@
+import uuid
+from datetime import datetime
+
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import DateTime, ForeignKey, Numeric, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
+
+from app.v1.db.base_class import Base
+
+
+def generate_uuid7():
+    return uuid.uuid7()
+
+
+class Candidate(Base):
+    """Candidate ORM model.
+
+    Represents a candidate in the hiring platform.
+
+    Attributes:
+        id: The primary key of the candidate (UUID7).
+        first_name: First name of the candidate (may be input by HR).
+        last_name: Last name of the candidate (may be input by HR).
+        email: Email of the candidate (may be input by HR).
+        phone: Phone number of the candidate (may be input by HR).
+        applied_job_id: FK to the job the candidate applied for.
+        info: Extracted candidate info from resume (JSONB).
+        info_embedding: Vector embedding of candidate info.
+        rrf_score: Reciprocal Rank Fusion score for ranking.
+        current_status: Current status in hiring pipeline.
+        created_at: Timestamp when candidate was created.
+    """
+
+    __tablename__ = "candidates"
+
+    # PRIMARY KEY
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=generate_uuid7,
+    )
+
+    # CANDIDATE FIELDS (may be input by HR)
+    first_name: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    last_name: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    email: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    phone: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    # FOREIGN KEY
+    applied_job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("jobs.id"),
+        nullable=False,
+    )
+
+    # RESUME / AI FIELDS
+    info: Mapped[dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
+
+    info_embedding: Mapped[list | None] = mapped_column(
+        Vector(1536),
+        nullable=True,
+    )
+
+    # SCORING & STATUS
+    rrf_score: Mapped[float | None] = mapped_column(
+        Numeric(5, 4),
+        nullable=True,
+    )
+
+    current_status: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    # TIMESTAMPS
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    # RELATIONSHIPS
+    applied_job = relationship("Job", foreign_keys=[applied_job_id])

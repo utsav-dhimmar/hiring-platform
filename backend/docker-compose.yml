@@ -1,7 +1,7 @@
 services:
   db:
-    image: postgres:16
-    container_name: hr_postgres
+    image: pgvector/pgvector:pg16
+    container_name: postgres-pgvector
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -11,6 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./setup_extensions.sql:/docker-entrypoint-initdb.d/setup_extensions.sql
 
   api:
     build: .

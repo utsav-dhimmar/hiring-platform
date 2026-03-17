@@ -8,7 +8,7 @@ Settings are loaded from environment variables and .env files.
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.core.logging_config import get_logger
+from app.v1.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
