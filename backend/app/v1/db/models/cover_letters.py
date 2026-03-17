@@ -5,6 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector
 
 from app.v1.db.base_class import Base
 
@@ -35,6 +36,10 @@ class CoverLetter(Base):
         primary_key=True,
         default=generate_uuid7,
     )
+    cover_letter_embedding: Mapped[list | None] = mapped_column(
+    Vector(768),
+    nullable=True,
+)
 
     # FOREIGN KEYS
     candidate_id: Mapped[uuid.UUID] = mapped_column(

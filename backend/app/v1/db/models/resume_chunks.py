@@ -64,7 +64,7 @@ class ResumeChunk(Base):
 
     # VECTOR EMBEDDING (parsed_json + raw_text combined)
     chunk_embedding: Mapped[list | None] = mapped_column(
-        Vector(1536),
+        Vector(1024),
         nullable=True,
     )
 
