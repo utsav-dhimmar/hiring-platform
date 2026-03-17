@@ -10,8 +10,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging_config import get_logger
-from app.db.session import get_db
+from app.v1.core.logging_config import get_logger
+from app.v1.db.session import get_db
 from packages.auth.v1.schema.user import User as UserSchema
 from packages.auth.v1.schema.user import UserCreate
 from packages.auth.v1.services.user_service import user_service

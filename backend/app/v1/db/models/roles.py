@@ -6,8 +6,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from app.db.base_class import Base
-from packages.auth.v1.models.roleAndPermission import role_permission
+from app.v1.db.base_class import Base
+from app.v1.db.models.roleAndPermission import role_permission
 
 
 def generate_uuid7():

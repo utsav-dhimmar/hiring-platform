@@ -3,20 +3,20 @@ import uuid
 from sqlalchemy import Column, ForeignKey, Table
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.db.base_class import Base
+from app.v1.db.base_class import Base
 
 
-# Junction table for many-to-many relationship between Candidate and Skill
-# Tracks which candidate has which skill
-candidate_skills = Table(
-    "candidate_skills",
+# Junction table for many-to-many relationship between Job and Skill
+# A single job can require multiple skills
+# A single skill can appear in multiple jobs
+job_skills = Table(
+    "job_skills",
     Base.metadata,
-
     # FOREIGN KEYS
     Column(
-        "candidate_id",
+        "job_id",
         UUID(as_uuid=True),
-        ForeignKey("candidates.id"),
+        ForeignKey("jobs.id"),
         primary_key=True,
         nullable=False,
     ),

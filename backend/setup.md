@@ -4,7 +4,8 @@ This backend follows a package-based feature layout.
 
 Working code is split into:
 
-- `app/`: application entry point, config, database, and router composition
+- `app/`: application entry point and shared infrastructure
+- `app/v1/`: version 1 of the API (config, database, and router composition)
 - `packages/auth/v1/`: auth domain code for API routes, schemas, services, repositories, and models
 
 ## Prerequisites
@@ -103,7 +104,29 @@ sudo systemctl start docker
 sudo usermod -aG docker $USER
 ```
 
-**Running PostgreSQL and Redis with Docker:**
+### Running with Docker Compose (Recommended)
+
+Docker Compose manages both the application and its dependencies (PostgreSQL, Redis) in a single command.
+
+**1. Build and start services:**
+
+```bash
+docker-compose up --build
+```
+
+**2. Access the API:**
+
+The app will be available at `http://localhost:8000`.
+
+**3. Stopping services:**
+
+```bash
+docker-compose down
+```
+
+### Running PostgreSQL and Redis with Docker (Individual)
+
+If you prefer to run only the dependencies in Docker and the application locally:
 
 ```bash
 # PostgreSQL
@@ -199,14 +222,16 @@ The active package structure is:
 ```text
 app/
   main.py              # FastAPI entry point
-  api/
-    v1/
-      api.py           # Top-level router composition
-  core/
-    config.py          # Pydantic settings (.env)
-  db/
-    base_class.py      # SQLAlchemy declarative base
-    session.py         # Async engine + session maker
+  v1/
+    api/
+      main.py          # Top-level router composition
+    core/
+      config.py        # Pydantic settings (.env)
+      logging_config.py
+      middleware.py
+    db/
+      base_class.py      # SQLAlchemy declarative base
+      session.py         # Async engine + session maker
 
 packages/
   auth/
@@ -221,10 +246,10 @@ packages/
 
 Rules used in this repo:
 
-- shared config, middleware, exception handling, and database session stay in `app/`
-- feature-specific code lives under `packages/<feature>/<version>/`
-- `app/api/v1/api.py` acts as the top-level router composition layer
-- imports from shared infrastructure use `app.db.*` and `app.core.*` prefixes
+- Shared infrastructure and versioned core logic stay in `app/v1/`
+- Feature-specific code lives under `packages/<feature>/<version>/`
+- `app/v1/api/main.py` acts as the top-level router composition layer
+- imports from shared infrastructure use `app.v1.db.*` and `app.v1.core.*` prefixes
 
 ## Notes
 

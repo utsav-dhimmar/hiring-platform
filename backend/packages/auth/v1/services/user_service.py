@@ -8,8 +8,8 @@ including user creation, retrieval, and listing.
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging_config import get_logger
-from packages.auth.v1.models.user import User
+from app.v1.core.logging_config import get_logger
+from app.v1.db.models.user import User
 from packages.auth.v1.repository.user_repository import user_repository
 from packages.auth.v1.schema.user import UserCreate, UserCreateInternal
 

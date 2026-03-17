@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from app.db.base_class import Base
+from app.v1.db.base_class import Base
 
 
 def generate_uuid7():
