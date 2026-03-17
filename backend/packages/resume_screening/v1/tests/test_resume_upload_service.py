@@ -344,3 +344,153 @@ def test_background_processing_completes_and_persists_analysis(monkeypatch):
         "Python",
         "FastAPI",
     ]
+
+
+def test_background_processing_marks_resume_failed_when_analysis_errors(
+    monkeypatch,
+):
+    service = ResumeUploadService()
+
+    job_id = uuid.uuid4()
+    candidate_id = uuid.uuid4()
+    owner_id = uuid.uuid4()
+    file_id = uuid.uuid4()
+    resume_id = uuid.uuid4()
+
+    job = SimpleNamespace(
+        id=job_id,
+        title="Backend Engineer",
+        department="Engineering",
+        jd_text="Need Python, FastAPI, PostgreSQL and 4+ years experience.",
+        jd_json=None,
+        jd_embedding=None,
+        is_active=True,
+    )
+    candidate = SimpleNamespace(
+        id=candidate_id,
+        first_name=None,
+        last_name=None,
+    )
+    file_record = SimpleNamespace(
+        id=file_id,
+        owner_id=owner_id,
+        file_name="resume.pdf",
+        file_type="pdf",
+        size=123,
+        source_url="uploads/resumes/resume.pdf",
+    )
+    resume_record = SimpleNamespace(
+        id=resume_id,
+        parsed=False,
+        parse_summary={"processing": {"status": "queued"}},
+        resume_score=None,
+        pass_fail=None,
+        candidate=candidate,
+        file=file_record,
+    )
+
+    captured: dict[str, object] = {}
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+    class FakeSessionMaker:
+        def __call__(self):
+            return FakeSession()
+
+    async def fake_run_in_executor(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    async def fake_get_resume_for_job(db, *, job_id, resume_id):
+        return resume_record
+
+    async def fake_get_job(db, incoming_job_id):
+        return job
+
+    async def fake_rollback(db):
+        captured["rolled_back"] = True
+
+    async def fake_mark_resume_failed(db, *, resume_id, parse_summary):
+        captured["failed_resume_id"] = resume_id
+        captured["failed_summary"] = parse_summary
+
+    async def fake_commit(db):
+        captured["commit_count"] = captured.get("commit_count", 0) + 1
+
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.async_session_maker",
+        FakeSessionMaker(),
+    )
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.run_in_resume_executor",
+        fake_run_in_executor,
+    )
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.resume_upload_repository.get_resume_for_job",
+        fake_get_resume_for_job,
+    )
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.resume_upload_repository.get_job",
+        fake_get_job,
+    )
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.resume_upload_repository.rollback",
+        fake_rollback,
+    )
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.resume_upload_repository.mark_resume_failed",
+        fake_mark_resume_failed,
+    )
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.resume_upload_repository.commit",
+        fake_commit,
+    )
+    monkeypatch.setattr(
+        service,
+        "_process_resume",
+        lambda path: (
+            "Python FastAPI PostgreSQL 5 years",
+            {
+                "name": [{"text": "Jane Doe", "attributes": {}}],
+                "skills": [{"text": "Python, FastAPI", "attributes": {}}],
+                "experience": [],
+                "education": [],
+                "certifications": [],
+                "links": [],
+            },
+        ),
+    )
+    async def fake_get_job_skills(db, *, job_id):
+        return []
+
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.resume_upload_repository.get_job_skills",
+        fake_get_job_skills,
+    )
+    monkeypatch.setattr(
+        service,
+        "_generate_resume_insights",
+        lambda **kwargs: (_ for _ in ()).throw(
+            ValueError("LLM returned invalid JSON for resume analysis.")
+        ),
+    )
+
+    asyncio.run(
+        service._process_resume_in_background(
+            job_id=job_id,
+            resume_id=resume_id,
+            file_path="resume.pdf",
+        )
+    )
+
+    assert captured["rolled_back"] is True
+    assert captured["failed_resume_id"] == resume_id
+    assert captured["failed_summary"]["processing"]["status"] == "failed"
+    assert (
+        captured["failed_summary"]["processing"]["error"]
+        == "LLM returned invalid JSON for resume analysis."
+    )

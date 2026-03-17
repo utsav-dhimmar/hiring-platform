@@ -8,7 +8,7 @@ including candidate creation, file recording, and resume parsing summary storage
 from datetime import UTC, datetime
 import uuid
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -264,6 +264,24 @@ class ResumeUploadRepository:
         if owner_id is not None:
             query = query.where(FileRecord.owner_id == owner_id)
         return await db.scalar(query)
+
+    async def mark_resume_failed(
+        self,
+        db: AsyncSession,
+        *,
+        resume_id: uuid.UUID,
+        parse_summary: dict[str, object],
+    ) -> None:
+        await db.execute(
+            update(Resume)
+            .where(Resume.id == resume_id)
+            .values(
+                parsed=False,
+                parse_summary=parse_summary,
+                resume_score=None,
+                pass_fail=None,
+            )
+        )
 
     async def update_job_embedding(
         self,

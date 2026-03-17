@@ -338,17 +338,20 @@ class ResumeUploadService:
         self,
         *,
         db: AsyncSession,
-        resume_record: object,
+        resume_id: uuid.UUID,
+        current_parse_summary: dict[str, object] | None,
         error_message: str,
     ) -> None:
-        resume_record.parsed = False
-        resume_record.parse_summary = self._merge_processing_info(
-            getattr(resume_record, "parse_summary", None),
+        failed_summary = self._merge_processing_info(
+            current_parse_summary,
             status_value="failed",
             error=error_message,
         )
-        resume_record.resume_score = None
-        resume_record.pass_fail = None
+        await resume_upload_repository.mark_resume_failed(
+            db,
+            resume_id=resume_id,
+            parse_summary=failed_summary,
+        )
         await resume_upload_repository.commit(db)
 
     async def _process_resume_in_background(
@@ -412,7 +415,10 @@ class ResumeUploadService:
             if job is None:
                 await self._mark_resume_failed(
                     db=db,
-                    resume_record=resume_record,
+                    resume_id=resume_record.id,
+                    current_parse_summary=getattr(
+                        resume_record, "parse_summary", None
+                    ),
                     error_message="Job not found during background processing.",
                 )
                 return
@@ -594,6 +600,9 @@ class ResumeUploadService:
                     resume_id=resume_id,
                 )
             except Exception as exc:
+                parse_summary_snapshot = getattr(
+                    resume_record, "parse_summary", None
+                )
                 await resume_upload_repository.rollback(db)
                 logger.exception(
                     "resume_processing failed job_id=%s resume_id=%s",
@@ -602,7 +611,8 @@ class ResumeUploadService:
                 )
                 await self._mark_resume_failed(
                     db=db,
-                    resume_record=resume_record,
+                    resume_id=resume_record.id,
+                    current_parse_summary=parse_summary_snapshot,
                     error_message=str(exc),
                 )
                 self._log_stage(
