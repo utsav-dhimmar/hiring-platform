@@ -1,6 +1,15 @@
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class ResumeMatchAnalysis(BaseModel):
+    match_percentage: float = Field(ge=0, le=100)
+    skill_gap_analysis: str
+    experience_alignment: str
+    strength_summary: str
+    missing_skills: list[str]
+    extraordinary_points: list[str]
 
 
 class ResumeUploadResponse(BaseModel):
@@ -14,3 +23,4 @@ class ResumeUploadResponse(BaseModel):
     size: int
     source_url: str
     parsed: bool
+    analysis: ResumeMatchAnalysis

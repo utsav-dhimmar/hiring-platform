@@ -15,6 +15,7 @@ from app.v1.db.models.candidate_skills import candidate_skills
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.files import File as FileRecord
 from app.v1.db.models.jobs import Job
+from app.v1.db.models.job_skills import job_skills
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.skills import Skill
@@ -139,6 +140,8 @@ class ResumeUploadRepository:
         candidate_id: uuid.UUID,
         file_id: uuid.UUID,
         parse_summary: dict[str, object],
+        resume_score: float | None = None,
+        pass_fail: bool | None = None,
     ) -> Resume:
         """Create a new resume record with parsing summary.
 
@@ -156,6 +159,8 @@ class ResumeUploadRepository:
             file_id=file_id,
             parsed=True,
             parse_summary=parse_summary,
+            resume_score=resume_score,
+            pass_fail=pass_fail,
         )
         db.add(resume_record)
         await db.flush()
@@ -168,6 +173,7 @@ class ResumeUploadRepository:
         resume_id: uuid.UUID,
         parsed_json: dict[str, object],
         raw_text: str,
+        chunk_embedding: list[float] | None = None,
     ) -> None:
         """Create a new resume chunk for detailed extraction data.
 
@@ -183,6 +189,7 @@ class ResumeUploadRepository:
                 parsed_at=datetime.now(UTC),
                 parsed_json=parsed_json,
                 raw_text=raw_text,
+                chunk_embedding=chunk_embedding,
             )
         )
 
@@ -194,6 +201,7 @@ class ResumeUploadRepository:
         first_name: str | None,
         last_name: str | None,
         info: dict[str, object],
+        info_embedding: list[float] | None = None,
     ) -> Candidate:
         """Update a candidate's profile information.
 
@@ -210,8 +218,53 @@ class ResumeUploadRepository:
         candidate.first_name = first_name or candidate.first_name
         candidate.last_name = last_name or candidate.last_name
         candidate.info = info
+        candidate.info_embedding = info_embedding
         await db.flush()
         return candidate
+
+    async def get_job_skills(
+        self,
+        db: AsyncSession,
+        *,
+        job_id: uuid.UUID,
+    ) -> list[Skill]:
+        return list(
+            (
+                await db.scalars(
+                    select(Skill)
+                    .join(job_skills, job_skills.c.skill_id == Skill.id)
+                    .where(job_skills.c.job_id == job_id)
+                )
+            ).all()
+        )
+
+    async def update_job_embedding(
+        self,
+        db: AsyncSession,
+        *,
+        job: Job,
+        embedding: list[float],
+    ) -> None:
+        job.jd_embedding = embedding
+        await db.flush()
+
+    async def update_skill_embeddings(
+        self,
+        db: AsyncSession,
+        *,
+        embeddings_by_skill_id: dict[uuid.UUID, list[float]],
+    ) -> None:
+        if not embeddings_by_skill_id:
+            return
+
+        skills = (
+            await db.scalars(
+                select(Skill).where(Skill.id.in_(list(embeddings_by_skill_id)))
+            )
+        ).all()
+        for skill in skills:
+            skill.skill_embedding = embeddings_by_skill_id[skill.id]
+        await db.flush()
 
     async def sync_candidate_skills(
         self,
@@ -219,7 +272,7 @@ class ResumeUploadRepository:
         *,
         candidate_id: uuid.UUID,
         skill_names: list[str],
-    ) -> None:
+    ) -> list[Skill]:
         """Synchronize a candidate's skills, creating new skills if necessary.
 
         Args:
@@ -228,7 +281,7 @@ class ResumeUploadRepository:
             skill_names: A list of skill names to associate with the candidate.
         """
         if not skill_names:
-            return
+            return []
 
         existing_skills = (
             await db.scalars(select(Skill).where(Skill.name.in_(skill_names)))
@@ -258,6 +311,7 @@ class ResumeUploadRepository:
         ]
         if rows_to_insert:
             await db.execute(insert(candidate_skills), rows_to_insert)
+        return list(skills_by_name.values())
 
     async def commit(self, db: AsyncSession) -> None:
         """Commit the current transaction.
