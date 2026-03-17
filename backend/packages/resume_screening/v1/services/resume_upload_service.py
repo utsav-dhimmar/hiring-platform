@@ -16,7 +16,20 @@ from app.v1.core.config import settings
 from app.v1.core.resume_executor import run_in_resume_executor
 from packages.auth.v1.schema.user import UserRead
 from packages.resume_screening.v1.repository import resume_upload_repository
-from packages.resume_screening.v1.schemas.upload import ResumeUploadResponse
+from packages.resume_screening.v1.schemas.upload import (
+    ResumeMatchAnalysis,
+    ResumeUploadResponse,
+)
+from packages.resume_screening.v1.services.embeddings import (
+    ResumeJdAnalyzer,
+    build_candidate_text,
+    build_job_text,
+    build_skill_text,
+    encode_jd,
+    encode_resume,
+    encode_skill,
+    get_semantic_score,
+)
 from packages.resume_screening.v1.services.extractor import (
     DocumentParser,
     ResumeLLMExtractor,
@@ -37,6 +50,7 @@ class ResumeUploadService:
 
     def __init__(self) -> None:
         self.extractor = ResumeLLMExtractor()
+        self.analyzer = ResumeJdAnalyzer()
 
     def _process_resume(
         self,
@@ -55,6 +69,58 @@ class ResumeUploadService:
         extracted = self.extractor.extract_resume_info(raw_text)
         normalized = normalize_extractions(extracted)
         return raw_text, normalized
+
+    def _generate_resume_insights(
+        self,
+        *,
+        raw_text: str,
+        parsed_summary: dict[str, object],
+        job: object,
+        job_skills: list[object],
+        candidate_skills: list[str],
+    ) -> dict[str, object]:
+        candidate_text = build_candidate_text(parsed_summary, raw_text)
+        job_text = build_job_text(job)
+
+        job_embedding = encode_jd(job_text) if job_text else None
+        candidate_embedding = encode_resume(candidate_text) if candidate_text else None
+        chunk_embedding = encode_resume(raw_text) if raw_text.strip() else candidate_embedding
+
+        skill_embeddings: dict[uuid.UUID, list[float]] = {}
+        for skill in job_skills:
+            skill_text = build_skill_text(skill)
+            if skill_text and getattr(skill, "skill_embedding", None) is None:
+                skill_embeddings[skill.id] = encode_skill(skill_text)
+
+        semantic_score = get_semantic_score(candidate_text, job_text)
+        analysis = self.analyzer.analyze(
+            resume_text=candidate_text,
+            job_text=job_text,
+            job_skills=[skill.name for skill in job_skills],
+            candidate_skills=candidate_skills,
+            semantic_score=semantic_score,
+        )
+
+        return {
+            "job_embedding": job_embedding,
+            "candidate_embedding": candidate_embedding,
+            "chunk_embedding": chunk_embedding,
+            "skill_embeddings": skill_embeddings,
+            "analysis": analysis,
+        }
+
+    def _generate_skill_embeddings(
+        self,
+        skills: list[object],
+    ) -> dict[uuid.UUID, list[float]]:
+        embeddings: dict[uuid.UUID, list[float]] = {}
+        for skill in skills:
+            if getattr(skill, "skill_embedding", None) is not None:
+                continue
+            skill_text = build_skill_text(skill)
+            if skill_text:
+                embeddings[skill.id] = encode_skill(skill_text)
+        return embeddings
 
     async def upload_resume_for_job(
         self,
@@ -174,13 +240,54 @@ class ResumeUploadService:
             "certifications": normalized["certifications"],
             "links": normalized["links"],
         }
+        extracted_skill_names = extract_skill_names(normalized)
+        job_skills = await resume_upload_repository.get_job_skills(db, job_id=job_id)
+
+        try:
+            insights = await run_in_resume_executor(
+                self._generate_resume_insights,
+                raw_text=raw_text,
+                parsed_summary=parsed_summary,
+                job=job,
+                job_skills=job_skills,
+                candidate_skills=extracted_skill_names,
+            )
+        except Exception as exc:
+            target_path.unlink(missing_ok=True)
+            await resume_upload_repository.rollback(db)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Resume analysis failed: {exc}",
+            ) from exc
+
+        if insights["job_embedding"] and job.jd_embedding is None:
+            await resume_upload_repository.update_job_embedding(
+                db,
+                job=job,
+                embedding=insights["job_embedding"],
+            )
+
+        await resume_upload_repository.update_skill_embeddings(
+            db,
+            embeddings_by_skill_id=insights["skill_embeddings"],
+        )
+
         await resume_upload_repository.update_candidate_profile(
             db,
             candidate=candidate,
             first_name=first_name,
             last_name=last_name,
             info=parsed_summary,
+            info_embedding=insights["candidate_embedding"],
         )
+
+        analysis = ResumeMatchAnalysis.model_validate(insights["analysis"])
+        resume_score = analysis.match_percentage
+        pass_fail = resume_score >= 65.0
+        parse_summary_with_analysis = {
+            **parsed_summary,
+            "analysis": analysis.model_dump(),
+        }
 
         file_record = await resume_upload_repository.create_file_record(
             db,
@@ -196,20 +303,31 @@ class ResumeUploadService:
             db,
             candidate_id=candidate.id,
             file_id=file_record.id,
-            parse_summary=parsed_summary,
+            parse_summary=parse_summary_with_analysis,
+            resume_score=resume_score,
+            pass_fail=pass_fail,
         )
 
         await resume_upload_repository.create_resume_chunk(
             db,
             resume_id=resume_record.id,
-            parsed_json=parsed_summary,
+            parsed_json=parse_summary_with_analysis,
             raw_text=raw_text,
+            chunk_embedding=insights["chunk_embedding"],
         )
 
-        await resume_upload_repository.sync_candidate_skills(
+        candidate_skill_records = await resume_upload_repository.sync_candidate_skills(
             db,
             candidate_id=candidate.id,
-            skill_names=extract_skill_names(normalized),
+            skill_names=extracted_skill_names,
+        )
+        candidate_skill_embeddings = await run_in_resume_executor(
+            self._generate_skill_embeddings,
+            candidate_skill_records,
+        )
+        await resume_upload_repository.update_skill_embeddings(
+            db,
+            embeddings_by_skill_id=candidate_skill_embeddings,
         )
 
         await resume_upload_repository.commit(db)
@@ -230,6 +348,7 @@ class ResumeUploadService:
             size=file_record.size or file_size,
             source_url=file_record.source_url or target_path.as_posix(),
             parsed=resume_record.parsed,
+            analysis=analysis,
         )
 
 
