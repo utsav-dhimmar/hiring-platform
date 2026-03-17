@@ -30,6 +30,7 @@ uv sync
 
 ### Running the Application
 
+#### Locally
 Start the development server:
 
 ```bash
@@ -38,6 +39,13 @@ uv run fastapi dev app/main.py
 
 ```bash
 uv run uvicorn app.main:app --reload
+```
+
+#### With Docker
+Start the application and database:
+
+```bash
+docker-compose up --build
 ```
 
 The API will be available at `http://localhost:8000`.
@@ -50,20 +58,15 @@ Documentation:
 
 ```text
 backend/
-├── app/                     # Core application module
-│   ├── main.py              # FastAPI entry point
-│   ├── api/v1/api.py        # Top-level router composition
-│   ├── core/config.py       # Pydantic settings (.env)
-│   └── db/                  # Database session & base model
-│       ├── base_class.py
-│       └── session.py
-├── packages/                # Feature packages
+├── app/                     # Main entry points
+│   └── v1/                  # API version 1
+│       ├── api/             # API router composition
+│       ├── core/            # App configurations & settings
+│       └── db/              # Database session & models
+├── packages/                # Shared feature packages
 │   └── auth/v1/             # Auth domain
-│       ├── api/routes/      # API route handlers
-│       ├── models/          # SQLAlchemy models
-│       ├── repository/      # Data access layer
-│       ├── schema/          # Pydantic schemas
-│       └── services/        # Business logic
-├── pyproject.toml
-└── .env
+├── pyproject.toml           # Project dependencies
+├── Dockerfile               # Docker configuration
+├── docker-compose.yml       # Docker compose setup
+└── .env                     # Environment variables
 ```

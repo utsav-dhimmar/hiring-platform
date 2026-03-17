@@ -5,84 +5,102 @@ This module defines Pydantic models for user data validation
 and serialization in the API.
 """
 
-from typing import Optional
+import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
-class UserBase(BaseModel):
-    """Base user schema with common attributes.
+class UserModel(BaseModel):
+    """Full database model representation of a user.
 
-    Attributes:
-        email: The email address of the user.
-        is_active: Whether the user account is active.
-        full_name: The full name of the user.
+    Includes sensitive information like password hashes and internal fields.
     """
 
-    email: Optional[EmailStr] = None
-    is_active: Optional[bool] = True
-    full_name: Optional[str] = None
-
-
-class UserCreate(BaseModel):
-    """Schema for creating a new user.
-
-    Attributes:
-        email: The email address of the user (required).
-        password: The password for the user (required).
-        full_name: The full name of the user (optional).
-    """
-
+    id: uuid.UUID
+    full_name: str | None = None
     email: EmailStr
-    password: str
-    full_name: Optional[str] = None
-
-
-class UserCreateInternal(UserBase):
-    """Internal user creation schema with hashed password.
-
-    Attributes:
-        email: The email address of the user (required).
-        hashed_password: The hashed password.
-    """
-
-    email: EmailStr
-    hashed_password: str
-
-
-class UserUpdate(UserBase):
-    """Schema for updating an existing user.
-
-    Attributes:
-        password: The new password for the user (optional).
-    """
-
-    password: Optional[str] = None
-
-
-class UserInDBBase(UserBase):
-    """Base schema for user data from database.
-
-    Attributes:
-        id: The primary key of the user (UUID7).
-    """
-
-    id: Optional[str] = None
+    password_hash: str
+    refresh_token: str | None = None
+    refresh_token_expires_at: datetime | None = None
+    is_active: bool = True
+    role_id: uuid.UUID
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class User(UserInDBBase):
-    """Public user schema."""
+class UserRegister(BaseModel):
+    """Schema for initial user registration.
 
-    pass
-
-
-class UserInDB(UserInDBBase):
-    """Internal user schema with hashed password.
-
-    Attributes:
-        hashed_password: The hashed password of the user.
+    Used when a user signs up on the platform.
     """
 
-    hashed_password: str
+    email: EmailStr
+    password: str
+    full_name: str
+
+
+class UserCreate(BaseModel):
+    """Schema for creating a user (internal/admin use).
+
+    Includes role assignment and status.
+    """
+
+    email: EmailStr
+    password: str
+    full_name: str | None = None
+    is_active: bool = True
+    role_id: uuid.UUID
+
+
+class UserLogin(BaseModel):
+    """Schema for user login credentials."""
+
+    email: EmailStr
+    password: str
+
+
+class UserCreateInternal(BaseModel):
+    """Internal schema for creating a user in the database.
+
+    Includes the password hash instead of plain text password.
+    """
+
+    email: EmailStr
+    password_hash: str
+    full_name: str | None = None
+    is_active: bool = True
+    role_id: uuid.UUID
+
+
+class UserRead(BaseModel):
+    """Schema for reading user information.
+
+    Matches the user data returned in API responses, excluding sensitive fields.
+    """
+
+    id: uuid.UUID
+    full_name: str | None = None
+    email: EmailStr
+    is_active: bool = True
+    role_id: uuid.UUID
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LoginResponse(BaseModel):
+    """Schema for the login response.
+
+    Contains authentication tokens and the authenticated user's details.
+    """
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_at: datetime
+    refresh_token_expires_at: datetime
+    user: UserRead
