@@ -11,5 +11,6 @@ dependencies = [
     "fastcrud>=0.21.0",
     "pgvector>=0.3.0",
     "pydantic-settings>=2.11.0",
+    "sentence-transformers>=5.3.0",
     "sqlalchemy>=2.0.44",
 ]
