@@ -1,3 +1,10 @@
+"""
+Resume upload routes module.
+
+This module defines the API endpoints for uploading resumes, checking status,
+and retrieving candidate/resume lists for specific jobs.
+"""
+
 import uuid
 
 from fastapi import APIRouter, Depends, File as FastAPIFile, UploadFile, status
@@ -30,6 +37,20 @@ async def upload_resume_for_job(
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
 ) -> ResumeUploadResponse:
+    """Upload a resume for a specific job.
+
+    This endpoint accepts a resume file, saves it to disk, and initiates
+    asynchronous processing to extract information and analyze it.
+
+    Args:
+        job_id: The UUID of the job the resume is for.
+        resume: The uploaded resume file.
+        db: The async database session.
+        current_user: The authenticated user performing the upload.
+
+    Returns:
+        A response indicating the upload was successful and processing has started.
+    """
     return await resume_upload_service.upload_resume_for_job(
         db=db,
         job_id=job_id,
@@ -49,6 +70,17 @@ async def get_resume_status(
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
 ) -> ResumeStatusResponse:
+    """Retrieve the status and analysis results for a specific resume.
+
+    Args:
+        job_id: The UUID of the job.
+        resume_id: The UUID of the resume.
+        db: The async database session.
+        current_user: The authenticated user.
+
+    Returns:
+        The current processing status and analysis of the resume.
+    """
     return await resume_upload_service.get_resume_status(
         db=db,
         job_id=job_id,
@@ -67,6 +99,16 @@ async def get_job_candidates(
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
 ) -> JobCandidatesResponse:
+    """Get all candidates associated with a specific job.
+
+    Args:
+        job_id: The UUID of the job.
+        db: The async database session.
+        current_user: The authenticated user.
+
+    Returns:
+        A list of candidates who have applied for the job.
+    """
     return await resume_upload_service.get_candidates_for_job(
         db=db,
         job_id=job_id,
@@ -83,6 +125,16 @@ async def get_job_resumes(
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
 ) -> JobResumesResponse:
+    """Get all resume records associated with a specific job.
+
+    Args:
+        job_id: The UUID of the job.
+        db: The async database session.
+        current_user: The authenticated user.
+
+    Returns:
+        A list of resumes that have been uploaded for the job.
+    """
     return await resume_upload_service.get_resumes_for_job(
         db=db,
         job_id=job_id,

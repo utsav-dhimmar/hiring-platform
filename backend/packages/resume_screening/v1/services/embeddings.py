@@ -27,6 +27,8 @@ SKILL_INSTRUCTION = (
 
 
 class ResumeJobAnalysisResult(BaseModel):
+    """Result of the LLM-based analysis comparing a resume to a job description."""
+
     match_percentage: float = Field(ge=0, le=100)
     skill_gap_analysis: str
     experience_alignment: str
@@ -37,6 +39,11 @@ class ResumeJobAnalysisResult(BaseModel):
 
 @lru_cache(maxsize=1)
 def get_embedding_model() -> SentenceTransformer:
+    """Retrieve the shared singleton instance of the embedding model.
+
+    Returns:
+        The loaded SentenceTransformer model.
+    """
     return SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
 
 
@@ -45,6 +52,16 @@ def preload_embedding_model() -> SentenceTransformer:
 
 
 def _fit_vector_dim(vector: list[float]) -> list[float]:
+    """Ensure the vector matches the configured target dimension.
+
+    Truncates or pads the vector with zeros as needed.
+
+    Args:
+        vector: The input embedding vector.
+
+    Returns:
+        The adjusted vector matching the target dimension.
+    """
     target_dim = settings.EMBEDDING_VECTOR_DIM
     if len(vector) == target_dim:
         return vector
@@ -58,6 +75,15 @@ def preload_embedding_model() -> SentenceTransformer:
 
 
 def _encode_text(text: str, instruction: str) -> list[float]:
+    """Internal helper to encode text into a vector using an optional instruction.
+
+    Args:
+        text: The text string to encode.
+        instruction: The task-specific instruction prefix.
+
+    Returns:
+        A list of floats representing the embedding vector.
+    """
     normalized_text = text.strip()
     if not normalized_text:
         return []
@@ -75,18 +101,54 @@ def _encode_text(text: str, instruction: str) -> list[float]:
 
 
 def encode_resume(text: str) -> list[float]:
+    """Encode resume text into a vector embedding.
+
+    Args:
+        text: Raw or processed resume text.
+
+    Returns:
+        Embedding vector.
+    """
     return _encode_text(text, RESUME_INSTRUCTION)
 
 
 def encode_jd(text: str) -> list[float]:
+    """Encode job description text into a vector embedding.
+
+    Args:
+        text: Job description text.
+
+    Returns:
+        Embedding vector.
+    """
     return _encode_text(text, JD_INSTRUCTION)
 
 
 def encode_skill(text: str) -> list[float]:
+    """Encode skill name/description into a vector embedding.
+
+    Args:
+        text: Skill text.
+
+    Returns:
+        Embedding vector.
+    """
     return _encode_text(text, SKILL_INSTRUCTION)
 
 
 def get_semantic_score(resume_text: str, jd_text: str) -> float:
+    """Calculate the semantic similarity score between resume and JD text.
+
+    Encodes both texts and computes their cosine similarity (dot product of
+    normalized vectors).
+
+    Args:
+        resume_text: The resume text.
+        jd_text: The job description text.
+
+    Returns:
+        A score between 0.0 and 100.0.
+    """
     if not resume_text.strip() or not jd_text.strip():
         return 0.0
 
@@ -102,6 +164,15 @@ def get_semantic_score_from_embeddings(
     resume_embedding: list[float],
     jd_embedding: list[float],
 ) -> float:
+    """Compute semantic score from pre-calculated embedding vectors.
+
+    Args:
+        resume_embedding: Pre-calculated resume vector.
+        jd_embedding: Pre-calculated JD vector.
+
+    Returns:
+        A score between 0.0 and 100.0.
+    """
     if not resume_embedding or not jd_embedding:
         return 0.0
 
@@ -114,6 +185,14 @@ def get_semantic_score_from_embeddings(
 
 
 def build_job_text(job: object) -> str:
+    """Construct a searchable/embeddable text representation of a job.
+
+    Args:
+        job: The job model object.
+
+    Returns:
+        A concatenated string of job title, department, and description.
+    """
     parts: list[str] = []
 
     title = getattr(job, "title", None)
@@ -137,6 +216,14 @@ def build_job_text(job: object) -> str:
 
 
 def build_skill_text(skill: object) -> str:
+    """Construct a text representation of a skill for embedding.
+
+    Args:
+        skill: The skill model object.
+
+    Returns:
+        String containing skill name and description.
+    """
     name = getattr(skill, "name", "") or ""
     description = getattr(skill, "description", None)
     if description:
@@ -148,6 +235,17 @@ def build_candidate_text(
     parsed_summary: dict[str, object],
     raw_text: str,
 ) -> str:
+    """Construct a comprehensive text representation of a candidate's resume.
+
+    Aggregates structured fields and raw text for embedding and analysis.
+
+    Args:
+        parsed_summary: Dictionary of extracted resume fields.
+        raw_text: The full raw text of the resume.
+
+    Returns:
+        Concatenated candidate information string.
+    """
     parts: list[str] = []
 
     name = parsed_summary.get("name")
@@ -192,6 +290,8 @@ def build_candidate_text(
 
 
 class ResumeJdAnalyzer:
+    """Analyzer service for comparing resumes against job descriptions using LLMs."""
+
     def __init__(self) -> None:
         self.model = OllamaLanguageModel(
             model_id=settings.OLLAMA_MODEL,
@@ -210,6 +310,21 @@ class ResumeJdAnalyzer:
         candidate_skills: list[str],
         semantic_score: float,
     ) -> dict[str, object]:
+        """Perform a detailed LLM analysis of a resume's suitability for a job.
+
+        Args:
+            resume_text: The constructed resume text.
+            job_text: The constructed job description text.
+            job_skills: List of skills required for the job.
+            candidate_skills: List of skills found in the resume.
+            semantic_score: The pre-calculated semantic similarity score.
+
+        Returns:
+            A dictionary containing match percentage and detailed analysis.
+
+        Raises:
+            ValueError: If the LLM returns an invalid or empty response.
+        """
         prompt = (
             "You are an expert hiring analyst.\n"
             "Compare the resume against the job description and return only JSON.\n"

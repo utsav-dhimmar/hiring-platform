@@ -1,15 +1,25 @@
 import uuid
 from datetime import datetime
+"""
+Upload schemas module.
+
+This module defines Pydantic models for resume upload requests, responses,
+and processing status information.
+"""
 
 from pydantic import BaseModel, Field
 
 
 class ResumeProcessingInfo(BaseModel):
+    """Information about the background processing status of a resume."""
+
     status: str
     error: str | None = None
 
 
 class ResumeMatchAnalysis(BaseModel):
+    """Structured analysis of a resume's match with a job description."""
+
     match_percentage: float = Field(ge=0, le=100)
     skill_gap_analysis: str
     experience_alignment: str
@@ -19,6 +29,8 @@ class ResumeMatchAnalysis(BaseModel):
 
 
 class ResumeUploadResponse(BaseModel):
+    """Response returned after a resume is successfully uploaded."""
+
     message: str
     job_id: uuid.UUID
     candidate_id: uuid.UUID
@@ -34,6 +46,8 @@ class ResumeUploadResponse(BaseModel):
 
 
 class ResumeStatusResponse(BaseModel):
+    """Response containing the current status and analysis of a resume."""
+
     job_id: uuid.UUID
     candidate_id: uuid.UUID
     file_id: uuid.UUID
@@ -48,6 +62,8 @@ class ResumeStatusResponse(BaseModel):
 
 
 class JobResumeInfoResponse(BaseModel):
+    """Detailed information about a resume associated with a job."""
+
     job_id: uuid.UUID
     candidate_id: uuid.UUID
     candidate_first_name: str | None = None
@@ -71,12 +87,16 @@ from packages.jobs.v1.schema.job import JobRead
 
 
 class JobResumesResponse(BaseModel):
+    """Response containing a list of all resumes for a specific job."""
+
     job_id: uuid.UUID
     job: JobRead | None = None
     resumes: list[JobResumeInfoResponse]
 
 
 class CandidateResponse(BaseModel):
+    """Response representing a candidate and their resume status."""
+
     id: uuid.UUID
     first_name: str | None = None
     last_name: str | None = None
@@ -92,5 +112,7 @@ class CandidateResponse(BaseModel):
 
 
 class JobCandidatesResponse(BaseModel):
+    """Response containing a list of all candidates for a specific job."""
+
     job_id: uuid.UUID
     candidates: list[CandidateResponse]

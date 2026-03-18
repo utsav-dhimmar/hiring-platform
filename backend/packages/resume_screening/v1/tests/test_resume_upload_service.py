@@ -16,6 +16,7 @@ from packages.resume_screening.v1.services.resume_upload_service import (
 def test_upload_resume_returns_queued_response_and_schedules_processing(
     monkeypatch,
 ):
+    """Test that a valid resume upload returns a queued status and triggers background tasks."""
     service = ResumeUploadService()
 
     job_id = uuid.uuid4()
@@ -137,6 +138,7 @@ def test_upload_resume_returns_queued_response_and_schedules_processing(
 
 
 def test_background_processing_completes_and_persists_analysis(monkeypatch):
+    """Test the full background processing flow from extraction to DB persistence."""
     service = ResumeUploadService()
 
     job_id = uuid.uuid4()
@@ -348,6 +350,7 @@ def test_background_processing_completes_and_persists_analysis(monkeypatch):
 def test_background_processing_marks_resume_failed_when_analysis_errors(
     monkeypatch,
 ):
+    """Test that failures in the analysis stage properly mark the resume as failed in the DB."""
     service = ResumeUploadService()
 
     job_id = uuid.uuid4()
@@ -497,6 +500,7 @@ def test_background_processing_marks_resume_failed_when_analysis_errors(
 
 
 def test_get_resumes_for_job_returns_all_uploaded_resume_info(monkeypatch):
+    """Test retrieval of all resumes for a specific job, including their status and analysis."""
     service = ResumeUploadService()
 
     job_id = uuid.uuid4()

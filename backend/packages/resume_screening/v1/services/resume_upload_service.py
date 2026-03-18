@@ -72,6 +72,15 @@ class ResumeUploadService:
         status_value: str,
         error: str | None = None,
     ) -> dict[str, str]:
+        """Build a dictionary representing resume processing status.
+
+        Args:
+            status_value: The string status (e.g., 'queued', 'processing', 'completed', 'failed').
+            error: Optional error message if the processing failed.
+
+        Returns:
+            A dictionary with status and optional error.
+        """
         processing = {"status": status_value}
         if error:
             processing["error"] = error
@@ -84,6 +93,16 @@ class ResumeUploadService:
         status_value: str,
         error: str | None = None,
     ) -> dict[str, object]:
+        """Merge new processing info into an existing parse summary dictionary.
+
+        Args:
+            parse_summary: Existing summary or None.
+            status_value: New status string.
+            error: Optional new error message.
+
+        Returns:
+            Updated parse summary dictionary.
+        """
         summary = dict(parse_summary or {})
         summary["processing"] = ResumeUploadService._build_processing_info(
             status_value=status_value,
@@ -95,6 +114,14 @@ class ResumeUploadService:
     def _parse_processing_info(
         parse_summary: dict[str, object] | None,
     ) -> ResumeProcessingInfo:
+        """Extract ResumeProcessingInfo schema from a raw parse summary dict.
+
+        Args:
+            parse_summary: The raw dictionary containing processing info.
+
+        Returns:
+            A validated ResumeProcessingInfo object.
+        """
         processing = parse_summary.get("processing", {}) if parse_summary else {}
         status_value = str(processing.get("status", "queued"))
         error = processing.get("error")
@@ -109,6 +136,15 @@ class ResumeUploadService:
         job_id: uuid.UUID,
         resume_record: object,
     ) -> ResumeStatusResponse:
+        """Convert a resume database record into a ResumeStatusResponse schema.
+
+        Args:
+            job_id: The job ID.
+            resume_record: The Resume ORM object.
+
+        Returns:
+            A populated ResumeStatusResponse.
+        """
         parse_summary = getattr(resume_record, "parse_summary", None) or {}
         analysis_payload = parse_summary.get("analysis")
         analysis = (
@@ -141,6 +177,17 @@ class ResumeUploadService:
         file_record: object,
         resume_record: object,
     ) -> ResumeUploadResponse:
+        """Convert upload records into a ResumeUploadResponse schema.
+
+        Args:
+            job_id: The job ID.
+            candidate_id: The candidate ID.
+            file_record: The FileRecord ORM object.
+            resume_record: The Resume ORM object.
+
+        Returns:
+            A populated ResumeUploadResponse.
+        """
         processing = self._parse_processing_info(
             getattr(resume_record, "parse_summary", None)
         )
@@ -165,6 +212,15 @@ class ResumeUploadService:
         job_id: uuid.UUID,
         resume_record: object,
     ) -> JobResumeInfoResponse:
+        """Convert a resume record into a JobResumeInfoResponse schema.
+
+        Args:
+            job_id: The job ID.
+            resume_record: The Resume ORM object.
+
+        Returns:
+            A populated JobResumeInfoResponse.
+        """
         parse_summary = getattr(resume_record, "parse_summary", None) or {}
         analysis_payload = parse_summary.get("analysis")
         analysis = (
@@ -206,6 +262,13 @@ class ResumeUploadService:
         started_at: float,
         **context: object,
     ) -> None:
+        """Log a processing stage duration and context.
+
+        Args:
+            stage: Name of the stage.
+            started_at: Performance counter start time.
+            **context: Additional key-value pairs for the log message.
+        """
         logger.info(
             "resume_processing stage=%s duration_ms=%.2f %s",
             stage,
@@ -219,6 +282,12 @@ class ResumeUploadService:
         event: str,
         **context: object,
     ) -> None:
+        """Log a specific event with context.
+
+        Args:
+            event: Name of the event.
+            **context: Additional key-value pairs for the log message.
+        """
         logger.info(
             "resume_processing event=%s %s",
             event,
@@ -232,6 +301,13 @@ class ResumeUploadService:
         resume_id: uuid.UUID,
         file_path: str,
     ) -> None:
+        """Schedule the resume processing task in the background.
+
+        Args:
+            job_id: The job ID.
+            resume_id: The resume ID.
+            file_path: Path to the stored resume file.
+        """
         task = asyncio.create_task(
             self._process_resume_in_background(
                 job_id=job_id,
@@ -246,6 +322,16 @@ class ResumeUploadService:
         self,
         file_path: str,
     ) -> tuple[str, dict[str, list[dict[str, object]]]]:
+        """Extract and normalize data from a resume file.
+
+        This method is designed to be run in a separate thread/executor.
+
+        Args:
+            file_path: Path to the resume file.
+
+        Returns:
+            A tuple containing (raw_text, normalized_extractions).
+        """
         stage_started_at = time.perf_counter()
         raw_text = DocumentParser.extract_text(file_path)
         self._log_stage(
@@ -282,6 +368,18 @@ class ResumeUploadService:
         job_skills: list[object],
         candidate_skills: list[str],
     ) -> dict[str, object]:
+        """Generate vector embeddings and LLM analysis for a resume compared to a job.
+
+        Args:
+            raw_text: Raw text of the resume.
+            parsed_summary: Structured data from the resume.
+            job: The job object.
+            job_skills: List of skills required for the job.
+            candidate_skills: List of skills extracted from the resume.
+
+        Returns:
+            A dictionary containing embeddings and the match analysis.
+        """
         candidate_text = build_candidate_text(parsed_summary, raw_text)
         job_text = build_job_text(job)
 
@@ -362,6 +460,14 @@ class ResumeUploadService:
         self,
         skills: list[object],
     ) -> dict[uuid.UUID, list[float]]:
+        """Generate embeddings for a list of candidate skills.
+
+        Args:
+            skills: List of Skill objects.
+
+        Returns:
+            Dictionary mapping skill IDs to their generated embeddings.
+        """
         embeddings: dict[uuid.UUID, list[float]] = {}
         stage_started_at = time.perf_counter()
         for skill in skills:
@@ -386,6 +492,14 @@ class ResumeUploadService:
         current_parse_summary: dict[str, object] | None,
         error_message: str,
     ) -> None:
+        """Helper to mark a resume as failed in the DB and commit.
+
+        Args:
+            db: Async session.
+            resume_id: ID of the resume to mark as failed.
+            current_parse_summary: Current summary to merge the error into.
+            error_message: The failure reason.
+        """
         failed_summary = self._merge_processing_info(
             current_parse_summary,
             status_value="failed",
@@ -405,6 +519,16 @@ class ResumeUploadService:
         resume_id: uuid.UUID,
         file_path: str,
     ) -> None:
+        """Full background processing workflow for an uploaded resume.
+
+        Extracts text, normalizes data, generates embeddings, performs AI analysis,
+        and persists everything to the database.
+
+        Args:
+            job_id: The job ID.
+            resume_id: The resume ID.
+            file_path: Path to the stored resume file.
+        """
         total_started_at = time.perf_counter()
         self._log_event(
             event="background_started",
@@ -681,6 +805,23 @@ class ResumeUploadService:
         resume: UploadFile,
         current_user: UserRead,
     ) -> ResumeUploadResponse:
+        """Handle the initial upload of a resume.
+
+        Validates the file, saves it, creates initial database records,
+        and schedules background processing.
+
+        Args:
+            db: The async database session.
+            job_id: The target job ID.
+            resume: The uploaded file object.
+            current_user: The user performing the upload.
+
+        Returns:
+            An initial upload response Schema.
+
+        Raises:
+            HTTPException: If the job is missing, inactive, file is too large, or type is unsupported.
+        """
         total_started_at = time.perf_counter()
         self._log_event(
             event="upload_received",
@@ -862,6 +1003,20 @@ class ResumeUploadService:
         resume_id: uuid.UUID,
         current_user: UserRead,
     ) -> ResumeStatusResponse:
+        """Retrieve the current status and analysis for a specific resume.
+
+        Args:
+            db: The async database session.
+            job_id: The job ID.
+            resume_id: The resume ID.
+            current_user: The user requesting status.
+
+        Returns:
+            The status and analysis schema.
+
+        Raises:
+            HTTPException: If the resume is not found.
+        """
         resume_record = await resume_upload_repository.get_resume_for_job(
             db,
             job_id=job_id,
@@ -959,6 +1114,18 @@ class ResumeUploadService:
         db: AsyncSession,
         job_id: uuid.UUID,
     ) -> JobResumesResponse:
+        """Retrieve all resumes uploaded for a specific job.
+
+        Args:
+            db: The async database session.
+            job_id: The job ID.
+
+        Returns:
+            A schema containing the job info and the list of resumes.
+
+        Raises:
+            HTTPException: If the job is not found.
+        """
         job = await resume_upload_repository.get_job(db, job_id)
         if not job:
             raise HTTPException(

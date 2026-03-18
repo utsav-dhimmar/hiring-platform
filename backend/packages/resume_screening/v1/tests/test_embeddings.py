@@ -1,7 +1,13 @@
+"""
+Tests for the embedding service.
+
+Verifies vector generation, instruction application, and padding.
+"""
 from packages.resume_screening.v1.services import embeddings
 
 
 def test_encode_resume_uses_plain_text_for_lightweight_models(monkeypatch):
+    """Test that resume encoding works without instructions when configured."""
     captured: dict[str, object] = {}
 
     class FakeModel:
@@ -32,6 +38,7 @@ def test_encode_resume_uses_plain_text_for_lightweight_models(monkeypatch):
 
 
 def test_encode_resume_can_apply_instruction_prompts(monkeypatch):
+    """Test that resume encoding correctly prepends instructions when enabled."""
     captured: dict[str, object] = {}
 
     class FakeModel:
@@ -56,6 +63,7 @@ def test_encode_resume_can_apply_instruction_prompts(monkeypatch):
 
 
 def test_encode_resume_pads_vectors_to_storage_dimension(monkeypatch):
+    """Test that vectors are padded with zeros to match the target storage dimension."""
     class FakeModel:
         def encode(self, text, **kwargs):
             class FakeVector:

@@ -242,6 +242,15 @@ class ResumeUploadRepository:
         *,
         job_id: uuid.UUID,
     ) -> list[Skill]:
+        """Retrieve all skills associated with a specific job.
+
+        Args:
+            db: The async database session.
+            job_id: The UUID of the job.
+
+        Returns:
+            A list of Skill objects.
+        """
         return list(
             (
                 await db.scalars(
@@ -260,6 +269,17 @@ class ResumeUploadRepository:
         resume_id: uuid.UUID,
         owner_id: uuid.UUID | None = None,
     ) -> Resume | None:
+        """Retrieve a specific resume record for a job, with optional ownership check.
+
+        Args:
+            db: The async database session.
+            job_id: The UUID of the job.
+            resume_id: The UUID of the resume.
+            owner_id: Optional UUID of the user who owns the file.
+
+        Returns:
+            The Resume object if found, None otherwise.
+        """
         query = (
             select(Resume)
             .options(
@@ -284,6 +304,13 @@ class ResumeUploadRepository:
         resume_id: uuid.UUID,
         parse_summary: dict[str, object],
     ) -> None:
+        """Mark a resume as failed in the database.
+
+        Args:
+            db: The async database session.
+            resume_id: The UUID of the resume.
+            parse_summary: A dictionary containing error details and status.
+        """
         await db.execute(
             update(Resume)
             .where(Resume.id == resume_id)
@@ -302,6 +329,13 @@ class ResumeUploadRepository:
         job: Job,
         embedding: list[float],
     ) -> None:
+        """Update the vector embedding for a job's description.
+
+        Args:
+            db: The async database session.
+            job: The Job object to update.
+            embedding: The vector embedding list.
+        """
         job.jd_embedding = embedding
         await db.flush()
 
@@ -311,6 +345,12 @@ class ResumeUploadRepository:
         *,
         embeddings_by_skill_id: dict[uuid.UUID, list[float]],
     ) -> None:
+        """Update vector embeddings for multiple skills.
+
+        Args:
+            db: The async database session.
+            embeddings_by_skill_id: A dictionary mapping skill IDs to their embeddings.
+        """
         if not embeddings_by_skill_id:
             return
 
@@ -403,6 +443,15 @@ class ResumeUploadRepository:
         *,
         job_id: uuid.UUID,
     ) -> list[Resume]:
+        """Retrieve all resume records for a specific job, ordered by upload date.
+
+        Args:
+            db: The async database session.
+            job_id: The UUID of the job.
+
+        Returns:
+            A list of Resume objects.
+        """
         return list(
             (
                 await db.scalars(
@@ -427,6 +476,11 @@ class ResumeUploadRepository:
         await db.commit()
 
     async def flush(self, db: AsyncSession) -> None:
+        """Flush the current session changes to the database.
+
+        Args:
+            db: The async database session.
+        """
         await db.flush()
 
     async def rollback(self, db: AsyncSession) -> None:

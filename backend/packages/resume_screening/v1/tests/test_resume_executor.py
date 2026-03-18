@@ -1,3 +1,8 @@
+"""
+Tests for the resume executor utility.
+
+Verifies that functions can be successfully offloaded to a thread pool executor.
+"""
 import pytest
 
 from app.v1.core.resume_executor import (
@@ -9,6 +14,7 @@ from app.v1.core.resume_executor import (
 
 @pytest.mark.anyio
 async def test_run_in_resume_executor_executes_callable():
+    """Test that run_in_resume_executor correctly executes a function in a thread."""
     shutdown_resume_executor()
     initialize_resume_executor()
 
