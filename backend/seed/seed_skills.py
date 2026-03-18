@@ -48,7 +48,10 @@ SKILLS = [
     ("HTML5", "Markup language standard for structuring web content"),
     ("CSS3", "Style sheet language for modern web presentation"),
     ("Styled Components", "CSS-in-JS library for styling React applications"),
-    ("Headless CMS", "Content management architecture with decoupled frontend delivery"),
+    (
+        "Headless CMS",
+        "Content management architecture with decoupled frontend delivery",
+    ),
     ("Redux", "Predictable state container for JavaScript applications"),
     ("Recoil", "State management library for React applications"),
     ("Context API", "React API for sharing state across component trees"),
@@ -73,9 +76,7 @@ async def ensure_skills(session) -> list[Skill]:
     existing_skills = {
         skill.name: skill
         for skill in (
-            (await session.execute(select(Skill).order_by(Skill.name)))
-            .scalars()
-            .all()
+            (await session.execute(select(Skill).order_by(Skill.name))).scalars().all()
         )
     }
 

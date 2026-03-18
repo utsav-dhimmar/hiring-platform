@@ -294,9 +294,7 @@ class ResumeUploadService:
         )
 
         stage_started_at = time.perf_counter()
-        candidate_embedding = (
-            encode_resume(candidate_text) if candidate_text else None
-        )
+        candidate_embedding = encode_resume(candidate_text) if candidate_text else None
         self._log_stage(
             stage="candidate_embedding",
             started_at=stage_started_at,
@@ -462,9 +460,7 @@ class ResumeUploadService:
                 await self._mark_resume_failed(
                     db=db,
                     resume_id=resume_record.id,
-                    current_parse_summary=getattr(
-                        resume_record, "parse_summary", None
-                    ),
+                    current_parse_summary=getattr(resume_record, "parse_summary", None),
                     error_message="Job not found during background processing.",
                 )
                 return
@@ -576,15 +572,11 @@ class ResumeUploadService:
                     resume_id=resume_id,
                 )
 
-                analysis = ResumeMatchAnalysis.model_validate(
-                    insights["analysis"]
-                )
+                analysis = ResumeMatchAnalysis.model_validate(insights["analysis"])
                 parse_summary_with_analysis = {
                     **parsed_summary,
                     "analysis": analysis.model_dump(),
-                    "processing": self._build_processing_info(
-                        status_value="completed"
-                    ),
+                    "processing": self._build_processing_info(status_value="completed"),
                 }
                 resume_record.parsed = True
                 resume_record.parse_summary = parse_summary_with_analysis
@@ -661,9 +653,7 @@ class ResumeUploadService:
                     resume_id=resume_id,
                 )
             except Exception as exc:
-                parse_summary_snapshot = getattr(
-                    resume_record, "parse_summary", None
-                )
+                parse_summary_snapshot = getattr(resume_record, "parse_summary", None)
                 await resume_upload_repository.rollback(db)
                 logger.exception(
                     "resume_processing failed job_id=%s resume_id=%s",
@@ -888,7 +878,6 @@ class ResumeUploadService:
             resume_record=resume_record,
         )
 
-
     async def get_candidates_for_job(
         self,
         *,
@@ -921,9 +910,7 @@ class ResumeUploadService:
             # relationship ordering from the ORM collection.
             resumes = getattr(candidate, "resumes", [])
             latest_resume = (
-                max(resumes, key=lambda resume: resume.uploaded_at)
-                if resumes
-                else None
+                max(resumes, key=lambda resume: resume.uploaded_at) if resumes else None
             )
 
             analysis = None
@@ -937,12 +924,12 @@ class ResumeUploadService:
                 resume_score = latest_resume.resume_score
                 pass_fail = latest_resume.pass_fail
                 parse_summary = latest_resume.parse_summary or {}
-                
+
                 # Get processing status
                 processing_info = parse_summary.get("processing", {})
                 if isinstance(processing_info, dict):
                     processing_status = processing_info.get("status")
-                
+
                 analysis_payload = parse_summary.get("analysis")
                 if isinstance(analysis_payload, dict):
                     analysis = ResumeMatchAnalysis.model_validate(analysis_payload)

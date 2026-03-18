@@ -161,13 +161,17 @@ REQUIRED_SKILLS = [
 
 async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
     job = (
-        await session.execute(
-            select(Job).where(
-                Job.title == JOB_TITLE,
-                Job.created_by == creator_id,
+        (
+            await session.execute(
+                select(Job).where(
+                    Job.title == JOB_TITLE,
+                    Job.created_by == creator_id,
+                )
             )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
 
     if job:
         job.department = JOB_DEPARTMENT

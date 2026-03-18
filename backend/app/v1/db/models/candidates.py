@@ -106,6 +106,8 @@ class Candidate(Base):
     )
 
     # RELATIONSHIPS
-    applied_job: Mapped["Job"] = relationship("Job", back_populates="candidates", foreign_keys=[applied_job_id])
+    applied_job: Mapped["Job"] = relationship(
+        "Job", back_populates="candidates", foreign_keys=[applied_job_id]
+    )
     resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="candidate")
     files: Mapped[list["File"]] = relationship("File", back_populates="candidate")

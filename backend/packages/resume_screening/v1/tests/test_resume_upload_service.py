@@ -213,9 +213,7 @@ def test_background_processing_completes_and_persists_analysis(monkeypatch):
         captured["job_embedding"] = embedding
 
     async def fake_update_skill_embeddings(db, *, embeddings_by_skill_id):
-        captured.setdefault("skill_embeddings", []).append(
-            embeddings_by_skill_id
-        )
+        captured.setdefault("skill_embeddings", []).append(embeddings_by_skill_id)
 
     async def fake_update_candidate_profile(db, **kwargs):
         captured["candidate_profile"] = kwargs
@@ -465,6 +463,7 @@ def test_background_processing_marks_resume_failed_when_analysis_errors(
             },
         ),
     )
+
     async def fake_get_job_skills(db, *, job_id):
         return []
 

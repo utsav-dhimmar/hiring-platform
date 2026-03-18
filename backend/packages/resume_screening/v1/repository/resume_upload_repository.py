@@ -224,13 +224,13 @@ class ResumeUploadRepository:
         """
         candidate.first_name = first_name or candidate.first_name
         candidate.last_name = last_name or candidate.last_name
-        
+
         # Only update email/phone if they were found in extraction and current ones are placeholders or empty
         if email and (not candidate.email or "pending_" in candidate.email):
             candidate.email = email
         if phone and not candidate.phone:
             candidate.phone = phone
-            
+
         candidate.info = info
         candidate.info_embedding = info_embedding
         await db.flush()

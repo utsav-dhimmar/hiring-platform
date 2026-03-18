@@ -98,5 +98,7 @@ class Resume(Base):
     )
 
     # RELATIONSHIPS
-    candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="resumes", foreign_keys=[candidate_id])
+    candidate: Mapped["Candidate"] = relationship(
+        "Candidate", back_populates="resumes", foreign_keys=[candidate_id]
+    )
     file: Mapped["File"] = relationship("File", foreign_keys=[file_id])

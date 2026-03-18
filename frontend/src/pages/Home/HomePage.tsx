@@ -1,48 +1,15 @@
 import React, { useEffect, useState } from "react";
+import { Alert, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { Container, Row, Col, Spinner, Form, Alert } from "react-bootstrap";
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Container, Row, Col, Spinner, Form, Alert } from "react-bootstrap";
-import { Card, CardHeader, CardBody, Button } from "../../components/common";
+import jobService from "../../apis/services/jobService";
+import { resumeService } from "../../apis/services/resumeService";
+import type { Job } from "../../apis/types/job";
+import { Button, Card, CardBody, CardHeader } from "../../components/common";
 import { useAppDispatch } from "../../store/hooks";
 import { logout } from "../../store/slices/authSlice";
-import jobService from "../../apis/services/jobService";
-import { resumeService } from "../../apis/services/resumeService";
-import type { Job } from "../../apis/types/job";
-import jobService from "../../apis/services/jobService";
-import { resumeService } from "../../apis/services/resumeService";
-import type { Job } from "../../apis/types/job";
 
 const HomePage = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState<Record<string, boolean>>({});
-  const [message, setMessage] = useState<{ type: string; text: string } | null>(
-    null,
-  );
-
-  const viewCandidates = (jobId: string) => {
-    navigate(`/jobs/${jobId}`);
-  };
-
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const data = await jobService.getJobs();
-        setJobs(data);
-      } catch (error) {
-        console.error("Failed to fetch jobs:", error);
-        setMessage({ type: "danger", text: "Failed to load jobs." });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJobs();
-  }, []);
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,9 +54,10 @@ const HomePage = () => {
 
     try {
       const response = await resumeService.uploadResume(jobId, file);
+      console.log(response);
       setMessage({
         type: "success",
-        text: `Resume uploaded successfully for job! Task ID: ${response.task_id}`,
+        text: `Resume uploaded successfully for job! Resuem ID : ${response.resume_id}`,
       });
     } catch (error) {
       console.error("Upload failed:", error);

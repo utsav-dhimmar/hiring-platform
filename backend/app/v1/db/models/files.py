@@ -85,5 +85,9 @@ class File(Base):
     )
 
     # RELATIONSHIPS
-    owner: Mapped["User"] = relationship("User", back_populates="files", foreign_keys=[owner_id])
-    candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="files", foreign_keys=[candidate_id])
+    owner: Mapped["User"] = relationship(
+        "User", back_populates="files", foreign_keys=[owner_id]
+    )
+    candidate: Mapped["Candidate"] = relationship(
+        "Candidate", back_populates="files", foreign_keys=[candidate_id]
+    )

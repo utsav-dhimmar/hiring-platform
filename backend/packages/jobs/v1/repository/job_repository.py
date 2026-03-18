@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.models.jobs import Job
 from packages.jobs.v1.schema.job import JobRead
 
+
 class JobRepository:
     def __init__(self) -> None:
         self.crud = FastCRUD(Job)
@@ -13,7 +14,8 @@ class JobRepository:
             offset=skip,
             limit=limit,
             return_as_model=True,
-            schema_to_select=JobRead
+            schema_to_select=JobRead,
         )
+
 
 job_repository = JobRepository()

@@ -28,15 +28,9 @@ async def test_lifespan_preloads_embedding_model(monkeypatch):
     monkeypatch.setattr(
         main, "initialize_resume_executor", fake_initialize_resume_executor
     )
-    monkeypatch.setattr(
-        main, "preload_embedding_model", fake_preload_embedding_model
-    )
-    monkeypatch.setattr(
-        main, "run_in_resume_executor", fake_run_in_resume_executor
-    )
-    monkeypatch.setattr(
-        main, "shutdown_resume_executor", fake_shutdown_resume_executor
-    )
+    monkeypatch.setattr(main, "preload_embedding_model", fake_preload_embedding_model)
+    monkeypatch.setattr(main, "run_in_resume_executor", fake_run_in_resume_executor)
+    monkeypatch.setattr(main, "shutdown_resume_executor", fake_shutdown_resume_executor)
 
     async with main.lifespan(main.app):
         assert events == [

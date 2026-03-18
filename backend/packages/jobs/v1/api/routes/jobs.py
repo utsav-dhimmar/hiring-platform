@@ -7,6 +7,7 @@ from packages.jobs.v1.services.job_service import job_service
 
 router = APIRouter()
 
+
 @router.get("/", response_model=list[JobRead])
 async def read_jobs(
     db: AsyncSession = Depends(get_db),

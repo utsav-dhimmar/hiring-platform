@@ -69,6 +69,7 @@ class JobResumeInfoResponse(BaseModel):
 
 from packages.jobs.v1.schema.job import JobRead
 
+
 class JobResumesResponse(BaseModel):
     job_id: uuid.UUID
     job: JobRead | None = None

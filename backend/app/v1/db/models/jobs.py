@@ -94,5 +94,9 @@ class Job(Base):
     )
 
     # RELATIONSHIPS
-    creator: Mapped["User"] = relationship("User", back_populates="jobs", foreign_keys=[created_by])
-    candidates: Mapped[list["Candidate"]] = relationship("Candidate", back_populates="applied_job")
+    creator: Mapped["User"] = relationship(
+        "User", back_populates="jobs", foreign_keys=[created_by]
+    )
+    candidates: Mapped[list["Candidate"]] = relationship(
+        "Candidate", back_populates="applied_job"
+    )

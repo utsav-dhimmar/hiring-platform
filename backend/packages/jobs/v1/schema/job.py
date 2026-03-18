@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
+
 class JobBase(BaseModel):
     title: str
     department: str | None = None
@@ -9,8 +10,10 @@ class JobBase(BaseModel):
     jd_json: dict | None = None
     is_active: bool = True
 
+
 class JobCreate(JobBase):
     pass
+
 
 class JobRead(JobBase):
     id: uuid.UUID

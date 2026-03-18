@@ -16,12 +16,10 @@ from sentence_transformers import SentenceTransformer
 from app.v1.core.config import settings
 
 RESUME_INSTRUCTION = (
-    "Instruct: Given a job description, retrieve relevant candidate resumes\n"
-    "Passage: "
+    "Instruct: Given a job description, retrieve relevant candidate resumes\nPassage: "
 )
 JD_INSTRUCTION = (
-    "Instruct: Given a job description, retrieve relevant candidate resumes\n"
-    "Query: "
+    "Instruct: Given a job description, retrieve relevant candidate resumes\nQuery: "
 )
 SKILL_INSTRUCTION = (
     "Instruct: Represent this hiring skill for semantic matching\nPassage: "
@@ -132,9 +130,7 @@ def build_job_text(job: object) -> str:
     if jd_json:
         parts.append(
             "Structured JD:\n"
-            + json.dumps(
-                jd_json, ensure_ascii=True, sort_keys=True, default=str
-            )
+            + json.dumps(jd_json, ensure_ascii=True, sort_keys=True, default=str)
         )
 
     return "\n\n".join(parts).strip()
@@ -243,8 +239,6 @@ class ResumeJdAnalyzer:
         try:
             parsed_output = self.model.parse_output(raw_output)
         except ValueError as exc:
-            raise ValueError(
-                "LLM returned invalid JSON for resume analysis."
-            ) from exc
+            raise ValueError("LLM returned invalid JSON for resume analysis.") from exc
         validated = ResumeJobAnalysisResult.model_validate(parsed_output)
         return validated.model_dump()
