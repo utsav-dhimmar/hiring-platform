@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, Spinner, Form, Alert } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Container, Row, Col, Spinner, Form, Alert } from "react-bootstrap";
 import { Card, CardHeader, CardBody, Button } from "../../components/common";
 import { useAppDispatch } from "../../store/hooks";
 import { logout } from "../../store/slices/authSlice";
+import jobService from "../../apis/services/jobService";
+import { resumeService } from "../../apis/services/resumeService";
+import type { Job } from "../../apis/types/job";
 import jobService from "../../apis/services/jobService";
 import { resumeService } from "../../apis/services/resumeService";
 import type { Job } from "../../apis/types/job";
@@ -14,7 +20,36 @@ const HomePage = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
-  const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: string; text: string } | null>(
+    null,
+  );
+
+  const viewCandidates = (jobId: string) => {
+    navigate(`/jobs/${jobId}`);
+  };
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const data = await jobService.getJobs();
+        setJobs(data);
+      } catch (error) {
+        console.error("Failed to fetch jobs:", error);
+        setMessage({ type: "danger", text: "Failed to load jobs." });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, []);
+  const navigate = useNavigate();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
+  const [message, setMessage] = useState<{ type: string; text: string } | null>(
+    null,
+  );
 
   const viewCandidates = (jobId: string) => {
     navigate(`/jobs/${jobId}`);
@@ -40,7 +75,10 @@ const HomePage = () => {
     dispatch(logout());
   };
 
-  const handleFileUpload = async (jobId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    jobId: string,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -77,7 +115,11 @@ const HomePage = () => {
       </Row>
 
       {message && (
-        <Alert variant={message.type} dismissible onClose={() => setMessage(null)}>
+        <Alert
+          variant={message.type}
+          dismissible
+          onClose={() => setMessage(null)}
+        >
           {message.text}
         </Alert>
       )}
@@ -117,7 +159,9 @@ const HomePage = () => {
                           </td>
                           <td>{job.department || "N/A"}</td>
                           <td>
-                            <span className={`badge bg-${job.is_active ? "success" : "secondary"}`}>
+                            <span
+                              className={`badge bg-${job.is_active ? "success" : "secondary"}`}
+                            >
                               {job.is_active ? "Active" : "Inactive"}
                             </span>
                           </td>
@@ -130,13 +174,15 @@ const HomePage = () => {
                                   <Form.Control
                                     type="file"
                                     size="sm"
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(job.id, e)}
+                                    onChange={(
+                                      e: React.ChangeEvent<HTMLInputElement>,
+                                    ) => handleFileUpload(job.id, e)}
                                     accept=".pdf,.doc,.docx"
                                   />
                                 </Form.Group>
                               )}
-                              <Button 
-                                variant="outline-primary" 
+                              <Button
+                                variant="outline-primary"
                                 size="sm"
                                 onClick={() => viewCandidates(job.id)}
                               >

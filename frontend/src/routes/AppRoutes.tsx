@@ -1,10 +1,10 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import HomePage from '../pages/Home/HomePage';
-import JobCandidatesPage from '../pages/JobCandidates/JobCandidatesPage';
-import LoginPage from '../pages/Login/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import ProtectedRoute from '../components/auth/ProtectedRoute';
-import PublicRoute from '../components/auth/PublicRoute';
+import { Routes, Route, Navigate } from "react-router-dom";
+import HomePage from "../pages/Home/HomePage";
+import JobCandidatesPage from "../pages/JobCandidates/JobCandidatesPage";
+import LoginPage from "../pages/Login/LoginPage";
+import RegisterPage from "../pages/RegisterPage";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
+import PublicRoute from "../components/auth/PublicRoute";
 
 const AppRoutes = () => {
   return (
