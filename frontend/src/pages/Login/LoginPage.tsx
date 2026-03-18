@@ -1,4 +1,8 @@
-import type React from 'react';
+/**
+ * Login page for user authentication.
+ * Provides email/password form with validation and error handling.
+ */
+
 import { useState } from 'react';
 import { Container, Row, Col, Alert } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';

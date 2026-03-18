@@ -1,3 +1,8 @@
+/**
+ * Application route configuration.
+ * Defines all routes for the hiring platform with public/protected access control.
+ */
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "../pages/Home/HomePage";
 import JobCandidatesPage from "../pages/JobCandidates/JobCandidatesPage";
@@ -6,6 +11,11 @@ import RegisterPage from "../pages/RegisterPage";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import PublicRoute from "../components/auth/PublicRoute";
 
+/**
+ * Main routing component for the application.
+ * Defines public routes (login, register) and protected routes (home, job candidates).
+ * Unmatched routes redirect to home.
+ */
 const AppRoutes = () => {
   return (
     <Routes>

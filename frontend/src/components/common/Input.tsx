@@ -1,17 +1,44 @@
+/**
+ * Custom input component with label, error handling, and icon support.
+ * Wraps React Bootstrap Form.Control with enhanced styling.
+ */
+
 import React, { useId } from "react";
 import { Form } from "react-bootstrap";
 import type { FormControlProps } from "react-bootstrap";
 import "./Input.css";
 
+/**
+ * Props for the Input component.
+ * Extends React Bootstrap FormControlProps with custom options.
+ */
 interface InputProps extends Omit<FormControlProps, "size"> {
+  /** Label text displayed above the input */
   label?: string;
+  /** Error message to display below the input */
   error?: string;
+  /** Helper text displayed below the input (shown when no error) */
   helperText?: string;
+  /** Element to display before the input field */
   leftElement?: React.ReactNode;
+  /** Element to display after the input field */
   rightElement?: React.ReactNode;
+  /** Size variant for the input */
   inputSize?: "sm" | "lg";
 }
 
+/**
+ * Input component with label, validation states, and icon support.
+ * @example
+ * ```tsx
+ * <Input
+ *   label="Email"
+ *   type="email"
+ *   placeholder="Enter your email"
+ *   error={errors.email?.message}
+ * />
+ * ```
+ */
 export const Input = ({
   label,
   error,

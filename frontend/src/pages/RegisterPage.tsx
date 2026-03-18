@@ -1,3 +1,8 @@
+/**
+ * Registration page placeholder.
+ * Displays a message indicating registration is coming soon.
+ */
+
 import { Container, Row, Col } from "react-bootstrap";
 import { Card, CardHeader, CardBody, Button } from "../components/common";
 import { Link } from "react-router-dom";

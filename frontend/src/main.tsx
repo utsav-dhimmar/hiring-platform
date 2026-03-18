@@ -1,3 +1,8 @@
+/**
+ * Application entry point.
+ * Initializes React root, Redux store, and renders the main App component.
+ */
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider } from 'react-redux'

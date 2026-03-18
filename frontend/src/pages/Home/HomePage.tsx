@@ -1,3 +1,8 @@
+/**
+ * Home page displaying available jobs and resume upload functionality.
+ * Allows users to browse open positions and submit resumes.
+ */
+
 import React, { useEffect, useState } from "react";
 import { Alert, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
