@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+
 from typing import TYPE_CHECKING
 
 from pgvector.sqlalchemy import Vector
@@ -9,16 +10,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.core.config import settings
-from app.v1.db.base_class import Base
+from app.v1.db.base import Base
 
 if TYPE_CHECKING:
-    from app.v1.db.models.user import User
     from app.v1.db.models.candidates import Candidate
+    from app.v1.db.models.user import User
 
 
-def generate_uuid7():
-    return uuid.uuid7()
-
+from app.v1.utils.uuid import UUIDHelper
 
 class Job(Base):
     """Job ORM model.
@@ -43,7 +42,7 @@ class Job(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7,
     )
 
     # JOB FIELDS

@@ -8,14 +8,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.db.base_class import Base
+from app.v1.utils.uuid import UUIDHelper
 
 if TYPE_CHECKING:
-    from app.v1.db.models.user import User
     from app.v1.db.models.candidates import Candidate
+    from app.v1.db.models.user import User
 
-
-def generate_uuid7():
-    return uuid.uuid7()
 
 
 class File(Base):
@@ -41,7 +39,7 @@ class File(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7,
     )
 
     # FOREIGN KEYS

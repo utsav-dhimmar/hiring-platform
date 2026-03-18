@@ -1,23 +1,23 @@
 import uuid
 from datetime import datetime
+
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, Text
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from pgvector.sqlalchemy import Vector
 
 from app.v1.core.config import settings
-from app.v1.db.base_class import Base
+from app.v1.db.base import Base
 
 if TYPE_CHECKING:
     from app.v1.db.models.candidates import Candidate
     from app.v1.db.models.files import File
 
 
-def generate_uuid7():
-    return uuid.uuid7()
+from app.v1.utils.uuid import UUIDHelper
 
 
 class Resume(Base):
@@ -43,7 +43,7 @@ class Resume(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7,
     )
     resume_embedding: Mapped[list | None] = mapped_column(
         Vector(settings.EMBEDDING_VECTOR_DIM),

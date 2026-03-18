@@ -6,11 +6,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.v1.core.config import settings
-from app.v1.db.base_class import Base
+from app.v1.db.base import Base
 
 
-def generate_uuid7():
-    return uuid.uuid7()
+from app.v1.utils.uuid import UUIDHelper
 
 
 class Skill(Base):
@@ -31,7 +30,7 @@ class Skill(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7,
     )
 
     # SKILL FIELDS

@@ -1,20 +1,15 @@
 import uuid
 from datetime import datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from pgvector.sqlalchemy import Vector
 
 from app.v1.core.config import settings
-from app.v1.db.base_class import Base
-
-
-def generate_uuid7():
-    return uuid.uuid7()
-
-
+from app.v1.db.base import Base
+from app.v1.utils.uuid import UUIDHelper
 class CoverLetter(Base):
     """CoverLetter ORM model.
 
@@ -35,7 +30,7 @@ class CoverLetter(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7,
     )
     cover_letter_embedding: Mapped[list | None] = mapped_column(
         Vector(settings.EMBEDDING_VECTOR_DIM),

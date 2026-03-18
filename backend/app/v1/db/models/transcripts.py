@@ -9,8 +9,7 @@ from sqlalchemy.sql import func
 from app.v1.db.base_class import Base
 
 
-def generate_uuid7():
-    return uuid.uuid7()
+from app.v1.utils.uuid import UUIDHelper
 
 
 class Transcript(Base):
@@ -32,7 +31,7 @@ class Transcript(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7,
     )
 
     # FOREIGN KEY

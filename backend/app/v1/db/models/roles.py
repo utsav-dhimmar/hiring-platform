@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String
@@ -11,12 +12,11 @@ from app.v1.db.base_class import Base
 from app.v1.db.models.roleAndPermission import role_permission
 
 if TYPE_CHECKING:
-    from app.v1.db.models.user import User
     from app.v1.db.models.permissions import Permission
+    from app.v1.db.models.user import User
 
 
-def generate_uuid7():
-    return uuid.uuid7()
+from app.v1.utils.uuid import UUIDHelper
 
 
 class Role(Base):
@@ -37,7 +37,7 @@ class Role(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7,
     )
 
     # ROLE FIELDS

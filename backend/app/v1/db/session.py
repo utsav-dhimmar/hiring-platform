@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.v1.core.config import settings
-from app.v1.core.logging_config import get_logger
-from app.v1.db.base_class import Base
+from app.v1.core.logging import get_logger
+from app.v1.db.base import Base  # noqa: F401
 
 logger = get_logger(__name__)
 
@@ -45,7 +45,7 @@ async def init_db():
     # Import all models here so SQLAlchemy metadata
     # is aware of all tables before create_all is called
     import app.v1.db  # noqa: F401
-    import packages.auth.v1.models  # noqa: F401
+    # import packages.auth.v1.models  # noqa: F401
 
     logger.info("Creating database tables...")
     async with engine.begin() as conn:
