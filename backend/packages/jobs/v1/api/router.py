@@ -1,3 +1,6 @@
+"""
+API router for version 1 of the jobs package.
+"""
 from fastapi import APIRouter
 from packages.jobs.v1.api.routes.jobs import router as jobs_router
 

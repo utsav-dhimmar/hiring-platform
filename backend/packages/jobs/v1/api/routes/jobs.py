@@ -1,3 +1,6 @@
+"""
+API routes for job-related operations in version 1.
+"""
 from typing import Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +18,15 @@ async def read_jobs(
     limit: int = 100,
 ) -> Any:
     """
-    Retrieve jobs.
+    Retrieve a list of jobs with pagination.
+
+    Args:
+        db (AsyncSession): Database session.
+        skip (int): Number of records to skip.
+        limit (int): Maximum number of records to return.
+
+    Returns:
+        Any: A list of jobs.
     """
     jobs_data = await job_service.get_jobs(db=db, skip=skip, limit=limit)
     return jobs_data["data"]
