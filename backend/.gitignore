@@ -12,3 +12,9 @@ wheels/
 
 # uploaded file
 uploads/
+# logs files
+logs/
+
+# for old logs  root files
+logs*.txt
+logs*.md
