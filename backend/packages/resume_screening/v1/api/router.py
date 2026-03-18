@@ -1,3 +1,9 @@
+"""
+Resume screening router module.
+
+This module aggregates all resume screening related routes into a single router.
+"""
+
 from fastapi import APIRouter
 
 from packages.resume_screening.v1.api.routes.resume_upload import (

@@ -1,3 +1,9 @@
+"""
+Tests for application startup and lifespan events.
+
+Verifies that database initialization and model preloading occur correctly
+during application startup.
+"""
 import pytest
 
 from app import main
@@ -5,6 +11,7 @@ from app import main
 
 @pytest.mark.anyio
 async def test_lifespan_preloads_embedding_model(monkeypatch):
+    """Test the application lifespan manager preloads required models and handles shutdown."""
     events: list[str] = []
 
     async def fake_init_db():
