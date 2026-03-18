@@ -43,7 +43,7 @@ class Resume(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=UUIDHelper.generate_uuid7(),
+        default=UUIDHelper.generate_uuid7,
     )
     resume_embedding: Mapped[list | None] = mapped_column(
         Vector(settings.EMBEDDING_VECTOR_DIM),

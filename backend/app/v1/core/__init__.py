@@ -1,12 +1,11 @@
+from app.v1.core.analyzer import ResumeJdAnalyzer, ResumeJobAnalysisResult
 from app.v1.core.config import settings
 from app.v1.core.embeddings import (
-    ResumeJdAnalyzer,
-    build_candidate_text,
-    build_job_text,
-    build_skill_text,
+    EmbeddingService,
     encode_jd,
     encode_resume,
     encode_skill,
+    get_embedding_model,
     get_semantic_score,
     get_semantic_score_from_embeddings,
     preload_embedding_model,
@@ -32,6 +31,11 @@ from app.v1.core.security import (
     hash_password,
     verify_password,
 )
+from app.v1.utils.text import (
+    build_candidate_text,
+    build_job_text,
+    build_skill_text,
+)
 
 __all__ = [
     "settings",
@@ -43,6 +47,8 @@ __all__ = [
     "UnauthorizedException",
     "ForbiddenException",
     "preload_embedding_model",
+    "get_embedding_model",
+    "EmbeddingService",
     "encode_resume",
     "encode_jd",
     "encode_skill",
@@ -52,6 +58,7 @@ __all__ = [
     "build_skill_text",
     "build_candidate_text",
     "ResumeJdAnalyzer",
+    "ResumeJobAnalysisResult",
     "DocumentParser",
     "ResumeLLMExtractor",
     "GlobalErrorHandlerMiddleware",

@@ -21,7 +21,7 @@ from tenacity import (
 )
 
 from app.v1.core.config import settings
-from app.v1.core.prompts import (
+from app.v1.prompts import (
     RESUME_EXTRACTION_EXAMPLES,
     RESUME_EXTRACTION_PROMPT,
 )

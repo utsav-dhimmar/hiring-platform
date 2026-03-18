@@ -1,8 +1,5 @@
 """
 Prompts and examples for resume extraction.
-
-This module contains the LLM prompt templates and few-shot examples used
-by the extraction service to guide the LLM in structured data extraction.
 """
 
 import textwrap
@@ -36,7 +33,6 @@ RESUME_EXTRACTION_PROMPT = textwrap.dedent("""
     - certifications: Professional certifications with issuer and date when available
     - links: URLs (LinkedIn, GitHub, portfolio, etc.) with their type
     """)
-
 
 RESUME_EXTRACTION_EXAMPLES = [
     ExampleData(

@@ -8,16 +8,8 @@ import time
 import uuid
 from typing import Any
 
-from app.v1.core.embeddings import (
-    ResumeJdAnalyzer,
-    build_candidate_text,
-    build_job_text,
-    build_skill_text,
-    encode_jd,
-    encode_resume,
-    encode_skill,
-    get_semantic_score_from_embeddings,
-)
+from app.v1.core.analyzer import ResumeJdAnalyzer
+from app.v1.core.embeddings import EmbeddingService
 from app.v1.core.extractor import (
     DocumentParser,
     ResumeLLMExtractor,
@@ -25,6 +17,12 @@ from app.v1.core.extractor import (
 from app.v1.utils.resume_upload import (
     normalize_extractions,
 )
+from app.v1.utils.text import (
+    build_candidate_text,
+    build_job_text,
+    build_skill_text,
+)
+
 from .logging import log_stage
 
 
@@ -34,6 +32,7 @@ class ResumeProcessor:
     def __init__(self) -> None:
         self.extractor = ResumeLLMExtractor()
         self.analyzer = ResumeJdAnalyzer()
+        self.embeddings = EmbeddingService()
 
     def process_resume(
         self,
@@ -99,7 +98,9 @@ class ResumeProcessor:
         job_text = build_job_text(job)
 
         stage_started_at = time.perf_counter()
-        job_embedding = encode_jd(job_text) if job_text else None
+        job_embedding = (
+            self.embeddings.encode_jd(job_text) if job_text else None
+        )
         log_stage(
             stage="job_embedding",
             started_at=stage_started_at,
@@ -107,7 +108,11 @@ class ResumeProcessor:
         )
 
         stage_started_at = time.perf_counter()
-        candidate_embedding = encode_resume(candidate_text) if candidate_text else None
+        candidate_embedding = (
+            self.embeddings.encode_resume(candidate_text)
+            if candidate_text
+            else None
+        )
         log_stage(
             stage="candidate_embedding",
             started_at=stage_started_at,
@@ -116,7 +121,9 @@ class ResumeProcessor:
 
         stage_started_at = time.perf_counter()
         chunk_embedding = (
-            encode_resume(raw_text) if raw_text.strip() else candidate_embedding
+            self.embeddings.encode_resume(raw_text)
+            if raw_text.strip()
+            else candidate_embedding
         )
         log_stage(
             stage="chunk_embedding",
@@ -129,7 +136,9 @@ class ResumeProcessor:
         for skill in job_skills:
             skill_text = build_skill_text(skill)
             if skill_text and getattr(skill, "skill_embedding", None) is None:
-                skill_embeddings[skill.id] = encode_skill(skill_text)
+                skill_embeddings[skill.id] = self.embeddings.encode_skill(
+                    skill_text
+                )
         log_stage(
             stage="job_skill_embeddings",
             started_at=stage_started_at,
@@ -138,7 +147,7 @@ class ResumeProcessor:
         )
 
         stage_started_at = time.perf_counter()
-        semantic_score = get_semantic_score_from_embeddings(
+        semantic_score = self.embeddings.get_semantic_score_from_embeddings(
             candidate_embedding or [],
             job_embedding or [],
         )
@@ -190,7 +199,7 @@ class ResumeProcessor:
                 continue
             skill_text = build_skill_text(skill)
             if skill_text:
-                embeddings[skill.id] = encode_skill(skill_text)
+                embeddings[skill.id] = self.embeddings.encode_skill(skill_text)
         log_stage(
             stage="candidate_skill_embeddings_internal",
             started_at=stage_started_at,

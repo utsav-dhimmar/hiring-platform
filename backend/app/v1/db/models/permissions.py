@@ -36,7 +36,7 @@ class Permission(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=UUIDHelper.generate_uuid7(),
+        default=UUIDHelper.generate_uuid7,
     )
 
     # PERMISSION FIELDS
