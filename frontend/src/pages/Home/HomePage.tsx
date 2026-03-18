@@ -14,7 +14,9 @@ const HomePage = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
-  const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: string; text: string } | null>(
+    null,
+  );
 
   const viewCandidates = (jobId: string) => {
     navigate(`/jobs/${jobId}`);
@@ -40,7 +42,10 @@ const HomePage = () => {
     dispatch(logout());
   };
 
-  const handleFileUpload = async (jobId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    jobId: string,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -77,7 +82,11 @@ const HomePage = () => {
       </Row>
 
       {message && (
-        <Alert variant={message.type} dismissible onClose={() => setMessage(null)}>
+        <Alert
+          variant={message.type}
+          dismissible
+          onClose={() => setMessage(null)}
+        >
           {message.text}
         </Alert>
       )}
@@ -117,7 +126,9 @@ const HomePage = () => {
                           </td>
                           <td>{job.department || "N/A"}</td>
                           <td>
-                            <span className={`badge bg-${job.is_active ? "success" : "secondary"}`}>
+                            <span
+                              className={`badge bg-${job.is_active ? "success" : "secondary"}`}
+                            >
                               {job.is_active ? "Active" : "Inactive"}
                             </span>
                           </td>
@@ -130,13 +141,15 @@ const HomePage = () => {
                                   <Form.Control
                                     type="file"
                                     size="sm"
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(job.id, e)}
+                                    onChange={(
+                                      e: React.ChangeEvent<HTMLInputElement>,
+                                    ) => handleFileUpload(job.id, e)}
                                     accept=".pdf,.doc,.docx"
                                   />
                                 </Form.Group>
                               )}
-                              <Button 
-                                variant="outline-primary" 
+                              <Button
+                                variant="outline-primary"
                                 size="sm"
                                 onClick={() => viewCandidates(job.id)}
                               >
