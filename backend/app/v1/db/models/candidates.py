@@ -8,17 +8,14 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from app.v1.core.config import settings
-from app.v1.db.base_class import Base
+from app.core.config import settings
+from app.v1.db.base import Base
+from app.v1.utils.uuid import UUIDHelper
 
 if TYPE_CHECKING:
+    from app.v1.db.models.files import File
     from app.v1.db.models.jobs import Job
     from app.v1.db.models.resumes import Resume
-    from app.v1.db.models.files import File
-
-
-def generate_uuid7():
-    return uuid.uuid7()
 
 
 class Candidate(Base):
@@ -46,7 +43,7 @@ class Candidate(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7(),
     )
 
     # CANDIDATE FIELDS (may be input by HR)
@@ -109,5 +106,9 @@ class Candidate(Base):
     applied_job: Mapped["Job"] = relationship(
         "Job", back_populates="candidates", foreign_keys=[applied_job_id]
     )
-    resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="candidate")
-    files: Mapped[list["File"]] = relationship("File", back_populates="candidate")
+    resumes: Mapped[list["Resume"]] = relationship(
+        "Resume", back_populates="candidate"
+    )
+    files: Mapped[list["File"]] = relationship(
+        "File", back_populates="candidate"
+    )

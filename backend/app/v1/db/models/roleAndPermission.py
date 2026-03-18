@@ -1,10 +1,7 @@
-import uuid
-
 from sqlalchemy import Column, ForeignKey, Table
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.v1.db.base_class import Base
-
 
 # Junction table for many-to-many relationship between Role and Permission
 role_permission = Table(

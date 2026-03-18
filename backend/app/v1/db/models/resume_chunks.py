@@ -5,14 +5,12 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
 
-from app.v1.core.config import settings
-from app.v1.db.base_class import Base
+from app.core.config import settings
+from app.v1.db.base import Base
 
 
-def generate_uuid7():
-    return uuid.uuid7()
+from app.v1.utils.uuid import UUIDHelper
 
 
 class ResumeChunk(Base):
@@ -36,7 +34,7 @@ class ResumeChunk(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=generate_uuid7,
+        default=UUIDHelper.generate_uuid7(),
     )
 
     # FOREIGN KEY

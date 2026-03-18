@@ -6,15 +6,17 @@ and sets up the API router. It also handles the application lifespan events
 for database initialization.
 """
 
-from app.v1.api import api_router
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-
-from app.v1.core.config import settings
-from app.v1.core.logging_config import get_logger, setup_logging
+from app.core.config import settings
+from app.core.logging import get_logger, setup_logging
+from app.v1.api import api_router
+from app.v1.core.embeddings import (
+    preload_embedding_model,
+)
 from app.v1.core.middleware import GlobalErrorHandlerMiddleware
 from app.v1.core.resume_executor import (
     initialize_resume_executor,
@@ -22,9 +24,6 @@ from app.v1.core.resume_executor import (
     shutdown_resume_executor,
 )
 from app.v1.db.session import init_db
-from packages.resume_screening.v1.services.embeddings import (
-    preload_embedding_model,
-)
 
 setup_logging(debug=settings.DEBUG)
 logger = get_logger(__name__)
