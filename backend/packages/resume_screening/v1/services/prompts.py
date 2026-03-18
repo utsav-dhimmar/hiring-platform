@@ -5,22 +5,27 @@ This module contains the LLM prompt templates and few-shot examples used
 by the extraction service to guide the LLM in structured data extraction.
 """
 
-from langextract.core.data import ExampleData, Extraction
-
 import textwrap
-import langextract as lx
 
+from langextract.core.data import ExampleData, Extraction
 
 RESUME_EXTRACTION_PROMPT = textwrap.dedent("""
     You are a precise resume parser. Your task is to extract ONLY explicitly stated information from the provided resume text.
-    
+
+    CRITICAL OUTPUT FORMAT REQUIREMENTS:
+    1. You MUST output ONLY valid JSON.
+    2. Do NOT include any conversational text, markdown formatting blocks (like ```json), greetings, or explanations.
+    3. The root of your JSON object MUST contain exactly one key named "extractions".
+    4. The value of "extractions" must be a list of the extracted entities.
+
+
     1. Extract information ONLY if it is explicitly mentioned in the text
     2. Do NOT infer, assume, or interpret implied information
     3. Do NOT fill in gaps or make logical deductions
     4. If a category is not explicitly mentioned, return "Not mentioned" for that field
     5. Return exact text as stated in the resume (do not paraphrase)
     6. For the experience section, do not interpret from the projects section, education or extra acivity section
-    
+
     - name: Full name of the candidate
     - skills: Technical and professional skills (programming languages, tools, frameworks, soft skills)
     - experience: Work history including job title, company, dates, and responsibilities

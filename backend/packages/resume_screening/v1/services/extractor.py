@@ -11,6 +11,7 @@ import docx2txt
 import pymupdf
 from langextract import extract
 from langextract.core.data import AnnotatedDocument
+from langextract.core.types import FormatType
 from langextract.providers.ollama import OllamaLanguageModel
 from tenacity import (
     retry,
@@ -126,6 +127,7 @@ class ResumeLLMExtractor:
             model_url=settings.OLLAMA_URL,
             api_key=settings.OLLAMA_API_KEY,
             timeout=300,
+            format_type=FormatType.JSON,
         )
 
     @retry(
@@ -165,8 +167,8 @@ class ResumeLLMExtractor:
                 model=self.model,
                 prompt_description=RESUME_EXTRACTION_PROMPT,
                 examples=RESUME_EXTRACTION_EXAMPLES,
-                # debug=settings.DEBUG,
-                debug=False,
+                debug=settings.DEBUG,
+                # debug=False,
                 # timeout=300,
             )
             print(raw_extractions)
