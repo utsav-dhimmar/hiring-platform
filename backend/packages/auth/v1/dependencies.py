@@ -1,3 +1,9 @@
+"""
+Authentication dependencies.
+
+This module provides Fastapi dependencies for authentication,
+specifically for retrieving the current authenticated user.
+"""
 from uuid import UUID
 
 import jwt
@@ -21,6 +27,19 @@ async def get_current_user(
     token: str | None = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> UserRead:
+    """
+    Get the currently authenticated user from the access token.
+
+    Args:
+        token: The OAuth2 access token.
+        db: Async database session.
+
+    Returns:
+        The current authenticated user.
+
+    Raises:
+        HTTPException: If authentication fails, token is invalid, or user is inactive.
+    """
     if token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
