@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -9,6 +10,10 @@ from pgvector.sqlalchemy import Vector
 
 from app.v1.core.config import settings
 from app.v1.db.base_class import Base
+
+if TYPE_CHECKING:
+    from app.v1.db.models.candidates import Candidate
+    from app.v1.db.models.files import File
 
 
 def generate_uuid7():
@@ -93,5 +98,5 @@ class Resume(Base):
     )
 
     # RELATIONSHIPS
-    candidate = relationship("Candidate", foreign_keys=[candidate_id])
-    file = relationship("File", foreign_keys=[file_id])
+    candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="resumes", foreign_keys=[candidate_id])
+    file: Mapped["File"] = relationship("File", foreign_keys=[file_id])

@@ -7,6 +7,8 @@ from app.v1.db.session import get_db
 from packages.auth.v1.dependencies import get_current_user
 from packages.auth.v1.schema.user import UserRead
 from packages.resume_screening.v1.schemas.upload import (
+    JobCandidatesResponse,
+    JobResumesResponse,
     ResumeStatusResponse,
     ResumeUploadResponse,
 )
@@ -52,4 +54,36 @@ async def get_resume_status(
         job_id=job_id,
         resume_id=resume_id,
         current_user=current_user,
+    )
+
+
+@router.get(
+    "/jobs/{job_id}/candidates",
+    response_model=JobCandidatesResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_job_candidates(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+) -> JobCandidatesResponse:
+    return await resume_upload_service.get_candidates_for_job(
+        db=db,
+        job_id=job_id,
+    )
+
+
+@router.get(
+    "/jobs/{job_id}",
+    response_model=JobResumesResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_job_resumes(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+) -> JobResumesResponse:
+    return await resume_upload_service.get_resumes_for_job(
+        db=db,
+        job_id=job_id,
     )

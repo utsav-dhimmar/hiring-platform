@@ -1,6 +1,7 @@
 import asyncio
 import io
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -494,3 +495,103 @@ def test_background_processing_marks_resume_failed_when_analysis_errors(
         captured["failed_summary"]["processing"]["error"]
         == "LLM returned invalid JSON for resume analysis."
     )
+
+
+def test_get_resumes_for_job_returns_all_uploaded_resume_info(monkeypatch):
+    service = ResumeUploadService()
+
+    job_id = uuid.uuid4()
+    queued_resume_id = uuid.uuid4()
+    completed_resume_id = uuid.uuid4()
+    candidate_id = uuid.uuid4()
+    queued_file_id = uuid.uuid4()
+    completed_file_id = uuid.uuid4()
+
+    job = SimpleNamespace(id=job_id, is_active=True)
+    candidate = SimpleNamespace(
+        id=candidate_id,
+        first_name="Jane",
+        last_name="Doe",
+        email="jane@example.com",
+    )
+    queued_resume = SimpleNamespace(
+        id=queued_resume_id,
+        candidate=candidate,
+        file=SimpleNamespace(
+            id=queued_file_id,
+            file_name="queued.pdf",
+            file_type="pdf",
+            size=120,
+            source_url="uploads/queued.pdf",
+        ),
+        uploaded_at=datetime(2026, 3, 18, 8, 0, tzinfo=UTC),
+        parsed=False,
+        parse_summary={"processing": {"status": "processing"}},
+        resume_score=None,
+        pass_fail=None,
+    )
+    completed_resume = SimpleNamespace(
+        id=completed_resume_id,
+        candidate=candidate,
+        file=SimpleNamespace(
+            id=completed_file_id,
+            file_name="done.pdf",
+            file_type="pdf",
+            size=240,
+            source_url="uploads/done.pdf",
+        ),
+        uploaded_at=datetime(2026, 3, 18, 7, 0, tzinfo=UTC),
+        parsed=True,
+        parse_summary={
+            "processing": {"status": "completed"},
+            "analysis": {
+                "match_percentage": 88.0,
+                "skill_gap_analysis": "Minor SQL gap.",
+                "experience_alignment": "Matches the role.",
+                "strength_summary": "Strong backend profile.",
+                "missing_skills": ["SQL"],
+                "extraordinary_points": ["Led platform migrations"],
+            },
+        },
+        resume_score=88.0,
+        pass_fail=True,
+    )
+
+    async def fake_get_job(db, incoming_job_id):
+        assert incoming_job_id == job_id
+        return job
+
+    async def fake_get_resumes_for_job(db, *, job_id: uuid.UUID):
+        assert job_id == job.id
+        return [queued_resume, completed_resume]
+
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.resume_upload_repository.get_job",
+        fake_get_job,
+    )
+    monkeypatch.setattr(
+        "packages.resume_screening.v1.services.resume_upload_service.resume_upload_repository.get_resumes_for_job",
+        fake_get_resumes_for_job,
+    )
+
+    response = asyncio.run(
+        service.get_resumes_for_job(
+            db=object(),
+            job_id=job_id,
+        )
+    )
+
+    assert response.job_id == job_id
+    assert len(response.resumes) == 2
+
+    assert response.resumes[0].resume_id == queued_resume_id
+    assert response.resumes[0].processing.status == "processing"
+    assert response.resumes[0].analysis is None
+    assert response.resumes[0].parsed is False
+
+    assert response.resumes[1].resume_id == completed_resume_id
+    assert response.resumes[1].processing.status == "completed"
+    assert response.resumes[1].analysis is not None
+    assert response.resumes[1].analysis.match_percentage == 88.0
+    assert response.resumes[1].resume_score == 88.0
+    assert response.resumes[1].pass_fail is True

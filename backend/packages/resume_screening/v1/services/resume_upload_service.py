@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid7
 
@@ -21,8 +22,13 @@ from app.v1.core.logging_config import get_logger
 from app.v1.core.resume_executor import run_in_resume_executor
 from app.v1.db.session import async_session_maker
 from packages.auth.v1.schema.user import UserRead
+from packages.jobs.v1.schema.job import JobRead
 from packages.resume_screening.v1.repository import resume_upload_repository
 from packages.resume_screening.v1.schemas.upload import (
+    CandidateResponse,
+    JobCandidatesResponse,
+    JobResumeInfoResponse,
+    JobResumesResponse,
     ResumeMatchAnalysis,
     ResumeProcessingInfo,
     ResumeStatusResponse,
@@ -151,6 +157,46 @@ class ResumeUploadService:
             parsed=bool(getattr(resume_record, "parsed", False)),
             processing=processing,
             analysis=None,
+        )
+
+    def _job_resume_response_from_resume(
+        self,
+        *,
+        job_id: uuid.UUID,
+        resume_record: object,
+    ) -> JobResumeInfoResponse:
+        parse_summary = getattr(resume_record, "parse_summary", None) or {}
+        analysis_payload = parse_summary.get("analysis")
+        analysis = (
+            ResumeMatchAnalysis.model_validate(analysis_payload)
+            if isinstance(analysis_payload, dict)
+            else None
+        )
+        candidate = getattr(resume_record, "candidate")
+        file_record = getattr(resume_record, "file")
+
+        return JobResumeInfoResponse(
+            job_id=job_id,
+            candidate_id=candidate.id,
+            candidate_first_name=candidate.first_name,
+            candidate_last_name=candidate.last_name,
+            candidate_email=candidate.email,
+            file_id=file_record.id,
+            resume_id=resume_record.id,
+            file_name=file_record.file_name,
+            file_type=file_record.file_type,
+            size=file_record.size,
+            source_url=file_record.source_url,
+            uploaded_at=resume_record.uploaded_at,
+            parsed=bool(getattr(resume_record, "parsed", False)),
+            processing=self._parse_processing_info(parse_summary),
+            analysis=analysis,
+            resume_score=(
+                float(resume_record.resume_score)
+                if getattr(resume_record, "resume_score", None) is not None
+                else None
+            ),
+            pass_fail=getattr(resume_record, "pass_fail", None),
         )
 
     @staticmethod
@@ -441,9 +487,22 @@ class ResumeUploadService:
                     if normalized["name"]
                     else None
                 )
+                parsed_email = (
+                    str(normalized["email"][0]["text"]).strip()
+                    if normalized["email"]
+                    else None
+                )
+                parsed_phone = (
+                    str(normalized["phone"][0]["text"]).strip()
+                    if normalized["phone"]
+                    else None
+                )
                 first_name, last_name = split_name(parsed_name)
                 parsed_summary = {
                     "name": parsed_name,
+                    "email": parsed_email,
+                    "phone": parsed_phone,
+                    "location": normalized["location"],
                     "skills": normalized["skills"],
                     "experience": normalized["experience"],
                     "education": normalized["education"],
@@ -505,6 +564,8 @@ class ResumeUploadService:
                     candidate=candidate,
                     first_name=first_name,
                     last_name=last_name,
+                    email=parsed_email,
+                    phone=parsed_phone,
                     info=parsed_summary,
                     info_embedding=insights["candidate_embedding"],
                 )
@@ -689,23 +750,17 @@ class ResumeUploadService:
                 detail=f"Resume size must be <= {settings.RESUME_MAX_SIZE_MB} MB.",
             )
 
-        stage_started_at = time.perf_counter()
-        candidate = await resume_upload_repository.get_candidate_for_job_and_email(
+        # For HR uploads, we create a new placeholder candidate for each resume.
+        # The extraction process will later fill in the correct name and info.
+        candidate = await resume_upload_repository.create_candidate(
             db,
             job_id=job_id,
-            email=current_user.email,
+            email=f"pending_{uuid7()}@example.com",
+            first_name="Processing",
+            last_name="",
         )
-        if candidate is None:
-            first_name, last_name = split_name(current_user.full_name)
-            candidate = await resume_upload_repository.create_candidate(
-                db,
-                job_id=job_id,
-                email=current_user.email,
-                first_name=first_name,
-                last_name=last_name,
-            )
         self._log_stage(
-            stage="upload_resolve_candidate",
+            stage="upload_create_placeholder_candidate",
             started_at=stage_started_at,
             job_id=job_id,
             candidate_id=candidate.id,
@@ -831,6 +886,122 @@ class ResumeUploadService:
         return self._status_response_from_resume(
             job_id=job_id,
             resume_record=resume_record,
+        )
+
+
+    async def get_candidates_for_job(
+        self,
+        *,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+    ) -> JobCandidatesResponse:
+        """Retrieve all candidates for a job with their resume insights.
+
+        Args:
+            db: The async database session.
+            job_id: The ID of the job to fetch candidates for.
+
+        Returns:
+            A JobCandidatesResponse containing the list of candidates.
+        """
+        job = await resume_upload_repository.get_job(db, job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found.",
+            )
+
+        candidates = await resume_upload_repository.get_candidates_for_job(
+            db, job_id=job_id
+        )
+
+        candidate_responses = []
+        for candidate in candidates:
+            # Use the newest loaded resume explicitly instead of relying on
+            # relationship ordering from the ORM collection.
+            resumes = getattr(candidate, "resumes", [])
+            latest_resume = (
+                max(resumes, key=lambda resume: resume.uploaded_at)
+                if resumes
+                else None
+            )
+
+            analysis = None
+            is_parsed = False
+            resume_score = None
+            pass_fail = None
+            processing_status = None
+
+            if latest_resume:
+                is_parsed = bool(latest_resume.parsed)
+                resume_score = latest_resume.resume_score
+                pass_fail = latest_resume.pass_fail
+                parse_summary = latest_resume.parse_summary or {}
+                
+                # Get processing status
+                processing_info = parse_summary.get("processing", {})
+                if isinstance(processing_info, dict):
+                    processing_status = processing_info.get("status")
+                
+                analysis_payload = parse_summary.get("analysis")
+                if isinstance(analysis_payload, dict):
+                    analysis = ResumeMatchAnalysis.model_validate(analysis_payload)
+
+            candidate_responses.append(
+                CandidateResponse(
+                    id=candidate.id,
+                    first_name=candidate.first_name,
+                    last_name=candidate.last_name,
+                    email=candidate.email,
+                    phone=candidate.phone,
+                    current_status=candidate.current_status,
+                    created_at=candidate.created_at,
+                    resume_analysis=analysis,
+                    resume_score=resume_score,
+                    pass_fail=pass_fail,
+                    is_parsed=is_parsed,
+                    processing_status=processing_status,
+                )
+            )
+
+        return JobCandidatesResponse(job_id=job_id, candidates=candidate_responses)
+
+    async def get_resumes_for_job(
+        self,
+        *,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+    ) -> JobResumesResponse:
+        job = await resume_upload_repository.get_job(db, job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found.",
+            )
+
+        resumes = await resume_upload_repository.get_resumes_for_job(
+            db,
+            job_id=job_id,
+        )
+        return JobResumesResponse(
+            job_id=job_id,
+            job=JobRead(
+                id=job.id,
+                title=getattr(job, "title", ""),
+                department=getattr(job, "department", None),
+                jd_text=getattr(job, "jd_text", None),
+                jd_json=getattr(job, "jd_json", None),
+                is_active=job.is_active,
+                created_by=getattr(job, "created_by", uuid.UUID(int=0)),
+                created_at=getattr(job, "created_at", datetime.now(UTC)),
+            ),
+            resumes=[
+                self._job_resume_response_from_resume(
+                    job_id=job_id,
+                    resume_record=resume_record,
+                )
+                for resume_record in resumes
+            ],
         )
 
 

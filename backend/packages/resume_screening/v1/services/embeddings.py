@@ -158,7 +158,16 @@ def build_candidate_text(
     if name:
         parts.append(f"Candidate: {name}")
 
+    email = parsed_summary.get("email")
+    if email:
+        parts.append(f"Email: {email}")
+
+    phone = parsed_summary.get("phone")
+    if phone:
+        parts.append(f"Phone: {phone}")
+
     for key in (
+        "location",
         "skills",
         "experience",
         "education",
