@@ -200,8 +200,10 @@ class ResumeUploadRepository:
         db: AsyncSession,
         *,
         candidate: Candidate,
-        first_name: str | None,
-        last_name: str | None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        email: str | None = None,
+        phone: str | None = None,
         info: dict[str, object],
         info_embedding: list[float] | None = None,
     ) -> Candidate:
@@ -212,13 +214,23 @@ class ResumeUploadRepository:
             candidate: The candidate object to update.
             first_name: Updated first name.
             last_name: Updated last name.
+            email: Updated email address.
+            phone: Updated phone number.
             info: A dictionary containing additional candidate information.
+            info_embedding: Vector embedding of candidate info.
 
         Returns:
             The updated candidate object.
         """
         candidate.first_name = first_name or candidate.first_name
         candidate.last_name = last_name or candidate.last_name
+        
+        # Only update email/phone if they were found in extraction and current ones are placeholders or empty
+        if email and (not candidate.email or "pending_" in candidate.email):
+            candidate.email = email
+        if phone and not candidate.phone:
+            candidate.phone = phone
+            
         candidate.info = info
         candidate.info_embedding = info_embedding
         await db.flush()
@@ -357,6 +369,54 @@ class ResumeUploadRepository:
         if rows_to_insert:
             await db.execute(insert(candidate_skills), rows_to_insert)
         return list(skills_by_name.values())
+
+    async def get_candidates_for_job(
+        self,
+        db: AsyncSession,
+        *,
+        job_id: uuid.UUID,
+    ) -> list[Candidate]:
+        """Get all candidates for a specific job with their resumes.
+
+        Args:
+            db: The async database session.
+            job_id: The ID of the job.
+
+        Returns:
+            A list of candidate objects with their resumes.
+        """
+        return list(
+            (
+                await db.scalars(
+                    select(Candidate)
+                    .options(
+                        selectinload(Candidate.resumes).selectinload(Resume.file),
+                    )
+                    .where(Candidate.applied_job_id == job_id)
+                )
+            ).all()
+        )
+
+    async def get_resumes_for_job(
+        self,
+        db: AsyncSession,
+        *,
+        job_id: uuid.UUID,
+    ) -> list[Resume]:
+        return list(
+            (
+                await db.scalars(
+                    select(Resume)
+                    .options(
+                        selectinload(Resume.candidate),
+                        selectinload(Resume.file),
+                    )
+                    .join(Candidate, Candidate.id == Resume.candidate_id)
+                    .where(Candidate.applied_job_id == job_id)
+                    .order_by(Resume.uploaded_at.desc())
+                )
+            ).all()
+        )
 
     async def commit(self, db: AsyncSession) -> None:
         """Commit the current transaction.

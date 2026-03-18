@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -7,6 +8,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.db.base_class import Base
+
+if TYPE_CHECKING:
+    from app.v1.db.models.roles import Role
+    from app.v1.db.models.jobs import Job
+    from app.v1.db.models.files import File
 
 
 def generate_uuid7():
@@ -89,3 +95,5 @@ class User(Base):
 
     # RELATIONSHIPS
     role = relationship("Role", back_populates="users")
+    jobs: Mapped[list["Job"]] = relationship("Job", back_populates="creator")
+    files: Mapped[list["File"]] = relationship("File", back_populates="owner")

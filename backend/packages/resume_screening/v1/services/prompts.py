@@ -27,6 +27,9 @@ RESUME_EXTRACTION_PROMPT = textwrap.dedent("""
     6. For the experience section, do not interpret from the projects section, education or extra acivity section
 
     - name: Full name of the candidate
+    - email: Candidate's email address
+    - phone: Candidate's phone number
+    - location: Candidate's current location (city, state, or country)
     - skills: Technical and professional skills (programming languages, tools, frameworks, soft skills)
     - experience: Work history including job title, company, dates, and responsibilities
     - education: Academic background including degree, institution, dates, and relevant details
@@ -39,7 +42,8 @@ RESUME_EXTRACTION_EXAMPLES = [
     ExampleData(
         text="""
         John Doe
-        john.doe@email.com | linkedin.com/in/johndoe | github.com/johndoe
+        john.doe@email.com | +1 (555) 012-3456 | San Francisco, CA
+        linkedin.com/in/johndoe | github.com/johndoe
 
         SKILLS
         Python, JavaScript, React, AWS, Docker, Kubernetes, Machine Learning, Agile/Scrum
@@ -74,6 +78,21 @@ RESUME_EXTRACTION_EXAMPLES = [
                 extraction_class="name",
                 extraction_text="John Doe",
                 attributes={},
+            ),
+            Extraction(
+                extraction_class="email",
+                extraction_text="john.doe@email.com",
+                attributes={},
+            ),
+            Extraction(
+                extraction_class="phone",
+                extraction_text="+1 (555) 012-3456",
+                attributes={},
+            ),
+            Extraction(
+                extraction_class="location",
+                extraction_text="San Francisco, CA",
+                attributes={"city": "San Francisco", "state": "CA"},
             ),
             Extraction(
                 extraction_class="skill",

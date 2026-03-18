@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -7,6 +8,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.db.base_class import Base
+
+if TYPE_CHECKING:
+    from app.v1.db.models.user import User
+    from app.v1.db.models.candidates import Candidate
 
 
 def generate_uuid7():
@@ -80,5 +85,5 @@ class File(Base):
     )
 
     # RELATIONSHIPS
-    owner = relationship("User", foreign_keys=[owner_id])
-    candidate = relationship("Candidate", foreign_keys=[candidate_id])
+    owner: Mapped["User"] = relationship("User", back_populates="files", foreign_keys=[owner_id])
+    candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="files", foreign_keys=[candidate_id])

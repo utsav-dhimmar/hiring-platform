@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Boolean, DateTime, ForeignKey, Text
@@ -9,6 +10,10 @@ from sqlalchemy.sql import func
 
 from app.v1.core.config import settings
 from app.v1.db.base_class import Base
+
+if TYPE_CHECKING:
+    from app.v1.db.models.user import User
+    from app.v1.db.models.candidates import Candidate
 
 
 def generate_uuid7():
@@ -89,4 +94,5 @@ class Job(Base):
     )
 
     # RELATIONSHIPS
-    creator = relationship("User", foreign_keys=[created_by])
+    creator: Mapped["User"] = relationship("User", back_populates="jobs", foreign_keys=[created_by])
+    candidates: Mapped[list["Candidate"]] = relationship("Candidate", back_populates="applied_job")

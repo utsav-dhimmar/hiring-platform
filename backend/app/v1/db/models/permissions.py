@@ -1,12 +1,17 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.db.base_class import Base
+from app.v1.db.models.roleAndPermission import role_permission
+
+if TYPE_CHECKING:
+    from app.v1.db.models.roles import Role
 
 
 def generate_uuid7():
@@ -57,3 +62,6 @@ class Permission(Base):
         DateTime(timezone=True),
         onupdate=func.now(),
     )
+
+    # RELATIONSHIPS
+    roles: Mapped[list["Role"]] = relationship("Role", secondary=role_permission, back_populates="permissions")

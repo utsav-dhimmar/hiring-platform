@@ -38,10 +38,13 @@ def normalize_extractions(
 
     Returns:
         A dictionary containing lists of extractions for fields like
-        'name', 'skills', 'experience', 'education', 'certifications', and 'links'.
+        'name', 'email', 'phone', 'location', 'skills', 'experience', 'education', 'certifications', and 'links'.
     """
     normalized: dict[str, list[dict[str, object]]] = {
         "name": [],
+        "email": [],
+        "phone": [],
+        "location": [],
         "skills": [],
         "experience": [],
         "education": [],
@@ -78,6 +81,12 @@ def normalize_extractions(
             extraction_class = getattr(extraction, "extraction_class", "")
             if extraction_class == "name":
                 normalized["name"].append(item)
+            elif extraction_class == "email":
+                normalized["email"].append(item)
+            elif extraction_class == "phone":
+                normalized["phone"].append(item)
+            elif extraction_class == "location":
+                normalized["location"].append(item)
             elif extraction_class == "skill":
                 normalized["skills"].append(item)
             elif extraction_class == "experience":
