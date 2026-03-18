@@ -26,6 +26,7 @@ class UserRepository:
     """
 
     def __init__(self) -> None:
+        """Initialize the user repository with a FastCRUD instance."""
         self.crud = FastCRUD(User)
 
     async def get_by_email(self, db: AsyncSession, email: str):
