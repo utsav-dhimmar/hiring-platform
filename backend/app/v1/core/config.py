@@ -95,6 +95,12 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = "qwen3.5:cloud"
     OLLAMA_API_KEY: str = ""
 
+    # Embeddings
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_VECTOR_DIM: int = 1024
+    EMBEDDING_TRUNCATE_DIM: int = 384
+    EMBEDDING_USE_INSTRUCTIONS: bool = False
+
     # LangExtract Retry
     LANGEXTRACT_RETRY_ATTEMPTS: int = 3
     LANGEXTRACT_RETRY_DELAY: int = 60

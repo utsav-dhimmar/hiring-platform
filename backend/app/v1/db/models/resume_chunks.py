@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
+from app.v1.core.config import settings
 from app.v1.db.base_class import Base
 
 
@@ -64,7 +65,7 @@ class ResumeChunk(Base):
 
     # VECTOR EMBEDDING (parsed_json + raw_text combined)
     chunk_embedding: Mapped[list | None] = mapped_column(
-        Vector(1024),
+        Vector(settings.EMBEDDING_VECTOR_DIM),
         nullable=True,
     )
 

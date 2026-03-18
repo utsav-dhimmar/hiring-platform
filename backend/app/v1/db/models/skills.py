@@ -5,6 +5,7 @@ from sqlalchemy import Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.v1.core.config import settings
 from app.v1.db.base_class import Base
 
 
@@ -47,6 +48,6 @@ class Skill(Base):
 
     # VECTOR EMBEDDING (name + description combined)
     skill_embedding: Mapped[list | None] = mapped_column(
-        Vector(1024),
+        Vector(settings.EMBEDDING_VECTOR_DIM),
         nullable=True,
     )

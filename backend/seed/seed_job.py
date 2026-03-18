@@ -4,8 +4,9 @@ from sqlalchemy import delete, insert, select
 
 from app.v1.db import Job, Skill, job_skills
 from app.v1.db.session import async_session_maker, init_db
-from seed_for_user import ensure_dev_test_role, ensure_user, get_admin_role
-from seed_skills import ensure_skills
+from packages.resume_screening.v1.services.embeddings import build_job_text, encode_jd
+from seed.seed_for_user import ensure_dev_test_role, ensure_user, get_admin_role
+from seed.seed_skills import ensure_skills
 
 JOB_TITLE = "Senior Next.js Developer"
 JOB_DEPARTMENT = "Engineering"
@@ -185,6 +186,9 @@ async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
         )
         session.add(job)
         await session.flush()
+
+    job_text = build_job_text(job)
+    job.jd_embedding = encode_jd(job_text) if job_text else None
 
     skill_ids = [skill.id for skill in skills if skill.name in REQUIRED_SKILLS]
     await session.execute(delete(job_skills).where(job_skills.c.job_id == job.id))

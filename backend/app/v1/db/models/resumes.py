@@ -6,6 +6,8 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
+
+from app.v1.core.config import settings
 from app.v1.db.base_class import Base
 
 
@@ -39,9 +41,9 @@ class Resume(Base):
         default=generate_uuid7,
     )
     resume_embedding: Mapped[list | None] = mapped_column(
-    Vector(768),        # nomic-embed-text-v1.5 — 768 dims
-    nullable=True,      # null until embedder.py runs
-)
+        Vector(settings.EMBEDDING_VECTOR_DIM),
+        nullable=True,
+    )
 
     # FOREIGN KEYS
     candidate_id: Mapped[uuid.UUID] = mapped_column(

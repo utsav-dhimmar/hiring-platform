@@ -15,9 +15,6 @@ from sentence_transformers import SentenceTransformer
 
 from app.v1.core.config import settings
 
-MODEL_NAME = "Qwen/Qwen3-Embedding-0.6B"
-TRUNCATE_DIM = 1024
-
 RESUME_INSTRUCTION = (
     "Instruct: Given a job description, retrieve relevant candidate resumes\n"
     "Passage: "
@@ -42,19 +39,41 @@ class ResumeJobAnalysisResult(BaseModel):
 
 @lru_cache(maxsize=1)
 def get_embedding_model() -> SentenceTransformer:
-    return SentenceTransformer(MODEL_NAME)
+    return SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
+
+
+def preload_embedding_model() -> SentenceTransformer:
+    return get_embedding_model()
+
+
+def _fit_vector_dim(vector: list[float]) -> list[float]:
+    target_dim = settings.EMBEDDING_VECTOR_DIM
+    if len(vector) == target_dim:
+        return vector
+    if len(vector) > target_dim:
+        return vector[:target_dim]
+    return vector + ([0.0] * (target_dim - len(vector)))
+
+
+def preload_embedding_model() -> SentenceTransformer:
+    return get_embedding_model()
 
 
 def _encode_text(text: str, instruction: str) -> list[float]:
     normalized_text = text.strip()
     if not normalized_text:
         return []
-    vector = get_embedding_model().encode(
-        instruction + normalized_text,
-        normalize_embeddings=True,
-        truncate_dim=TRUNCATE_DIM,
+    payload = (
+        instruction + normalized_text
+        if settings.EMBEDDING_USE_INSTRUCTIONS
+        else normalized_text
     )
-    return vector.tolist()
+    vector = get_embedding_model().encode(
+        payload,
+        normalize_embeddings=True,
+        truncate_dim=settings.EMBEDDING_TRUNCATE_DIM,
+    )
+    return _fit_vector_dim(vector.tolist())
 
 
 def encode_resume(text: str) -> list[float]:
@@ -75,6 +94,23 @@ def get_semantic_score(resume_text: str, jd_text: str) -> float:
 
     vec1 = np.array(encode_resume(resume_text))
     vec2 = np.array(encode_jd(jd_text))
+    if vec1.size == 0 or vec2.size == 0:
+        return 0.0
+    score = float(np.dot(vec1, vec2))
+    return round(max(0.0, score) * 100.0, 2)
+
+
+def get_semantic_score_from_embeddings(
+    resume_embedding: list[float],
+    jd_embedding: list[float],
+) -> float:
+    if not resume_embedding or not jd_embedding:
+        return 0.0
+
+    vec1 = np.array(resume_embedding)
+    vec2 = np.array(jd_embedding)
+    if vec1.size == 0 or vec2.size == 0:
+        return 0.0
     score = float(np.dot(vec1, vec2))
     return round(max(0.0, score) * 100.0, 2)
 
@@ -194,6 +230,12 @@ class ResumeJdAnalyzer:
         if not outputs or not outputs[0] or not outputs[0][0].output:
             raise ValueError("LLM did not return a resume analysis response.")
 
-        parsed_output = self.model.parse_output(outputs[0][0].output)
+        raw_output = outputs[0][0].output
+        try:
+            parsed_output = self.model.parse_output(raw_output)
+        except ValueError as exc:
+            raise ValueError(
+                "LLM returned invalid JSON for resume analysis."
+            ) from exc
         validated = ResumeJobAnalysisResult.model_validate(parsed_output)
         return validated.model_dump()

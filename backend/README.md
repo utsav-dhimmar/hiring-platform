@@ -28,6 +28,15 @@ A modern FastAPI backend for the HR Platform.
 uv sync
 ```
 
+Optional embedding tuning in `.env`:
+
+```env
+EMBEDDING_MODEL_NAME=sentence-transformers/all-MiniLM-L6-v2
+EMBEDDING_VECTOR_DIM=1024
+EMBEDDING_TRUNCATE_DIM=384
+EMBEDDING_USE_INSTRUCTIONS=False
+```
+
 ### Running the Application
 
 #### Locally

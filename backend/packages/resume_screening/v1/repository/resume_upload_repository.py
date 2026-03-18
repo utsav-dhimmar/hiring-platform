@@ -8,8 +8,9 @@ including candidate creation, file recording, and resume parsing summary storage
 from datetime import UTC, datetime
 import uuid
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidate_skills import candidate_skills
 from app.v1.db.models.candidates import Candidate
@@ -140,6 +141,7 @@ class ResumeUploadRepository:
         candidate_id: uuid.UUID,
         file_id: uuid.UUID,
         parse_summary: dict[str, object],
+        parsed: bool = True,
         resume_score: float | None = None,
         pass_fail: bool | None = None,
     ) -> Resume:
@@ -157,7 +159,7 @@ class ResumeUploadRepository:
         resume_record = Resume(
             candidate_id=candidate_id,
             file_id=file_id,
-            parsed=True,
+            parsed=parsed,
             parse_summary=parse_summary,
             resume_score=resume_score,
             pass_fail=pass_fail,
@@ -236,6 +238,49 @@ class ResumeUploadRepository:
                     .where(job_skills.c.job_id == job_id)
                 )
             ).all()
+        )
+
+    async def get_resume_for_job(
+        self,
+        db: AsyncSession,
+        *,
+        job_id: uuid.UUID,
+        resume_id: uuid.UUID,
+        owner_id: uuid.UUID | None = None,
+    ) -> Resume | None:
+        query = (
+            select(Resume)
+            .options(
+                selectinload(Resume.candidate),
+                selectinload(Resume.file),
+            )
+            .join(Candidate, Candidate.id == Resume.candidate_id)
+            .join(FileRecord, FileRecord.id == Resume.file_id)
+            .where(
+                Resume.id == resume_id,
+                Candidate.applied_job_id == job_id,
+            )
+        )
+        if owner_id is not None:
+            query = query.where(FileRecord.owner_id == owner_id)
+        return await db.scalar(query)
+
+    async def mark_resume_failed(
+        self,
+        db: AsyncSession,
+        *,
+        resume_id: uuid.UUID,
+        parse_summary: dict[str, object],
+    ) -> None:
+        await db.execute(
+            update(Resume)
+            .where(Resume.id == resume_id)
+            .values(
+                parsed=False,
+                parse_summary=parse_summary,
+                resume_score=None,
+                pass_fail=None,
+            )
         )
 
     async def update_job_embedding(
@@ -320,6 +365,9 @@ class ResumeUploadRepository:
             db: The async database session.
         """
         await db.commit()
+
+    async def flush(self, db: AsyncSession) -> None:
+        await db.flush()
 
     async def rollback(self, db: AsyncSession) -> None:
         """Roll back the current transaction.
