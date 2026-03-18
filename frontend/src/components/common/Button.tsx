@@ -1,16 +1,45 @@
+/**
+ * Custom button component with loading state and icon support.
+ * Wraps React Bootstrap Button with additional features.
+ */
+
 import React from 'react';
 import { Button as BSButton } from 'react-bootstrap';
 import type { ButtonProps as BSButtonProps } from 'react-bootstrap';
 import './Button.css';
 
+/**
+ * Props for the Button component.
+ * Extends React Bootstrap ButtonProps with custom options.
+ */
 interface ButtonProps extends Omit<BSButtonProps, 'size'> {
+  /** Visual style variant of the button */
   variant?: 'primary' | 'secondary' | 'outline-primary' | 'outline-secondary' | 'success' | 'danger' | 'warning' | 'ghost';
+  /** Size of the button */
   size?: 'sm' | 'lg';
+  /** Shows loading spinner and disables button when true */
   isLoading?: boolean;
+  /** Icon element to display before button text */
   leftIcon?: React.ReactNode;
+  /** Icon element to display after button text */
   rightIcon?: React.ReactNode;
 }
 
+/**
+ * Button component with loading state and icon support.
+ * @example
+ * ```tsx
+ * <Button variant="primary" onClick={handleClick}>
+ *   Submit
+ * </Button>
+ * ```
+ * @example
+ * ```tsx
+ * <Button isLoading leftIcon={<Spinner />}>
+ *   Saving...
+ * </Button>
+ * ```
+ */
 export function Button({
   children,
   variant = 'primary',

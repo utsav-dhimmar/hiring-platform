@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback } from "react";
+/**
+ * Job candidates page displaying all applicants for a specific job.
+ * Shows resume analysis results, scores, and pass/fail decisions.
+ * Includes polling for processing status and detailed candidate modals.
+ */
+
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Container, Row, Col, Spinner, Alert, Badge, Breadcrumb, Modal } from "react-bootstrap";
 import { Card, CardHeader, CardBody, Button } from "../../components/common";
