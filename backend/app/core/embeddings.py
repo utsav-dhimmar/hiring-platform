@@ -13,7 +13,7 @@ from langextract.providers.ollama import OllamaLanguageModel
 from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 
-from app.v1.core.config import settings
+from app.core.config import settings
 
 RESUME_INSTRUCTION = (
     "Instruct: Given a job description, retrieve relevant candidate resumes\nPassage: "

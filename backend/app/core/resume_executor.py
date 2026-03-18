@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from typing import Any, Callable, TypeVar
 
-from app.v1.core.config import settings
+from app.core.config import settings
 
 T = TypeVar("T")
 

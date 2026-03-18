@@ -12,7 +12,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.v1.core.config import settings
 from app.v1.db.session import get_db
 from app.v1.schemas.user import UserRead
 from app.v1.services.user_service import user_service

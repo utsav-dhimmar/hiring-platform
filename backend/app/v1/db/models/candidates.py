@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from app.core.config import settings
+from app.v1.core.config import settings
 from app.v1.db.base import Base
 from app.v1.utils.uuid import UUIDHelper
 

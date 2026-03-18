@@ -11,8 +11,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.core.config import settings
-from app.core.logging import get_logger
+from app.v1.core.config import settings
+from app.v1.core.logging import get_logger
 from app.v1.db.base import Base  # noqa: F401
 
 logger = get_logger(__name__)

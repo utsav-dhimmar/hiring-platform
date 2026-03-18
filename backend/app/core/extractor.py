@@ -20,8 +20,8 @@ from tenacity import (
     wait_fixed,
 )
 
-from app.v1.core.config import settings
-from app.v1.core.prompts import (
+from app.core.config import settings
+from app.core.prompts import (
     RESUME_EXTRACTION_EXAMPLES,
     RESUME_EXTRACTION_PROMPT,
 )

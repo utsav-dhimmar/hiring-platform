@@ -11,7 +11,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
+from app.v1.core.logging import get_logger
 from app.v1.core.resume_executor import run_in_resume_executor
 from app.v1.db.session import async_session_maker
 from app.v1.repository.resume_upload_repository import resume_upload_repository

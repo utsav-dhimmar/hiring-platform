@@ -13,7 +13,7 @@ from uuid import uuid7
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.v1.core.config import settings
 from app.v1.repository.resume_upload_repository import resume_upload_repository
 from app.v1.schemas.job import JobRead
 from app.v1.schemas.upload import (

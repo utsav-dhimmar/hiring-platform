@@ -6,7 +6,7 @@ from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.config import settings
+from app.v1.core.config import settings
 from app.v1.db.base import Base
 
 

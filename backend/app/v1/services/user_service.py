@@ -10,7 +10,7 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
+from app.v1.core.logging import get_logger
 from app.v1.core.security import (
     create_access_token,
     create_refresh_token,
