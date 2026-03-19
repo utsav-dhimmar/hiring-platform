@@ -309,6 +309,9 @@ class AdminService:
             role = await admin_repository.assign_permissions_to_role(
                 db=db, role=role, permission_ids=role_in.permission_ids
             )
+        else:
+            # Re-fetch with permissions even if none assigned to avoid lazy loading
+            role = await admin_repository.get_role_by_id(db=db, role_id=role.id)
 
         await self.log_action(
             db=db,

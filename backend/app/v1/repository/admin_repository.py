@@ -6,9 +6,10 @@ role management, permission management, audit logs, and analytics reporting.
 """
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import desc, func, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.models.audit_logs import AuditLog
@@ -112,13 +113,16 @@ class AdminRepository:
 
     async def get_role_by_id(self, db: AsyncSession, role_id: uuid.UUID) -> Role | None:
         """
-        Retrieve a role by its unique identifier.
+        Retrieve a role by its unique identifier with permissions.
 
         @param db - Database session
         @param role_id - Unique identifier of the role
         @returns Role object if found, None otherwise
         """
-        return await db.get(Role, role_id)
+        result = await db.execute(
+            select(Role).where(Role.id == role_id).options(selectinload(Role.permissions))
+        )
+        return result.scalar_one_or_none()
 
     async def get_role_by_name(self, db: AsyncSession, name: str) -> Role | None:
         """
@@ -255,7 +259,8 @@ class AdminRepository:
         role.permissions = list(permissions.scalars().all())
         await db.commit()
         await db.refresh(role)
-        return role
+        # Re-fetch with selectinload to avoid lazy loading issues in serialize_response
+        return await self.get_role_by_id(db, role.id)
 
     async def get_audit_logs(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
@@ -344,10 +349,10 @@ class AdminRepository:
         total_candidates = await db.scalar(select(func.count(Candidate.id)))
         total_resumes = await db.scalar(select(func.count(Resume.id)))
         active_jobs = await db.scalar(
-            select(func.count(Job.id)).where(Job.is_active is True)
+            select(func.count(Job.id)).where(Job.is_active == True)
         )
         active_users = await db.scalar(
-            select(func.count(User.id)).where(User.is_active is True)
+            select(func.count(User.id)).where(User.is_active == True)
         )
 
         return {
@@ -371,12 +376,12 @@ class AdminRepository:
         """
         total_jobs = await db.scalar(select(func.count(Job.id))) or 0
         active_jobs = (
-            await db.scalar(select(func.count(Job.id)).where(Job.is_active is True))
+            await db.scalar(select(func.count(Job.id)).where(Job.is_active == True))
             or 0
         )
         total_candidates = await db.scalar(select(func.count(Candidate.id))) or 0
 
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         resumes_last_30_days = (
             await db.scalar(
                 select(func.count(Resume.id)).where(
@@ -392,7 +397,7 @@ class AdminRepository:
 
         total_passed = (
             await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail is True)
+                select(func.count(Resume.id)).where(Resume.pass_fail == True)
             )
             or 0
         )

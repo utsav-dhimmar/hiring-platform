@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String
@@ -55,6 +54,7 @@ class Role(Base):
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+        default=func.now(),
         onupdate=func.now(),
     )
 

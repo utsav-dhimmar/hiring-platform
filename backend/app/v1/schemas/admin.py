@@ -8,7 +8,7 @@ role management, permission management, audit logs, and analytics reporting.
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class PermissionBase(BaseModel):
@@ -141,7 +141,7 @@ class RecentUploadRead(BaseModel):
     size: int | None = None
     candidate_id: uuid.UUID | None = None
     job_id: uuid.UUID | None = None
-    uploaded_by: uuid.UUID
+    uploaded_by: uuid.UUID = Field(validation_alias="owner_id")
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

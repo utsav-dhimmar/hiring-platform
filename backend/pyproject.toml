@@ -37,3 +37,9 @@ seed-all = "seed.main:run"
 
 [tool.setuptools.packages.find]
 include = ["app*", "packages*", "seed*"]
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.22.1",
+    "psycopg2-binary>=2.9.11",
+]
