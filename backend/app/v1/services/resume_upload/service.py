@@ -4,6 +4,7 @@ Main resume upload service orchestrator.
 
 from __future__ import annotations
 
+import hashlib
 import time
 import uuid
 from datetime import UTC, datetime
@@ -128,6 +129,18 @@ class ResumeUploadService:
                 detail=f"Resume size must be <= {settings.RESUME_MAX_SIZE_MB} MB.",
             )
 
+        content_hash = hashlib.sha256(content).hexdigest()
+        existing_file = await resume_upload_repository.get_file_by_content_hash_for_job(
+            db,
+            job_id=job_id,
+            content_hash=content_hash,
+        )
+        if existing_file is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This resume has already been uploaded for this job.",
+            )
+
         candidate = await resume_upload_repository.create_candidate(
             db,
             job_id=job_id,
@@ -167,6 +180,7 @@ class ResumeUploadService:
             file_type=extension,
             source_url=target_path.as_posix(),
             size=file_size,
+            content_hash=content_hash,
         )
         log_stage(
             stage="upload_create_file_record",

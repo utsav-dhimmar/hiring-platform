@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -95,6 +95,13 @@ class Resume(Base):
         Numeric,
         default=0.65,
         nullable=False,
+    )
+
+    text_hash: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        index=True,
+        comment="SHA-256 hex digest of extracted resume text for content-level deduplication",
     )
 
     # RELATIONSHIPS
