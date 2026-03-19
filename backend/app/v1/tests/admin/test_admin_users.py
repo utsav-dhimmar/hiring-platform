@@ -99,9 +99,7 @@ class TestAdminUserManagement:
         )
         assert response.status_code == 404
 
-    def test_update_user_as_admin(
-        self, client, admin_token, regular_user, hr_role
-    ):
+    def test_update_user_as_admin(self, client, admin_token, regular_user, hr_role):
         """Test admin can update a user."""
         response = client.patch(
             f"/api/v1/admin/users/{regular_user.id}",
@@ -140,9 +138,7 @@ class TestAdminUserManagement:
         )
         assert response.status_code == 404
 
-    def test_delete_user_as_admin(
-        self, client, admin_token, hr_role, db_session
-    ):
+    def test_delete_user_as_admin(self, client, admin_token, hr_role, db_session):
         """Test admin can delete a user."""
         from app.v1.core.security import hash_password
         from app.v1.db.models.user import User

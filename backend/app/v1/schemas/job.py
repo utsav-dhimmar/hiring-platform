@@ -28,6 +28,18 @@ class JobCreate(JobBase):
     pass
 
 
+class JobUpdate(BaseModel):
+    """
+    Schema for updating an existing Job.
+    """
+
+    title: str | None = None
+    department: str | None = None
+    jd_text: str | None = None
+    jd_json: dict | None = None
+    is_active: bool | None = None
+
+
 class JobRead(JobBase):
     """
     Schema for reading Job data, including database-generated fields.

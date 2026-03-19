@@ -15,6 +15,8 @@ export interface UserRead {
   role_id: string;
   /** Name of the role (e.g., "admin", "recruiter") */
   role_name?: string | null;
+  /** List of permission names assigned to the user's role */
+  permissions: string[];
   /** Timestamp when the user was created */
   created_at: string | null;
   /** Timestamp when the user was last updated */

@@ -7,7 +7,6 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

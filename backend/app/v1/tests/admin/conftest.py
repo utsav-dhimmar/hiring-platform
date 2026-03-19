@@ -6,7 +6,7 @@ import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import AsyncGenerator
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -16,6 +16,13 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+
+from app.v1.core.security import create_access_token, hash_password
+from app.v1.db.base import Base
+from app.v1.db.models.permissions import Permission
+from app.v1.db.models.roleAndPermission import role_permission
+from app.v1.db.models.roles import Role
+from app.v1.db.models.user import User
 
 TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost/app"
 
@@ -31,11 +38,13 @@ mock_engine = MagicMock()
 
 @pytest.fixture(scope="function")
 def app_with_mocks():
-    with patch("app.main.preload_embedding_model", return_value=None), \
-         patch("app.main.init_db", return_value=None), \
-         patch("app.main.initialize_resume_executor", return_value=None), \
-         patch("app.v1.db.session.engine", mock_engine), \
-         patch("app.v1.db.session.async_session_maker", TestSessionMaker):
+    with (
+        patch("app.main.preload_embedding_model", return_value=None),
+        patch("app.main.init_db", return_value=None),
+        patch("app.main.initialize_resume_executor", return_value=None),
+        patch("app.v1.db.session.engine", mock_engine),
+        patch("app.v1.db.session.async_session_maker", TestSessionMaker),
+    ):
         from app.main import app
         from app.v1.db.session import get_db
 
@@ -55,14 +64,6 @@ def event_loop():
     asyncio.set_event_loop(loop)
     yield loop
     loop.close()
-
-
-from app.v1.core.security import create_access_token, hash_password
-from app.v1.db.base import Base
-from app.v1.db.models.permissions import Permission
-from app.v1.db.models.roleAndPermission import role_permission
-from app.v1.db.models.roles import Role
-from app.v1.db.models.user import User
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -173,9 +174,7 @@ async def second_role(db_session: AsyncSession, permission: Permission) -> Role:
     await db_session.flush()
 
     await db_session.execute(
-        role_permission.insert().values(
-            role_id=role.id, permission_id=permission.id
-        )
+        role_permission.insert().values(role_id=role.id, permission_id=permission.id)
     )
     await db_session.commit()
     await db_session.refresh(role)

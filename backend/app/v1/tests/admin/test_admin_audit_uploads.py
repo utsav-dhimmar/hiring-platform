@@ -11,9 +11,7 @@ from app.v1.tests.admin.conftest import get_auth_header
 class TestAdminAuditLogs:
     """Test suite for admin audit logs endpoints."""
 
-    def test_get_audit_logs_as_admin(
-        self, client, admin_token, db_session, admin_user
-    ):
+    def test_get_audit_logs_as_admin(self, client, admin_token, db_session, admin_user):
         """Test admin can get audit logs."""
         from app.v1.db.models.audit_logs import AuditLog
 
@@ -49,9 +47,7 @@ class TestAdminAuditLogs:
         response = client.get("/api/v1/admin/audit-logs")
         assert response.status_code == 401
 
-    def test_audit_logs_pagination(
-        self, client, admin_token, db_session, admin_user
-    ):
+    def test_audit_logs_pagination(self, client, admin_token, db_session, admin_user):
         """Test audit logs pagination."""
         from app.v1.db.models.audit_logs import AuditLog
 

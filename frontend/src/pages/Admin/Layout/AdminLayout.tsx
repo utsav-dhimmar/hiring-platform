@@ -4,13 +4,16 @@
  */
 
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useAppDispatch } from "../../../store/hooks";
-import { logout } from "../../../store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "../../../store/hooks";
+import { logout, selectCurrentUser } from "../../../store/slices/authSlice";
 import "./AdminLayout.css";
 
 const AdminLayout = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const user = useAppSelector(selectCurrentUser);
+
+  const isAdmin = user?.role_name?.toLowerCase() === "admin";
 
   const handleLogout = () => {
     dispatch(logout());
@@ -38,30 +41,60 @@ const AdminLayout = () => {
           >
             Dashboard
           </NavLink>
+          {isAdmin && (
+            <NavLink
+              to="/admin/users"
+              className={({ isActive }) =>
+                isActive ? "nav-item active" : "nav-item"
+              }
+            >
+              User Management
+            </NavLink>
+          )}
           <NavLink
-            to="/admin/users"
+            to="/admin/jobs"
             className={({ isActive }) =>
               isActive ? "nav-item active" : "nav-item"
             }
           >
-            User Management
+            Job Management
           </NavLink>
           <NavLink
-            to="/admin/roles"
+            to="/admin/candidates"
             className={({ isActive }) =>
               isActive ? "nav-item active" : "nav-item"
             }
           >
-            Role & Permissions
+            Candidate Search
           </NavLink>
           <NavLink
-            to="/admin/audit-logs"
+            to="/admin/skills"
             className={({ isActive }) =>
               isActive ? "nav-item active" : "nav-item"
             }
           >
-            Audit Logs
+            Skill Management
           </NavLink>
+          {isAdmin && (
+            <NavLink
+              to="/admin/roles"
+              className={({ isActive }) =>
+                isActive ? "nav-item active" : "nav-item"
+              }
+            >
+              Role & Permissions
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink
+              to="/admin/audit-logs"
+              className={({ isActive }) =>
+                isActive ? "nav-item active" : "nav-item"
+              }
+            >
+              Audit Logs
+            </NavLink>
+          )}
           <NavLink
             to="/admin/recent-uploads"
             className={({ isActive }) =>

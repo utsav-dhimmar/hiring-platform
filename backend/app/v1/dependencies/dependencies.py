@@ -10,11 +10,9 @@ from uuid import UUID
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings
-from app.v1.db.models.roles import Role
 from app.v1.db.session import get_db
 from app.v1.schemas.user import UserRead
 from app.v1.services.user_service import user_service
@@ -98,30 +96,44 @@ async def get_current_user(
 
 async def get_admin_user(
     current_user: UserRead = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ) -> UserRead:
     """
-    Get the current user and verify they have admin privileges.
-
-    Args:
-        current_user: The currently authenticated user.
-        db: Async database session.
-
-    Returns:
-        The current authenticated admin user.
-
-    Raises:
-        HTTPException: If the user is not an admin.
+    Verify the current user has admin privileges based on permissions.
+    Checks for 'admin:access' or the 'admin:all' super-permission.
     """
-    result = await db.execute(
-        select(Role).where(Role.id == current_user.role_id)
+    has_admin_permission = (
+        "admin:access" in current_user.permissions
+        or "admin:all" in current_user.permissions
     )
-    role = result.scalar_one_or_none()
 
-    if not role or role.name.lower() != "admin":
+    if not has_admin_permission:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required.",
+            detail="Admin privileges (admin:access) required.",
         )
 
     return current_user
+
+
+def check_permission(permission_name: str):
+    """
+    Dependency factory to check if a user has a specific permission or 'admin:all'.
+    This approach is dynamic and doesn't rely on hard-coded role names.
+    """
+
+    async def _has_permission(
+        current_user: UserRead = Depends(get_current_user),
+    ) -> UserRead:
+        has_permission = (
+            permission_name in current_user.permissions
+            or "admin:all" in current_user.permissions
+        )
+
+        if not has_permission:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission '{permission_name}' required.",
+            )
+        return current_user
+
+    return _has_permission

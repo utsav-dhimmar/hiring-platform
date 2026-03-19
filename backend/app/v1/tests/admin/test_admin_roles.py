@@ -47,9 +47,7 @@ class TestAdminRoleManagement:
         data = response.json()
         assert data["name"] == "manager"
 
-    def test_create_role_with_permissions(
-        self, client, admin_token, permission
-    ):
+    def test_create_role_with_permissions(self, client, admin_token, permission):
         """Test admin can create role with permissions."""
         response = client.post(
             "/api/v1/admin/roles",

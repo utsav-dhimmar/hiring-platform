@@ -88,6 +88,7 @@ class UserRead(BaseModel):
     is_active: bool = True
     role_id: uuid.UUID
     role_name: str | None = None
+    permissions: list[str] = []
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
