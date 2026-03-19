@@ -117,5 +117,9 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "admin123"
     ADMIN_FULL_NAME: str = "admin"
 
+    # Redis cache
+    REDIS_URL: str = "redis://localhost:6379/0"
+    CACHE_TTL_SECONDS: int = 300
+
 
 settings = Settings()

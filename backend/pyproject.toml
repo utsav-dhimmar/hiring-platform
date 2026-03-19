@@ -28,6 +28,7 @@ dependencies = [
     "sqlalchemy>=2.0.44",
     "bcrypt>=5.0.0",
     "pyjwt>=2.12.1",
+    "redis[asyncio]>=5.0",
 ]
 
 

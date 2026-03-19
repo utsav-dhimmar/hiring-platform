@@ -5,6 +5,7 @@ Background task orchestration for resume processing.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import time
 import uuid
 
@@ -177,6 +178,39 @@ class BackgroundProcessor:
                     resume_id=resume_id,
                 )
 
+                # ---- Issue #25: content-level deduplication ------
+                text_hash = hashlib.sha256(raw_text.encode()).hexdigest()
+                stage_started_at = time.perf_counter()
+                twin_resume = await resume_upload_repository.get_resume_by_text_hash_for_job(
+                    db,
+                    job_id=job_id,
+                    text_hash=text_hash,
+                    exclude_resume_id=resume_record.id,
+                )
+                if twin_resume is not None:
+                    # Same text content found (e.g. pdf vs docx of same file).
+                    # Copy the existing analysis instead of re-running LLM.
+                    log_event(
+                        event="content_dedup_hit",
+                        job_id=job_id,
+                        resume_id=resume_id,
+                        twin_resume_id=twin_resume.id,
+                    )
+                    resume_record.parse_summary = twin_resume.parse_summary
+                    resume_record.parsed = True
+                    resume_record.resume_score = twin_resume.resume_score
+                    resume_record.pass_fail = twin_resume.pass_fail
+                    resume_record.text_hash = text_hash
+                    await resume_upload_repository.commit(db)
+                    log_stage(
+                        stage="total_dedup",
+                        started_at=total_started_at,
+                        job_id=job_id,
+                        resume_id=resume_id,
+                    )
+                    return
+                # --------------------------------------------------
+
                 parsed_name = (
                     str(normalized["name"][0]["text"]).strip()
                     if normalized["name"]
@@ -281,6 +315,7 @@ class BackgroundProcessor:
                 resume_record.parse_summary = parse_summary_with_analysis
                 resume_record.resume_score = analysis.match_percentage
                 resume_record.pass_fail = analysis.match_percentage >= 65.0
+                resume_record.text_hash = text_hash
 
                 stage_started_at = time.perf_counter()
                 await resume_upload_repository.create_resume_chunk(

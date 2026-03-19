@@ -15,6 +15,13 @@ from app.v1.core.config import settings
 from app.v1.prompts import RESUME_JD_ANALYSIS_PROMPT
 
 
+class MissingSkillItem(BaseModel):
+    """A single missing skill with its importance score."""
+
+    name: str
+    score: float = Field(ge=0, le=100)
+
+
 class ResumeJobAnalysisResult(BaseModel):
     """Result of the LLM-based analysis comparing a resume to a job description."""
 
@@ -22,7 +29,7 @@ class ResumeJobAnalysisResult(BaseModel):
     skill_gap_analysis: str
     experience_alignment: str
     strength_summary: str
-    missing_skills: list[str] = Field(default_factory=list)
+    missing_skills: list[MissingSkillItem] = Field(default_factory=list)
     extraordinary_points: list[str] = Field(default_factory=list)
 
 

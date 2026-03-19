@@ -23,6 +23,13 @@ class ResumeProcessingInfo(BaseModel):
     error: str | None = None
 
 
+class MissingSkill(BaseModel):
+    """A single missing skill with its importance score."""
+
+    name: str
+    score: float = Field(ge=0, le=100)
+
+
 class ResumeMatchAnalysis(BaseModel):
     """Structured analysis of a resume's match with a job description."""
 
@@ -30,7 +37,7 @@ class ResumeMatchAnalysis(BaseModel):
     skill_gap_analysis: str
     experience_alignment: str
     strength_summary: str
-    missing_skills: list[str]
+    missing_skills: list[MissingSkill]
     extraordinary_points: list[str]
 
 
