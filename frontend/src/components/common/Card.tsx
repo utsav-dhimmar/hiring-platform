@@ -6,7 +6,7 @@
 import React from 'react';
 import { Card as BSCard } from 'react-bootstrap';
 import type { CardProps } from 'react-bootstrap';
-import './Card.css';
+import '../../css/card.css';
 
 /**
  * Props for the Card component.

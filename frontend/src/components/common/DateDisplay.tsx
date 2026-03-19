@@ -3,7 +3,7 @@
  * Supports various input formats, custom formatters, and fallback text.
  */
 
-import "./DateDisplay.css";
+import "../../css/dateDisplay.css";
 
 /**
  * Props for the DateDisplay component.

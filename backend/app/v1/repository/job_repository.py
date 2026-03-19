@@ -2,23 +2,21 @@
 Repository for job-related database operations.
 """
 
-from fastcrud import FastCRUD
+import uuid
+
+from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.jobs import Job
-from app.v1.schemas.job import JobRead
+from app.v1.db.models.job_skills import job_skills
+from app.v1.schemas.job import JobCreate, JobUpdate
 
 
 class JobRepository:
     """
-    Repository class for handling Job database operations using FastCRUD.
+    Repository class for handling Job database operations.
     """
-
-    def __init__(self) -> None:
-        """
-        Initialize the JobRepository with FastCRUD.
-        """
-        self.crud = FastCRUD(Job)
 
     async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100):
         """
@@ -30,14 +28,87 @@ class JobRepository:
             limit (int): Maximum number of records to return.
 
         Returns:
-            Any: A dictionary-like object containing the list of jobs and total count.
+            dict[str, object]: A dictionary containing the jobs and total count.
         """
-        return await self.crud.get_multi(
-            db=db,
-            offset=skip,
-            limit=limit,
-            return_as_model=True,
-            schema_to_select=JobRead,
+        total = await db.scalar(select(func.count()).select_from(Job))
+        stmt = (
+            select(Job)
+            .options(selectinload(Job.skills))
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        return {"data": list(result.scalars().unique().all()), "total": total or 0}
+
+    async def get(self, db: AsyncSession, id: uuid.UUID) -> Job | None:
+        """Retrieve a single job with its related skills."""
+        stmt = select(Job).options(selectinload(Job.skills)).where(Job.id == id)
+        result = await db.execute(stmt)
+        return result.scalars().unique().first()
+
+    async def create(
+        self, db: AsyncSession, object: JobCreate, created_by: uuid.UUID
+    ) -> Job:
+        """Create a job and persist its skill associations."""
+        payload = object.model_dump()
+        skill_ids = payload.pop("skill_ids", [])
+
+        job = Job(**payload, created_by=created_by)
+        db.add(job)
+        await db.flush()
+
+        await self._sync_skills(db=db, job_id=job.id, skill_ids=skill_ids)
+        await db.commit()
+
+        created_job = await self.get(db=db, id=job.id)
+        if created_job is None:
+            raise ValueError("Failed to load created job.")
+        return created_job
+
+    async def update(
+        self, db: AsyncSession, id: uuid.UUID, object: JobUpdate
+    ) -> Job:
+        """Update a job and optionally replace its skill associations."""
+        job = await self.get(db=db, id=id)
+        if job is None:
+            raise ValueError("Job not found.")
+
+        payload = object.model_dump(exclude_unset=True)
+        skill_ids = payload.pop("skill_ids", None)
+
+        for key, value in payload.items():
+            setattr(job, key, value)
+
+        if skill_ids is not None:
+            await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
+
+        await db.commit()
+
+        updated_job = await self.get(db=db, id=id)
+        if updated_job is None:
+            raise ValueError("Failed to load updated job.")
+        return updated_job
+
+    async def delete(self, db: AsyncSession, id: uuid.UUID) -> None:
+        """Delete a job by id."""
+        job = await self.get(db=db, id=id)
+        if job is None:
+            return
+
+        await db.delete(job)
+        await db.commit()
+
+    async def _sync_skills(
+        self, db: AsyncSession, job_id: uuid.UUID, skill_ids: list[uuid.UUID]
+    ) -> None:
+        """Replace a job's skill links with the provided skill ids."""
+        await db.execute(delete(job_skills).where(job_skills.c.job_id == job_id))
+        if not skill_ids:
+            return
+
+        await db.execute(
+            insert(job_skills),
+            [{"job_id": job_id, "skill_id": skill_id} for skill_id in skill_ids],
         )
 
 

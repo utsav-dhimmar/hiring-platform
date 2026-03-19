@@ -11,9 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.session import get_db
 from app.v1.dependencies.dependencies import check_permission
 from app.v1.schemas.job import JobCreate, JobRead, JobUpdate
+from app.v1.schemas.upload import JobCandidatesResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
 from app.v1.services.job_service import job_service
+from app.v1.services.resume_upload_service import resume_upload_service
 
 router = APIRouter()
 
@@ -48,7 +50,9 @@ async def create_job(
     job_in: JobCreate,
 ) -> Any:
     """Create a new job."""
-    return await admin_service.create_job(db=db, admin_user_id=user.id, job_in=job_in)
+    return await admin_service.create_job(
+        db=db, admin_user_id=user.id, job_in=job_in
+    )
 
 
 @router.get("/{job_id}", response_model=JobRead)
@@ -83,3 +87,20 @@ async def delete_job(
 ) -> None:
     """Delete a job."""
     await admin_service.delete_job(db=db, admin_user_id=user.id, job_id=job_id)
+
+
+@router.get(
+    "/jobs/{job_id}/candidates",
+    response_model=JobCandidatesResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_candidates_for_job(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: UserRead = Depends(check_permission("jobs:access")),
+) -> JobCandidatesResponse:
+    """Retrieve all candidates for a specific job."""
+    return await resume_upload_service.get_candidates_for_job(
+        db=db,
+        job_id=job_id,
+    )

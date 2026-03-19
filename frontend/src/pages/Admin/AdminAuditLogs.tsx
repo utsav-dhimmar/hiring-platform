@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { adminAnalyticsService } from "../../apis/admin/service";
 import type { AuditLogRead } from "../../apis/admin/types";
 import { Card, CardBody, DateDisplay } from "../../components/common";
-import "./AdminDashboard.css";
+import "../../css/adminDashboard.css";
 
 const AdminAuditLogs = () => {
   const [logs, setLogs] = useState<AuditLogRead[]>([]);

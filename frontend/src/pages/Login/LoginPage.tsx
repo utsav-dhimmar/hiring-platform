@@ -3,17 +3,23 @@
  * Provides email/password form with validation and error handling.
  */
 
-import { useState } from 'react';
-import { Container, Row, Col, Alert } from 'react-bootstrap';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { useAppDispatch } from '../../store/hooks';
-import { setCredentials } from '../../store/slices/authSlice';
-import { authService } from '../../apis/services/authService';
-import { Card, CardHeader, CardBody, Input, Button } from '../../components/common';
-import { loginSchema, type LoginFormValues } from '../../schemas/auth';
+import { useState } from "react";
+import { Container, Row, Col, Alert } from "react-bootstrap";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
+import { useAppDispatch } from "../../store/hooks";
+import { setCredentials } from "../../store/slices/authSlice";
+import { authService } from "../../apis/services/auth";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Input,
+  Button,
+} from "../../components/common";
+import { loginSchema, type LoginFormValues } from "../../schemas/auth";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -34,14 +40,16 @@ const LoginPage = () => {
     setError(null);
     try {
       const response = await authService.login(data);
-      dispatch(setCredentials({
-        user: response.user,
-        access_token: response.access_token,
-        refresh_token: response.refresh_token,
-      }));
-      navigate('/');
+      dispatch(
+        setCredentials({
+          user: response.user,
+          access_token: response.access_token,
+          refresh_token: response.refresh_token,
+        }),
+      );
+      navigate("/");
     } catch (err: unknown) {
-      let errorMsg = 'Failed to login. Please check your credentials.';
+      let errorMsg = "Failed to login. Please check your credentials.";
       if (axios.isAxiosError(err)) {
         errorMsg = err.response?.data?.detail || err.message || errorMsg;
       } else if (err instanceof Error) {
@@ -68,7 +76,7 @@ const LoginPage = () => {
                   label="Email Address"
                   type="email"
                   placeholder="Enter your email"
-                  {...register('email')}
+                  {...register("email")}
                   error={errors.email?.message}
                   className="mb-3"
                 />
@@ -76,7 +84,7 @@ const LoginPage = () => {
                   label="Password"
                   type="password"
                   placeholder="Enter password"
-                  {...register('password')}
+                  {...register("password")}
                   error={errors.password?.message}
                   className="mb-4"
                 />

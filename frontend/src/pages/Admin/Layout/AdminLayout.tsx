@@ -6,7 +6,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { logout, selectCurrentUser } from "../../../store/slices/authSlice";
-import "./AdminLayout.css";
+import "../../../css/adminLayout.css";
 
 const AdminLayout = () => {
   const dispatch = useAppDispatch();

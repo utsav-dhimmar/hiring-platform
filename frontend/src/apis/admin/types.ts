@@ -196,6 +196,7 @@ export interface JobCreate {
   jd_text?: string;
   jd_json?: Record<string, unknown>;
   is_active?: boolean;
+  skill_ids?: string[];
 }
 
 /**
@@ -207,12 +208,8 @@ export interface JobUpdate {
   jd_text?: string;
   jd_json?: Record<string, unknown>;
   is_active?: boolean;
+  skill_ids?: string[];
 }
-
-/**
- * Job returned from read operations.
- */
-export type JobRead = Job;
 
 /**
  * Skill Management Types
@@ -244,4 +241,11 @@ export interface SkillUpdate {
  */
 export interface SkillRead extends SkillBase {
   id: string;
+}
+
+/**
+ * Job returned from read operations.
+ */
+export interface JobRead extends Job {
+  skills?: SkillRead[];
 }

@@ -7,10 +7,16 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminJobService } from "../../apis/admin/service";
 import type { JobRead } from "../../apis/admin/types";
-import { Card, CardBody, Button, DateDisplay, DeleteModal } from "../../components/common";
+import {
+  Card,
+  CardBody,
+  Button,
+  DateDisplay,
+  DeleteModal,
+} from "../../components/common";
 import CreateJobModal from "./CreateJobModal";
 import axios from "axios";
-import "./AdminDashboard.css";
+import "../../css/adminDashboard.css";
 
 const AdminJobs = () => {
   const navigate = useNavigate();
@@ -91,8 +97,10 @@ const AdminJobs = () => {
     }
   };
 
-  if (loading && jobs.length === 0) return <div className="admin-loading">Loading jobs...</div>;
-  if (error && jobs.length === 0) return <div className="admin-error">{error}</div>;
+  if (loading && jobs.length === 0)
+    return <div className="admin-loading">Loading jobs...</div>;
+  if (error && jobs.length === 0)
+    return <div className="admin-error">{error}</div>;
 
   return (
     <div className="admin-dashboard">
@@ -148,8 +156,8 @@ const AdminJobs = () => {
                       >
                         Edit
                       </Button>
-                      <Button 
-                        variant="outline-danger" 
+                      <Button
+                        variant="outline-danger"
                         size="sm"
                         onClick={() => handleDeleteClick(job)}
                       >

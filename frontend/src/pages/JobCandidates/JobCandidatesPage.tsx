@@ -6,11 +6,56 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Container, Row, Col, Spinner, Alert, Badge, Breadcrumb, Modal } from "react-bootstrap";
-import { Card, CardHeader, CardBody, Button, DateDisplay } from "../../components/common";
-import { resumeService } from "../../apis/services/resumeService";
+import {
+  Container,
+  Row,
+  Col,
+  Spinner,
+  Alert,
+  Badge,
+  Breadcrumb,
+  Modal,
+} from "react-bootstrap";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Button,
+  DateDisplay,
+} from "../../components/common";
+import { adminJobService } from "../../apis/admin/service";
+import { resumeService } from "../../apis/services/resume";
 import type { Job } from "../../apis/types/job";
-import type { JobResumeInfoResponse } from "../../apis/types/resume";
+import type {
+  CandidateResponse,
+  JobResumeInfoResponse,
+} from "../../apis/types/resume";
+
+const mapCandidateToResumeInfo = (
+  jobId: string,
+  candidate: CandidateResponse,
+): JobResumeInfoResponse => ({
+  job_id: jobId,
+  candidate_id: candidate.id,
+  candidate_first_name: candidate.first_name,
+  candidate_last_name: candidate.last_name,
+  candidate_email: candidate.email,
+  file_id: candidate.id,
+  resume_id: candidate.id,
+  file_name: "N/A",
+  file_type: "N/A",
+  size: 0,
+  source_url: "",
+  uploaded_at: candidate.created_at,
+  parsed: candidate.is_parsed,
+  processing: {
+    status: candidate.processing_status ?? "completed",
+    error: null,
+  },
+  analysis: candidate.resume_analysis,
+  resume_score: candidate.resume_score,
+  pass_fail: candidate.pass_fail,
+});
 
 const JobCandidatesPage = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -23,29 +68,37 @@ const JobCandidatesPage = () => {
   // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
   const [showJobInfo, setShowJobInfo] = useState(false);
-  const [selectedResume, setSelectedResume] = useState<JobResumeInfoResponse | null>(null);
+  const [selectedResume, setSelectedResume] =
+    useState<JobResumeInfoResponse | null>(null);
 
-  const fetchData = useCallback(async (silent = false) => {
-    if (!jobId) return;
+  const fetchData = useCallback(
+    async (silent = false) => {
+      if (!jobId) return;
 
-    if (!silent) setLoading(true);
-    try {
-      const resumesData = await resumeService.getJobResumes(jobId);
+      if (!silent) setLoading(true);
+      try {
+        const [jobData, candidatesData] = await Promise.all([
+          adminJobService.getJobById(jobId),
+          resumeService.getJobCandidates(jobId),
+        ]);
 
-      if (!resumesData.job) {
-        setError("Job not found.");
-      } else {
-        setJob(resumesData.job);
-        setResumes(resumesData.resumes);
+        setJob(jobData);
+        setResumes(
+          candidatesData.candidates.map((candidate) =>
+            mapCandidateToResumeInfo(jobId, candidate),
+          ),
+        );
         setError(null);
+      } catch (err) {
+        console.error("Failed to fetch job resumes:", err);
+        if (!silent)
+          setError("Failed to load candidates. Please try again later.");
+      } finally {
+        if (!silent) setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch job resumes:", err);
-      if (!silent) setError("Failed to load candidates. Please try again later.");
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  }, [jobId]);
+    },
+    [jobId],
+  );
 
   useEffect(() => {
     fetchData();
@@ -53,8 +106,10 @@ const JobCandidatesPage = () => {
 
   // Polling for in-progress resumes
   useEffect(() => {
-    const hasInProgress = resumes.some(r => 
-      r.processing?.status && !["completed", "failed"].includes(r.processing.status)
+    const hasInProgress = resumes.some(
+      (r) =>
+        r.processing?.status &&
+        !["completed", "failed"].includes(r.processing.status),
     );
 
     if (hasInProgress) {
@@ -97,17 +152,24 @@ const JobCandidatesPage = () => {
   return (
     <Container className="py-5">
       <Breadcrumb className="mb-4">
-        <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>Jobs</Breadcrumb.Item>
+        <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>
+          Jobs
+        </Breadcrumb.Item>
         <Breadcrumb.Item active>{job.title}</Breadcrumb.Item>
       </Breadcrumb>
 
       <Row className="mb-4 align-items-center">
         <Col>
           <h1>Candidates for {job.title}</h1>
-          <p className="text-muted mb-0">{job.department} | {job.is_active ? "Active" : "Inactive"}</p>
+          <p className="text-muted mb-0">
+            {job.department} | {job.is_active ? "Active" : "Inactive"}
+          </p>
         </Col>
         <Col xs="auto" className="d-flex gap-2">
-          <Button variant="outline-primary" onClick={() => setShowJobInfo(true)}>
+          <Button
+            variant="outline-primary"
+            onClick={() => setShowJobInfo(true)}
+          >
             Show Job Info
           </Button>
           <Button variant="outline-secondary" onClick={() => navigate("/")}>
@@ -147,16 +209,25 @@ const JobCandidatesPage = () => {
                           <td>
                             <strong>
                               {resume.parsed ? (
-                                `${resume.candidate_first_name} ${resume.candidate_last_name}`.trim()
+                                `${resume.candidate_first_name ?? ""} ${resume.candidate_last_name ?? ""}`.trim() ||
+                                "N/A"
                               ) : (
-                                <span className="text-muted italic">Processing...</span>
+                                <span className="text-muted italic">
+                                  Processing...
+                                </span>
                               )}
                             </strong>
                           </td>
                           <td>{resume.candidate_email}</td>
                           <td>
                             {resume.resume_score !== null ? (
-                              <Badge bg={resume.resume_score >= 65 ? "success" : "warning"}>
+                              <Badge
+                                bg={
+                                  resume.resume_score >= 65
+                                    ? "success"
+                                    : "warning"
+                                }
+                              >
                                 {resume.resume_score.toFixed(1)}%
                               </Badge>
                             ) : (
@@ -165,7 +236,9 @@ const JobCandidatesPage = () => {
                           </td>
                           <td>
                             {resume.pass_fail !== null ? (
-                              <Badge bg={resume.pass_fail ? "success" : "danger"}>
+                              <Badge
+                                bg={resume.pass_fail ? "success" : "danger"}
+                              >
                                 {resume.pass_fail ? "PASS" : "FAIL"}
                               </Badge>
                             ) : (
@@ -173,8 +246,12 @@ const JobCandidatesPage = () => {
                             )}
                           </td>
                           <td>
-                            {resume.processing?.status === "processing" || resume.processing?.status === "queued" ? (
-                              <Badge bg="info" className="d-inline-flex align-items-center gap-1">
+                            {resume.processing?.status === "processing" ||
+                            resume.processing?.status === "queued" ? (
+                              <Badge
+                                bg="info"
+                                className="d-inline-flex align-items-center gap-1"
+                              >
                                 <Spinner animation="border" size="sm" />
                                 Processing
                               </Badge>
@@ -185,8 +262,8 @@ const JobCandidatesPage = () => {
                             )}
                           </td>
                           <td className="text-end">
-                            <Button 
-                              variant="outline-primary" 
+                            <Button
+                              variant="outline-primary"
                               size="sm"
                               onClick={() => handleShowMore(resume)}
                             >
@@ -205,7 +282,7 @@ const JobCandidatesPage = () => {
       </Row>
 
       {/* Job Information Modal */}
-      <Modal show={showJobInfo} onHide={() => setShowJobInfo(false)} size="lg">
+      <Modal show={showJobInfo} onHide={() => setShowJobInfo(false)} size="lg" className="modal-dialog-scrollable">
         <Modal.Header closeButton>
           <Modal.Title>Job Details: {job.title}</Modal.Title>
         </Modal.Header>
@@ -213,22 +290,35 @@ const JobCandidatesPage = () => {
           <Row className="mb-4">
             <Col md={6}>
               <h5>Basic Info</h5>
-              <p className="mb-1"><strong>Department:</strong> {job.department || "N/A"}</p>
-              <p className="mb-1"><strong>Status:</strong> <Badge bg={job.is_active ? "success" : "secondary"}>{job.is_active ? "Active" : "Inactive"}</Badge></p>
-              <p className="mb-1"><strong>Created At:</strong> <DateDisplay 
-                date={job.created_at} 
-                formatter={(date) => {
-                  const day = String(date.getDate()).padStart(2, "0");
-                  const month = String(date.getMonth() + 1).padStart(2, "0");
-                  const year = date.getFullYear();
-                  return `${day}-${month}-${year}`;
-                }} 
-              /></p>
+              <p className="mb-1">
+                <strong>Department:</strong> {job.department || "N/A"}
+              </p>
+              <p className="mb-1">
+                <strong>Status:</strong>{" "}
+                <Badge bg={job.is_active ? "success" : "secondary"}>
+                  {job.is_active ? "Active" : "Inactive"}
+                </Badge>
+              </p>
+              <p className="mb-1">
+                <strong>Created At:</strong>{" "}
+                <DateDisplay
+                  date={job.created_at}
+                  formatter={(date) => {
+                    const day = String(date.getDate()).padStart(2, "0");
+                    const month = String(date.getMonth() + 1).padStart(2, "0");
+                    const year = date.getFullYear();
+                    return `${day}-${month}-${year}`;
+                  }}
+                />
+              </p>
             </Col>
           </Row>
           <hr />
           <h5>Job Description</h5>
-          <div className="bg-light p-3 rounded" style={{ whiteSpace: "pre-wrap" }}>
+          <div
+            className="bg-light p-3 rounded"
+            style={{ whiteSpace: "pre-wrap" }}
+          >
             {job.jd_text || "No description provided."}
           </div>
         </Modal.Body>
@@ -240,10 +330,11 @@ const JobCandidatesPage = () => {
       </Modal>
 
       {/* Candidate Detail Modal */}
-      <Modal show={showDetail} onHide={() => setShowDetail(false)} size="lg">
+      <Modal show={showDetail} onHide={() => setShowDetail(false)} size="lg" className="modal-dialog-scrollable">
         <Modal.Header closeButton>
           <Modal.Title>
-            Candidate Analysis: {selectedResume?.candidate_first_name} {selectedResume?.candidate_last_name}
+            Candidate Analysis: {selectedResume?.candidate_first_name}{" "}
+            {selectedResume?.candidate_last_name}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -252,25 +343,46 @@ const JobCandidatesPage = () => {
               <Row className="mb-4">
                 <Col md={6}>
                   <h5>Basic Information</h5>
-                  <p className="mb-1"><strong>Email:</strong> {selectedResume.candidate_email}</p>
-                  <p className="mb-1"><strong>File:</strong> {selectedResume.file_name}</p>
-                  <p className="mb-1"><strong>Status:</strong> <Badge bg="info">{selectedResume.processing?.status}</Badge></p>
+                  <p className="mb-1">
+                    <strong>Email:</strong> {selectedResume.candidate_email}
+                  </p>
+                  <p className="mb-1">
+                    <strong>File:</strong> {selectedResume.file_name || "N/A"}
+                  </p>
+                  <p className="mb-1">
+                    <strong>Status:</strong>{" "}
+                    <Badge bg="info">{selectedResume.processing?.status}</Badge>
+                  </p>
                 </Col>
                 <Col md={6}>
                   <h5>Screening Results</h5>
                   <p className="mb-1">
-                    <strong>Score:</strong> {selectedResume.resume_score ? (
-                      <Badge bg={selectedResume.resume_score >= 65 ? "success" : "warning"}>
+                    <strong>Score:</strong>{" "}
+                    {selectedResume.resume_score !== null ? (
+                      <Badge
+                        bg={
+                          selectedResume.resume_score >= 65
+                            ? "success"
+                            : "warning"
+                        }
+                      >
                         {selectedResume.resume_score.toFixed(1)}%
                       </Badge>
-                    ) : "N/A"}
+                    ) : (
+                      "N/A"
+                    )}
                   </p>
                   <p className="mb-1">
-                    <strong>Pass/Fail:</strong> {selectedResume.pass_fail !== null ? (
-                      <Badge bg={selectedResume.pass_fail ? "success" : "danger"}>
+                    <strong>Pass/Fail:</strong>{" "}
+                    {selectedResume.pass_fail !== null ? (
+                      <Badge
+                        bg={selectedResume.pass_fail ? "success" : "danger"}
+                      >
                         {selectedResume.pass_fail ? "PASS" : "FAIL"}
                       </Badge>
-                    ) : "PENDING"}
+                    ) : (
+                      "PENDING"
+                    )}
                   </p>
                 </Col>
               </Row>
@@ -281,12 +393,16 @@ const JobCandidatesPage = () => {
                 <>
                   <div className="mb-4">
                     <h5>Strength Summary</h5>
-                    <p className="text-muted">{selectedResume.analysis.strength_summary}</p>
+                    <p className="text-muted">
+                      {selectedResume.analysis.strength_summary}
+                    </p>
                   </div>
 
                   <div className="mb-4">
                     <h5>Experience Alignment</h5>
-                    <p className="text-muted">{selectedResume.analysis.experience_alignment}</p>
+                    <p className="text-muted">
+                      {selectedResume.analysis.experience_alignment}
+                    </p>
                   </div>
 
                   <Row>
@@ -294,23 +410,37 @@ const JobCandidatesPage = () => {
                       <h5>Missing Skills</h5>
                       {selectedResume.analysis.missing_skills?.length > 0 ? (
                         <div className="d-flex flex-wrap gap-2">
-                          {selectedResume.analysis.missing_skills.map((skill, idx) => (
-                            <Badge key={idx} bg="danger" pill className="fw-normal">
-                              {skill}
-                            </Badge>
-                          ))}
+                          {selectedResume.analysis.missing_skills.map(
+                            (skill, idx) => (
+                              <Badge
+                                key={idx}
+                                bg="danger"
+                                pill
+                                className="fw-normal"
+                              >
+                                {skill}
+                              </Badge>
+                            ),
+                          )}
                         </div>
                       ) : (
-                        <p className="text-success">No major missing skills identified.</p>
+                        <p className="text-success">
+                          No major missing skills identified.
+                        </p>
                       )}
                     </Col>
                     <Col md={6}>
                       <h5>Extraordinary Points</h5>
-                      {selectedResume.analysis.extraordinary_points?.length > 0 ? (
+                      {selectedResume.analysis.extraordinary_points?.length >
+                      0 ? (
                         <ul className="ps-3 mb-0">
-                          {selectedResume.analysis.extraordinary_points.map((point, idx) => (
-                            <li key={idx} className="text-success mb-1">{point}</li>
-                          ))}
+                          {selectedResume.analysis.extraordinary_points.map(
+                            (point, idx) => (
+                              <li key={idx} className="text-success mb-1">
+                                {point}
+                              </li>
+                            ),
+                          )}
                         </ul>
                       ) : (
                         <p className="text-muted">None identified.</p>
@@ -320,7 +450,9 @@ const JobCandidatesPage = () => {
                 </>
               ) : (
                 <div className="text-center py-4">
-                  <p className="text-muted">No detailed analysis available for this candidate.</p>
+                  <p className="text-muted">
+                    No detailed analysis available for this candidate.
+                  </p>
                 </div>
               )}
             </div>

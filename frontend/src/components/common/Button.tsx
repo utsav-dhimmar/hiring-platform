@@ -6,7 +6,7 @@
 import React from 'react';
 import { Button as BSButton } from 'react-bootstrap';
 import type { ButtonProps as BSButtonProps } from 'react-bootstrap';
-import './Button.css';
+import '../../css/button.css';
 
 /**
  * Props for the Button component.

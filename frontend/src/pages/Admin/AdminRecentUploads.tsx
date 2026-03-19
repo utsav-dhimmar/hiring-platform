@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { adminAnalyticsService } from "../../apis/admin/service";
 import type { RecentUploadRead } from "../../apis/admin/types";
 import { Card, CardBody, DateDisplay } from "../../components/common";
-import "./AdminDashboard.css";
+import "../../css/adminDashboard.css";
 
 const AdminRecentUploads = () => {
   const [uploads, setUploads] = useState<RecentUploadRead[]>([]);

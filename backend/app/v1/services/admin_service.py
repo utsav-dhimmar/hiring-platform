@@ -34,7 +34,7 @@ from app.v1.schemas.admin import (
     UserAdminUpdate,
 )
 from app.v1.schemas.job import JobCreate, JobUpdate
-from app.v1.schemas.skill import SkillCreate, SkillUpdate
+from app.v1.schemas.skill import SkillCreate, SkillRead, SkillUpdate
 from app.v1.schemas.upload import (
     CandidateResponse,
     ResumeMatchAnalysis,
@@ -558,12 +558,12 @@ class AdminService:
         self, db: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[Job]:
         """Get all jobs with pagination."""
-        result = await job_repository.crud.get_multi(db=db, offset=skip, limit=limit)
+        result = await job_repository.get_multi(db=db, skip=skip, limit=limit)
         return result["data"]
 
     async def get_job_by_id(self, db: AsyncSession, job_id: uuid.UUID) -> Job:
         """Get a job by ID."""
-        job = await job_repository.crud.get(db=db, id=job_id)
+        job = await job_repository.get(db=db, id=job_id)
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -575,9 +575,7 @@ class AdminService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_in: JobCreate
     ) -> Job:
         """Create a new job."""
-        job = await job_repository.crud.create(
-            db=db, object=job_in, created_by=admin_user_id
-        )
+        job = await job_repository.create(db=db, object=job_in, created_by=admin_user_id)
         await self.log_action(
             db=db,
             user_id=admin_user_id,
@@ -597,9 +595,7 @@ class AdminService:
     ) -> Job:
         """Update a job."""
         _job = await self.get_job_by_id(db=db, job_id=job_id)
-        updated_job = await job_repository.crud.update(
-            db=db, id=job_id, object=job_update
-        )
+        updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
         await self.log_action(
             db=db,
             user_id=admin_user_id,
@@ -617,7 +613,7 @@ class AdminService:
     ) -> None:
         """Delete a job."""
         await self.get_job_by_id(db=db, job_id=job_id)
-        await job_repository.crud.delete(db=db, id=job_id)
+        await job_repository.delete(db=db, id=job_id)
         await self.log_action(
             db=db,
             user_id=admin_user_id,
@@ -663,12 +659,27 @@ class AdminService:
         admin_user_id: uuid.UUID,
         skill_id: uuid.UUID,
         skill_update: SkillUpdate,
-    ) -> Skill:
+    ) -> Skill | SkillRead:
         """Update a skill."""
-        await self.get_skill_by_id(db=db, skill_id=skill_id)
+        existing_skill = await self.get_skill_by_id(db=db, skill_id=skill_id)
+        update_data = skill_update.model_dump(exclude_unset=True)
+
+        if not update_data:
+            return existing_skill
+
         updated_skill = await skill_repository.crud.update(
-            db=db, id=skill_id, object=skill_update
+            db=db,
+            id=skill_id,
+            object=update_data,
+            schema_to_select=SkillRead,
+            return_as_model=True,
+            one_or_none=True,
         )
+        if updated_skill is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Skill not found.",
+            )
         await self.log_action(
             db=db,
             user_id=admin_user_id,
@@ -676,9 +687,7 @@ class AdminService:
             target_type="skill",
             target_id=skill_id,
             details={
-                "updated_fields": list(
-                    skill_update.model_dump(exclude_unset=True).keys()
-                )
+                "updated_fields": list(update_data.keys())
             },
         )
         return updated_skill
