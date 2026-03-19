@@ -11,9 +11,7 @@ from app.v1.tests.admin.conftest import get_auth_header
 class TestAdminAnalytics:
     """Test suite for admin analytics endpoints."""
 
-    def test_get_analytics_as_admin(
-        self, client, admin_token, hr_role, admin_user
-    ):
+    def test_get_analytics_as_admin(self, client, admin_token, hr_role, admin_user):
         """Test admin can get analytics summary."""
         response = client.get(
             "/api/v1/admin/analytics",
@@ -117,9 +115,7 @@ class TestAdminAnalytics:
 class TestAdminHiringReport:
     """Test suite for admin hiring report endpoints."""
 
-    def test_get_hiring_report_as_admin(
-        self, client, admin_token, hr_role, admin_user
-    ):
+    def test_get_hiring_report_as_admin(self, client, admin_token, hr_role, admin_user):
         """Test admin can get hiring report."""
         response = client.get(
             "/api/v1/admin/hiring-report",
@@ -148,9 +144,7 @@ class TestAdminHiringReport:
         response = client.get("/api/v1/admin/hiring-report")
         assert response.status_code == 401
 
-    def test_hiring_report_with_data(
-        self, client, admin_token, db_session, admin_user
-    ):
+    def test_hiring_report_with_data(self, client, admin_token, db_session, admin_user):
         """Test hiring report with sample data."""
         from app.v1.db.models.candidates import Candidate
         from app.v1.db.models.files import File

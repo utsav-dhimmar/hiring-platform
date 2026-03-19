@@ -41,16 +41,11 @@ class AdminRepository:
         @returns List of User objects ordered by creation date descending
         """
         result = await db.execute(
-            select(User)
-            .offset(skip)
-            .limit(limit)
-            .order_by(desc(User.created_at))
+            select(User).offset(skip).limit(limit).order_by(desc(User.created_at))
         )
         return list(result.scalars().all())
 
-    async def get_user_by_id(
-        self, db: AsyncSession, user_id: uuid.UUID
-    ) -> User | None:
+    async def get_user_by_id(self, db: AsyncSession, user_id: uuid.UUID) -> User | None:
         """
         Retrieve a user by their unique identifier.
 
@@ -60,9 +55,7 @@ class AdminRepository:
         """
         return await db.get(User, user_id)
 
-    async def get_user_by_email(
-        self, db: AsyncSession, email: str
-    ) -> User | None:
+    async def get_user_by_email(self, db: AsyncSession, email: str) -> User | None:
         """
         Retrieve a user by their email address.
 
@@ -117,9 +110,7 @@ class AdminRepository:
         )
         return list(result.scalars().all())
 
-    async def get_role_by_id(
-        self, db: AsyncSession, role_id: uuid.UUID
-    ) -> Role | None:
+    async def get_role_by_id(self, db: AsyncSession, role_id: uuid.UUID) -> Role | None:
         """
         Retrieve a role by its unique identifier.
 
@@ -129,9 +120,7 @@ class AdminRepository:
         """
         return await db.get(Role, role_id)
 
-    async def get_role_by_name(
-        self, db: AsyncSession, name: str
-    ) -> Role | None:
+    async def get_role_by_name(self, db: AsyncSession, name: str) -> Role | None:
         """
         Retrieve a role by its name.
 
@@ -195,10 +184,7 @@ class AdminRepository:
         @returns List of Permission objects ordered by name
         """
         result = await db.execute(
-            select(Permission)
-            .offset(skip)
-            .limit(limit)
-            .order_by(Permission.name)
+            select(Permission).offset(skip).limit(limit).order_by(Permission.name)
         )
         return list(result.scalars().all())
 
@@ -224,9 +210,7 @@ class AdminRepository:
         @param name - Name of the permission
         @returns Permission object if found, None otherwise
         """
-        result = await db.execute(
-            select(Permission).where(Permission.name == name)
-        )
+        result = await db.execute(select(Permission).where(Permission.name == name))
         return result.scalar_one_or_none()
 
     async def create_permission(
@@ -244,9 +228,7 @@ class AdminRepository:
         await db.refresh(permission)
         return permission
 
-    async def delete_permission(
-        self, db: AsyncSession, permission: Permission
-    ) -> None:
+    async def delete_permission(self, db: AsyncSession, permission: Permission) -> None:
         """
         Delete a permission from the database.
 
@@ -319,9 +301,7 @@ class AdminRepository:
         )
         return list(result.scalars().all())
 
-    async def create_audit_log(
-        self, db: AsyncSession, audit_log: AuditLog
-    ) -> AuditLog:
+    async def create_audit_log(self, db: AsyncSession, audit_log: AuditLog) -> AuditLog:
         """
         Create a new audit log entry.
 
@@ -346,10 +326,7 @@ class AdminRepository:
         @returns List of File objects ordered by creation date descending
         """
         result = await db.execute(
-            select(File)
-            .offset(skip)
-            .limit(limit)
-            .order_by(desc(File.created_at))
+            select(File).offset(skip).limit(limit).order_by(desc(File.created_at))
         )
         return list(result.scalars().all())
 
@@ -367,10 +344,10 @@ class AdminRepository:
         total_candidates = await db.scalar(select(func.count(Candidate.id)))
         total_resumes = await db.scalar(select(func.count(Resume.id)))
         active_jobs = await db.scalar(
-            select(func.count(Job.id)).where(Job.is_active == True)
+            select(func.count(Job.id)).where(Job.is_active is True)
         )
         active_users = await db.scalar(
-            select(func.count(User.id)).where(User.is_active == True)
+            select(func.count(User.id)).where(User.is_active is True)
         )
 
         return {
@@ -394,14 +371,10 @@ class AdminRepository:
         """
         total_jobs = await db.scalar(select(func.count(Job.id))) or 0
         active_jobs = (
-            await db.scalar(
-                select(func.count(Job.id)).where(Job.is_active == True)
-            )
+            await db.scalar(select(func.count(Job.id)).where(Job.is_active is True))
             or 0
         )
-        total_candidates = (
-            await db.scalar(select(func.count(Candidate.id))) or 0
-        )
+        total_candidates = await db.scalar(select(func.count(Candidate.id))) or 0
 
         thirty_days_ago = datetime.utcnow() - timedelta(days=30)
         resumes_last_30_days = (
@@ -414,22 +387,18 @@ class AdminRepository:
         )
 
         avg_score = await db.scalar(
-            select(func.avg(Resume.resume_score)).where(
-                Resume.resume_score.isnot(None)
-            )
+            select(func.avg(Resume.resume_score)).where(Resume.resume_score.isnot(None))
         )
 
         total_passed = (
             await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail == True)
+                select(func.count(Resume.id)).where(Resume.pass_fail is True)
             )
             or 0
         )
         total_resumes_count = (
             await db.scalar(
-                select(func.count(Resume.id)).where(
-                    Resume.pass_fail.isnot(None)
-                )
+                select(func.count(Resume.id)).where(Resume.pass_fail.isnot(None))
             )
             or 0
         )

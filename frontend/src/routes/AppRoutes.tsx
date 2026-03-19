@@ -10,7 +10,7 @@ import AdminRoutes from "./AdminRoutes";
 import LoginPage from "../pages/Login/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
-import AdminRoute from "../components/auth/AdminRoute";
+import RoleRoute from "../components/auth/RoleRoute";
 import PublicRoute from "../components/auth/PublicRoute";
 
 /**
@@ -51,9 +51,9 @@ const AppRoutes = () => {
       <Route
         path="/jobs/:jobId"
         element={
-          <ProtectedRoute>
+          <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
             <JobCandidatesPage />
-          </ProtectedRoute>
+          </RoleRoute>
         }
       />
 
@@ -61,9 +61,9 @@ const AppRoutes = () => {
       <Route
         path="/admin/*"
         element={
-          <AdminRoute>
+          <RoleRoute allowedRoles={[]} requiredPermissions={["admin:access"]}>
             <AdminRoutes />
-          </AdminRoute>
+          </RoleRoute>
         }
       />
 

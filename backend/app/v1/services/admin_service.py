@@ -14,10 +14,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.core.logging import get_logger
 from app.v1.core.security import hash_password
 from app.v1.db.models.audit_logs import AuditLog
+from app.v1.db.models.candidates import Candidate
+from app.v1.db.models.jobs import Job
 from app.v1.db.models.permissions import Permission
 from app.v1.db.models.roles import Role
+from app.v1.db.models.skills import Skill
 from app.v1.db.models.user import User
 from app.v1.repository.admin_repository import admin_repository
+from app.v1.repository.candidate_repository import candidate_repository
+from app.v1.repository.job_repository import job_repository
+from app.v1.repository.skill_repository import skill_repository
 from app.v1.schemas.admin import (
     AnalyticsSummary,
     HiringReport,
@@ -26,6 +32,12 @@ from app.v1.schemas.admin import (
     RoleUpdate,
     UserAdminCreate,
     UserAdminUpdate,
+)
+from app.v1.schemas.job import JobCreate, JobUpdate
+from app.v1.schemas.skill import SkillCreate, SkillUpdate
+from app.v1.schemas.upload import (
+    CandidateResponse,
+    ResumeMatchAnalysis,
 )
 
 logger = get_logger(__name__)
@@ -98,7 +110,10 @@ class AdminService:
         return user
 
     async def create_user(
-        self, db: AsyncSession, admin_user_id: uuid.UUID, user_in: UserAdminCreate
+        self,
+        db: AsyncSession,
+        admin_user_id: uuid.UUID,
+        user_in: UserAdminCreate,
     ) -> User:
         """
         Create a new user with the provided details.
@@ -455,7 +470,10 @@ class AdminService:
         return permission
 
     async def delete_permission(
-        self, db: AsyncSession, admin_user_id: uuid.UUID, permission_id: uuid.UUID
+        self,
+        db: AsyncSession,
+        admin_user_id: uuid.UUID,
+        permission_id: uuid.UUID,
     ) -> None:
         """
         Delete a permission from the system.
@@ -531,6 +549,258 @@ class AdminService:
         """
         data = await admin_repository.get_hiring_report(db=db)
         return HiringReport(**data)
+
+    # Job Management
+    async def get_all_jobs(
+        self, db: AsyncSession, skip: int = 0, limit: int = 100
+    ) -> list[Job]:
+        """Get all jobs with pagination."""
+        result = await job_repository.crud.get_multi(db=db, offset=skip, limit=limit)
+        return result["data"]
+
+    async def get_job_by_id(self, db: AsyncSession, job_id: uuid.UUID) -> Job:
+        """Get a job by ID."""
+        job = await job_repository.crud.get(db=db, id=job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found.",
+            )
+        return job
+
+    async def create_job(
+        self, db: AsyncSession, admin_user_id: uuid.UUID, job_in: JobCreate
+    ) -> Job:
+        """Create a new job."""
+        job = await job_repository.crud.create(
+            db=db, object=job_in, created_by=admin_user_id
+        )
+        await self.log_action(
+            db=db,
+            user_id=admin_user_id,
+            action="create_job",
+            target_type="job",
+            target_id=job.id,
+            details={"title": job.title},
+        )
+        return job
+
+    async def update_job(
+        self,
+        db: AsyncSession,
+        admin_user_id: uuid.UUID,
+        job_id: uuid.UUID,
+        job_update: JobUpdate,
+    ) -> Job:
+        """Update a job."""
+        _job = await self.get_job_by_id(db=db, job_id=job_id)
+        updated_job = await job_repository.crud.update(
+            db=db, id=job_id, object=job_update
+        )
+        await self.log_action(
+            db=db,
+            user_id=admin_user_id,
+            action="update_job",
+            target_type="job",
+            target_id=job_id,
+            details={
+                "updated_fields": list(job_update.model_dump(exclude_unset=True).keys())
+            },
+        )
+        return updated_job
+
+    async def delete_job(
+        self, db: AsyncSession, admin_user_id: uuid.UUID, job_id: uuid.UUID
+    ) -> None:
+        """Delete a job."""
+        await self.get_job_by_id(db=db, job_id=job_id)
+        await job_repository.crud.delete(db=db, id=job_id)
+        await self.log_action(
+            db=db,
+            user_id=admin_user_id,
+            action="delete_job",
+            target_type="job",
+            target_id=job_id,
+        )
+
+    # Skill Management
+    async def get_all_skills(self, db: AsyncSession, skip: int = 0, limit: int = 100):
+        """Get all skills with pagination."""
+        result = await skill_repository.crud.get_multi(db=db, offset=skip, limit=limit)
+        return result["data"]
+
+    async def get_skill_by_id(self, db: AsyncSession, skill_id: uuid.UUID) -> Skill:
+        """Get a skill by ID."""
+        skill = await skill_repository.crud.get(db=db, id=skill_id)
+        if not skill:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Skill not found.",
+            )
+        return skill
+
+    async def create_skill(
+        self, db: AsyncSession, admin_user_id: uuid.UUID, skill_in: SkillCreate
+    ) -> Skill:
+        """Create a new skill."""
+        skill = await skill_repository.crud.create(db=db, object=skill_in)
+        await self.log_action(
+            db=db,
+            user_id=admin_user_id,
+            action="create_skill",
+            target_type="skill",
+            target_id=skill.id,
+            details={"name": skill.name},
+        )
+        return skill
+
+    async def update_skill(
+        self,
+        db: AsyncSession,
+        admin_user_id: uuid.UUID,
+        skill_id: uuid.UUID,
+        skill_update: SkillUpdate,
+    ) -> Skill:
+        """Update a skill."""
+        await self.get_skill_by_id(db=db, skill_id=skill_id)
+        updated_skill = await skill_repository.crud.update(
+            db=db, id=skill_id, object=skill_update
+        )
+        await self.log_action(
+            db=db,
+            user_id=admin_user_id,
+            action="update_skill",
+            target_type="skill",
+            target_id=skill_id,
+            details={
+                "updated_fields": list(
+                    skill_update.model_dump(exclude_unset=True).keys()
+                )
+            },
+        )
+        return updated_skill
+
+    async def delete_skill(
+        self, db: AsyncSession, admin_user_id: uuid.UUID, skill_id: uuid.UUID
+    ) -> None:
+        """Delete a skill."""
+        await self.get_skill_by_id(db=db, skill_id=skill_id)
+        await skill_repository.crud.delete(db=db, id=skill_id)
+        await self.log_action(
+            db=db,
+            user_id=admin_user_id,
+            action="delete_skill",
+            target_type="skill",
+            target_id=skill_id,
+        )
+
+    # Candidate Management for specific Job
+    async def get_candidates_for_job(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[CandidateResponse]:
+        """Get all candidates for a specific job."""
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+
+        stmt = (
+            select(Candidate)
+            .where(Candidate.applied_job_id == job_id)
+            .options(selectinload(Candidate.resumes))
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        candidates = list(result.scalars().all())
+        return [self._map_candidate_to_response(c) for c in candidates]
+
+    async def search_candidates_for_job(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+        query: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[CandidateResponse]:
+        """Search candidates for a specific job."""
+        candidates = await candidate_repository.search_candidates_for_job(
+            db=db, job_id=job_id, query=query, skip=skip, limit=limit
+        )
+        return [self._map_candidate_to_response(c) for c in candidates]
+
+    async def search_candidates(
+        self,
+        db: AsyncSession,
+        query: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[CandidateResponse]:
+        """Search candidates across all jobs."""
+        from sqlalchemy import or_, select
+        from sqlalchemy.orm import selectinload
+
+        search_filter = or_(
+            Candidate.first_name.ilike(f"%{query}%"),
+            Candidate.last_name.ilike(f"%{query}%"),
+            Candidate.email.ilike(f"%{query}%"),
+        )
+
+        stmt = (
+            select(Candidate)
+            .where(search_filter)
+            .options(selectinload(Candidate.resumes))
+            .offset(skip)
+            .limit(limit)
+        )
+
+        result = await db.execute(stmt)
+        candidates = list(result.scalars().all())
+        return [self._map_candidate_to_response(c) for c in candidates]
+
+    def _map_candidate_to_response(self, candidate: Candidate) -> CandidateResponse:
+        """Helper to map Candidate model to CandidateResponse schema."""
+        resumes = getattr(candidate, "resumes", [])
+        latest_resume = (
+            max(resumes, key=lambda resume: resume.uploaded_at) if resumes else None
+        )
+
+        analysis = None
+        is_parsed = False
+        resume_score = None
+        pass_fail = None
+        processing_status = None
+
+        if latest_resume:
+            is_parsed = bool(latest_resume.parsed)
+            resume_score = latest_resume.resume_score
+            pass_fail = latest_resume.pass_fail
+            parse_summary = latest_resume.parse_summary or {}
+
+            processing_info = parse_summary.get("processing", {})
+            if isinstance(processing_info, dict):
+                processing_status = processing_info.get("status")
+
+            analysis_payload = parse_summary.get("analysis")
+            if isinstance(analysis_payload, dict):
+                analysis = ResumeMatchAnalysis.model_validate(analysis_payload)
+
+        return CandidateResponse(
+            id=candidate.id,
+            first_name=candidate.first_name,
+            last_name=candidate.last_name,
+            email=candidate.email,
+            phone=candidate.phone,
+            current_status=candidate.current_status,
+            created_at=candidate.created_at,
+            resume_analysis=analysis,
+            resume_score=resume_score,
+            pass_fail=pass_fail,
+            is_parsed=is_parsed,
+            processing_status=processing_status,
+        )
 
 
 admin_service = AdminService()

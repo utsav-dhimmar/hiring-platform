@@ -3,6 +3,9 @@ import type {
   AnalyticsSummary,
   AuditLogRead,
   HiringReport,
+  JobCreate,
+  JobRead,
+  JobUpdate,
   PermissionCreate,
   PermissionRead,
   RecentUploadRead,
@@ -10,10 +13,14 @@ import type {
   RoleRead,
   RoleUpdate,
   RoleWithPermissions,
+  SkillCreate,
+  SkillRead,
+  SkillUpdate,
   UserAdminCreate,
   UserAdminRead,
   UserAdminUpdate,
 } from "./types";
+import type { CandidateResponse } from "../types/resume";
 
 /**
  * Admin API service module.
@@ -242,3 +249,126 @@ export const adminAnalyticsService = {
     return response.data;
   },
 };
+
+/**
+ * Job Management APIs
+ */
+export const adminJobService = {
+  getAllJobs: async (
+    skip: number = 0,
+    limit: number = 100,
+  ): Promise<JobRead[]> => {
+    const response = await apiClient.get<JobRead[]>("/jobs", {
+      params: { skip, limit },
+    });
+    return response.data;
+  },
+
+  createJob: async (job: JobCreate): Promise<JobRead> => {
+    const response = await apiClient.post<JobRead>("/jobs", job);
+    return response.data;
+  },
+
+  getJobById: async (jobId: string): Promise<JobRead> => {
+    const response = await apiClient.get<JobRead>(`/jobs/${jobId}`);
+    return response.data;
+  },
+
+  updateJob: async (jobId: string, job: JobUpdate): Promise<JobRead> => {
+    const response = await apiClient.patch<JobRead>(`/jobs/${jobId}`, job);
+    return response.data;
+  },
+
+  deleteJob: async (jobId: string): Promise<void> => {
+    await apiClient.delete(`/jobs/${jobId}`);
+  },
+};
+
+/**
+ * Skill Management APIs
+ */
+export const adminSkillService = {
+  getAllSkills: async (
+    skip: number = 0,
+    limit: number = 100,
+  ): Promise<SkillRead[]> => {
+    const response = await apiClient.get<SkillRead[]>("/skills", {
+      params: { skip, limit },
+    });
+    return response.data;
+  },
+
+  createSkill: async (skill: SkillCreate): Promise<SkillRead> => {
+    const response = await apiClient.post<SkillRead>("/skills", skill);
+    return response.data;
+  },
+
+  getSkillById: async (skillId: string): Promise<SkillRead> => {
+    const response = await apiClient.get<SkillRead>(`/skills/${skillId}`);
+    return response.data;
+  },
+
+  updateSkill: async (
+    skillId: string,
+    skill: SkillUpdate,
+  ): Promise<SkillRead> => {
+    const response = await apiClient.patch<SkillRead>(
+      `/skills/${skillId}`,
+      skill,
+    );
+    return response.data;
+  },
+
+  deleteSkill: async (skillId: string): Promise<void> => {
+    await apiClient.delete(`/skills/${skillId}`);
+  },
+};
+
+/**
+ * Candidate Management APIs
+ */
+export const adminCandidateService = {
+  getCandidatesForJob: async (
+    jobId: string,
+    skip: number = 0,
+    limit: number = 100,
+  ): Promise<CandidateResponse[]> => {
+    const response = await apiClient.get<CandidateResponse[]>(
+      `/candidates/jobs/${jobId}`,
+      {
+        params: { skip, limit },
+      },
+    );
+    return response.data;
+  },
+
+  searchJobCandidates: async (
+    jobId: string,
+    query: string,
+    skip: number = 0,
+    limit: number = 100,
+  ): Promise<CandidateResponse[]> => {
+    const response = await apiClient.get<CandidateResponse[]>(
+      `/candidates/jobs/${jobId}/search`,
+      {
+        params: { query, skip, limit },
+      },
+    );
+    return response.data;
+  },
+
+  searchCandidates: async (
+    query: string,
+    skip: number = 0,
+    limit: number = 100,
+  ): Promise<CandidateResponse[]> => {
+    const response = await apiClient.get<CandidateResponse[]>(
+      "/candidates/search",
+      {
+        params: { query, skip, limit },
+      },
+    );
+    return response.data;
+  },
+};
+

@@ -10,9 +10,7 @@ from app.v1.tests.admin.conftest import get_auth_header
 class TestAdminPermissionManagement:
     """Test suite for admin permission management endpoints."""
 
-    def test_get_all_permissions_as_admin(
-        self, client, admin_token, permission
-    ):
+    def test_get_all_permissions_as_admin(self, client, admin_token, permission):
         """Test admin can get all permissions."""
         response = client.get(
             "/api/v1/admin/permissions",
@@ -51,9 +49,7 @@ class TestAdminPermissionManagement:
         assert data["name"] == "users:create"
         assert data["description"] == "Create users permission"
 
-    def test_create_duplicate_permission_fails(
-        self, client, admin_token, permission
-    ):
+    def test_create_duplicate_permission_fails(self, client, admin_token, permission):
         """Test creating duplicate permission fails."""
         response = client.post(
             "/api/v1/admin/permissions",

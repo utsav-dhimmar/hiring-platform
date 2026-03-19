@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from app.v1.core.logging import get_logger
 from app.v1.db.models.user import User
+from app.v1.db.models.roles import Role
 from app.v1.schemas.user import UserCreateInternal, UserModel, UserRead
 
 logger = get_logger(__name__)
@@ -40,11 +41,7 @@ class UserRepository:
         Returns:
             The user object if found, None otherwise.
         """
-        stmt = (
-            select(User)
-            .where(User.email == email)
-            .options(selectinload(User.role))
-        )
+        stmt = select(User).where(User.email == email).options(selectinload(User.role))
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
         if user:
@@ -67,15 +64,16 @@ class UserRepository:
         stmt = (
             select(User)
             .where(User.id == user_id)
-            .options(selectinload(User.role))
+            .options(selectinload(User.role).selectinload(Role.permissions))
         )
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
         if user:
-            # Manually populate role_name for UserRead
+            # Manually populate role_name and permissions for UserRead
             user_read = UserRead.model_validate(user)
             if user.role:
                 user_read.role_name = user.role.name
+                user_read.permissions = [p.name for p in user.role.permissions]
             return user_read
         return None
 

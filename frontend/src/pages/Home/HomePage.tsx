@@ -24,7 +24,11 @@ const HomePage = () => {
     null,
   );
 
-  const isAdmin = user?.role_name?.toLowerCase() === 'admin';
+  const isAuthorized = 
+    user?.role_name?.toLowerCase() === 'admin' || 
+    user?.role_name?.toLowerCase() === 'hr' ||
+    user?.permissions?.includes('admin:access') ||
+    user?.permissions?.includes('admin:all');
 
   const viewCandidates = (jobId: string) => {
     navigate(`/jobs/${jobId}`);
@@ -88,7 +92,7 @@ const HomePage = () => {
           <h1>Welcome to Hiring Platform</h1>
         </Col>
         <Col xs="auto" className="d-flex gap-2">
-          {isAdmin && (
+          {isAuthorized && (
             <Button variant="primary" onClick={goToAdmin}>
               Admin Dashboard
             </Button>
