@@ -5,12 +5,13 @@ This backend follows a package-based feature layout.
 Working code is split into:
 
 - `app/`: application entry point and shared infrastructure
-- `app/v1/`: version 1 of the API (config, database, and router composition)
-- `packages/auth/v1/`: auth domain code for API routes, schemas, services, repositories, and models
+- `app/v1/`: version 1 of the API (config, database, router, services, repositories)
+- `test/`: test suite
+- `seed/`: database seeding scripts
 
 ## Prerequisites
 
-- Python `3.13+`
+- Python `3.14+`
 - `uv`
 - PostgreSQL
 - Redis (for caching/sessions)
@@ -210,48 +211,68 @@ After startup, open:
 - `http://localhost:8000/docs`
 - `http://localhost:8000/redoc`
 
-Current package-routed user endpoints:
+Current API endpoints:
 
 - `GET /api/v1/users`
 - `POST /api/v1/users`
+- `GET /api/v1/jobs`
+- `POST /api/v1/jobs`
+- `GET /api/v1/candidates`
+- `POST /api/v1/candidates`
+- `GET /api/v1/skills`
+- `POST /api/v1/skills`
+- `POST /api/v1/resume-upload` (resume screening)
+- `/api/v1/admin/*` (admin routes)
 
-## Package Pattern
+## Project Structure
 
-The active package structure is:
+The active project structure is:
 
 ```text
 app/
-  main.py              # FastAPI entry point
+  main.py                    # FastAPI entry point
   v1/
     api/
-      main.py          # Top-level router composition
-    core/
-      config.py        # Pydantic settings (.env)
-      logging_config.py
-      middleware.py
+      main.py                 # Top-level router composition
+    core/                     # Config, security, embeddings, extractor
     db/
-      base_class.py      # SQLAlchemy declarative base
-      session.py         # Async engine + session maker
+      models/                 # SQLAlchemy models (user, jobs, candidates, etc.)
+      base.py                 # SQLAlchemy declarative base
+      base_class.py           # Base classes for models
+      session.py              # Async engine + session maker
+    routes/                   # API route handlers
+      users.py                # User/Auth endpoints
+      jobs.py                 # Job endpoints
+      candidates.py           # Candidate endpoints
+      skills.py               # Skill endpoints
+      resume_upload.py        # Resume screening endpoints
+      admin.py                # Admin endpoints
+    services/                 # Business logic services
+    repository/               # Data access layer
+    schemas/                  # Pydantic schemas
+    prompts/                  # LLM prompts for AI features
+    dependencies/             # FastAPI dependencies
+    utils/                    # Utility functions
+    constants/                # Constants
 
-packages/
-  auth/
-    v1/
-      api/
-        routes/
-      models/
-      repository/
-      schema/
-      services/
+test/                      # Test suite
+  admin/                   # Admin route tests
+  user/                    # User service tests
+
+seed/                      # Database seeding scripts
 ```
 
 Rules used in this repo:
 
-- Shared infrastructure and versioned core logic stay in `app/v1/`
-- Feature-specific code lives under `packages/<feature>/<version>/`
+- All feature code lives in `app/v1/` under appropriate subdirectories
 - `app/v1/api/main.py` acts as the top-level router composition layer
 - imports from shared infrastructure use `app.v1.db.*` and `app.v1.core.*` prefixes
+- Models are in `app/v1/db/models/`
+- Services are in `app/v1/services/`
+- Repositories are in `app/v1/repository/`
+- Routes are in `app/v1/routes/`
 
 ## Notes
 
-- Passwords are still stored as plain text in the current user service placeholder and should be replaced with proper hashing before production use.
-- `packages/auth/.env` is not used by the runtime; the application reads the root `.env`.
+- Passwords are hashed using bcrypt before storage.
+- `app/v1/core/config.py` handles settings from `.env`.

@@ -8,15 +8,23 @@ A modern FastAPI backend for the HR Platform.
 - **SQLAlchemy**: Powerful SQL toolkit and ORM.
 - **FastCRUD**: Robust and flexible CRUD operations.
 - **Pydantic V2**: Data validation and settings management.
-- **Asynchronous**: Built for speed and efficiency.
+- **Async**: Built for speed and efficiency with async/await.
+- **PostgreSQL + pgvector**: Vector database for AI-powered resume matching.
+- **Sentence Transformers**: Embedding-based candidate-job matching.
+- **BCrypt**: Secure password hashing.
+- **JWT**: Token-based authentication.
+- **Background Processing**: Resume parsing and analysis.
+- **Comprehensive Tests**: pytest-based test suite.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.13+
+- Python 3.14+
 - [uv](https://github.com/astral-sh/uv) (recommended)
 - PostgreSQL
+- Redis (for caching/sessions)
+- Docker (optional)
 
 ### Setup
 
@@ -63,17 +71,46 @@ Documentation:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
+### Running Tests
+
+```bash
+pytest
+```
+
+### Seeding the Database
+
+```bash
+uv run seed-all
+```
+
 ## Project Structure
 
 ```text
 backend/
-├── app/                     # Main entry points
+├── app/                     # Main application
+│   ├── main.py              # FastAPI entry point
 │   └── v1/                  # API version 1
 │       ├── api/             # API router composition
-│       ├── core/            # App configurations & settings
-│       └── db/              # Database session & models
-├── packages/                # Shared feature packages
-│   └── auth/v1/             # Auth domain
+│       ├── core/            # Config, security, embeddings, extractor
+│       ├── db/
+│       │   └── models/      # SQLAlchemy models
+│       ├── routes/          # API endpoints
+│       │   ├── users.py     # User/Auth routes
+│       │   ├── jobs.py      # Job routes
+│       │   ├── candidates.py # Candidate routes
+│       │   ├── skills.py    # Skill routes
+│       │   ├── resume_upload.py # Resume screening
+│       │   └── admin.py     # Admin routes
+│       ├── services/        # Business logic
+│       ├── repository/      # Data access layer
+│       ├── schemas/         # Pydantic schemas
+│       ├── prompts/         # LLM prompts
+│       ├── dependencies/    # FastAPI dependencies
+│       └── utils/           # Utilities
+├── test/                    # Test suite
+│   ├── admin/               # Admin route tests
+│   └── user/                # User service tests
+├── seed/                    # Database seeding
 ├── pyproject.toml           # Project dependencies
 ├── Dockerfile               # Docker configuration
 ├── docker-compose.yml       # Docker compose setup
