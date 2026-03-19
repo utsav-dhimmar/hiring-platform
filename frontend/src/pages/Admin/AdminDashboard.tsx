@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { adminAnalyticsService } from "../../apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "../../apis/admin/types";
 import { Card, CardBody, CardHeader } from "../../components/common";
-import "./AdminDashboard.css";
+import "../../css/adminDashboard.css";
 
 const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);

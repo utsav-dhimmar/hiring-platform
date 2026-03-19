@@ -97,6 +97,7 @@ export const jobCreateSchema = z.object({
   department: z.string().min(2, 'Department must be at least 2 characters long').optional().or(z.literal('')),
   jd_text: z.string().min(20, 'Job description must be at least 20 characters long').optional().or(z.literal('')),
   is_active: z.boolean().default(true),
+  skill_ids: z.array(z.string().uuid('Invalid skill ID')).default([]),
 });
 
 /**
@@ -112,6 +113,7 @@ export const jobUpdateSchema = z.object({
   department: z.string().min(2, 'Department must be at least 2 characters long').optional().or(z.literal('')),
   jd_text: z.string().min(20, 'Job description must be at least 20 characters long').optional().or(z.literal('')),
   is_active: z.boolean().optional(),
+  skill_ids: z.array(z.string().uuid('Invalid skill ID')).optional().default([]),
 });
 
 /**

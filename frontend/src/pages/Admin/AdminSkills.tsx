@@ -9,7 +9,7 @@ import type { SkillRead } from "../../apis/admin/types";
 import { Card, CardBody, Button, DeleteModal } from "../../components/common";
 import CreateSkillModal from "./CreateSkillModal";
 import axios from "axios";
-import "./AdminDashboard.css";
+import "../../css/adminDashboard.css";
 
 const AdminSkills = () => {
   const [skills, setSkills] = useState<SkillRead[]>([]);
@@ -85,8 +85,10 @@ const AdminSkills = () => {
     }
   };
 
-  if (loading && skills.length === 0) return <div className="admin-loading">Loading skills...</div>;
-  if (error && skills.length === 0) return <div className="admin-error">{error}</div>;
+  if (loading && skills.length === 0)
+    return <div className="admin-loading">Loading skills...</div>;
+  if (error && skills.length === 0)
+    return <div className="admin-error">{error}</div>;
 
   return (
     <div className="admin-dashboard">
@@ -122,8 +124,8 @@ const AdminSkills = () => {
                       >
                         Edit
                       </Button>
-                      <Button 
-                        variant="outline-danger" 
+                      <Button
+                        variant="outline-danger"
                         size="sm"
                         onClick={() => handleDeleteClick(skill)}
                       >

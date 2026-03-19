@@ -9,9 +9,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { adminSkillService } from "../../apis/admin/service";
 import type { SkillRead } from "../../apis/admin/types";
-import { skillCreateSchema, skillUpdateSchema, type SkillCreateFormValues } from "../../schemas/admin";
+import {
+  skillCreateSchema,
+  skillUpdateSchema,
+  type SkillCreateFormValues,
+} from "../../schemas/admin";
 import { Button, Input } from "../../components/common";
-import "./AdminDashboard.css";
+import "../../css/adminDashboard.css";
 
 interface CreateSkillModalProps {
   show: boolean;
@@ -74,7 +78,9 @@ const CreateSkillModal: React.FC<CreateSkillModalProps> = ({
       onSkillSaved();
       handleClose();
     } catch (err: unknown) {
-      let errorMsg = isEditMode ? "Failed to update skill." : "Failed to create skill.";
+      let errorMsg = isEditMode
+        ? "Failed to update skill."
+        : "Failed to create skill.";
       if (axios.isAxiosError(err)) {
         errorMsg = err.response?.data?.detail || err.message || errorMsg;
       } else if (err instanceof Error) {
@@ -90,7 +96,7 @@ const CreateSkillModal: React.FC<CreateSkillModalProps> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-container">
+      <div className="modal-container modal-dialog-scrollable">
         <div className="modal-header">
           <h2>{isEditMode ? "Edit Skill" : "Create New Skill"}</h2>
           <button className="close-btn" onClick={handleClose}>
@@ -99,7 +105,9 @@ const CreateSkillModal: React.FC<CreateSkillModalProps> = ({
         </div>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="modal-body">
-            {submitError && <div className="alert alert-danger">{submitError}</div>}
+            {submitError && (
+              <div className="alert alert-danger">{submitError}</div>
+            )}
 
             <Input
               label="Skill Name"
@@ -118,12 +126,18 @@ const CreateSkillModal: React.FC<CreateSkillModalProps> = ({
                 placeholder="Briefly describe the skill..."
               />
               {errors.description && (
-                <div className="invalid-feedback">{errors.description.message}</div>
+                <div className="invalid-feedback">
+                  {errors.description.message}
+                </div>
               )}
             </div>
           </div>
           <div className="modal-footer">
-            <Button variant="outline-secondary" onClick={handleClose} type="button">
+            <Button
+              variant="outline-secondary"
+              onClick={handleClose}
+              type="button"
+            >
               Cancel
             </Button>
             <Button variant="primary" type="submit" isLoading={isSubmitting}>

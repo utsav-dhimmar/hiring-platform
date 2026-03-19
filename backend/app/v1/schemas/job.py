@@ -7,6 +7,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.v1.schemas.skill import SkillRead
+
 
 class JobBase(BaseModel):
     """
@@ -25,7 +27,7 @@ class JobCreate(JobBase):
     Schema for creating a new Job.
     """
 
-    pass
+    skill_ids: list[uuid.UUID] = []
 
 
 class JobUpdate(BaseModel):
@@ -38,6 +40,7 @@ class JobUpdate(BaseModel):
     jd_text: str | None = None
     jd_json: dict | None = None
     is_active: bool | None = None
+    skill_ids: list[uuid.UUID] | None = None
 
 
 class JobRead(JobBase):
@@ -48,5 +51,6 @@ class JobRead(JobBase):
     id: uuid.UUID
     created_by: uuid.UUID
     created_at: datetime
+    skills: list[SkillRead] = []
 
     model_config = ConfigDict(from_attributes=True)

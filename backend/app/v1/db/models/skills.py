@@ -1,15 +1,18 @@
 import uuid
+from typing import TYPE_CHECKING
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.v1.core.config import settings
 from app.v1.db.base import Base
-
-
+from app.v1.db.models.job_skills import job_skills
 from app.v1.utils.uuid import UUIDHelper
+
+if TYPE_CHECKING:
+    from app.v1.db.models.jobs import Job
 
 
 class Skill(Base):
@@ -49,4 +52,10 @@ class Skill(Base):
     skill_embedding: Mapped[list | None] = mapped_column(
         Vector(settings.EMBEDDING_VECTOR_DIM),
         nullable=True,
+    )
+
+    jobs: Mapped[list["Job"]] = relationship(
+        "Job",
+        secondary=job_skills,
+        back_populates="skills",
     )

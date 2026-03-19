@@ -120,7 +120,7 @@ const RoleModal = ({
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered size="lg">
+    <Modal show={show} onHide={onHide} centered size="lg" className="modal-dialog-scrollable">
       <Modal.Header closeButton>
         <Modal.Title>{isEditMode ? "Edit Role" : "Create New Role"}</Modal.Title>
       </Modal.Header>

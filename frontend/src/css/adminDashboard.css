@@ -99,8 +99,16 @@
   margin-bottom: 1.5rem !important;
 }
 
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
 .me-2 {
   margin-right: 0.5rem !important;
+}
+
+.d-block {
+  display: block !important;
 }
 
 .badge {
@@ -181,6 +189,24 @@ code {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
+.modal-container.modal-dialog-scrollable {
+  max-height: 90vh;
+}
+
+.modal-container form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.modal-container.modal-dialog-scrollable .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .modal-header {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #e5e7eb;
@@ -204,6 +230,8 @@ code {
 }
 
 .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1.5rem;
   overflow-y: auto;
 }
@@ -267,3 +295,64 @@ code {
   color: #ef4444;
 }
 
+.job-skills-section {
+  margin-bottom: 1rem;
+}
+
+.job-skills-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.job-skills-help {
+  margin: 0.25rem 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.job-skills-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+}
+
+.job-skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.job-skill-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 0.5rem;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.job-skill-option input {
+  margin-top: 0.2rem;
+}
+
+.job-skill-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.job-skill-option small {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.job-skills-empty {
+  margin: 0;
+  color: #6b7280;
+}

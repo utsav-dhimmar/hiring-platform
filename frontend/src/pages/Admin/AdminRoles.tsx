@@ -9,11 +9,18 @@ import {
   adminPermissionService,
 } from "../../apis/admin/service";
 import type { RoleRead, PermissionRead } from "../../apis/admin/types";
-import { Card, CardBody, CardHeader, Button, DateDisplay, DeleteModal } from "../../components/common";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  DateDisplay,
+  DeleteModal,
+} from "../../components/common";
 import CreatePermissionModal from "../../components/admin/CreatePermissionModal";
 import RoleModal from "../../components/admin/RoleModal";
 import axios from "axios";
-import "./AdminDashboard.css";
+import "../../css/adminDashboard.css";
 
 const AdminRoles = () => {
   const [roles, setRoles] = useState<RoleRead[]>([]);
@@ -73,7 +80,11 @@ const AdminRoles = () => {
     setShowRoleModal(true);
   };
 
-  const handleDeleteClick = (type: "role" | "permission", id: string, name: string) => {
+  const handleDeleteClick = (
+    type: "role" | "permission",
+    id: string,
+    name: string,
+  ) => {
     setDeleteConfig({ show: true, type, id, name });
     setDeleteError(null);
   };
@@ -108,24 +119,22 @@ const AdminRoles = () => {
     return (
       <div className="admin-loading">Loading roles and permissions...</div>
     );
-  if (error && roles.length === 0) return <div className="admin-error">{error}</div>;
+  if (error && roles.length === 0)
+    return <div className="admin-error">{error}</div>;
 
   return (
     <div className="admin-dashboard">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Role & Permission Management</h1>
         <div>
-          <Button 
-            variant="outline-primary" 
+          <Button
+            variant="outline-primary"
             className="me-2"
             onClick={() => setShowPermissionModal(true)}
           >
             Create Permission
           </Button>
-          <Button 
-            variant="primary"
-            onClick={handleCreateRole}
-          >
+          <Button variant="primary" onClick={handleCreateRole}>
             Create Role
           </Button>
         </div>
@@ -162,10 +171,12 @@ const AdminRoles = () => {
                         >
                           Edit
                         </Button>
-                        <Button 
-                          variant="outline-danger" 
+                        <Button
+                          variant="outline-danger"
                           size="sm"
-                          onClick={() => handleDeleteClick("role", role.id, role.name)}
+                          onClick={() =>
+                            handleDeleteClick("role", role.id, role.name)
+                          }
                         >
                           Delete
                         </Button>
@@ -194,13 +205,17 @@ const AdminRoles = () => {
                     <tr key={perm.id}>
                       <td>
                         <code>{perm.name}</code>
-                        <div className="text-muted small">{perm.description}</div>
+                        <div className="text-muted small">
+                          {perm.description}
+                        </div>
                       </td>
                       <td>
-                        <Button 
-                          variant="outline-danger" 
+                        <Button
+                          variant="outline-danger"
                           size="sm"
-                          onClick={() => handleDeleteClick("permission", perm.id, perm.name)}
+                          onClick={() =>
+                            handleDeleteClick("permission", perm.id, perm.name)
+                          }
                         >
                           Delete
                         </Button>
@@ -214,13 +229,13 @@ const AdminRoles = () => {
         </div>
       </div>
 
-      <CreatePermissionModal 
+      <CreatePermissionModal
         show={showPermissionModal}
         handleClose={() => setShowPermissionModal(false)}
         onPermissionCreated={handlePermissionCreated}
       />
 
-      <RoleModal 
+      <RoleModal
         show={showRoleModal}
         handleClose={() => setShowRoleModal(false)}
         onSuccess={handleRoleSuccess}

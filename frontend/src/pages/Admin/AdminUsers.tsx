@@ -6,10 +6,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminUserService } from "../../apis/admin/service";
 import type { UserAdminRead } from "../../apis/admin/types";
-import { Card, CardBody, Button, DateDisplay, DeleteModal } from "../../components/common";
+import {
+  Card,
+  CardBody,
+  Button,
+  DateDisplay,
+  DeleteModal,
+} from "../../components/common";
 import CreateUserModal from "./CreateUserModal";
 import axios from "axios";
-import "./AdminDashboard.css"; // Reuse some table styles
+import "../../css/adminDashboard.css";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<UserAdminRead[]>([]);
@@ -85,8 +91,10 @@ const AdminUsers = () => {
     }
   };
 
-  if (loading && users.length === 0) return <div className="admin-loading">Loading users...</div>;
-  if (error && users.length === 0) return <div className="admin-error">{error}</div>;
+  if (loading && users.length === 0)
+    return <div className="admin-loading">Loading users...</div>;
+  if (error && users.length === 0)
+    return <div className="admin-error">{error}</div>;
 
   return (
     <div className="admin-dashboard">
@@ -139,8 +147,8 @@ const AdminUsers = () => {
                         Edit
                       </Button>
                       {user.full_name !== "System Admin" && (
-                        <Button 
-                          variant="outline-danger" 
+                        <Button
+                          variant="outline-danger"
                           size="sm"
                           onClick={() => handleDeleteClick(user)}
                         >

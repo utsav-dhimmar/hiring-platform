@@ -14,9 +14,10 @@ from app.v1.db.base import Base
 
 if TYPE_CHECKING:
     from app.v1.db.models.candidates import Candidate
+    from app.v1.db.models.skills import Skill
     from app.v1.db.models.user import User
 
-
+from app.v1.db.models.job_skills import job_skills
 from app.v1.utils.uuid import UUIDHelper
 
 
@@ -99,4 +100,9 @@ class Job(Base):
     )
     candidates: Mapped[list["Candidate"]] = relationship(
         "Candidate", back_populates="applied_job"
+    )
+    skills: Mapped[list["Skill"]] = relationship(
+        "Skill",
+        secondary=job_skills,
+        back_populates="jobs",
     )

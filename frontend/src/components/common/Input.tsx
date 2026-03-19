@@ -6,7 +6,7 @@
 import React, { useId, forwardRef } from "react";
 import { Form } from "react-bootstrap";
 import type { FormControlProps } from "react-bootstrap";
-import "./Input.css";
+import "../../css/input.css";
 
 /**
  * Props for the Input component.

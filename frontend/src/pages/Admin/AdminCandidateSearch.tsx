@@ -20,7 +20,7 @@ import {
   DateDisplay,
 } from "../../components/common";
 
-import "./AdminDashboard.css";
+import "../../css/adminDashboard.css";
 
 const AdminCandidateSearch = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -213,7 +213,7 @@ const AdminCandidateSearch = () => {
       </Card>
 
       {/* Candidate Detail Modal */}
-      <Modal show={showDetail} onHide={() => setShowDetail(false)} size="lg">
+      <Modal show={showDetail} onHide={() => setShowDetail(false)} size="lg" className="modal-dialog-scrollable">
         <Modal.Header closeButton>
           <Modal.Title>
             Candidate Profile: {selectedCandidate?.first_name}{" "}

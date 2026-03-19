@@ -6,8 +6,8 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import jobService from "../../apis/services/jobService";
-import { resumeService } from "../../apis/services/resumeService";
+import jobService from "../../apis/services/job";
+import { resumeService } from "../../apis/services/resume";
 import type { Job } from "../../apis/types/job";
 import { Button, Card, CardBody, CardHeader } from "../../components/common";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
@@ -24,18 +24,18 @@ const HomePage = () => {
     null,
   );
 
-  const isAuthorized = 
-    user?.role_name?.toLowerCase() === 'admin' || 
-    user?.role_name?.toLowerCase() === 'hr' ||
-    user?.permissions?.includes('admin:access') ||
-    user?.permissions?.includes('admin:all');
+  const isAuthorized =
+    user?.role_name?.toLowerCase() === "admin" ||
+    user?.role_name?.toLowerCase() === "hr" ||
+    user?.permissions?.includes("admin:access") ||
+    user?.permissions?.includes("admin:all");
 
   const viewCandidates = (jobId: string) => {
     navigate(`/jobs/${jobId}`);
   };
 
   const goToAdmin = () => {
-    navigate('/admin');
+    navigate("/admin");
   };
 
   useEffect(() => {
