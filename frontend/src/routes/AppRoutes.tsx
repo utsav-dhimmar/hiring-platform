@@ -6,14 +6,16 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "../pages/Home/HomePage";
 import JobCandidatesPage from "../pages/JobCandidates/JobCandidatesPage";
+import AdminRoutes from "./AdminRoutes";
 import LoginPage from "../pages/Login/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import AdminRoute from "../components/auth/AdminRoute";
 import PublicRoute from "../components/auth/PublicRoute";
 
 /**
  * Main routing component for the application.
- * Defines public routes (login, register) and protected routes (home, job candidates).
+ * Defines public routes (login, register) and protected routes (home, job candidates, admin).
  * Unmatched routes redirect to home.
  */
 const AppRoutes = () => {
@@ -52,6 +54,16 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <JobCandidatesPage />
           </ProtectedRoute>
+        }
+      />
+
+      {/* Admin Routes  */}
+      <Route
+        path="/admin/*"
+        element={
+          <AdminRoute>
+            <AdminRoutes />
+          </AdminRoute>
         }
       />
 

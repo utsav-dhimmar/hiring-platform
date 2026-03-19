@@ -6,8 +6,9 @@ using FastCRUD and SQLAlchemy async sessions.
 """
 
 from fastcrud import FastCRUD
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.v1.core.logging import get_logger
 from app.v1.db.models.user import User
@@ -39,9 +40,19 @@ class UserRepository:
         Returns:
             The user object if found, None otherwise.
         """
-        return await self.crud.get(
-            db=db, email=email, return_as_model=True, schema_to_select=UserModel
+        stmt = (
+            select(User)
+            .where(User.email == email)
+            .options(selectinload(User.role))
         )
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        if user:
+            user_data = UserModel.model_validate(user)
+            if user.role:
+                user_data.role_name = user.role.name
+            return user_data
+        return None
 
     async def get_by_id(self, db: AsyncSession, user_id):
         """Get a user by their unique ID.
@@ -53,12 +64,20 @@ class UserRepository:
         Returns:
             The user object if found, None otherwise.
         """
-        return await self.crud.get(
-            db=db,
-            id=user_id,
-            schema_to_select=UserRead,
-            return_as_model=True,
+        stmt = (
+            select(User)
+            .where(User.id == user_id)
+            .options(selectinload(User.role))
         )
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        if user:
+            # Manually populate role_name for UserRead
+            user_read = UserRead.model_validate(user)
+            if user.role:
+                user_read.role_name = user.role.name
+            return user_read
+        return None
 
     async def create(self, db: AsyncSession, user: UserCreateInternal):
         """Create a new user in the database.
@@ -70,12 +89,12 @@ class UserRepository:
         Returns:
             The created user object.
         """
-        return await self.crud.create(
+        created_user = await self.crud.create(
             db=db,
             object=user,
-            schema_to_select=UserRead,
-            return_as_model=True,
         )
+        # Fetch again with role info
+        return await self.get_by_id(db=db, user_id=created_user["id"])
 
     async def update_refresh_token(
         self,

@@ -3,7 +3,7 @@
  * Wraps React Bootstrap Form.Control with enhanced styling.
  */
 
-import React, { useId } from "react";
+import React, { useId, forwardRef } from "react";
 import { Form } from "react-bootstrap";
 import type { FormControlProps } from "react-bootstrap";
 import "./Input.css";
@@ -39,53 +39,61 @@ interface InputProps extends Omit<FormControlProps, "size"> {
  * />
  * ```
  */
-export const Input = ({
-  label,
-  error,
-  helperText,
-  leftElement,
-  rightElement,
-  inputSize,
-  className = "",
-  id,
-  ...props
-}: InputProps) => {
-  const generatedId = useId();
-  const inputId = id || generatedId;
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  (
+    {
+      label,
+      error,
+      helperText,
+      leftElement,
+      rightElement,
+      inputSize,
+      className = "",
+      id,
+      ...props
+    },
+    ref,
+  ) => {
+    const generatedId = useId();
+    const inputId = id || generatedId;
 
-  return (
-    <div
-      className={`custom-input ${error ? "custom-input--error" : ""} ${className}`}
-    >
-      {label && (
-        <label htmlFor={inputId} className="custom-input__label">
-          {label}
-        </label>
-      )}
-      <div className="custom-input__wrapper">
-        {leftElement && (
-          <span className="custom-input__element custom-input__element--left">
-            {leftElement}
-          </span>
+    return (
+      <div
+        className={`custom-input ${error ? "custom-input--error" : ""} ${className}`}
+      >
+        {label && (
+          <label htmlFor={inputId} className="custom-input__label">
+            {label}
+          </label>
         )}
-        <Form.Control
-          id={inputId}
-          size={inputSize}
-          className={`custom-input__field ${leftElement ? "custom-input__field--with-left" : ""} ${rightElement ? "custom-input__field--with-right" : ""}`}
-          {...props}
-        />
-        {rightElement && (
-          <span className="custom-input__element custom-input__element--right">
-            {rightElement}
-          </span>
+        <div className="custom-input__wrapper">
+          {leftElement && (
+            <span className="custom-input__element custom-input__element--left">
+              {leftElement}
+            </span>
+          )}
+          <Form.Control
+            id={inputId}
+            size={inputSize}
+            className={`custom-input__field ${leftElement ? "custom-input__field--with-left" : ""} ${rightElement ? "custom-input__field--with-right" : ""}`}
+            ref={ref}
+            {...props}
+          />
+          {rightElement && (
+            <span className="custom-input__element custom-input__element--right">
+              {rightElement}
+            </span>
+          )}
+        </div>
+        {error && <span className="custom-input__error">{error}</span>}
+        {helperText && !error && (
+          <span className="custom-input__helper">{helperText}</span>
         )}
       </div>
-      {error && <span className="custom-input__error">{error}</span>}
-      {helperText && !error && (
-        <span className="custom-input__helper">{helperText}</span>
-      )}
-    </div>
-  );
-};
+    );
+  },
+);
+
+Input.displayName = "Input";
 
 export default Input;

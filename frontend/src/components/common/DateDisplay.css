@@ -1,0 +1,12 @@
+.date-display {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+}
+
+.date-display.fallback,
+.date-display.invalid,
+.date-display.error {
+  color: #6c757d;
+  font-style: italic;
+}

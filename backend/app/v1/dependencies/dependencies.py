@@ -10,9 +10,11 @@ from uuid import UUID
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings
+from app.v1.db.models.roles import Role
 from app.v1.db.session import get_db
 from app.v1.schemas.user import UserRead
 from app.v1.services.user_service import user_service
@@ -92,3 +94,34 @@ async def get_current_user(
             detail="Inactive user.",
         )
     return user
+
+
+async def get_admin_user(
+    current_user: UserRead = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserRead:
+    """
+    Get the current user and verify they have admin privileges.
+
+    Args:
+        current_user: The currently authenticated user.
+        db: Async database session.
+
+    Returns:
+        The current authenticated admin user.
+
+    Raises:
+        HTTPException: If the user is not an admin.
+    """
+    result = await db.execute(
+        select(Role).where(Role.id == current_user.role_id)
+    )
+    role = result.scalar_one_or_none()
+
+    if not role or role.name.lower() != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required.",
+        )
+
+    return current_user

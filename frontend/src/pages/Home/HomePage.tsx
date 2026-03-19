@@ -10,12 +10,13 @@ import jobService from "../../apis/services/jobService";
 import { resumeService } from "../../apis/services/resumeService";
 import type { Job } from "../../apis/types/job";
 import { Button, Card, CardBody, CardHeader } from "../../components/common";
-import { useAppDispatch } from "../../store/hooks";
-import { logout } from "../../store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { logout, selectCurrentUser } from "../../store/slices/authSlice";
 
 const HomePage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const user = useAppSelector(selectCurrentUser);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
@@ -23,8 +24,14 @@ const HomePage = () => {
     null,
   );
 
+  const isAdmin = user?.role_name?.toLowerCase() === 'admin';
+
   const viewCandidates = (jobId: string) => {
     navigate(`/jobs/${jobId}`);
+  };
+
+  const goToAdmin = () => {
+    navigate('/admin');
   };
 
   useEffect(() => {
@@ -80,7 +87,12 @@ const HomePage = () => {
         <Col>
           <h1>Welcome to Hiring Platform</h1>
         </Col>
-        <Col xs="auto">
+        <Col xs="auto" className="d-flex gap-2">
+          {isAdmin && (
+            <Button variant="primary" onClick={goToAdmin}>
+              Admin Dashboard
+            </Button>
+          )}
           <Button variant="danger" onClick={handleLogout}>
             Logout
           </Button>

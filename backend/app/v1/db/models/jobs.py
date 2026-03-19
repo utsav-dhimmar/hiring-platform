@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 from app.v1.utils.uuid import UUIDHelper
 
+
 class Job(Base):
     """Job ORM model.
 

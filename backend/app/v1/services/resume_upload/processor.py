@@ -98,9 +98,7 @@ class ResumeProcessor:
         job_text = build_job_text(job)
 
         stage_started_at = time.perf_counter()
-        job_embedding = (
-            self.embeddings.encode_jd(job_text) if job_text else None
-        )
+        job_embedding = self.embeddings.encode_jd(job_text) if job_text else None
         log_stage(
             stage="job_embedding",
             started_at=stage_started_at,
@@ -109,9 +107,7 @@ class ResumeProcessor:
 
         stage_started_at = time.perf_counter()
         candidate_embedding = (
-            self.embeddings.encode_resume(candidate_text)
-            if candidate_text
-            else None
+            self.embeddings.encode_resume(candidate_text) if candidate_text else None
         )
         log_stage(
             stage="candidate_embedding",
@@ -136,9 +132,7 @@ class ResumeProcessor:
         for skill in job_skills:
             skill_text = build_skill_text(skill)
             if skill_text and getattr(skill, "skill_embedding", None) is None:
-                skill_embeddings[skill.id] = self.embeddings.encode_skill(
-                    skill_text
-                )
+                skill_embeddings[skill.id] = self.embeddings.encode_skill(skill_text)
         log_stage(
             stage="job_skill_embeddings",
             started_at=stage_started_at,

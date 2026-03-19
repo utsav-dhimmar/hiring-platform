@@ -21,11 +21,22 @@ interface AuthState {
 }
 
 /**
- * Initial authentication state.
- * Checks localStorage for existing token to restore session on page reload.
+ * Utility to safe parse JSON from localStorage.
  */
+const getStoredUser = (): UserRead | null => {
+  const storedUser = localStorage.getItem("user");
+  if (!storedUser) return null;
+  try {
+    return JSON.parse(storedUser);
+  } catch (error) {
+    console.error("Failed to parse stored user:", error);
+    localStorage.removeItem("user");
+    return null;
+  }
+};
+
 const initialState: AuthState = {
-  user: null,
+  user: getStoredUser(),
   token: localStorage.getItem("token"),
   refreshToken: localStorage.getItem("refreshToken"),
   isAuthenticated: !!localStorage.getItem("token"),
@@ -41,7 +52,7 @@ const authSlice = createSlice({
   reducers: {
     /**
      * Sets user credentials after successful login.
-     * Updates state and persists tokens to localStorage.
+     * Updates state and persists tokens and user data to localStorage.
      */
     setCredentials: (
       state,
@@ -59,10 +70,11 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       localStorage.setItem("token", access_token);
       localStorage.setItem("refreshToken", refresh_token);
+      localStorage.setItem("user", JSON.stringify(user));
     },
     /**
      * Clears all authentication data on logout.
-     * Removes tokens from both state and localStorage.
+     * Removes tokens and user data from both state and localStorage.
      */
     logout: (state) => {
       state.user = null;
@@ -71,13 +83,15 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
     },
     /**
-     * Updates the user profile data in state.
+     * Updates the user profile data in state and persists to localStorage.
      * Used when fetching or updating user information.
      */
     setUser: (state, action: PayloadAction<UserRead>) => {
       state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
     },
   },
 });

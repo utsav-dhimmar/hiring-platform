@@ -25,6 +25,7 @@ class UserModel(BaseModel):
     refresh_token_expires_at: datetime | None = None
     is_active: bool = True
     role_id: uuid.UUID
+    role_name: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -86,6 +87,7 @@ class UserRead(BaseModel):
     email: EmailStr
     is_active: bool = True
     role_id: uuid.UUID
+    role_name: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
