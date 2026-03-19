@@ -3,8 +3,8 @@
  * Displays a title, message, and confirmation/cancel buttons.
  */
 
-import { Modal, Alert } from "react-bootstrap";
-import { Button } from "./index";
+import { Alert, Modal } from "react-bootstrap";
+import { Button } from "../common";
 
 /**
  * Props for the DeleteModal component.
@@ -68,18 +68,10 @@ const DeleteModal = ({
         <p className="mb-0">{message}</p>
       </Modal.Body>
       <Modal.Footer>
-        <Button
-          variant="outline-secondary"
-          onClick={handleClose}
-          disabled={isLoading}
-        >
+        <Button variant="outline-secondary" onClick={handleClose} disabled={isLoading}>
           {cancelButtonText}
         </Button>
-        <Button
-          variant={confirmVariant}
-          onClick={handleConfirm}
-          isLoading={isLoading}
-        >
+        <Button variant={confirmVariant} onClick={handleConfirm} isLoading={isLoading}>
           {confirmButtonText}
         </Button>
       </Modal.Footer>

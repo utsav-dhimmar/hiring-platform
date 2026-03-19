@@ -3,19 +3,14 @@
  * Uses Zod for form validation.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
-import { useForm, type FieldValues } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import { useCallback, useEffect, useState } from "react";
 import { adminJobService, adminSkillService } from "../../apis/admin/service";
 import type { JobRead, SkillRead } from "../../apis/admin/types";
-import {
-  jobCreateSchema,
-  type JobCreateFormValues,
-} from "../../schemas/admin";
-import { Button, Input } from "../../components/common";
-import CreateSkillModal from "./CreateSkillModal";
+import { Button, ErrorDisplay, Input } from "../../components/common";
 import "../../css/adminDashboard.css";
+import { useFormModal } from "../../hooks";
+import { jobCreateSchema, type JobCreateFormValues } from "../../schemas/admin";
+import CreateSkillModal from "./CreateSkillModal";
 
 interface CreateJobModalProps {
   show: boolean;
@@ -24,14 +19,15 @@ interface CreateJobModalProps {
   job: JobRead | null;
 }
 
-const CreateJobModal: React.FC<CreateJobModalProps> = ({
-  show,
-  handleClose,
-  onJobSaved,
-  job,
-}) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+const DEFAULT_JOB_VALUES: JobCreateFormValues = {
+  title: "",
+  department: "",
+  jd_text: "",
+  is_active: true,
+  skill_ids: [],
+};
+
+const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalProps) => {
   const [skills, setSkills] = useState<SkillRead[]>([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
   const [skillsError, setSkillsError] = useState<string | null>(null);
@@ -39,22 +35,45 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
 
   const isEditMode = !!job;
 
+  const mapItemToValues = useCallback(
+    (j: JobRead): JobCreateFormValues => ({
+      title: j.title,
+      department: j.department || "",
+      jd_text: j.jd_text || "",
+      is_active: j.is_active,
+      skill_ids: j.skills?.map((skill) => skill.id) || [],
+    }),
+    [],
+  );
+
+  const onSubmit = useCallback(
+    async (data: JobCreateFormValues) => {
+      if (isEditMode && job) {
+        await adminJobService.updateJob(job.id, data);
+      } else {
+        await adminJobService.createJob(data);
+      }
+      onJobSaved();
+      handleClose();
+    },
+    [isEditMode, job, onJobSaved, handleClose],
+  );
+
   const {
     register,
     handleSubmit,
-    reset,
     watch,
     setValue,
+    isSubmitting,
+    submitError,
     formState: { errors },
-  } = useForm({
-    resolver: zodResolver(jobCreateSchema),
-    defaultValues: {
-      title: "",
-      department: "",
-      jd_text: "",
-      is_active: true,
-      skill_ids: [],
-    },
+  } = useFormModal<JobCreateFormValues, JobRead>({
+    schema: jobCreateSchema,
+    defaultValues: DEFAULT_JOB_VALUES,
+    item: job,
+    show,
+    mapItemToValues,
+    onSubmit,
   });
 
   const selectedSkillIds = watch("skill_ids") ?? [];
@@ -74,33 +93,11 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
   }, []);
 
   useEffect(() => {
-    if (!show) {
-      return;
+    if (show) {
+      void fetchSkills();
+      setShowSkillModal(false);
     }
-
-    void fetchSkills();
-
-    if (job) {
-      reset({
-        title: job.title,
-        department: job.department || "",
-        jd_text: job.jd_text || "",
-        is_active: job.is_active,
-        skill_ids: job.skills?.map((skill) => skill.id) || [],
-      });
-    } else {
-      reset({
-        title: "",
-        department: "",
-        jd_text: "",
-        is_active: true,
-        skill_ids: [],
-      });
-    }
-
-    setSubmitError(null);
-    setShowSkillModal(false);
-  }, [show, job, reset, fetchSkills]);
+  }, [show, fetchSkills]);
 
   const toggleSkill = (skillId: string) => {
     const nextSkillIds = selectedSkillIds.includes(skillId)
@@ -119,34 +116,6 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
     setShowSkillModal(false);
   };
 
-  const onSubmit = async (values: FieldValues) => {
-    const data = values as JobCreateFormValues;
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      if (isEditMode && job) {
-        await adminJobService.updateJob(job.id, data);
-      } else {
-        await adminJobService.createJob(data);
-      }
-      onJobSaved();
-      handleClose();
-    } catch (err: unknown) {
-      let errorMsg = isEditMode
-        ? "Failed to update job."
-        : "Failed to create job.";
-      if (axios.isAxiosError(err)) {
-        errorMsg = err.response?.data?.detail || err.message || errorMsg;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setSubmitError(errorMsg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   if (!show) return null;
 
   return (
@@ -159,11 +128,9 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
               &times;
             </button>
           </div>
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit}>
             <div className="modal-body">
-              {submitError && (
-                <div className="alert alert-danger">{submitError}</div>
-              )}
+              {submitError && <ErrorDisplay message={submitError} />}
 
               <Input
                 label="Job Title"
@@ -188,9 +155,7 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
                   {...register("jd_text")}
                   placeholder="Paste the job description here..."
                 />
-                {errors.jd_text && (
-                  <div className="invalid-feedback">{errors.jd_text.message}</div>
-                )}
+                {errors.jd_text && <div className="invalid-feedback">{errors.jd_text.message}</div>}
               </div>
 
               <div className="job-skills-section">
@@ -210,7 +175,7 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
                   </Button>
                 </div>
 
-                {skillsError && <div className="alert alert-danger">{skillsError}</div>}
+                {skillsError && <ErrorDisplay message={skillsError} />}
 
                 <div className="job-skills-panel">
                   {skillsLoading ? (
@@ -239,9 +204,7 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
                 </div>
 
                 {errors.skill_ids?.message && (
-                  <div className="invalid-feedback d-block">
-                    {errors.skill_ids.message}
-                  </div>
+                  <div className="invalid-feedback d-block">{errors.skill_ids.message}</div>
                 )}
               </div>
 
@@ -258,11 +221,7 @@ const CreateJobModal: React.FC<CreateJobModalProps> = ({
               </div>
             </div>
             <div className="modal-footer">
-              <Button
-                variant="outline-secondary"
-                onClick={handleClose}
-                type="button"
-              >
+              <Button variant="outline-secondary" onClick={handleClose} type="button">
                 Cancel
               </Button>
               <Button variant="primary" type="submit" isLoading={isSubmitting}>

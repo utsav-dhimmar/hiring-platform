@@ -3,15 +3,13 @@
  * Provides a form with role selection to create user accounts.
  */
 
-import { useState, useEffect } from "react";
-import { Modal, Form, Alert, Row, Col } from "react-bootstrap";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { adminUserService, adminRoleService } from "../../apis/admin/service";
+import { useCallback, useEffect, useState } from "react";
+import { Col, Form, Modal, Row } from "react-bootstrap";
+import { adminRoleService, adminUserService } from "../../apis/admin/service";
 import type { RoleRead, UserAdminRead } from "../../apis/admin/types";
+import { Button, ErrorDisplay, Input } from "../../components/common";
+import { useFormModal } from "../../hooks";
 import { userCreateSchema, type UserCreateFormValues } from "../../schemas/admin";
-import { Input, Button } from "../../components/common";
-import axios from "axios";
 
 /**
  * Props for the CreateUserModal component.
@@ -27,27 +25,69 @@ interface CreateUserModalProps {
   user?: UserAdminRead | null;
 }
 
+const DEFAULT_USER_VALUES: UserCreateFormValues = {
+  is_active: true,
+  role_id: "",
+  full_name: "",
+  email: "",
+  password: "",
+};
+
 /**
  * Modal dialog for creating or editing a user account.
  */
 const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserModalProps) => {
   const [roles, setRoles] = useState<RoleRead[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [fetchingRoles, setFetchingRoles] = useState(false);
   const isEditMode = !!user;
+
+  const mapItemToValues = useCallback(
+    (u: UserAdminRead): UserCreateFormValues => ({
+      full_name: u.full_name || "",
+      email: u.email,
+      is_active: u.is_active,
+      role_id: u.role_id,
+      password: "", // Password is not returned from API
+    }),
+    [],
+  );
+
+  const onSubmit = useCallback(
+    async (data: UserCreateFormValues) => {
+      if (isEditMode && user) {
+        const updateData = {
+          full_name: data.full_name,
+          is_active: data.is_active,
+          role_id: data.role_id,
+        };
+        await adminUserService.updateUser(user.id, updateData);
+      } else {
+        const payload = { ...data };
+        if (!payload.password) {
+          delete payload.password;
+        }
+        await adminUserService.createUser(payload);
+      }
+      onUserSaved();
+      handleClose();
+    },
+    [isEditMode, user, onUserSaved, handleClose],
+  );
 
   const {
     register,
     handleSubmit,
-    reset,
+    isSubmitting,
+    submitError,
     formState: { errors },
-  } = useForm<UserCreateFormValues>({
-    resolver: zodResolver(userCreateSchema),
-    defaultValues: {
-      is_active: true,
-      role_id: "",
-    },
+    setSubmitError,
+  } = useFormModal<UserCreateFormValues, UserAdminRead>({
+    schema: userCreateSchema,
+    defaultValues: DEFAULT_USER_VALUES,
+    item: user || null,
+    show,
+    mapItemToValues,
+    onSubmit,
   });
 
   useEffect(() => {
@@ -59,69 +99,14 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
           setRoles(data);
         } catch (err) {
           console.error("Failed to fetch roles:", err);
-          setError("Failed to load roles. Please try again.");
+          setSubmitError("Failed to load roles. Please try again.");
         } finally {
           setFetchingRoles(false);
         }
       };
       fetchRoles();
-
-      if (user) {
-        reset({
-          full_name: user.full_name || "",
-          email: user.email,
-          is_active: user.is_active,
-          role_id: user.role_id,
-          password: "", // Password is not returned from API
-        });
-      } else {
-        reset({
-          full_name: "",
-          email: "",
-          is_active: true,
-          role_id: "",
-          password: "",
-        });
-      }
-    } else {
-      setError(null);
     }
-  }, [show, reset, user]);
-
-  const onSubmit = async (data: UserCreateFormValues) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      if (isEditMode && user) {
-        // For editing, we use the update schema fields
-        const updateData = {
-          full_name: data.full_name,
-          is_active: data.is_active,
-          role_id: data.role_id,
-        };
-        await adminUserService.updateUser(user.id, updateData);
-      } else {
-        // Clean up empty password if not provided
-        const payload = { ...data };
-        if (!payload.password) {
-          delete payload.password;
-        }
-        await adminUserService.createUser(payload);
-      }
-      onUserSaved();
-      handleClose();
-    } catch (err: unknown) {
-      let errorMsg = `Failed to ${isEditMode ? "update" : "create"} user.`;
-      if (axios.isAxiosError(err)) {
-        errorMsg = err.response?.data?.detail || err.message || errorMsg;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setError(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [show, setSubmitError]);
 
   return (
     <Modal show={show} onHide={handleClose} size="lg" centered>
@@ -129,9 +114,9 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
         <Modal.Title>{isEditMode ? "Edit User" : "Create New User"}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {error && <Alert variant="danger" dismissible onClose={() => setError(null)}>{error}</Alert>}
-        
-        <Form onSubmit={handleSubmit(onSubmit)}>
+        {submitError && <ErrorDisplay message={submitError} />}
+
+        <Form onSubmit={handleSubmit}>
           <Row>
             <Col md={6}>
               <Input
@@ -150,7 +135,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
                 {...register("email")}
                 error={errors.email?.message}
                 className="mb-3"
-                disabled={isEditMode} // Usually email is not editable
+                disabled={isEditMode}
               />
             </Col>
           </Row>
@@ -176,7 +161,9 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
                     disabled
                     readOnly
                   />
-                  <small className="text-muted">Passwords must be reset via forgot password or a separate dedicated endpoint.</small>
+                  <small className="text-muted">
+                    Passwords must be reset via forgot password or a separate dedicated endpoint.
+                  </small>
                 </div>
               )}
             </Col>
@@ -205,18 +192,14 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
           </Row>
 
           <Form.Group className="mb-3">
-            <Form.Check
-              type="checkbox"
-              label="Active User"
-              {...register("is_active")}
-            />
+            <Form.Check type="checkbox" label="Active User" {...register("is_active")} />
           </Form.Group>
 
           <div className="d-flex justify-content-end gap-2 mt-4">
-            <Button variant="outline-secondary" onClick={handleClose} disabled={isLoading}>
+            <Button variant="outline-secondary" onClick={handleClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" isLoading={isLoading}>
+            <Button type="submit" variant="primary" isLoading={isSubmitting}>
               {isEditMode ? "Update User" : "Create User"}
             </Button>
           </div>

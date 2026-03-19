@@ -3,20 +3,28 @@
  * Wraps React Bootstrap Button with additional features.
  */
 
-import React from 'react';
-import { Button as BSButton } from 'react-bootstrap';
-import type { ButtonProps as BSButtonProps } from 'react-bootstrap';
-import '../../css/button.css';
+import React from "react";
+import { Button as BSButton } from "react-bootstrap";
+import type { ButtonProps as BSButtonProps } from "react-bootstrap";
+import "../../css/button.css";
 
 /**
  * Props for the Button component.
  * Extends React Bootstrap ButtonProps with custom options.
  */
-interface ButtonProps extends Omit<BSButtonProps, 'size'> {
+interface ButtonProps extends Omit<BSButtonProps, "size"> {
   /** Visual style variant of the button */
-  variant?: 'primary' | 'secondary' | 'outline-primary' | 'outline-secondary' | 'success' | 'danger' | 'warning' | 'ghost';
+  variant?:
+    | "primary"
+    | "secondary"
+    | "outline-primary"
+    | "outline-secondary"
+    | "success"
+    | "danger"
+    | "warning"
+    | "ghost";
   /** Size of the button */
-  size?: 'sm' | 'lg';
+  size?: "sm" | "lg";
   /** Shows loading spinner and disables button when true */
   isLoading?: boolean;
   /** Icon element to display before button text */
@@ -42,13 +50,13 @@ interface ButtonProps extends Omit<BSButtonProps, 'size'> {
  */
 export function Button({
   children,
-  variant = 'primary',
+  variant = "primary",
   size,
   isLoading = false,
   leftIcon,
   rightIcon,
   disabled,
-  className = '',
+  className = "",
   ...props
 }: ButtonProps) {
   return (

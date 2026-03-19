@@ -35,52 +35,40 @@ const AdminLayout = () => {
           <NavLink
             to="/admin"
             end
-            className={({ isActive }) =>
-              isActive ? "nav-item active" : "nav-item"
-            }
+            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
           >
             Dashboard
           </NavLink>
           {isAdmin && (
             <NavLink
               to="/admin/users"
-              className={({ isActive }) =>
-                isActive ? "nav-item active" : "nav-item"
-              }
+              className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
             >
               User Management
             </NavLink>
           )}
           <NavLink
             to="/admin/jobs"
-            className={({ isActive }) =>
-              isActive ? "nav-item active" : "nav-item"
-            }
+            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
           >
             Job Management
           </NavLink>
           <NavLink
             to="/admin/candidates"
-            className={({ isActive }) =>
-              isActive ? "nav-item active" : "nav-item"
-            }
+            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
           >
             Candidate Search
           </NavLink>
           <NavLink
             to="/admin/skills"
-            className={({ isActive }) =>
-              isActive ? "nav-item active" : "nav-item"
-            }
+            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
           >
             Skill Management
           </NavLink>
           {isAdmin && (
             <NavLink
               to="/admin/roles"
-              className={({ isActive }) =>
-                isActive ? "nav-item active" : "nav-item"
-              }
+              className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
             >
               Role & Permissions
             </NavLink>
@@ -88,18 +76,14 @@ const AdminLayout = () => {
           {isAdmin && (
             <NavLink
               to="/admin/audit-logs"
-              className={({ isActive }) =>
-                isActive ? "nav-item active" : "nav-item"
-              }
+              className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
             >
               Audit Logs
             </NavLink>
           )}
           <NavLink
             to="/admin/recent-uploads"
-            className={({ isActive }) =>
-              isActive ? "nav-item active" : "nav-item"
-            }
+            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
           >
             Recent Uploads
           </NavLink>

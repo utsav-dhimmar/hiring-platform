@@ -3,10 +3,10 @@
  * Redirects non-authorized or unauthenticated users.
  */
 
-import type React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAppSelector } from '../../store/hooks';
-import { selectCurrentUser, selectIsAuthenticated } from '../../store/slices/authSlice';
+import type React from "react";
+import { Navigate } from "react-router-dom";
+import { useAppSelector } from "../../store/hooks";
+import { selectCurrentUser, selectIsAuthenticated } from "../../store/slices/authSlice";
 
 /**
  * Props for the RoleRoute component.
@@ -25,32 +25,28 @@ interface RoleRouteProps {
  * Redirects to / if the user does not have an allowed role or required permission.
  * Redirects to /login if the user is not authenticated.
  */
-const RoleRoute = ({ 
-  children, 
-  allowedRoles = [], 
-  requiredPermissions = [] 
-}: RoleRouteProps) => {
+const RoleRoute = ({ children, allowedRoles = [], requiredPermissions = [] }: RoleRouteProps) => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectCurrentUser);
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   // Check if user has one of the required permissions.
   const userPermissions = user?.permissions || [];
-  const hasRequiredPermission = requiredPermissions.length > 0 
-    ? requiredPermissions.some(perm => userPermissions.includes(perm))
-    : false;
+  const hasRequiredPermission =
+    requiredPermissions.length > 0
+      ? requiredPermissions.some((perm) => userPermissions.includes(perm))
+      : false;
 
   // Check for super-permission.
-  const hasAdminAll = userPermissions.includes('admin:all');
+  const hasAdminAll = userPermissions.includes("admin:all");
 
   // Check if user has one of the allowed roles (deprecated, prefer permissions).
-  const userRole = user?.role_name?.toLowerCase() || '';
-  const isRoleAuthorized = allowedRoles.length > 0
-    ? allowedRoles.some(role => role.toLowerCase() === userRole)
-    : false;
+  const userRole = user?.role_name?.toLowerCase() || "";
+  const isRoleAuthorized =
+    allowedRoles.length > 0 ? allowedRoles.some((role) => role.toLowerCase() === userRole) : false;
 
   // Authorized if:
   // 1. Has 'admin:all' super-permission

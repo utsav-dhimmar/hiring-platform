@@ -28,10 +28,21 @@ export interface ResumeMatchAnalysis {
   experience_alignment: string;
   /** Summary of candidate's strengths relative to the job */
   strength_summary: string;
-  /** List of skills required but not found in the resume */
-  missing_skills: string[];
+  /** A single missing skill and its impact on the match score */
+  missing_skills: MissingSkill[];
   /** Notable qualifications beyond job requirements */
   extraordinary_points: string[];
+}
+
+/**
+ * A missing skill item returned by resume analysis.
+ * Includes the skill name and its importance score.
+ */
+export interface MissingSkill {
+  /** Missing skill name */
+  name: string;
+  /** Importance score for the missing skill */
+  score: number;
 }
 
 /**

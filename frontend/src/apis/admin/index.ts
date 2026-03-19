@@ -3,5 +3,5 @@
  * Re-exports all admin types and service functions.
  */
 
-export * from './types';
-export * from './service';
+export * from "./types";
+export * from "./service";

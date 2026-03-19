@@ -12,13 +12,7 @@ import axios from "axios";
 import { useAppDispatch } from "../../store/hooks";
 import { setCredentials } from "../../store/slices/authSlice";
 import { authService } from "../../apis/services/auth";
-import {
-  Card,
-  CardHeader,
-  CardBody,
-  Input,
-  Button,
-} from "../../components/common";
+import { Card, CardHeader, CardBody, Input, Button } from "../../components/common";
 import { loginSchema, type LoginFormValues } from "../../schemas/auth";
 
 const LoginPage = () => {
@@ -88,12 +82,7 @@ const LoginPage = () => {
                   error={errors.password?.message}
                   className="mb-4"
                 />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="w-100"
-                  isLoading={isLoading}
-                >
+                <Button type="submit" variant="primary" className="w-100" isLoading={isLoading}>
                   Sign In
                 </Button>
               </form>

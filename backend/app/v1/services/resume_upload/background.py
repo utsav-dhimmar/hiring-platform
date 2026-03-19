@@ -4,11 +4,11 @@ Background task orchestration for resume processing.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import time
 import uuid
 
+from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.logging import get_logger
@@ -27,8 +27,6 @@ from .processor import ResumeProcessor
 
 logger = get_logger(__name__)
 
-_background_tasks: set[asyncio.Task[None]] = set()
-
 
 class BackgroundProcessor:
     """Orchestrator for background resume processing tasks."""
@@ -42,6 +40,7 @@ class BackgroundProcessor:
         job_id: uuid.UUID,
         resume_id: uuid.UUID,
         file_path: str,
+        background_tasks: BackgroundTasks,
     ) -> None:
         """Schedule the resume processing task in the background.
 
@@ -49,16 +48,14 @@ class BackgroundProcessor:
             job_id: The job ID.
             resume_id: The resume ID.
             file_path: Path to the stored resume file.
+            background_tasks: FastAPI background tasks.
         """
-        task = asyncio.create_task(
-            self.process_resume_in_background(
-                job_id=job_id,
-                resume_id=resume_id,
-                file_path=file_path,
-            )
+        background_tasks.add_task(
+            self.process_resume_in_background,
+            job_id=job_id,
+            resume_id=resume_id,
+            file_path=file_path,
         )
-        _background_tasks.add(task)
-        task.add_done_callback(_background_tasks.discard)
 
     async def _mark_resume_failed(
         self,

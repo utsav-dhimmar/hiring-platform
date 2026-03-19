@@ -1,10 +1,5 @@
 import apiClient from "../client";
-import type {
-  UserLogin,
-  LoginResponse,
-  UserCreate,
-  UserRead,
-} from "../types/auth";
+import type { UserLogin, LoginResponse, UserCreate, UserRead } from "../types/auth";
 
 /**
  * Authentication service for user login, registration, and profile management.
@@ -23,10 +18,7 @@ export const authService = {
    * ```
    */
   login: async (credentials: UserLogin): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>(
-      "/users/login",
-      credentials,
-    );
+    const response = await apiClient.post<LoginResponse>("/users/login", credentials);
     return response.data;
   },
 

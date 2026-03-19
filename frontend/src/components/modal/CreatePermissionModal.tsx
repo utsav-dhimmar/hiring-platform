@@ -3,14 +3,14 @@
  * Provides a form to input permission name and description.
  */
 
-import { useState } from "react";
-import { Modal, Form, Alert } from "react-bootstrap";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { adminPermissionService } from "../../apis/admin/service";
-import { permissionCreateSchema, type PermissionCreateFormValues } from "../../schemas/admin";
-import { Input, Button } from "../../components/common";
 import axios from "axios";
+import { useState } from "react";
+import { Alert, Form, Modal } from "react-bootstrap";
+import { useForm } from "react-hook-form";
+import { adminPermissionService } from "../../apis/admin/service";
+import { Button, Input } from "../../components/common";
+import { permissionCreateSchema, type PermissionCreateFormValues } from "../../schemas/admin";
 
 /**
  * Props for the CreatePermissionModal component.
@@ -35,10 +35,10 @@ interface CreatePermissionModalProps {
  * />
  * ```
  */
-const CreatePermissionModal = ({ 
-  show, 
-  handleClose, 
-  onPermissionCreated 
+const CreatePermissionModal = ({
+  show,
+  handleClose,
+  onPermissionCreated,
 }: CreatePermissionModalProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,8 +89,12 @@ const CreatePermissionModal = ({
         <Modal.Title>Create New Permission</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {error && <Alert variant="danger" dismissible onClose={() => setError(null)}>{error}</Alert>}
-        
+        {error && (
+          <Alert variant="danger" dismissible onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
         <Form onSubmit={handleSubmit(onSubmit)}>
           <Input
             label="Permission Name"

@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid7
 
-from fastapi import HTTPException, UploadFile, status
+from fastapi import BackgroundTasks, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings
@@ -52,6 +52,7 @@ class ResumeUploadService:
         job_id: uuid.UUID,
         resume: UploadFile,
         current_user: UserRead,
+        background_tasks: BackgroundTasks,
     ) -> ResumeUploadResponse:
         """Handle the initial upload of a resume.
 
@@ -63,6 +64,7 @@ class ResumeUploadService:
             job_id: The target job ID.
             resume: The uploaded file object.
             current_user: The user performing the upload.
+            background_tasks: FastAPI background tasks.
 
         Returns:
             An initial upload response Schema.
@@ -231,6 +233,7 @@ class ResumeUploadService:
             job_id=job_id,
             resume_id=resume_record.id,
             file_path=str(target_path),
+            background_tasks=background_tasks,
         )
         log_event(
             event="background_scheduled",

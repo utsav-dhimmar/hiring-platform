@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import redis.asyncio as aioredis
-from sqlalchemy import insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -549,29 +549,31 @@ class ResumeUploadRepository:
         candidate_id: uuid.UUID,
         skill_names: list[str],
     ) -> list[Skill]:
-        """Synchronize a candidate's skills, creating new skills if necessary.
+        """Synchronize a candidate's skills against the existing skill catalog.
 
         Args:
             db: The async database session.
             candidate_id: The ID of the candidate.
-            skill_names: A list of skill names to associate with the candidate.
+            skill_names: A list of extracted skill names to associate with the
+                candidate when matching skills already exist in the catalog.
         """
         if not skill_names:
             return []
 
-        existing_skills = (
-            await db.scalars(select(Skill).where(Skill.name.in_(skill_names)))
-        ).all()
-        skills_by_name = {skill.name.lower(): skill for skill in existing_skills}
+        normalized_skill_names = {
+            skill_name.strip().lower()
+            for skill_name in skill_names
+            if skill_name.strip()
+        }
+        if not normalized_skill_names:
+            return []
 
-        for skill_name in skill_names:
-            key = skill_name.lower()
-            if key in skills_by_name:
-                continue
-            skill = Skill(name=skill_name)
-            db.add(skill)
-            await db.flush()
-            skills_by_name[key] = skill
+        matched_skills = (
+            await db.scalars(
+                select(Skill).where(func.lower(Skill.name).in_(normalized_skill_names))
+            )
+        ).all()
+        matched_skill_ids = {skill.id for skill in matched_skills}
 
         existing_links = await db.execute(
             select(candidate_skills.c.skill_id).where(
@@ -580,14 +582,23 @@ class ResumeUploadRepository:
         )
         linked_skill_ids = {row[0] for row in existing_links}
 
+        stale_skill_ids = linked_skill_ids - matched_skill_ids
+        if stale_skill_ids:
+            await db.execute(
+                delete(candidate_skills).where(
+                    candidate_skills.c.candidate_id == candidate_id,
+                    candidate_skills.c.skill_id.in_(stale_skill_ids),
+                )
+            )
+
         rows_to_insert = [
             {"candidate_id": candidate_id, "skill_id": skill.id}
-            for skill in skills_by_name.values()
+            for skill in matched_skills
             if skill.id not in linked_skill_ids
         ]
         if rows_to_insert:
             await db.execute(insert(candidate_skills), rows_to_insert)
-        return list(skills_by_name.values())
+        return list(matched_skills)
 
     async def get_candidates_for_job(
         self,

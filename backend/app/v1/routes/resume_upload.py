@@ -7,7 +7,7 @@ and retrieving candidate/resume lists for specific jobs.
 
 import uuid
 
-from fastapi import APIRouter, Depends, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile, status
 from fastapi import File as FastAPIFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,6 +32,7 @@ router = APIRouter()
 )
 async def upload_resume_for_job(
     job_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     resume: UploadFile = FastAPIFile(...),
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
@@ -43,6 +44,7 @@ async def upload_resume_for_job(
 
     Args:
         job_id: The UUID of the job the resume is for.
+        background_tasks: FastAPI background tasks.
         resume: The uploaded resume file.
         db: The async database session.
         current_user: The authenticated user performing the upload.
@@ -55,6 +57,7 @@ async def upload_resume_for_job(
         job_id=job_id,
         resume=resume,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
 

@@ -6,6 +6,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "../pages/Home/HomePage";
 import JobCandidatesPage from "../pages/JobCandidates/JobCandidatesPage";
+import CandidateEvaluationPage from "../pages/JobCandidates/CandidateEvaluationPage";
 import AdminRoutes from "./AdminRoutes";
 import LoginPage from "../pages/Login/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
@@ -53,6 +54,14 @@ const AppRoutes = () => {
         element={
           <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
             <JobCandidatesPage />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="/jobs/:jobId/candidates/:candidateId/evaluation"
+        element={
+          <RoleRoute allowedRoles={[]} requiredPermissions={["candidates:access"]}>
+            <CandidateEvaluationPage />
           </RoleRoute>
         }
       />

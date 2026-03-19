@@ -3,10 +3,10 @@
  * Redirects authenticated users to the home page.
  */
 
-import type React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAppSelector } from '../../store/hooks';
-import { selectIsAuthenticated } from '../../store/slices/authSlice';
+import type React from "react";
+import { Navigate } from "react-router-dom";
+import { useAppSelector } from "../../store/hooks";
+import { selectIsAuthenticated } from "../../store/slices/authSlice";
 
 /**
  * Props for the PublicRoute component.

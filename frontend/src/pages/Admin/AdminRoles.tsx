@@ -3,72 +3,63 @@
  * Displays all roles and permissions with ability to create new permissions.
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import { adminPermissionService, adminRoleService } from "../../apis/admin/service";
+import type { PermissionRead, RoleRead } from "../../apis/admin/types";
 import {
-  adminRoleService,
-  adminPermissionService,
-} from "../../apis/admin/service";
-import type { RoleRead, PermissionRead } from "../../apis/admin/types";
-import {
-  Card,
-  CardBody,
-  CardHeader,
+  AdminDataTable,
   Button,
+  Card,
+  CardHeader,
   DateDisplay,
-  DeleteModal,
+  PageHeader,
+  type Column,
 } from "../../components/common";
-import CreatePermissionModal from "../../components/admin/CreatePermissionModal";
-import RoleModal from "../../components/admin/RoleModal";
-import axios from "axios";
+import { CreatePermissionModal, DeleteModal, RoleModal } from "../../components/modal";
 import "../../css/adminDashboard.css";
+import { useAdminData, useDeleteConfirmation } from "../../hooks";
 
 const AdminRoles = () => {
-  const [roles, setRoles] = useState<RoleRead[]>([]);
-  const [permissions, setPermissions] = useState<PermissionRead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
 
-  // Delete modal state
-  const [deleteConfig, setDeleteConfig] = useState<{
-    show: boolean;
-    type: "role" | "permission";
-    id: string;
-    name: string;
-  } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [rolesData, permissionsData] = await Promise.all([
-        adminRoleService.getAllRoles(),
-        adminPermissionService.getAllPermissions(),
-      ]);
-      setRoles(rolesData);
-      setPermissions(permissionsData);
-    } catch (err) {
-      console.error("Failed to fetch roles/permissions:", err);
-      setError("Failed to load roles and permissions.");
-    } finally {
-      setLoading(false);
-    }
+  const fetchAll = useCallback(async () => {
+    const [roles, permissions] = await Promise.all([
+      adminRoleService.getAllRoles(),
+      adminPermissionService.getAllPermissions(),
+    ]);
+    return { roles, permissions };
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const {
+    data: combinedData,
+    loading,
+    error,
+    fetchData,
+  } = useAdminData<{ roles: RoleRead[]; permissions: PermissionRead[] }>(
+    async () => {
+      const data = await fetchAll();
+      return [data]; // useAdminData expects an array
+    },
+    { initialData: [{ roles: [], permissions: [] }] },
+  );
 
-  const handlePermissionCreated = () => {
-    fetchData();
-  };
+  const roles = combinedData[0]?.roles || [];
+  const permissions = combinedData[0]?.permissions || [];
 
-  const handleRoleSuccess = () => {
-    fetchData();
-  };
+  // Two separate delete hooks for clarity.
+  const roleDelete = useDeleteConfirmation<RoleRead>({
+    deleteFn: (id) => adminRoleService.deleteRole(id as string),
+    onSuccess: fetchData,
+    itemTitle: (role) => `role "${role.name}"`,
+  });
+
+  const permissionDelete = useDeleteConfirmation<PermissionRead>({
+    deleteFn: (id) => adminPermissionService.deletePermission(id as string),
+    onSuccess: fetchData,
+    itemTitle: (perm) => `permission "${perm.name}"`,
+  });
 
   const handleCreateRole = () => {
     setEditingRoleId(null);
@@ -80,151 +71,107 @@ const AdminRoles = () => {
     setShowRoleModal(true);
   };
 
-  const handleDeleteClick = (
-    type: "role" | "permission",
-    id: string,
-    name: string,
-  ) => {
-    setDeleteConfig({ show: true, type, id, name });
-    setDeleteError(null);
-  };
+  const roleColumns: Column<RoleRead>[] = [
+    {
+      header: "Role Name",
+      accessor: (role) => <strong>{role.name}</strong>,
+    },
+    {
+      header: "Created At",
+      accessor: (role) => <DateDisplay date={role.created_at} showTime={false} />,
+    },
+    {
+      header: "Actions",
+      accessor: (role) => (
+        <>
+          <Button
+            variant="outline-primary"
+            size="sm"
+            className="me-2"
+            onClick={() => handleEditRole(role.id)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outline-danger"
+            size="sm"
+            onClick={() => roleDelete.handleDeleteClick(role)}
+          >
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
 
-  const handleConfirmDelete = async () => {
-    if (!deleteConfig) return;
-
-    setIsDeleting(true);
-    setDeleteError(null);
-    try {
-      if (deleteConfig.type === "role") {
-        await adminRoleService.deleteRole(deleteConfig.id);
-      } else {
-        await adminPermissionService.deletePermission(deleteConfig.id);
-      }
-      await fetchData();
-      setDeleteConfig(null);
-    } catch (err: unknown) {
-      let errorMsg = `Failed to delete ${deleteConfig.type}.`;
-      if (axios.isAxiosError(err)) {
-        errorMsg = err.response?.data?.detail || err.message || errorMsg;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setDeleteError(errorMsg);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  if (loading && roles.length === 0)
-    return (
-      <div className="admin-loading">Loading roles and permissions...</div>
-    );
-  if (error && roles.length === 0)
-    return <div className="admin-error">{error}</div>;
+  const permissionColumns: Column<PermissionRead>[] = [
+    {
+      header: "Name",
+      accessor: (perm) => (
+        <>
+          <code>{perm.name}</code>
+          <div className="text-muted small">{perm.description}</div>
+        </>
+      ),
+    },
+    {
+      header: "Actions",
+      accessor: (perm) => (
+        <Button
+          variant="outline-danger"
+          size="sm"
+          onClick={() => permissionDelete.handleDeleteClick(perm)}
+        >
+          Delete
+        </Button>
+      ),
+    },
+  ];
 
   return (
     <div className="admin-dashboard">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Role & Permission Management</h1>
-        <div>
-          <Button
-            variant="outline-primary"
-            className="me-2"
-            onClick={() => setShowPermissionModal(true)}
-          >
-            Create Permission
-          </Button>
-          <Button variant="primary" onClick={handleCreateRole}>
-            Create Role
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Role & Permission Management"
+        actions={
+          <>
+            <Button variant="outline-primary" onClick={() => setShowPermissionModal(true)}>
+              Create Permission
+            </Button>
+            <Button variant="primary" onClick={handleCreateRole}>
+              Create Role
+            </Button>
+          </>
+        }
+      />
 
       <div className="row">
         <div className="col-md-7">
           <Card>
             <CardHeader>Roles</CardHeader>
-            <CardBody>
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Role Name</th>
-                    <th>Created At</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roles.map((role) => (
-                    <tr key={role.id}>
-                      <td>
-                        <strong>{role.name}</strong>
-                      </td>
-                      <td>
-                        <DateDisplay date={role.created_at} showTime={false} />
-                      </td>
-                      <td>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          className="me-2"
-                          onClick={() => handleEditRole(role.id)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteClick("role", role.id, role.name)
-                          }
-                        >
-                          Delete
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardBody>
+            <AdminDataTable
+              columns={roleColumns}
+              data={roles}
+              loading={loading}
+              error={error}
+              onRetry={fetchData}
+              rowKey="id"
+              className="border-0 shadow-none"
+            />
           </Card>
         </div>
 
         <div className="col-md-5">
           <Card>
             <CardHeader>Permissions</CardHeader>
-            <CardBody>
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {permissions.map((perm) => (
-                    <tr key={perm.id}>
-                      <td>
-                        <code>{perm.name}</code>
-                        <div className="text-muted small">
-                          {perm.description}
-                        </div>
-                      </td>
-                      <td>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteClick("permission", perm.id, perm.name)
-                          }
-                        >
-                          Delete
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardBody>
+            <AdminDataTable
+              columns={permissionColumns}
+              data={permissions}
+              loading={loading}
+              error={error}
+              onRetry={fetchData}
+              rowKey="id"
+              className="border-0 shadow-none"
+            />
           </Card>
         </div>
       </div>
@@ -232,24 +179,34 @@ const AdminRoles = () => {
       <CreatePermissionModal
         show={showPermissionModal}
         handleClose={() => setShowPermissionModal(false)}
-        onPermissionCreated={handlePermissionCreated}
+        onPermissionCreated={fetchData}
       />
 
       <RoleModal
         show={showRoleModal}
         handleClose={() => setShowRoleModal(false)}
-        onSuccess={handleRoleSuccess}
+        onSuccess={fetchData}
         editRoleId={editingRoleId}
       />
 
       <DeleteModal
-        show={!!deleteConfig}
-        handleClose={() => setDeleteConfig(null)}
-        handleConfirm={handleConfirmDelete}
-        title={`Delete ${deleteConfig?.type === "role" ? "Role" : "Permission"}`}
-        message={`Are you sure you want to delete the ${deleteConfig?.type} "${deleteConfig?.name}"? This action cannot be undone.`}
-        isLoading={isDeleting}
-        error={deleteError}
+        show={roleDelete.showModal}
+        handleClose={roleDelete.handleClose}
+        handleConfirm={roleDelete.handleConfirm}
+        title="Delete Role"
+        message={roleDelete.message}
+        isLoading={roleDelete.isDeleting}
+        error={roleDelete.error}
+      />
+
+      <DeleteModal
+        show={permissionDelete.showModal}
+        handleClose={permissionDelete.handleClose}
+        handleConfirm={permissionDelete.handleConfirm}
+        title="Delete Permission"
+        message={permissionDelete.message}
+        isLoading={permissionDelete.isDeleting}
+        error={permissionDelete.error}
       />
     </div>
   );

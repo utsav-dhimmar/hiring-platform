@@ -3,19 +3,17 @@
  * Uses Zod for form validation.
  */
 
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import { useCallback } from "react";
 import { adminSkillService } from "../../apis/admin/service";
 import type { SkillRead } from "../../apis/admin/types";
+import { Button, Input } from "../../components/common";
+import "../../css/adminDashboard.css";
+import { useFormModal } from "../../hooks";
 import {
   skillCreateSchema,
   skillUpdateSchema,
   type SkillCreateFormValues,
 } from "../../schemas/admin";
-import { Button, Input } from "../../components/common";
-import "../../css/adminDashboard.css";
 
 interface CreateSkillModalProps {
   show: boolean;
@@ -24,52 +22,24 @@ interface CreateSkillModalProps {
   skill: SkillRead | null;
 }
 
-const CreateSkillModal: React.FC<CreateSkillModalProps> = ({
-  show,
-  handleClose,
-  onSkillSaved,
-  skill,
-}) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+const DEFAULT_SKILL_VALUES: SkillCreateFormValues = {
+  name: "",
+  description: "",
+};
 
+const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkillModalProps) => {
   const isEditMode = !!skill;
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<SkillCreateFormValues>({
-    resolver: zodResolver(isEditMode ? skillUpdateSchema : skillCreateSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  });
+  const mapItemToValues = useCallback(
+    (s: SkillRead): SkillCreateFormValues => ({
+      name: s.name,
+      description: s.description || "",
+    }),
+    [],
+  );
 
-  useEffect(() => {
-    if (show) {
-      if (skill) {
-        reset({
-          name: skill.name,
-          description: skill.description || "",
-        });
-      } else {
-        reset({
-          name: "",
-          description: "",
-        });
-      }
-      setSubmitError(null);
-    }
-  }, [show, skill, reset]);
-
-  const onSubmit = async (data: SkillCreateFormValues) => {
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
+  const onSubmit = useCallback(
+    async (data: SkillCreateFormValues) => {
       if (isEditMode && skill) {
         await adminSkillService.updateSkill(skill.id, data);
       } else {
@@ -77,20 +47,24 @@ const CreateSkillModal: React.FC<CreateSkillModalProps> = ({
       }
       onSkillSaved();
       handleClose();
-    } catch (err: unknown) {
-      let errorMsg = isEditMode
-        ? "Failed to update skill."
-        : "Failed to create skill.";
-      if (axios.isAxiosError(err)) {
-        errorMsg = err.response?.data?.detail || err.message || errorMsg;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setSubmitError(errorMsg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    [isEditMode, skill, onSkillSaved, handleClose],
+  );
+
+  const {
+    register,
+    handleSubmit,
+    isSubmitting,
+    submitError,
+    formState: { errors },
+  } = useFormModal<SkillCreateFormValues, SkillRead>({
+    schema: isEditMode ? skillUpdateSchema : skillCreateSchema,
+    defaultValues: DEFAULT_SKILL_VALUES,
+    item: skill,
+    show,
+    mapItemToValues,
+    onSubmit,
+  });
 
   if (!show) return null;
 
@@ -103,11 +77,9 @@ const CreateSkillModal: React.FC<CreateSkillModalProps> = ({
             &times;
           </button>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit}>
           <div className="modal-body">
-            {submitError && (
-              <div className="alert alert-danger">{submitError}</div>
-            )}
+            {submitError && <div className="alert alert-danger">{submitError}</div>}
 
             <Input
               label="Skill Name"
@@ -126,18 +98,12 @@ const CreateSkillModal: React.FC<CreateSkillModalProps> = ({
                 placeholder="Briefly describe the skill..."
               />
               {errors.description && (
-                <div className="invalid-feedback">
-                  {errors.description.message}
-                </div>
+                <div className="invalid-feedback">{errors.description.message}</div>
               )}
             </div>
           </div>
           <div className="modal-footer">
-            <Button
-              variant="outline-secondary"
-              onClick={handleClose}
-              type="button"
-            >
+            <Button variant="outline-secondary" onClick={handleClose} type="button">
               Cancel
             </Button>
             <Button variant="primary" type="submit" isLoading={isSubmitting}>

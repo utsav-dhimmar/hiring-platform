@@ -3,51 +3,47 @@
  * Displays all jobs with ability to create, edit, and delete.
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminJobService } from "../../apis/admin/service";
 import type { JobRead } from "../../apis/admin/types";
 import {
-  Card,
-  CardBody,
+  AdminDataTable,
   Button,
   DateDisplay,
-  DeleteModal,
+  PageHeader,
+  StatusBadge,
+  type Column,
 } from "../../components/common";
-import CreateJobModal from "./CreateJobModal";
-import axios from "axios";
+import { CreateJobModal, DeleteModal } from "../../components/modal";
 import "../../css/adminDashboard.css";
+import { useAdminData, useDeleteConfirmation } from "../../hooks";
 
 const AdminJobs = () => {
   const navigate = useNavigate();
-  const [jobs, setJobs] = useState<JobRead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobRead | null>(null);
 
-  // Delete modal state
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [jobToDelete, setJobToDelete] = useState<JobRead | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const {
+    data: jobs,
+    loading,
+    error,
+    fetchData: fetchJobs,
+  } = useAdminData<JobRead>(() => adminJobService.getAllJobs());
 
-  const fetchJobs = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await adminJobService.getAllJobs();
-      setJobs(data);
-    } catch (err) {
-      console.error("Failed to fetch jobs:", err);
-      setError("Failed to load jobs.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
+  const {
+    showModal: showDeleteModal,
+    handleDeleteClick,
+    handleClose: handleCloseDelete,
+    handleConfirm: handleConfirmDelete,
+    isDeleting,
+    error: deleteError,
+    message: deleteMessage,
+  } = useDeleteConfirmation<JobRead>({
+    deleteFn: (id) => adminJobService.deleteJob(id as string),
+    onSuccess: fetchJobs,
+    itemTitle: (job) => `job "${job.title}"`,
+  });
 
   const handleCreateClick = () => {
     setSelectedJob(null);
@@ -68,109 +64,65 @@ const AdminJobs = () => {
     setSelectedJob(null);
   };
 
-  const handleDeleteClick = (job: JobRead) => {
-    setJobToDelete(job);
-    setDeleteError(null);
-    setShowDeleteModal(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!jobToDelete) return;
-
-    setIsDeleting(true);
-    setDeleteError(null);
-    try {
-      await adminJobService.deleteJob(jobToDelete.id);
-      await fetchJobs();
-      setShowDeleteModal(false);
-      setJobToDelete(null);
-    } catch (err: unknown) {
-      let errorMsg = "Failed to delete job.";
-      if (axios.isAxiosError(err)) {
-        errorMsg = err.response?.data?.detail || err.message || errorMsg;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setDeleteError(errorMsg);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  if (loading && jobs.length === 0)
-    return <div className="admin-loading">Loading jobs...</div>;
-  if (error && jobs.length === 0)
-    return <div className="admin-error">{error}</div>;
+  const columns: Column<JobRead>[] = [
+    { header: "Title", accessor: "title" },
+    { header: "Department", accessor: (job) => job.department || "N/A" },
+    {
+      header: "Status",
+      accessor: (job) => <StatusBadge status={job.is_active} />,
+    },
+    {
+      header: "Created At",
+      accessor: (job) => <DateDisplay date={job.created_at} showTime={false} />,
+    },
+    {
+      header: "Actions",
+      accessor: (job) => (
+        <>
+          <Button
+            variant="outline-primary"
+            size="sm"
+            className="me-2"
+            onClick={() => handleViewCandidates(job.id)}
+          >
+            Candidates
+          </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            className="me-2"
+            onClick={() => handleEditClick(job)}
+          >
+            Edit
+          </Button>
+          <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(job)}>
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
 
   return (
     <div className="admin-dashboard">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Job Management</h1>
-        <Button variant="primary" onClick={handleCreateClick}>
-          Create Job
-        </Button>
-      </div>
+      <PageHeader
+        title="Job Management"
+        actions={
+          <Button variant="primary" onClick={handleCreateClick}>
+            Create Job
+          </Button>
+        }
+      />
 
-      <Card>
-        <CardBody>
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Department</th>
-                  <th>Status</th>
-                  <th>Created At</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {jobs.map((job) => (
-                  <tr key={job.id}>
-                    <td>{job.title}</td>
-                    <td>{job.department || "N/A"}</td>
-                    <td>
-                      <span
-                        className={`badge bg-${job.is_active ? "success" : "danger"}`}
-                      >
-                        {job.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td>
-                      <DateDisplay date={job.created_at} showTime={false} />
-                    </td>
-                    <td>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleViewCandidates(job.id)}
-                      >
-                        Candidates
-                      </Button>
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => handleEditClick(job)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => handleDeleteClick(job)}
-                      >
-                        Delete
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardBody>
-      </Card>
+      <AdminDataTable
+        columns={columns}
+        data={jobs}
+        loading={loading}
+        error={error}
+        onRetry={fetchJobs}
+        rowKey="id"
+        emptyMessage="No jobs found. Create one to get started."
+      />
 
       <CreateJobModal
         show={showModal}
@@ -181,10 +133,10 @@ const AdminJobs = () => {
 
       <DeleteModal
         show={showDeleteModal}
-        handleClose={() => setShowDeleteModal(false)}
+        handleClose={handleCloseDelete}
         handleConfirm={handleConfirmDelete}
         title="Delete Job"
-        message={`Are you sure you want to delete job "${jobToDelete?.title}"? This action cannot be undone.`}
+        message={deleteMessage}
         isLoading={isDeleting}
         error={deleteError}
       />

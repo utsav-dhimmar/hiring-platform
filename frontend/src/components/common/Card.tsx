@@ -3,10 +3,10 @@
  * Wraps React Bootstrap Card with additional styling options.
  */
 
-import React from 'react';
-import { Card as BSCard } from 'react-bootstrap';
-import type { CardProps } from 'react-bootstrap';
-import '../../css/card.css';
+import React from "react";
+import { Card as BSCard } from "react-bootstrap";
+import type { CardProps } from "react-bootstrap";
+import "../../css/card.css";
 
 /**
  * Props for the Card component.
@@ -35,12 +35,12 @@ export function Card({
   hoverable = false,
   clickable = false,
   onCardClick,
-  className = '',
+  className = "",
   ...props
 }: CustomCardProps) {
   return (
     <BSCard
-      className={`custom-card ${hoverable ? 'custom-card--hoverable' : ''} ${clickable ? 'custom-card--clickable' : ''} ${className}`}
+      className={`custom-card ${hoverable ? "custom-card--hoverable" : ""} ${clickable ? "custom-card--clickable" : ""} ${className}`}
       onClick={clickable ? onCardClick : undefined}
       {...props}
     >
@@ -54,7 +54,7 @@ export function Card({
  */
 export function CardHeader({
   children,
-  className = '',
+  className = "",
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
@@ -69,7 +69,7 @@ export function CardHeader({
  */
 export function CardBody({
   children,
-  className = '',
+  className = "",
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
@@ -84,7 +84,7 @@ export function CardBody({
  */
 export function CardFooter({
   children,
-  className = '',
+  className = "",
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (

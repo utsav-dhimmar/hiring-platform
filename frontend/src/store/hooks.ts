@@ -3,10 +3,10 @@
  * Provides proper TypeScript typing for dispatch and selector hooks.
  */
 
-import { useMemo } from 'react';
-import { useSelector, useDispatch, type TypedUseSelectorHook } from 'react-redux';
-import { selectCurrentUser, selectIsAuthenticated } from './slices/authSlice';
-import type { RootState, AppDispatch } from './index';
+import { useMemo } from "react";
+import { useSelector, useDispatch, type TypedUseSelectorHook } from "react-redux";
+import { selectCurrentUser, selectIsAuthenticated } from "./slices/authSlice";
+import type { RootState, AppDispatch } from "./index";
 
 /**
  * Typed dispatch hook for dispatching actions to the Redux store.

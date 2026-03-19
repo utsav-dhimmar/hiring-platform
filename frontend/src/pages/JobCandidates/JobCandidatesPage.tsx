@@ -4,32 +4,28 @@
  * Includes polling for processing status and detailed candidate modals.
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import {
-  Container,
-  Row,
-  Col,
-  Spinner,
-  Alert,
-  Badge,
-  Breadcrumb,
-  Modal,
-} from "react-bootstrap";
+import { Container, Row, Col, Spinner, Badge, Breadcrumb, Modal, Form } from "react-bootstrap";
 import {
   Card,
   CardHeader,
   CardBody,
   Button,
   DateDisplay,
+  Input,
+  PageHeader,
+  AdminDataTable,
+  type Column,
+  StatusBadge,
+  ErrorDisplay,
 } from "../../components/common";
-import { adminJobService } from "../../apis/admin/service";
+import { CandidateDetailModal } from "../../components/modal";
+import { adminJobService, adminCandidateService } from "../../apis/admin/service";
 import { resumeService } from "../../apis/services/resume";
 import type { Job } from "../../apis/types/job";
-import type {
-  CandidateResponse,
-  JobResumeInfoResponse,
-} from "../../apis/types/resume";
+import type { CandidateResponse, JobResumeInfoResponse } from "../../apis/types/resume";
+import { useAdminData } from "../../hooks";
 
 const mapCandidateToResumeInfo = (
   jobId: string,
@@ -61,90 +57,185 @@ const JobCandidatesPage = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
-  const [resumes, setResumes] = useState<JobResumeInfoResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Search State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
   const [showJobInfo, setShowJobInfo] = useState(false);
-  const [selectedResume, setSelectedResume] =
-    useState<JobResumeInfoResponse | null>(null);
+  const [selectedResume, setSelectedResume] = useState<JobResumeInfoResponse | null>(null);
 
-  const fetchData = useCallback(
-    async (silent = false) => {
-      if (!jobId) return;
+  const fetchJobAndCandidates = useCallback(async () => {
+    if (!jobId) return [];
 
-      if (!silent) setLoading(true);
-      try {
-        const [jobData, candidatesData] = await Promise.all([
-          adminJobService.getJobById(jobId),
-          resumeService.getJobCandidates(jobId),
-        ]);
+    const [jobData, candidatesData] = await Promise.all([
+      adminJobService.getJobById(jobId),
+      resumeService.getJobCandidates(jobId),
+    ]);
 
-        setJob(jobData);
-        setResumes(
-          candidatesData.candidates.map((candidate) =>
-            mapCandidateToResumeInfo(jobId, candidate),
-          ),
-        );
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch job resumes:", err);
-        if (!silent)
-          setError("Failed to load candidates. Please try again later.");
-      } finally {
-        if (!silent) setLoading(false);
-      }
-    },
-    [jobId],
-  );
+    setJob(jobData);
+    return candidatesData.candidates.map((candidate) => mapCandidateToResumeInfo(jobId, candidate));
+  }, [jobId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const {
+    data: resumes,
+    setData: setResumes,
+    loading,
+    error,
+    fetchData,
+  } = useAdminData<JobResumeInfoResponse>(fetchJobAndCandidates, {
+    fetchOnMount: !!jobId,
+  });
+
+  // Map JobResumeInfoResponse to CandidateResponse for the shared modal
+  const mappedCandidate = useMemo(() => {
+    if (!selectedResume) return null;
+    return {
+      id: selectedResume.candidate_id,
+      first_name: selectedResume.candidate_first_name,
+      last_name: selectedResume.candidate_last_name,
+      email: selectedResume.candidate_email,
+      phone: null,
+      current_status: null,
+      created_at: selectedResume.uploaded_at,
+      resume_analysis: selectedResume.analysis,
+      resume_score: selectedResume.resume_score,
+      pass_fail: selectedResume.pass_fail,
+      is_parsed: selectedResume.parsed,
+      processing_status: selectedResume.processing?.status || null,
+    } as CandidateResponse;
+  }, [selectedResume]);
 
   // Polling for in-progress resumes
   useEffect(() => {
+    // Only poll if not searching and we have resumes
+    if (searchQuery !== "" || resumes.length === 0) return;
+
     const hasInProgress = resumes.some(
-      (r) =>
-        r.processing?.status &&
-        !["completed", "failed"].includes(r.processing.status),
+      (r) => r.processing?.status && !["completed", "failed"].includes(r.processing.status),
     );
 
     if (hasInProgress) {
       const interval = setInterval(() => {
-        fetchData(true);
+        fetchData(); // This might be noisy, but it's consistent with existing logic
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [resumes, fetchData]);
+  }, [resumes, fetchData, searchQuery]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!jobId) return;
+
+    setIsSearching(true);
+    try {
+      let candidatesData: CandidateResponse[] = [];
+      if (searchQuery.trim()) {
+        candidatesData = await adminCandidateService.searchJobCandidates(jobId, searchQuery);
+      } else {
+        const resp = await resumeService.getJobCandidates(jobId);
+        candidatesData = resp.candidates;
+      }
+      setResumes(candidatesData.map((candidate) => mapCandidateToResumeInfo(jobId, candidate)));
+    } catch (err) {
+      console.error("Search failed:", err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const handleShowMore = (resume: JobResumeInfoResponse) => {
     setSelectedResume(resume);
     setShowDetail(true);
   };
 
-  if (loading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner animation="border" variant="primary" />
-        <p className="mt-2">Loading candidates...</p>
-      </Container>
-    );
-  }
+  const columns: Column<JobResumeInfoResponse>[] = [
+    {
+      header: "Name",
+      accessor: (resume) => (
+        <strong>
+          {resume.parsed ? (
+            `${resume.candidate_first_name ?? ""} ${resume.candidate_last_name ?? ""}`.trim() ||
+            "N/A"
+          ) : (
+            <span className="text-muted italic">Processing...</span>
+          )}
+        </strong>
+      ),
+    },
+    { header: "Email", accessor: "candidate_email" },
+    {
+      header: "Score",
+      accessor: (resume) =>
+        resume.resume_score !== null ? (
+          <Badge bg={resume.resume_score >= 65 ? "success" : "warning"}>
+            {resume.resume_score.toFixed(1)}%
+          </Badge>
+        ) : (
+          <span className="text-muted">N/A</span>
+        ),
+    },
+    {
+      header: "Pass/Fail",
+      accessor: (resume) => (
+        <StatusBadge
+          status={resume.pass_fail === null ? "pending" : resume.pass_fail ? "pass" : "fail"}
+          mapping={{
+            pass: "success",
+            fail: "danger",
+            pending: "secondary",
+          }}
+        />
+      ),
+    },
+    {
+      header: "Status",
+      accessor: (resume) => {
+        const status = resume.processing?.status;
+        if (status === "processing" || status === "queued") {
+          return (
+            <Badge bg="info" className="d-inline-flex align-items-center gap-1">
+              <Spinner animation="border" size="sm" />
+              Processing
+            </Badge>
+          );
+        }
+        return <StatusBadge status={status === "failed" ? "failed" : "completed"} />;
+      },
+    },
+    {
+      header: "Actions",
+      className: "text-end",
+      accessor: (resume) => (
+        <div className="d-flex gap-2 justify-content-end">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() =>
+              navigate(`/jobs/${jobId}/candidates/${resume.candidate_id}/evaluation`)
+            }
+            disabled={resume.pass_fail === false} // Optional: disable if resume screening failed
+          >
+            Evaluate
+          </Button>
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={() => handleShowMore(resume)}
+          >
+            Show More
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
-  if (error || !job) {
+  if (!loading && (error || !job)) {
     return (
       <Container className="py-5">
-        <Alert variant="danger">
-          {error || "Job not found."}
-          <div className="mt-3">
-            <Button variant="primary" onClick={() => navigate("/")}>
-              Back to Jobs
-            </Button>
-          </div>
-        </Alert>
+        <ErrorDisplay message={error || "Job not found."} onRetry={() => navigate("/")} fullPage />
       </Container>
     );
   }
@@ -155,315 +246,119 @@ const JobCandidatesPage = () => {
         <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>
           Jobs
         </Breadcrumb.Item>
-        <Breadcrumb.Item active>{job.title}</Breadcrumb.Item>
+        <Breadcrumb.Item active>{job?.title}</Breadcrumb.Item>
       </Breadcrumb>
 
-      <Row className="mb-4 align-items-center">
-        <Col>
-          <h1>Candidates for {job.title}</h1>
-          <p className="text-muted mb-0">
-            {job.department} | {job.is_active ? "Active" : "Inactive"}
-          </p>
-        </Col>
-        <Col xs="auto" className="d-flex gap-2">
-          <Button
-            variant="outline-primary"
-            onClick={() => setShowJobInfo(true)}
-          >
-            Show Job Info
-          </Button>
-          <Button variant="outline-secondary" onClick={() => navigate("/")}>
-            Back to Jobs
-          </Button>
-        </Col>
-      </Row>
+      <PageHeader
+        title={`Candidates for ${job?.title}`}
+        subtitle={`${job?.department} | ${job?.is_active ? "Active" : "Inactive"}`}
+        actions={
+          <>
+            <Button variant="outline-primary" onClick={() => setShowJobInfo(true)}>
+              Show Job Info
+            </Button>
+            <Button variant="outline-secondary" onClick={() => navigate("/")}>
+              Back to Jobs
+            </Button>
+          </>
+        }
+      />
+
+      <Card className="mb-4">
+        <CardBody>
+          <Form onSubmit={handleSearch}>
+            <Row className="g-2">
+              <Col>
+                <Input
+                  placeholder="Search candidates for this job by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </Col>
+              <Col xs="auto">
+                <Button variant="primary" type="submit" isLoading={isSearching}>
+                  Search
+                </Button>
+              </Col>
+            </Row>
+          </Form>
+        </CardBody>
+      </Card>
 
       <Row>
         <Col>
           <Card>
             <CardHeader className="d-flex justify-content-between align-items-center">
-              <h3 className="mb-0">Applicant List</h3>
-              <Badge bg="primary">{resumes.length} Total</Badge>
+              <h3 className="mb-0">{searchQuery ? "Search Results" : "Applicant List"}</h3>
+              <Badge bg="primary">
+                {resumes.length} {searchQuery ? "Found" : "Total"}
+              </Badge>
             </CardHeader>
-            <CardBody>
-              {resumes.length === 0 ? (
-                <div className="text-center py-5 text-muted">
-                  <p>No candidates have applied for this job yet.</p>
-                </div>
-              ) : (
-                <div className="table-responsive">
-                  <table className="table table-hover align-middle">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Score</th>
-                        <th>Pass/Fail</th>
-                        <th>Status</th>
-                        <th className="text-end">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {resumes.map((resume) => (
-                        <tr key={resume.resume_id}>
-                          <td>
-                            <strong>
-                              {resume.parsed ? (
-                                `${resume.candidate_first_name ?? ""} ${resume.candidate_last_name ?? ""}`.trim() ||
-                                "N/A"
-                              ) : (
-                                <span className="text-muted italic">
-                                  Processing...
-                                </span>
-                              )}
-                            </strong>
-                          </td>
-                          <td>{resume.candidate_email}</td>
-                          <td>
-                            {resume.resume_score !== null ? (
-                              <Badge
-                                bg={
-                                  resume.resume_score >= 65
-                                    ? "success"
-                                    : "warning"
-                                }
-                              >
-                                {resume.resume_score.toFixed(1)}%
-                              </Badge>
-                            ) : (
-                              <span className="text-muted">N/A</span>
-                            )}
-                          </td>
-                          <td>
-                            {resume.pass_fail !== null ? (
-                              <Badge
-                                bg={resume.pass_fail ? "success" : "danger"}
-                              >
-                                {resume.pass_fail ? "PASS" : "FAIL"}
-                              </Badge>
-                            ) : (
-                              <Badge bg="secondary">PENDING</Badge>
-                            )}
-                          </td>
-                          <td>
-                            {resume.processing?.status === "processing" ||
-                            resume.processing?.status === "queued" ? (
-                              <Badge
-                                bg="info"
-                                className="d-inline-flex align-items-center gap-1"
-                              >
-                                <Spinner animation="border" size="sm" />
-                                Processing
-                              </Badge>
-                            ) : resume.processing?.status === "failed" ? (
-                              <Badge bg="danger">Failed</Badge>
-                            ) : (
-                              <Badge bg="success">Completed</Badge>
-                            )}
-                          </td>
-                          <td className="text-end">
-                            <Button
-                              variant="outline-primary"
-                              size="sm"
-                              onClick={() => handleShowMore(resume)}
-                            >
-                              Show More
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardBody>
+            <AdminDataTable
+              columns={columns}
+              data={resumes}
+              loading={loading || (isSearching && resumes.length === 0)}
+              error={error}
+              onRetry={fetchData}
+              rowKey="resume_id"
+              className="border-0 shadow-none"
+              emptyMessage={
+                searchQuery
+                  ? `No candidates found matching "${searchQuery}"`
+                  : "No candidates have applied for this job yet."
+              }
+            />
           </Card>
         </Col>
       </Row>
 
       {/* Job Information Modal */}
-      <Modal show={showJobInfo} onHide={() => setShowJobInfo(false)} size="lg" className="modal-dialog-scrollable">
-        <Modal.Header closeButton>
-          <Modal.Title>Job Details: {job.title}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Row className="mb-4">
-            <Col md={6}>
-              <h5>Basic Info</h5>
-              <p className="mb-1">
-                <strong>Department:</strong> {job.department || "N/A"}
-              </p>
-              <p className="mb-1">
-                <strong>Status:</strong>{" "}
-                <Badge bg={job.is_active ? "success" : "secondary"}>
-                  {job.is_active ? "Active" : "Inactive"}
-                </Badge>
-              </p>
-              <p className="mb-1">
-                <strong>Created At:</strong>{" "}
-                <DateDisplay
-                  date={job.created_at}
-                  formatter={(date) => {
-                    const day = String(date.getDate()).padStart(2, "0");
-                    const month = String(date.getMonth() + 1).padStart(2, "0");
-                    const year = date.getFullYear();
-                    return `${day}-${month}-${year}`;
-                  }}
-                />
-              </p>
-            </Col>
-          </Row>
-          <hr />
-          <h5>Job Description</h5>
-          <div
-            className="bg-light p-3 rounded"
-            style={{ whiteSpace: "pre-wrap" }}
-          >
-            {job.jd_text || "No description provided."}
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowJobInfo(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {job && (
+        <Modal
+          show={showJobInfo}
+          onHide={() => setShowJobInfo(false)}
+          size="lg"
+          className="modal-dialog-scrollable"
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Job Details: {job.title}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Row className="mb-4">
+              <Col md={6}>
+                <h5>Basic Info</h5>
+                <p className="mb-1">
+                  <strong>Department:</strong> {job.department || "N/A"}
+                </p>
+                <p className="mb-1">
+                  <strong>Status:</strong> <StatusBadge status={job.is_active} />
+                </p>
+                <p className="mb-1">
+                  <strong>Created At:</strong>{" "}
+                  <DateDisplay date={job.created_at} showTime={false} />
+                </p>
+              </Col>
+            </Row>
+            <hr />
+            <h5>Job Description</h5>
+            <div className="bg-light p-3 rounded" style={{ whiteSpace: "pre-wrap" }}>
+              {job.jd_text || "No description provided."}
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowJobInfo(false)}>
+              Close
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
 
       {/* Candidate Detail Modal */}
-      <Modal show={showDetail} onHide={() => setShowDetail(false)} size="lg" className="modal-dialog-scrollable">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            Candidate Analysis: {selectedResume?.candidate_first_name}{" "}
-            {selectedResume?.candidate_last_name}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedResume && (
-            <div className="p-2">
-              <Row className="mb-4">
-                <Col md={6}>
-                  <h5>Basic Information</h5>
-                  <p className="mb-1">
-                    <strong>Email:</strong> {selectedResume.candidate_email}
-                  </p>
-                  <p className="mb-1">
-                    <strong>File:</strong> {selectedResume.file_name || "N/A"}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Status:</strong>{" "}
-                    <Badge bg="info">{selectedResume.processing?.status}</Badge>
-                  </p>
-                </Col>
-                <Col md={6}>
-                  <h5>Screening Results</h5>
-                  <p className="mb-1">
-                    <strong>Score:</strong>{" "}
-                    {selectedResume.resume_score !== null ? (
-                      <Badge
-                        bg={
-                          selectedResume.resume_score >= 65
-                            ? "success"
-                            : "warning"
-                        }
-                      >
-                        {selectedResume.resume_score.toFixed(1)}%
-                      </Badge>
-                    ) : (
-                      "N/A"
-                    )}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Pass/Fail:</strong>{" "}
-                    {selectedResume.pass_fail !== null ? (
-                      <Badge
-                        bg={selectedResume.pass_fail ? "success" : "danger"}
-                      >
-                        {selectedResume.pass_fail ? "PASS" : "FAIL"}
-                      </Badge>
-                    ) : (
-                      "PENDING"
-                    )}
-                  </p>
-                </Col>
-              </Row>
-
-              <hr />
-
-              {selectedResume.analysis ? (
-                <>
-                  <div className="mb-4">
-                    <h5>Strength Summary</h5>
-                    <p className="text-muted">
-                      {selectedResume.analysis.strength_summary}
-                    </p>
-                  </div>
-
-                  <div className="mb-4">
-                    <h5>Experience Alignment</h5>
-                    <p className="text-muted">
-                      {selectedResume.analysis.experience_alignment}
-                    </p>
-                  </div>
-
-                  <Row>
-                    <Col md={6}>
-                      <h5>Missing Skills</h5>
-                      {selectedResume.analysis.missing_skills?.length > 0 ? (
-                        <div className="d-flex flex-wrap gap-2">
-                          {selectedResume.analysis.missing_skills.map(
-                            (skill, idx) => (
-                              <Badge
-                                key={idx}
-                                bg="danger"
-                                pill
-                                className="fw-normal"
-                              >
-                                {skill}
-                              </Badge>
-                            ),
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-success">
-                          No major missing skills identified.
-                        </p>
-                      )}
-                    </Col>
-                    <Col md={6}>
-                      <h5>Extraordinary Points</h5>
-                      {selectedResume.analysis.extraordinary_points?.length >
-                      0 ? (
-                        <ul className="ps-3 mb-0">
-                          {selectedResume.analysis.extraordinary_points.map(
-                            (point, idx) => (
-                              <li key={idx} className="text-success mb-1">
-                                {point}
-                              </li>
-                            ),
-                          )}
-                        </ul>
-                      ) : (
-                        <p className="text-muted">None identified.</p>
-                      )}
-                    </Col>
-                  </Row>
-                </>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-muted">
-                    No detailed analysis available for this candidate.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetail(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <CandidateDetailModal
+        show={showDetail}
+        onHide={() => setShowDetail(false)}
+        candidate={mappedCandidate}
+      />
     </Container>
   );
 };

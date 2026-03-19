@@ -3,13 +3,16 @@
  * Allows users to browse open positions and submit resumes.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { adminCandidateService } from "../../apis/admin/service";
 import jobService from "../../apis/services/job";
 import { resumeService } from "../../apis/services/resume";
 import type { Job } from "../../apis/types/job";
+import type { CandidateResponse } from "../../apis/types/resume";
 import { Button, Card, CardBody, CardHeader } from "../../components/common";
+import { CandidateDetailModal } from "../../components/modal";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logout, selectCurrentUser } from "../../store/slices/authSlice";
 
@@ -20,9 +23,14 @@ const HomePage = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
-  const [message, setMessage] = useState<{ type: string; text: string } | null>(
-    null,
-  );
+  const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
+
+  // Candidate Search State
+  const [candidateQuery, setCandidateQuery] = useState("");
+  const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
+  const [searchingCandidates, setSearchingCandidates] = useState(false);
+  const [showCandidateDetail, setShowCandidateDetail] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateResponse | null>(null);
 
   const isAuthorized =
     user?.role_name?.toLowerCase() === "admin" ||
@@ -58,10 +66,7 @@ const HomePage = () => {
     dispatch(logout());
   };
 
-  const handleFileUpload = async (
-    jobId: string,
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileUpload = async (jobId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -69,12 +74,8 @@ const HomePage = () => {
     setMessage(null);
 
     try {
-      const response = await resumeService.uploadResume(jobId, file);
-      console.log(response);
-      setMessage({
-        type: "success",
-        text: `Resume uploaded successfully for job! Resuem ID : ${response.resume_id}`,
-      });
+      await resumeService.uploadResume(jobId, file);
+      setMessage({ type: "success", text: "Resume uploaded successfully!" });
     } catch (error) {
       console.error("Upload failed:", error);
       setMessage({ type: "danger", text: "Failed to upload resume." });
@@ -83,6 +84,33 @@ const HomePage = () => {
       // Clear file input
       event.target.value = "";
     }
+  };
+
+  const handleCandidateSearch = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      if (!candidateQuery.trim()) {
+        setCandidates([]);
+        return;
+      }
+
+      setSearchingCandidates(true);
+      try {
+        const data = await adminCandidateService.searchCandidates(candidateQuery);
+        setCandidates(data);
+      } catch (error) {
+        console.error("Failed to search candidates:", error);
+        setMessage({ type: "danger", text: "Failed to search candidates." });
+      } finally {
+        setSearchingCandidates(false);
+      }
+    },
+    [candidateQuery],
+  );
+
+  const handleShowCandidateDetail = (candidate: CandidateResponse) => {
+    setSelectedCandidate(candidate);
+    setShowCandidateDetail(true);
   };
 
   return (
@@ -104,14 +132,121 @@ const HomePage = () => {
       </Row>
 
       {message && (
-        <Alert
-          variant={message.type}
-          dismissible
-          onClose={() => setMessage(null)}
-        >
+        <Alert variant={message.type} dismissible onClose={() => setMessage(null)}>
           {message.text}
         </Alert>
       )}
+
+      {/* {isAuthorized && (
+        <Row className="mb-5">
+          <Col>
+            <Card>
+              <CardHeader>
+                <h3 className="mb-0">Quick Candidate Search</h3>
+              </CardHeader>
+              <CardBody>
+                <Form onSubmit={handleCandidateSearch} className="mb-4">
+                  <Row className="g-2">
+                    <Col>
+                      <Input
+                        placeholder="Search candidates by name or email..."
+                        value={candidateQuery}
+                        onChange={(e) => setCandidateQuery(e.target.value)}
+                      />
+                    </Col>
+                    <Col xs="auto">
+                      <Button
+                        variant="primary"
+                        type="submit"
+                        isLoading={searchingCandidates}
+                      >
+                        Search
+                      </Button>
+                    </Col>
+                  </Row>
+                </Form>
+
+                {searchingCandidates && candidates.length === 0 ? (
+                  <div className="text-center py-4">
+                    <Spinner animation="border" variant="primary" />
+                    <p className="mt-2 text-muted">Searching...</p>
+                  </div>
+                ) : candidateQuery && candidates.length === 0 && !searchingCandidates ? (
+                  <div className="text-center py-4 text-muted">
+                    <p>No candidates found matching "{candidateQuery}"</p>
+                  </div>
+                ) : candidates.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Score</th>
+                          <th>Result</th>
+                          <th>Applied At</th>
+                          <th className="text-end">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {candidates.map((candidate) => (
+                          <tr key={candidate.id}>
+                            <td>
+                              {candidate.first_name} {candidate.last_name}
+                            </td>
+                            <td>{candidate.email}</td>
+                            <td>
+                              {candidate.resume_score !== null ? (
+                                <Badge
+                                  bg={
+                                    candidate.resume_score >= 65
+                                      ? "success"
+                                      : "warning"
+                                  }
+                                >
+                                  {candidate.resume_score.toFixed(1)}%
+                                </Badge>
+                              ) : (
+                                <span className="text-muted">N/A</span>
+                              )}
+                            </td>
+                            <td>
+                              {candidate.pass_fail !== null ? (
+                                <Badge
+                                  bg={candidate.pass_fail ? "success" : "danger"}
+                                >
+                                  {candidate.pass_fail ? "PASS" : "FAIL"}
+                                </Badge>
+                              ) : (
+                                <Badge bg="secondary">PENDING</Badge>
+                              )}
+                            </td>
+                            <td>
+                              <DateDisplay
+                                date={candidate.created_at}
+                                showTime={false}
+                              />
+                            </td>
+                            <td className="text-end">
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => handleShowCandidateDetail(candidate)}
+                              >
+                                View Profile
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+              </CardBody>
+            </Card>
+          </Col>
+        </Row>
+      )} */}
 
       <Row>
         <Col>
@@ -148,9 +283,7 @@ const HomePage = () => {
                           </td>
                           <td>{job.department || "N/A"}</td>
                           <td>
-                            <span
-                              className={`badge bg-${job.is_active ? "success" : "secondary"}`}
-                            >
+                            <span className={`badge bg-${job.is_active ? "success" : "secondary"}`}>
                               {job.is_active ? "Active" : "Inactive"}
                             </span>
                           </td>
@@ -163,9 +296,9 @@ const HomePage = () => {
                                   <Form.Control
                                     type="file"
                                     size="sm"
-                                    onChange={(
-                                      e: React.ChangeEvent<HTMLInputElement>,
-                                    ) => handleFileUpload(job.id, e)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                      handleFileUpload(job.id, e)
+                                    }
                                     accept=".pdf,.doc,.docx"
                                   />
                                 </Form.Group>
@@ -189,6 +322,13 @@ const HomePage = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Candidate Detail Modal */}
+      <CandidateDetailModal
+        show={showCandidateDetail}
+        onHide={() => setShowCandidateDetail(false)}
+        candidate={selectedCandidate}
+      />
     </Container>
   );
 };

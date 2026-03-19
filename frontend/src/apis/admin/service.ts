@@ -36,16 +36,10 @@ export const adminUserService = {
   /**
    * Get all users (admin only).
    */
-  getAllUsers: async (
-    skip: number = 0,
-    limit: number = 100,
-  ): Promise<UserAdminRead[]> => {
-    const response = await apiClient.get<UserAdminRead[]>(
-      `${ADMIN_PATH}/users`,
-      {
-        params: { skip, limit },
-      },
-    );
+  getAllUsers: async (skip: number = 0, limit: number = 100): Promise<UserAdminRead[]> => {
+    const response = await apiClient.get<UserAdminRead[]>(`${ADMIN_PATH}/users`, {
+      params: { skip, limit },
+    });
     return response.data;
   },
 
@@ -53,10 +47,7 @@ export const adminUserService = {
    * Create a new user (admin only).
    */
   createUser: async (user: UserAdminCreate): Promise<UserAdminRead> => {
-    const response = await apiClient.post<UserAdminRead>(
-      `${ADMIN_PATH}/users`,
-      user,
-    );
+    const response = await apiClient.post<UserAdminRead>(`${ADMIN_PATH}/users`, user);
     return response.data;
   },
 
@@ -64,23 +55,15 @@ export const adminUserService = {
    * Get a specific user by ID (admin only).
    */
   getUserById: async (userId: string): Promise<UserAdminRead> => {
-    const response = await apiClient.get<UserAdminRead>(
-      `${ADMIN_PATH}/users/${userId}`,
-    );
+    const response = await apiClient.get<UserAdminRead>(`${ADMIN_PATH}/users/${userId}`);
     return response.data;
   },
 
   /**
    * Update a user (admin only).
    */
-  updateUser: async (
-    userId: string,
-    user: UserAdminUpdate,
-  ): Promise<UserAdminRead> => {
-    const response = await apiClient.patch<UserAdminRead>(
-      `${ADMIN_PATH}/users/${userId}`,
-      user,
-    );
+  updateUser: async (userId: string, user: UserAdminUpdate): Promise<UserAdminRead> => {
+    const response = await apiClient.patch<UserAdminRead>(`${ADMIN_PATH}/users/${userId}`, user);
     return response.data;
   },
 
@@ -99,10 +82,7 @@ export const adminRoleService = {
   /**
    * Get all roles (admin only).
    */
-  getAllRoles: async (
-    skip: number = 0,
-    limit: number = 100,
-  ): Promise<RoleRead[]> => {
+  getAllRoles: async (skip: number = 0, limit: number = 100): Promise<RoleRead[]> => {
     const response = await apiClient.get<RoleRead[]>(`${ADMIN_PATH}/roles`, {
       params: { skip, limit },
     });
@@ -113,10 +93,7 @@ export const adminRoleService = {
    * Create a new role (admin only).
    */
   createRole: async (role: RoleCreate): Promise<RoleWithPermissions> => {
-    const response = await apiClient.post<RoleWithPermissions>(
-      `${ADMIN_PATH}/roles`,
-      role,
-    );
+    const response = await apiClient.post<RoleWithPermissions>(`${ADMIN_PATH}/roles`, role);
     return response.data;
   },
 
@@ -124,19 +101,14 @@ export const adminRoleService = {
    * Get a specific role by ID (admin only).
    */
   getRoleById: async (roleId: string): Promise<RoleWithPermissions> => {
-    const response = await apiClient.get<RoleWithPermissions>(
-      `${ADMIN_PATH}/roles/${roleId}`,
-    );
+    const response = await apiClient.get<RoleWithPermissions>(`${ADMIN_PATH}/roles/${roleId}`);
     return response.data;
   },
 
   /**
    * Update a role (admin only).
    */
-  updateRole: async (
-    roleId: string,
-    role: RoleUpdate,
-  ): Promise<RoleWithPermissions> => {
+  updateRole: async (roleId: string, role: RoleUpdate): Promise<RoleWithPermissions> => {
     const response = await apiClient.patch<RoleWithPermissions>(
       `${ADMIN_PATH}/roles/${roleId}`,
       role,
@@ -159,29 +131,18 @@ export const adminPermissionService = {
   /**
    * Get all permissions (admin only).
    */
-  getAllPermissions: async (
-    skip: number = 0,
-    limit: number = 100,
-  ): Promise<PermissionRead[]> => {
-    const response = await apiClient.get<PermissionRead[]>(
-      `${ADMIN_PATH}/permissions`,
-      {
-        params: { skip, limit },
-      },
-    );
+  getAllPermissions: async (skip: number = 0, limit: number = 100): Promise<PermissionRead[]> => {
+    const response = await apiClient.get<PermissionRead[]>(`${ADMIN_PATH}/permissions`, {
+      params: { skip, limit },
+    });
     return response.data;
   },
 
   /**
    * Create a new permission (admin only).
    */
-  createPermission: async (
-    permission: PermissionCreate,
-  ): Promise<PermissionRead> => {
-    const response = await apiClient.post<PermissionRead>(
-      `${ADMIN_PATH}/permissions`,
-      permission,
-    );
+  createPermission: async (permission: PermissionCreate): Promise<PermissionRead> => {
+    const response = await apiClient.post<PermissionRead>(`${ADMIN_PATH}/permissions`, permission);
     return response.data;
   },
 
@@ -200,32 +161,20 @@ export const adminAnalyticsService = {
   /**
    * Get all audit logs (admin only).
    */
-  getAuditLogs: async (
-    skip: number = 0,
-    limit: number = 100,
-  ): Promise<AuditLogRead[]> => {
-    const response = await apiClient.get<AuditLogRead[]>(
-      `${ADMIN_PATH}/audit-logs`,
-      {
-        params: { skip, limit },
-      },
-    );
+  getAuditLogs: async (skip: number = 0, limit: number = 100): Promise<AuditLogRead[]> => {
+    const response = await apiClient.get<AuditLogRead[]>(`${ADMIN_PATH}/audit-logs`, {
+      params: { skip, limit },
+    });
     return response.data;
   },
 
   /**
    * Get recent file uploads (admin only).
    */
-  getRecentUploads: async (
-    skip: number = 0,
-    limit: number = 50,
-  ): Promise<RecentUploadRead[]> => {
-    const response = await apiClient.get<RecentUploadRead[]>(
-      `${ADMIN_PATH}/recent-uploads`,
-      {
-        params: { skip, limit },
-      },
-    );
+  getRecentUploads: async (skip: number = 0, limit: number = 50): Promise<RecentUploadRead[]> => {
+    const response = await apiClient.get<RecentUploadRead[]>(`${ADMIN_PATH}/recent-uploads`, {
+      params: { skip, limit },
+    });
     return response.data;
   },
 
@@ -233,9 +182,7 @@ export const adminAnalyticsService = {
    * Get analytics summary (admin only).
    */
   getAnalytics: async (): Promise<AnalyticsSummary> => {
-    const response = await apiClient.get<AnalyticsSummary>(
-      `${ADMIN_PATH}/analytics`,
-    );
+    const response = await apiClient.get<AnalyticsSummary>(`${ADMIN_PATH}/analytics`);
     return response.data;
   },
 
@@ -243,9 +190,7 @@ export const adminAnalyticsService = {
    * Get hiring report with detailed statistics (admin only).
    */
   getHiringReport: async (): Promise<HiringReport> => {
-    const response = await apiClient.get<HiringReport>(
-      `${ADMIN_PATH}/hiring-report`,
-    );
+    const response = await apiClient.get<HiringReport>(`${ADMIN_PATH}/hiring-report`);
     return response.data;
   },
 };
@@ -254,10 +199,7 @@ export const adminAnalyticsService = {
  * Job Management APIs
  */
 export const adminJobService = {
-  getAllJobs: async (
-    skip: number = 0,
-    limit: number = 100,
-  ): Promise<JobRead[]> => {
+  getAllJobs: async (skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
     const response = await apiClient.get<JobRead[]>("/jobs", {
       params: { skip, limit },
     });
@@ -288,10 +230,7 @@ export const adminJobService = {
  * Skill Management APIs
  */
 export const adminSkillService = {
-  getAllSkills: async (
-    skip: number = 0,
-    limit: number = 100,
-  ): Promise<SkillRead[]> => {
+  getAllSkills: async (skip: number = 0, limit: number = 100): Promise<SkillRead[]> => {
     const response = await apiClient.get<SkillRead[]>("/skills", {
       params: { skip, limit },
     });
@@ -308,14 +247,8 @@ export const adminSkillService = {
     return response.data;
   },
 
-  updateSkill: async (
-    skillId: string,
-    skill: SkillUpdate,
-  ): Promise<SkillRead> => {
-    const response = await apiClient.patch<SkillRead>(
-      `/skills/${skillId}`,
-      skill,
-    );
+  updateSkill: async (skillId: string, skill: SkillUpdate): Promise<SkillRead> => {
+    const response = await apiClient.patch<SkillRead>(`/skills/${skillId}`, skill);
     return response.data;
   },
 
@@ -333,12 +266,9 @@ export const adminCandidateService = {
     skip: number = 0,
     limit: number = 100,
   ): Promise<CandidateResponse[]> => {
-    const response = await apiClient.get<CandidateResponse[]>(
-      `/candidates/jobs/${jobId}`,
-      {
-        params: { skip, limit },
-      },
-    );
+    const response = await apiClient.get<CandidateResponse[]>(`/candidates/jobs/${jobId}`, {
+      params: { skip, limit },
+    });
     return response.data;
   },
 
@@ -348,12 +278,9 @@ export const adminCandidateService = {
     skip: number = 0,
     limit: number = 100,
   ): Promise<CandidateResponse[]> => {
-    const response = await apiClient.get<CandidateResponse[]>(
-      `/candidates/jobs/${jobId}/search`,
-      {
-        params: { query, skip, limit },
-      },
-    );
+    const response = await apiClient.get<CandidateResponse[]>(`/candidates/jobs/${jobId}/search`, {
+      params: { query, skip, limit },
+    });
     return response.data;
   },
 
@@ -362,13 +289,9 @@ export const adminCandidateService = {
     skip: number = 0,
     limit: number = 100,
   ): Promise<CandidateResponse[]> => {
-    const response = await apiClient.get<CandidateResponse[]>(
-      "/candidates/search",
-      {
-        params: { query, skip, limit },
-      },
-    );
+    const response = await apiClient.get<CandidateResponse[]>("/candidates/search", {
+      params: { query, skip, limit },
+    });
     return response.data;
   },
 };
-

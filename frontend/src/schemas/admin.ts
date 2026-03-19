@@ -10,7 +10,11 @@ import * as z from "zod";
  */
 export const userCreateSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters long").optional().or(z.literal("")),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters long")
+    .optional()
+    .or(z.literal("")),
   full_name: z.string().min(2, "Full name must be at least 2 characters long").optional(),
   is_active: z.boolean().default(true),
   role_id: z.string().uuid("Invalid role ID"),
@@ -67,7 +71,7 @@ export type RoleCreateFormValues = z.infer<typeof roleCreateSchema>;
  * Schema for creating a new skill.
  */
 export const skillCreateSchema = z.object({
-  name: z.string().min(2, 'Skill name must be at least 2 characters long'),
+  name: z.string().min(2, "Skill name must be at least 2 characters long"),
   description: z.string().optional(),
 });
 
@@ -80,7 +84,7 @@ export type SkillCreateFormValues = z.infer<typeof skillCreateSchema>;
  * Schema for updating an existing skill.
  */
 export const skillUpdateSchema = z.object({
-  name: z.string().min(2, 'Skill name must be at least 2 characters long').optional(),
+  name: z.string().min(2, "Skill name must be at least 2 characters long").optional(),
   description: z.string().optional(),
 });
 
@@ -93,11 +97,19 @@ export type SkillUpdateFormValues = z.infer<typeof skillUpdateSchema>;
  * Schema for creating a new job posting.
  */
 export const jobCreateSchema = z.object({
-  title: z.string().min(3, 'Job title must be at least 3 characters long'),
-  department: z.string().min(2, 'Department must be at least 2 characters long').optional().or(z.literal('')),
-  jd_text: z.string().min(20, 'Job description must be at least 20 characters long').optional().or(z.literal('')),
+  title: z.string().min(3, "Job title must be at least 3 characters long"),
+  department: z
+    .string()
+    .min(2, "Department must be at least 2 characters long")
+    .optional()
+    .or(z.literal("")),
+  jd_text: z
+    .string()
+    .min(20, "Job description must be at least 20 characters long")
+    .optional()
+    .or(z.literal("")),
   is_active: z.boolean().default(true),
-  skill_ids: z.array(z.string().uuid('Invalid skill ID')).default([]),
+  skill_ids: z.array(z.string().uuid("Invalid skill ID")).default([]),
 });
 
 /**
@@ -109,15 +121,22 @@ export type JobCreateFormValues = z.infer<typeof jobCreateSchema>;
  * Schema for updating an existing job posting.
  */
 export const jobUpdateSchema = z.object({
-  title: z.string().min(3, 'Job title must be at least 3 characters long').optional(),
-  department: z.string().min(2, 'Department must be at least 2 characters long').optional().or(z.literal('')),
-  jd_text: z.string().min(20, 'Job description must be at least 20 characters long').optional().or(z.literal('')),
+  title: z.string().min(3, "Job title must be at least 3 characters long").optional(),
+  department: z
+    .string()
+    .min(2, "Department must be at least 2 characters long")
+    .optional()
+    .or(z.literal("")),
+  jd_text: z
+    .string()
+    .min(20, "Job description must be at least 20 characters long")
+    .optional()
+    .or(z.literal("")),
   is_active: z.boolean().optional(),
-  skill_ids: z.array(z.string().uuid('Invalid skill ID')).optional().default([]),
+  skill_ids: z.array(z.string().uuid("Invalid skill ID")).optional().default([]),
 });
 
 /**
  * Type inferred from jobUpdateSchema.
  */
 export type JobUpdateFormValues = z.infer<typeof jobUpdateSchema>;
-

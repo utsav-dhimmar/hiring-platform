@@ -3,80 +3,57 @@
  * Displays a list of recently uploaded resumes and documents.
  */
 
-import { useEffect, useState } from "react";
 import { adminAnalyticsService } from "../../apis/admin/service";
 import type { RecentUploadRead } from "../../apis/admin/types";
-import { Card, CardBody, DateDisplay } from "../../components/common";
+import { AdminDataTable, DateDisplay, PageHeader, type Column } from "../../components/common";
 import "../../css/adminDashboard.css";
+import { useAdminData } from "../../hooks";
 
 const AdminRecentUploads = () => {
-  const [uploads, setUploads] = useState<RecentUploadRead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: uploads,
+    loading,
+    error,
+    fetchData,
+  } = useAdminData<RecentUploadRead>(() => adminAnalyticsService.getRecentUploads());
 
-  useEffect(() => {
-    const fetchUploads = async () => {
-      try {
-        setLoading(true);
-        const data = await adminAnalyticsService.getRecentUploads();
-        setUploads(data);
-      } catch (err) {
-        console.error("Failed to fetch recent uploads:", err);
-        setError("Failed to load recent uploads.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUploads();
-  }, []);
-
-  if (loading) return <div className="admin-loading">Loading uploads...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
+  const columns: Column<RecentUploadRead>[] = [
+    {
+      header: "File Name",
+      accessor: (upload) => <strong>{upload.file_name || "N/A"}</strong>,
+    },
+    { header: "Type", accessor: (upload) => upload.file_type || "N/A" },
+    {
+      header: "Size (KB)",
+      accessor: (upload) => (upload.size ? (upload.size / 1024).toFixed(1) : "N/A"),
+    },
+    {
+      header: "Uploaded By",
+      accessor: (upload) => <small>{upload.uploaded_by}</small>,
+    },
+    {
+      header: "Candidate ID",
+      accessor: (upload) => <small>{upload.candidate_id || "N/A"}</small>,
+    },
+    {
+      header: "Date",
+      accessor: (upload) => <DateDisplay date={upload.created_at} />,
+    },
+  ];
 
   return (
     <div className="admin-dashboard">
-      <h1>Recent Uploads</h1>
-      <Card>
-        <CardBody>
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>File Name</th>
-                  <th>Type</th>
-                  <th>Size (KB)</th>
-                  <th>Uploaded By</th>
-                  <th>Candidate ID</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {uploads.map((upload) => (
-                  <tr key={upload.id}>
-                    <td>
-                      <strong>{upload.file_name || "N/A"}</strong>
-                    </td>
-                    <td>{upload.file_type || "N/A"}</td>
-                    <td>
-                      {upload.size ? (upload.size / 1024).toFixed(1) : "N/A"}
-                    </td>
-                    <td>
-                      <small>{upload.uploaded_by}</small>
-                    </td>
-                    <td>
-                      <small>{upload.candidate_id || "N/A"}</small>
-                    </td>
-                    <td>
-                      <DateDisplay date={upload.created_at} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardBody>
-      </Card>
+      <PageHeader title="Recent Uploads" />
+
+      <AdminDataTable
+        columns={columns}
+        data={uploads}
+        loading={loading}
+        error={error}
+        onRetry={fetchData}
+        rowKey="id"
+        emptyMessage="No recent uploads found."
+      />
     </div>
   );
 };

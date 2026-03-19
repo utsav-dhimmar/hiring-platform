@@ -105,13 +105,11 @@ export default authSlice.reducer;
  * @param state - Redux state object
  * @returns The current user object or null if not authenticated
  */
-export const selectCurrentUser = (state: { auth: AuthState }) =>
-  state.auth.user;
+export const selectCurrentUser = (state: { auth: AuthState }) => state.auth.user;
 
 /**
  * Selector to check if the user is authenticated.
  * @param state - Redux state object
  * @returns True if user has valid token, false otherwise
  */
-export const selectIsAuthenticated = (state: { auth: AuthState }) =>
-  state.auth.isAuthenticated;
+export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;

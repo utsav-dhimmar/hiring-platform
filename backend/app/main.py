@@ -58,6 +58,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(GlobalErrorHandlerMiddleware)  # ty:ignore[invalid-argument-type]
+
 app.add_middleware(
     CORSMiddleware,  # ty:ignore[invalid-argument-type]
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -65,8 +67,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.add_middleware(GlobalErrorHandlerMiddleware)  # ty:ignore[invalid-argument-type]
 
 app.include_router(api_router, prefix="/api/v1")
 

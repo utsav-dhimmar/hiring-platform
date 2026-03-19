@@ -90,7 +90,7 @@ async def delete_job(
 
 
 @router.get(
-    "/jobs/{job_id}/candidates",
+    "/{job_id}/candidates",
     response_model=JobCandidatesResponse,
     status_code=status.HTTP_200_OK,
 )

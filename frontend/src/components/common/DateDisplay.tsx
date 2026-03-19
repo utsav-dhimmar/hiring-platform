@@ -43,9 +43,7 @@ export const DateDisplay = ({
   formatter,
 }: DateDisplayProps) => {
   if (!date) {
-    return (
-      <span className={`date-display fallback ${className}`}>{fallback}</span>
-    );
+    return <span className={`date-display fallback ${className}`}>{fallback}</span>;
   }
 
   try {
@@ -53,9 +51,7 @@ export const DateDisplay = ({
 
     // Check if date is valid
     if (isNaN(dateObj.getTime())) {
-      return (
-        <span className={`date-display invalid ${className}`}>{fallback}</span>
-      );
+      return <span className={`date-display invalid ${className}`}>{fallback}</span>;
     }
 
     let formattedDate = "";
@@ -64,9 +60,7 @@ export const DateDisplay = ({
     } else if (formatOptions) {
       formattedDate = dateObj.toLocaleString(undefined, formatOptions);
     } else {
-      formattedDate = showTime
-        ? dateObj.toLocaleString()
-        : dateObj.toLocaleDateString();
+      formattedDate = showTime ? dateObj.toLocaleString() : dateObj.toLocaleDateString();
     }
 
     return (
@@ -76,9 +70,7 @@ export const DateDisplay = ({
     );
   } catch (error) {
     console.error("Error formatting date:", error);
-    return (
-      <span className={`date-display error ${className}`}>{fallback}</span>
-    );
+    return <span className={`date-display error ${className}`}>{fallback}</span>;
   }
 };
 

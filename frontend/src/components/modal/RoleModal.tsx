@@ -3,15 +3,13 @@
  * Provides a form to input role name and select permissions.
  */
 
-import { useState, useEffect } from "react";
-import { Modal, Form, Alert, Row, Col } from "react-bootstrap";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { adminRoleService, adminPermissionService } from "../../apis/admin/service";
+import { useEffect, useState } from "react";
+import { Col, Form, Modal, Row } from "react-bootstrap";
+import { adminPermissionService, adminRoleService } from "../../apis/admin/service";
 import type { PermissionRead } from "../../apis/admin/types";
+import { Button, ErrorDisplay, Input } from "../../components/common";
+import { useFormModal } from "../../hooks";
 import { roleCreateSchema, type RoleCreateFormValues } from "../../schemas/admin";
-import { Input, Button } from "../../components/common";
-import axios from "axios";
 
 /**
  * Props for the RoleModal component.
@@ -27,34 +25,47 @@ interface RoleModalProps {
   editRoleId?: string | null;
 }
 
+const DEFAULT_ROLE_VALUES: RoleCreateFormValues = {
+  name: "",
+  permission_ids: [],
+};
+
 /**
  * Modal dialog for creating or editing a role.
  */
-const RoleModal = ({ 
-  show, 
-  handleClose, 
-  onSuccess,
-  editRoleId
-}: RoleModalProps) => {
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps) => {
   const [permissions, setPermissions] = useState<PermissionRead[]>([]);
   const [fetchingData, setFetchingData] = useState(false);
 
   const isEditMode = !!editRoleId;
 
+  const onSubmit = useCallback(
+    async (data: RoleCreateFormValues) => {
+      if (editRoleId) {
+        await adminRoleService.updateRole(editRoleId, data);
+      } else {
+        await adminRoleService.createRole(data);
+      }
+      onSuccess();
+      handleClose();
+    },
+    [editRoleId, onSuccess, handleClose],
+  );
+
   const {
     register,
     handleSubmit,
+    isSubmitting,
+    submitError,
+    setSubmitError,
     reset,
     setValue,
     formState: { errors },
-  } = useForm<RoleCreateFormValues>({
-    resolver: zodResolver(roleCreateSchema),
-    defaultValues: {
-      name: "",
-      permission_ids: [],
-    },
+  } = useFormModal<RoleCreateFormValues, any>({
+    schema: roleCreateSchema,
+    defaultValues: DEFAULT_ROLE_VALUES,
+    show,
+    onSubmit,
   });
 
   useEffect(() => {
@@ -62,7 +73,7 @@ const RoleModal = ({
       if (!show) return;
 
       setFetchingData(true);
-      setError(null);
+      setSubmitError(null);
       try {
         // Fetch all permissions for the checklist
         const permsData = await adminPermissionService.getAllPermissions();
@@ -72,7 +83,10 @@ const RoleModal = ({
         if (editRoleId) {
           const roleData = await adminRoleService.getRoleById(editRoleId);
           setValue("name", roleData.name);
-          setValue("permission_ids", roleData.permissions.map(p => p.id));
+          setValue(
+            "permission_ids",
+            roleData.permissions.map((p) => p.id),
+          );
         } else {
           reset({
             name: "",
@@ -81,41 +95,17 @@ const RoleModal = ({
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
-        setError("Failed to load required data.");
+        setSubmitError("Failed to load required data.");
       } finally {
         setFetchingData(false);
       }
     };
 
     fetchData();
-  }, [show, editRoleId, setValue, reset]);
-
-  const onSubmit = async (data: RoleCreateFormValues) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      if (editRoleId) {
-        await adminRoleService.updateRole(editRoleId, data);
-      } else {
-        await adminRoleService.createRole(data);
-      }
-      onSuccess();
-      handleClose();
-    } catch (err: unknown) {
-      let errorMsg = `Failed to ${isEditMode ? "update" : "create"} role.`;
-      if (axios.isAxiosError(err)) {
-        errorMsg = err.response?.data?.detail || err.message || errorMsg;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setError(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [show, editRoleId, setValue, reset, setSubmitError]);
 
   const onHide = () => {
-    setError(null);
+    setSubmitError(null);
     handleClose();
   };
 
@@ -125,14 +115,14 @@ const RoleModal = ({
         <Modal.Title>{isEditMode ? "Edit Role" : "Create New Role"}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {error && <Alert variant="danger" dismissible onClose={() => setError(null)}>{error}</Alert>}
-        
+        {submitError && <ErrorDisplay message={submitError} />}
+
         {fetchingData ? (
           <div className="text-center p-5">
             <p>Loading data...</p>
           </div>
         ) : (
-          <Form onSubmit={handleSubmit(onSubmit)}>
+          <Form onSubmit={handleSubmit}>
             <Input
               label="Role Name"
               placeholder="e.g. Moderator"
@@ -145,7 +135,7 @@ const RoleModal = ({
             <Row>
               {permissions.map((permission) => (
                 <Col md={6} key={permission.id} className="mb-2">
-                  <Form.Check 
+                  <Form.Check
                     type="checkbox"
                     id={`perm-${permission.id}`}
                     label={
@@ -166,10 +156,10 @@ const RoleModal = ({
             )}
 
             <div className="d-flex justify-content-end gap-2 mt-4">
-              <Button variant="outline-secondary" onClick={onHide} disabled={isLoading}>
+              <Button variant="outline-secondary" onClick={onHide} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" isLoading={isLoading}>
+              <Button type="submit" variant="primary" isLoading={isSubmitting}>
                 {isEditMode ? "Update Role" : "Create Role"}
               </Button>
             </div>

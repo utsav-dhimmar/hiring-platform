@@ -25,6 +25,13 @@ services:
     depends_on:
       - db
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
   api:
     build: .
     container_name: hr_backend
@@ -35,8 +42,10 @@ services:
       - .env
     environment:
       POSTGRES_SERVER: db
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       - db
+      - redis
 
 volumes:
   postgres_data:

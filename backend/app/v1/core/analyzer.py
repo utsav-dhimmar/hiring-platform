@@ -9,28 +9,10 @@ from typing import Any
 
 from langextract.core import types as core_types
 from langextract.providers.ollama import OllamaLanguageModel
-from pydantic import BaseModel, Field
 
 from app.v1.core.config import settings
 from app.v1.prompts import RESUME_JD_ANALYSIS_PROMPT
-
-
-class MissingSkillItem(BaseModel):
-    """A single missing skill with its importance score."""
-
-    name: str
-    score: float = Field(ge=0, le=100)
-
-
-class ResumeJobAnalysisResult(BaseModel):
-    """Result of the LLM-based analysis comparing a resume to a job description."""
-
-    match_percentage: float = Field(ge=0, le=100)
-    skill_gap_analysis: str
-    experience_alignment: str
-    strength_summary: str
-    missing_skills: list[MissingSkillItem] = Field(default_factory=list)
-    extraordinary_points: list[str] = Field(default_factory=list)
+from app.v1.schemas.analyzer import ResumeJobAnalysisResult
 
 
 class ResumeJdAnalyzer:
@@ -85,6 +67,8 @@ class ResumeJdAnalyzer:
         try:
             parsed_output = self.model.parse_output(raw_output)
         except ValueError as exc:
-            raise ValueError("LLM returned invalid JSON for resume analysis.") from exc
+            raise ValueError(
+                "LLM returned invalid JSON for resume analysis."
+            ) from exc
         validated = ResumeJobAnalysisResult.model_validate(parsed_output)
         return validated.model_dump()

@@ -3,79 +3,55 @@
  * Displays a history of user actions and system events.
  */
 
-import { useEffect, useState } from "react";
 import { adminAnalyticsService } from "../../apis/admin/service";
 import type { AuditLogRead } from "../../apis/admin/types";
-import { Card, CardBody, DateDisplay } from "../../components/common";
+import { AdminDataTable, DateDisplay, PageHeader, type Column } from "../../components/common";
 import "../../css/adminDashboard.css";
+import { useAdminData } from "../../hooks";
 
 const AdminAuditLogs = () => {
-  const [logs, setLogs] = useState<AuditLogRead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: logs,
+    loading,
+    error,
+    fetchData,
+  } = useAdminData<AuditLogRead>(() => adminAnalyticsService.getAuditLogs());
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        setLoading(true);
-        const data = await adminAnalyticsService.getAuditLogs();
-        setLogs(data);
-      } catch (err) {
-        console.error("Failed to fetch audit logs:", err);
-        setError("Failed to load audit logs.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLogs();
-  }, []);
-
-  if (loading)
-    return <div className="admin-loading">Loading audit logs...</div>;
-  if (error) return <div className="admin-error">{error}</div>;
+  const columns: Column<AuditLogRead>[] = [
+    {
+      header: "Timestamp",
+      accessor: (log) => <DateDisplay date={log.created_at} />,
+    },
+    {
+      header: "Action",
+      accessor: (log) => <strong>{log.action}</strong>,
+    },
+    {
+      header: "User ID",
+      accessor: (log) => <small>{log.user_id}</small>,
+    },
+    { header: "Target Type", accessor: (log) => log.target_type || "N/A" },
+    {
+      header: "Details",
+      accessor: (log) => (
+        <pre style={{ fontSize: "0.75rem", margin: 0 }}>{JSON.stringify(log.details, null, 2)}</pre>
+      ),
+    },
+  ];
 
   return (
     <div className="admin-dashboard">
-      <h1>Audit Logs</h1>
-      <Card>
-        <CardBody>
-          <div className="table-responsive">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Action</th>
-                  <th>User ID</th>
-                  <th>Target Type</th>
-                  <th>Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td>
-                      <DateDisplay date={log.created_at} />
-                    </td>
-                    <td>
-                      <strong>{log.action}</strong>
-                    </td>
-                    <td>
-                      <small>{log.user_id}</small>
-                    </td>
-                    <td>{log.target_type || "N/A"}</td>
-                    <td>
-                      <pre style={{ fontSize: "0.75rem", margin: 0 }}>
-                        {JSON.stringify(log.details, null, 2)}
-                      </pre>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardBody>
-      </Card>
+      <PageHeader title="Audit Logs" />
+
+      <AdminDataTable
+        columns={columns}
+        data={logs}
+        loading={loading}
+        error={error}
+        onRetry={fetchData}
+        rowKey="id"
+        emptyMessage="No audit logs found."
+      />
     </div>
   );
 };

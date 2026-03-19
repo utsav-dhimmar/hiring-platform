@@ -58,9 +58,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || generatedId;
 
     return (
-      <div
-        className={`custom-input ${error ? "custom-input--error" : ""} ${className}`}
-      >
+      <div className={`custom-input ${error ? "custom-input--error" : ""} ${className}`}>
         {label && (
           <label htmlFor={inputId} className="custom-input__label">
             {label}
@@ -68,9 +66,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="custom-input__wrapper">
           {leftElement && (
-            <span className="custom-input__element custom-input__element--left">
-              {leftElement}
-            </span>
+            <span className="custom-input__element custom-input__element--left">{leftElement}</span>
           )}
           <Form.Control
             id={inputId}
@@ -86,9 +82,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && <span className="custom-input__error">{error}</span>}
-        {helperText && !error && (
-          <span className="custom-input__helper">{helperText}</span>
-        )}
+        {helperText && !error && <span className="custom-input__helper">{helperText}</span>}
       </div>
     );
   },
