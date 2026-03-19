@@ -1,83 +1,50 @@
-"""
-Embedding generation and similarity scoring for resumes, JDs, and skills.
-"""
+"""Embedding generation for resumes, job descriptions, skills, and transcripts."""
 
 from __future__ import annotations
 
 from functools import lru_cache
+from threading import Lock
 
-import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from app.v1.core.config import settings
-from app.v1.prompts import (
+from app.v1.prompts.instructions import (
     JD_INSTRUCTION,
     RESUME_INSTRUCTION,
     SKILL_INSTRUCTION,
+    TRANSCRIPT_INSTRUCTION,
 )
 
 
 @lru_cache(maxsize=1)
 def get_embedding_model() -> SentenceTransformer:
-    """Retrieve the shared singleton instance of the embedding model.
-
-    Returns:
-        The loaded SentenceTransformer model.
-    """
     return SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
 
 
 def preload_embedding_model() -> SentenceTransformer:
-    """Explicitly trigger model loading.
-
-    Returns:
-        The loaded SentenceTransformer model.
-    """
     return get_embedding_model()
 
 
 class EmbeddingService:
-    """Service for generating and comparing text embeddings."""
-
     def __init__(self) -> None:
         self.model = get_embedding_model()
-        self.target_dim = settings.EMBEDDING_VECTOR_DIM
-        self.use_instructions = settings.EMBEDDING_USE_INSTRUCTIONS
-        self.truncate_dim = settings.EMBEDDING_TRUNCATE_DIM
+        self.target_dim: int = settings.EMBEDDING_VECTOR_DIM
+        self.use_instructions: bool = settings.EMBEDDING_USE_INSTRUCTIONS
+        self.truncate_dim: int | None = settings.EMBEDDING_TRUNCATE_DIM
 
     def _fit_vector_dim(self, vector: list[float]) -> list[float]:
-        """Ensure the vector matches the configured target dimension.
-
-        Truncates or pads the vector with zeros as needed.
-
-        Args:
-            vector: The input embedding vector.
-
-        Returns:
-            The adjusted vector matching the target dimension.
-        """
-        if len(vector) == self.target_dim:
+        length = len(vector)
+        if length == self.target_dim:
             return vector
-        if len(vector) > self.target_dim:
-            return vector[:self.target_dim]
-        return vector + ([0.0] * (self.target_dim - len(vector)))
+        if length > self.target_dim:
+            return vector[: self.target_dim]
+        return vector + ([0.0] * (self.target_dim - length))
 
     def _encode_text(self, text: str, instruction: str) -> list[float]:
-        """Internal helper to encode text into a vector using an optional instruction.
-
-        Args:
-            text: The text string to encode.
-            instruction: The task-specific instruction prefix.
-
-        Returns:
-            A list of floats representing the embedding vector.
-        """
-        normalized_text = text.strip()
-        if not normalized_text:
+        normalized = text.strip()
+        if not normalized:
             return []
-        payload = (
-            instruction + normalized_text if self.use_instructions else normalized_text
-        )
+        payload = instruction + normalized if self.use_instructions else normalized
         vector = self.model.encode(
             payload,
             normalize_embeddings=True,
@@ -86,128 +53,73 @@ class EmbeddingService:
         return self._fit_vector_dim(vector.tolist())
 
     def encode_resume(self, text: str) -> list[float]:
-        """Encode resume text into a vector embedding.
-
-        Args:
-            text: Raw or processed resume text.
-
-        Returns:
-            Embedding vector.
-        """
         return self._encode_text(text, RESUME_INSTRUCTION)
 
     def encode_jd(self, text: str) -> list[float]:
-        """Encode job description text into a vector embedding.
-
-        Args:
-            text: Job description text.
-
-        Returns:
-            Embedding vector.
-        """
         return self._encode_text(text, JD_INSTRUCTION)
 
     def encode_skill(self, text: str) -> list[float]:
-        """Encode skill name/description into a vector embedding.
-
-        Args:
-            text: Skill text.
-
-        Returns:
-            Embedding vector.
-        """
         return self._encode_text(text, SKILL_INSTRUCTION)
 
-    def get_semantic_score(self, resume_text: str, jd_text: str) -> float:
-        """Calculate the semantic similarity score between resume and JD text.
+    def encode_transcript(self, text: str) -> list[float]:
+        return self._encode_text(text, TRANSCRIPT_INSTRUCTION)
 
-        Encodes both texts and computes their cosine similarity (dot product of
-        normalized vectors).
-
-        Args:
-            resume_text: The resume text.
-            jd_text: The job description text.
-
-        Returns:
-            A score between 0.0 and 100.0.
-        """
-        if not resume_text.strip() or not jd_text.strip():
-            return 0.0
-
-        vec1 = np.array(self.encode_resume(resume_text))
-        vec2 = np.array(self.encode_jd(jd_text))
-        if vec1.size == 0 or vec2.size == 0:
-            return 0.0
-        score = float(np.dot(vec1, vec2))
-        return round(max(0.0, score) * 100.0, 2)
-
-    def get_semantic_score_from_embeddings(
+    def encode_batch(
         self,
-        resume_embedding: list[float],
-        jd_embedding: list[float],
-    ) -> float:
-        """Compute semantic score from pre-calculated embedding vectors.
+        texts: list[str],
+        instruction: str = "",
+        batch_size: int = 32,
+    ) -> list[list[float]]:
+        result: list[list[float]] = [[] for _ in texts]
+        payloads, valid_indices = [], []
+        for i, text in enumerate(texts):
+            normalized = text.strip()
+            if normalized:
+                payload = instruction + normalized if self.use_instructions else normalized
+                payloads.append(payload)
+                valid_indices.append(i)
+        if not payloads:
+            return result
+        vectors = self.model.encode(
+            payloads,
+            normalize_embeddings=True,
+            truncate_dim=self.truncate_dim,
+            batch_size=batch_size,
+            show_progress_bar=False,
+        )
+        for i, idx in enumerate(valid_indices):
+            result[idx] = self._fit_vector_dim(vectors[i].tolist())
+        return result
 
-        Args:
-            resume_embedding: Pre-calculated resume vector.
-            jd_embedding: Pre-calculated JD vector.
+    def encode_resumes_batch(self, texts: list[str], batch_size: int = 32) -> list[list[float]]:
+        return self.encode_batch(texts, RESUME_INSTRUCTION, batch_size)
 
-        Returns:
-            A score between 0.0 and 100.0.
-        """
-        if not resume_embedding or not jd_embedding:
-            return 0.0
+    def encode_transcripts_batch(self, texts: list[str], batch_size: int = 32) -> list[list[float]]:
+        return self.encode_batch(texts, TRANSCRIPT_INSTRUCTION, batch_size)
 
-        vec1 = np.array(resume_embedding)
-        vec2 = np.array(jd_embedding)
-        if vec1.size == 0 or vec2.size == 0:
-            return 0.0
-        score = float(np.dot(vec1, vec2))
-        return round(max(0.0, score) * 100.0, 2)
-
-
-# --- Backward Compatibility Wrappers ---
 
 _DEFAULT_SERVICE: EmbeddingService | None = None
+_SERVICE_LOCK = Lock()
 
 
 def get_embedding_service() -> EmbeddingService:
-    """Retrieve or create the default embedding service singleton.
-
-    Returns:
-        The shared EmbeddingService instance.
-    """
     global _DEFAULT_SERVICE
     if _DEFAULT_SERVICE is None:
-        _DEFAULT_SERVICE = EmbeddingService()
+        with _SERVICE_LOCK:
+            if _DEFAULT_SERVICE is None:
+                _DEFAULT_SERVICE = EmbeddingService()
     return _DEFAULT_SERVICE
 
 
+# Backward-compat wrappers
 def encode_resume(text: str) -> list[float]:
-    """Encode resume text into a vector embedding."""
     return get_embedding_service().encode_resume(text)
 
-
 def encode_jd(text: str) -> list[float]:
-    """Encode job description text into a vector embedding."""
     return get_embedding_service().encode_jd(text)
 
-
 def encode_skill(text: str) -> list[float]:
-    """Encode skill name/description into a vector embedding."""
     return get_embedding_service().encode_skill(text)
 
-
-def get_semantic_score(resume_text: str, jd_text: str) -> float:
-    """Calculate the semantic similarity score between resume and JD text."""
-    return get_embedding_service().get_semantic_score(resume_text, jd_text)
-
-
-def get_semantic_score_from_embeddings(
-    resume_embedding: list[float],
-    jd_embedding: list[float],
-) -> float:
-    """Compute semantic score from pre-calculated embedding vectors."""
-    return get_embedding_service().get_semantic_score_from_embeddings(
-        resume_embedding, jd_embedding
-    )
+def encode_transcript(text: str) -> list[float]:
+    return get_embedding_service().encode_transcript(text)

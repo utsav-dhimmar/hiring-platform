@@ -11,3 +11,6 @@ JD_INSTRUCTION = (
 SKILL_INSTRUCTION = (
     "Instruct: Represent this hiring skill for semantic matching\nPassage: "
 )
+TRANSCRIPT_INSTRUCTION = (
+    "Instruct: Represent this interview transcript for candidate evaluation\nPassage: "
+)
