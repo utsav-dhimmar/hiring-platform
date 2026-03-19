@@ -5,7 +5,7 @@ Test cases for admin analytics and hiring reports API endpoints.
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from app.v1.tests.admin.conftest import get_auth_header
+from .conftest import get_auth_header
 
 
 class TestAdminAnalytics:

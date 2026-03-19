@@ -4,7 +4,7 @@ Test cases for admin permission management API endpoints.
 
 import uuid
 
-from app.v1.tests.admin.conftest import get_auth_header
+from .conftest import get_auth_header
 
 
 class TestAdminPermissionManagement:

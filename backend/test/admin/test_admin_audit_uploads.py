@@ -5,7 +5,7 @@ Test cases for admin audit logs and recent uploads API endpoints.
 import uuid
 from datetime import datetime, timezone
 
-from app.v1.tests.admin.conftest import get_auth_header
+from .conftest import get_auth_header
 
 
 class TestAdminAuditLogs:

@@ -91,8 +91,15 @@ class UserRepository:
             db=db,
             object=user,
         )
+        if created_user is None:
+            db_user = await self.get_by_email(db=db, email=user.email)
+            if db_user is None:
+                raise ValueError("User was not created properly")
+            user_id = db_user.id
+        else:
+            user_id = created_user["id"]
         # Fetch again with role info
-        return await self.get_by_id(db=db, user_id=created_user["id"])
+        return await self.get_by_id(db=db, user_id=user_id)
 
     async def update_refresh_token(
         self,

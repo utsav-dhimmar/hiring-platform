@@ -2,20 +2,16 @@
 Test configuration and fixtures for admin API tests.
 """
 
-import asyncio
 import uuid
 from datetime import datetime, timezone
-from typing import AsyncGenerator
+from typing import Generator, AsyncGenerator
 from unittest.mock import MagicMock, patch
 
 import pytest
-import pytest_asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.v1.core.security import create_access_token, hash_password
 from app.v1.db.base import Base
@@ -24,17 +20,12 @@ from app.v1.db.models.roleAndPermission import role_permission
 from app.v1.db.models.roles import Role
 from app.v1.db.models.user import User
 
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost/app"
-
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-TestSessionMaker = async_sessionmaker(
-    test_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+# Use synchronous driver for tests setup
+SYNC_TEST_DATABASE_URL = "postgresql://postgres:postgres@localhost/test_db"
+# Use async driver for application override
+ASYNC_TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost/test_db"
 
 mock_engine = MagicMock()
-
 
 @pytest.fixture(scope="function")
 def app_with_mocks():
@@ -43,43 +34,47 @@ def app_with_mocks():
         patch("app.main.init_db", return_value=None),
         patch("app.main.initialize_resume_executor", return_value=None),
         patch("app.v1.db.session.engine", mock_engine),
-        patch("app.v1.db.session.async_session_maker", TestSessionMaker),
     ):
         from app.main import app
         from app.v1.db.session import get_db
 
+        test_async_engine = create_async_engine(
+            ASYNC_TEST_DATABASE_URL,
+            echo=False,
+        )
+        TestAsyncSessionMaker = async_sessionmaker(
+            test_async_engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+
         async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-            async with TestSessionMaker() as session:
+            async with TestAsyncSessionMaker() as session:
                 yield session
 
         app.dependency_overrides[get_db] = override_get_db
         yield app
-
+        app.dependency_overrides.clear()
 
 @pytest.fixture(scope="function")
-def event_loop():
-    """Create event loop for each test function."""
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="function")
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+def db_session() -> Generator[Session, None, None]:
     """Create a fresh database session for each test."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    engine = create_engine(SYNC_TEST_DATABASE_URL)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-    async with TestSessionMaker() as session:
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    session = TestingSessionLocal()
+    try:
         yield session
-        await session.close()
+    finally:
+        session.close()
+        engine.dispose()
 
-
-@pytest_asyncio.fixture
-async def admin_role(db_session: AsyncSession) -> Role:
-    """Create an admin role."""
+@pytest.fixture
+def admin_role(db_session: Session) -> Role:
+    """Create an admin role with all necessary permissions."""
     role = Role(
         id=uuid.uuid4(),
         name="admin",
@@ -87,13 +82,35 @@ async def admin_role(db_session: AsyncSession) -> Role:
         updated_at=datetime.now(timezone.utc),
     )
     db_session.add(role)
-    await db_session.commit()
-    await db_session.refresh(role)
+    db_session.flush()
+
+    permissions = [
+        "users:read", "users:manage",
+        "roles:read", "roles:manage",
+        "permissions:read", "permissions:manage",
+        "audit:read", "files:read", "analytics:read"
+    ]
+    
+    for perm_name in permissions:
+        perm = Permission(
+            id=uuid.uuid4(),
+            name=perm_name,
+            description=f"Permission to {perm_name}",
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        db_session.add(perm)
+        db_session.flush()
+        db_session.execute(
+            role_permission.insert().values(role_id=role.id, permission_id=perm.id)
+        )
+
+    db_session.commit()
+    db_session.refresh(role)
     return role
 
-
-@pytest_asyncio.fixture
-async def hr_role(db_session: AsyncSession) -> Role:
+@pytest.fixture
+def hr_role(db_session: Session) -> Role:
     """Create an HR role."""
     role = Role(
         id=uuid.uuid4(),
@@ -102,13 +119,12 @@ async def hr_role(db_session: AsyncSession) -> Role:
         updated_at=datetime.now(timezone.utc),
     )
     db_session.add(role)
-    await db_session.commit()
-    await db_session.refresh(role)
+    db_session.commit()
+    db_session.refresh(role)
     return role
 
-
-@pytest_asyncio.fixture
-async def admin_user(db_session: AsyncSession, admin_role: Role) -> User:
+@pytest.fixture
+def admin_user(db_session: Session, admin_role: Role) -> User:
     """Create an admin user."""
     user = User(
         id=uuid.uuid4(),
@@ -121,13 +137,12 @@ async def admin_user(db_session: AsyncSession, admin_role: Role) -> User:
         updated_at=datetime.now(timezone.utc),
     )
     db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
+    db_session.commit()
+    db_session.refresh(user)
     return user
 
-
-@pytest_asyncio.fixture
-async def regular_user(db_session: AsyncSession, hr_role: Role) -> User:
+@pytest.fixture
+def regular_user(db_session: Session, hr_role: Role) -> User:
     """Create a regular (non-admin) user."""
     user = User(
         id=uuid.uuid4(),
@@ -140,13 +155,12 @@ async def regular_user(db_session: AsyncSession, hr_role: Role) -> User:
         updated_at=datetime.now(timezone.utc),
     )
     db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
+    db_session.commit()
+    db_session.refresh(user)
     return user
 
-
-@pytest_asyncio.fixture
-async def permission(db_session: AsyncSession) -> Permission:
+@pytest.fixture
+def permission(db_session: Session) -> Permission:
     """Create a test permission."""
     perm = Permission(
         id=uuid.uuid4(),
@@ -156,13 +170,12 @@ async def permission(db_session: AsyncSession) -> Permission:
         updated_at=datetime.now(timezone.utc),
     )
     db_session.add(perm)
-    await db_session.commit()
-    await db_session.refresh(perm)
+    db_session.commit()
+    db_session.refresh(perm)
     return perm
 
-
-@pytest_asyncio.fixture
-async def second_role(db_session: AsyncSession, permission: Permission) -> Role:
+@pytest.fixture
+def second_role(db_session: Session, permission: Permission) -> Role:
     """Create a second role with a permission."""
     role = Role(
         id=uuid.uuid4(),
@@ -171,15 +184,14 @@ async def second_role(db_session: AsyncSession, permission: Permission) -> Role:
         updated_at=datetime.now(timezone.utc),
     )
     db_session.add(role)
-    await db_session.flush()
+    db_session.flush()
 
-    await db_session.execute(
+    db_session.execute(
         role_permission.insert().values(role_id=role.id, permission_id=permission.id)
     )
-    await db_session.commit()
-    await db_session.refresh(role)
+    db_session.commit()
+    db_session.refresh(role)
     return role
-
 
 @pytest.fixture
 def admin_token(admin_user: User) -> str:
@@ -190,7 +202,6 @@ def admin_token(admin_user: User) -> str:
     )
     return token
 
-
 @pytest.fixture
 def user_token(regular_user: User) -> str:
     """Generate a valid regular user access token."""
@@ -200,13 +211,11 @@ def user_token(regular_user: User) -> str:
     )
     return token
 
-
 @pytest.fixture
 def client(app_with_mocks):
     """Create a test client."""
     with TestClient(app_with_mocks, raise_server_exceptions=False) as c:
         yield c
-
 
 def get_auth_header(token: str) -> dict:
     """Helper to create authorization header."""
