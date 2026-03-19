@@ -1,0 +1,125 @@
+/**
+ * Modal component for creating new permissions.
+ * Provides a form to input permission name and description.
+ */
+
+import { useState } from "react";
+import { Modal, Form, Alert } from "react-bootstrap";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { adminPermissionService } from "../../apis/admin/service";
+import { permissionCreateSchema, type PermissionCreateFormValues } from "../../schemas/admin";
+import { Input, Button } from "../../components/common";
+import axios from "axios";
+
+/**
+ * Props for the CreatePermissionModal component.
+ */
+interface CreatePermissionModalProps {
+  /** Controls visibility of the modal */
+  show: boolean;
+  /** Callback to close the modal */
+  handleClose: () => void;
+  /** Callback fired after permission is successfully created */
+  onPermissionCreated: () => void;
+}
+
+/**
+ * Modal dialog for creating a new permission.
+ * @example
+ * ```tsx
+ * <CreatePermissionModal
+ *   show={showModal}
+ *   handleClose={() => setShowModal(false)}
+ *   onPermissionCreated={refreshPermissions}
+ * />
+ * ```
+ */
+const CreatePermissionModal = ({ 
+  show, 
+  handleClose, 
+  onPermissionCreated 
+}: CreatePermissionModalProps) => {
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<PermissionCreateFormValues>({
+    resolver: zodResolver(permissionCreateSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+  });
+
+  const onSubmit = async (data: PermissionCreateFormValues) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await adminPermissionService.createPermission(data);
+      onPermissionCreated();
+      reset();
+      handleClose();
+    } catch (err: unknown) {
+      let errorMsg = "Failed to create permission.";
+      if (axios.isAxiosError(err)) {
+        errorMsg = err.response?.data?.detail || err.message || errorMsg;
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+      setError(errorMsg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onHide = () => {
+    reset();
+    setError(null);
+    handleClose();
+  };
+
+  return (
+    <Modal show={show} onHide={onHide} centered>
+      <Modal.Header closeButton>
+        <Modal.Title>Create New Permission</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {error && <Alert variant="danger" dismissible onClose={() => setError(null)}>{error}</Alert>}
+        
+        <Form onSubmit={handleSubmit(onSubmit)}>
+          <Input
+            label="Permission Name"
+            placeholder="e.g. users:write"
+            {...register("name")}
+            error={errors.name?.message}
+            className="mb-3"
+          />
+
+          <Input
+            label="Description"
+            placeholder="Describe what this permission allows"
+            {...register("description")}
+            error={errors.description?.message}
+            className="mb-3"
+          />
+
+          <div className="d-flex justify-content-end gap-2 mt-4">
+            <Button variant="outline-secondary" onClick={onHide} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={isLoading}>
+              Create Permission
+            </Button>
+          </div>
+        </Form>
+      </Modal.Body>
+    </Modal>
+  );
+};
+
+export default CreatePermissionModal;

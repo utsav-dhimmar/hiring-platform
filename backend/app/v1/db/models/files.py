@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from app.v1.db.models.user import User
 
 
-
 class File(Base):
     """File ORM model.
 

@@ -137,9 +137,7 @@ def upload_response_from_records(
     Returns:
         A populated ResumeUploadResponse.
     """
-    processing = parse_processing_info(
-        getattr(resume_record, "parse_summary", None)
-    )
+    processing = parse_processing_info(getattr(resume_record, "parse_summary", None))
     return ResumeUploadResponse(
         message="Resume uploaded successfully. Processing started.",
         job_id=job_id,

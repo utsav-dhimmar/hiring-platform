@@ -2,9 +2,10 @@ import asyncio
 
 from sqlalchemy import delete, insert, select
 
+from app.v1.core.embeddings import encode_jd
 from app.v1.db import Job, Skill, job_skills
 from app.v1.db.session import async_session_maker, init_db
-from packages.resume_screening.v1.services.embeddings import build_job_text, encode_jd
+from app.v1.utils.text import build_job_text
 from seed.seed_for_user import ensure_dev_test_role, ensure_user, get_admin_role
 from seed.seed_skills import ensure_skills
 
@@ -195,11 +196,16 @@ async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
     job.jd_embedding = encode_jd(job_text) if job_text else None
 
     skill_ids = [skill.id for skill in skills if skill.name in REQUIRED_SKILLS]
-    await session.execute(delete(job_skills).where(job_skills.c.job_id == job.id))
+    await session.execute(
+        delete(job_skills).where(job_skills.c.job_id == job.id)
+    )
     if skill_ids:
         await session.execute(
             insert(job_skills),
-            [{"job_id": job.id, "skill_id": skill_id} for skill_id in skill_ids],
+            [
+                {"job_id": job.id, "skill_id": skill_id}
+                for skill_id in skill_ids
+            ],
         )
 
     await session.flush()

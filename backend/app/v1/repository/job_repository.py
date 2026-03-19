@@ -20,7 +20,9 @@ class JobRepository:
         """
         self.crud = FastCRUD(Job)
 
-    async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100):
+    async def get_multi(
+        self, db: AsyncSession, skip: int = 0, limit: int = 100
+    ):
         """
         Retrieve multiple job records with pagination.
 

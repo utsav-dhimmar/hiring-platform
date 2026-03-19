@@ -13,6 +13,8 @@ export interface UserRead {
   is_active: boolean;
   /** Role identifier determining user permissions */
   role_id: string;
+  /** Name of the role (e.g., "admin", "recruiter") */
+  role_name?: string | null;
   /** Timestamp when the user was created */
   created_at: string | null;
   /** Timestamp when the user was last updated */

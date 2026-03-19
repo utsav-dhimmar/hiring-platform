@@ -7,7 +7,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Container, Row, Col, Spinner, Alert, Badge, Breadcrumb, Modal } from "react-bootstrap";
-import { Card, CardHeader, CardBody, Button } from "../../components/common";
+import { Card, CardHeader, CardBody, Button, DateDisplay } from "../../components/common";
 import { resumeService } from "../../apis/services/resumeService";
 import type { Job } from "../../apis/types/job";
 import type { JobResumeInfoResponse } from "../../apis/types/resume";
@@ -215,13 +215,15 @@ const JobCandidatesPage = () => {
               <h5>Basic Info</h5>
               <p className="mb-1"><strong>Department:</strong> {job.department || "N/A"}</p>
               <p className="mb-1"><strong>Status:</strong> <Badge bg={job.is_active ? "success" : "secondary"}>{job.is_active ? "Active" : "Inactive"}</Badge></p>
-              <p className="mb-1"><strong>Created At:</strong> {(() => {
-                const date = new Date(job.created_at);
-                const day = String(date.getDate()).padStart(2, "0");
-                const month = String(date.getMonth() + 1).padStart(2, "0");
-                const year = date.getFullYear();
-                return `${day}-${month}-${year}`;
-              })()}</p>
+              <p className="mb-1"><strong>Created At:</strong> <DateDisplay 
+                date={job.created_at} 
+                formatter={(date) => {
+                  const day = String(date.getDate()).padStart(2, "0");
+                  const month = String(date.getMonth() + 1).padStart(2, "0");
+                  const year = date.getFullYear();
+                  return `${day}-${month}-${year}`;
+                }} 
+              /></p>
             </Col>
           </Row>
           <hr />

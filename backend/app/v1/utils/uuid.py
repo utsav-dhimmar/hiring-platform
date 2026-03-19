@@ -18,10 +18,12 @@ class UUIDHelper:
         # uuid.uuid7() is available in Python 3.14+
         if hasattr(uuid, "uuid7"):
             return uuid.uuid7()
-        
+
         # Fallback for environments where uuid7 might not be available yet
         # though the project specifies Python >= 3.14
-        raise RuntimeError("uuid.uuid7 is not available in the current Python environment.")
+        raise RuntimeError(
+            "uuid.uuid7 is not available in the current Python environment."
+        )
 
     @staticmethod
     def to_string(u: uuid.UUID) -> str:
@@ -52,5 +54,5 @@ class UUIDHelper:
         try:
             uuid.UUID(str(uuid_to_test))
             return True
-        except (ValueError, TypeError, AttributeError):
+        except ValueError, TypeError, AttributeError:
             return False

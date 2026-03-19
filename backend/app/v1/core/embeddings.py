@@ -59,7 +59,7 @@ class EmbeddingService:
         if len(vector) == self.target_dim:
             return vector
         if len(vector) > self.target_dim:
-            return vector[:self.target_dim]
+            return vector[: self.target_dim]
         return vector + ([0.0] * (self.target_dim - len(vector)))
 
     def _encode_text(self, text: str, instruction: str) -> list[float]:

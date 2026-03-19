@@ -10,6 +10,7 @@ from app.v1.db.base_class import Base
 
 from app.v1.utils.uuid import UUIDHelper
 
+
 class Interview(Base):
     """Interview ORM model.
 
