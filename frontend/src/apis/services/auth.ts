@@ -1,5 +1,5 @@
 import apiClient from "../client";
-import type { UserLogin, LoginResponse, UserCreate, UserRead } from "../types/auth";
+import type { UserLogin, LoginResponse, UserCreate, UserRead, UserRegister } from "../types/auth";
 
 /**
  * Authentication service for user login, registration, and profile management.
@@ -24,12 +24,12 @@ export const authService = {
 
   /**
    * Registers a new user account.
-   * @param userIn - User creation data
+   * @param userIn - User registration data
    * @returns Promise resolving to the created user's data
    * @throws {Error} When email is already taken or validation fails
    */
-  register: async (userIn: UserCreate): Promise<UserRead> => {
-    const response = await apiClient.post<UserRead>("/users/", userIn);
+  register: async (userIn: UserRegister): Promise<UserRead> => {
+    const response = await apiClient.post<UserRead>("/users/register", userIn);
     return response.data;
   },
 
@@ -42,5 +42,13 @@ export const authService = {
   getUser: async (userId: string): Promise<UserRead> => {
     const response = await apiClient.get<UserRead>(`/users/${userId}`);
     return response.data;
+  },
+
+  /**
+   * Logs out the current user by clearing tokens on the server.
+   * @throws {Error} When logout fails
+   */
+  logout: async (): Promise<void> => {
+    await apiClient.post("/users/logout");
   },
 };

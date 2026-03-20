@@ -6,6 +6,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { logout, selectCurrentUser } from "../../../store/slices/authSlice";
+import { authService } from "../../../apis/services/auth";
 import "../../../css/adminLayout.css";
 
 const AdminLayout = () => {
@@ -15,8 +16,15 @@ const AdminLayout = () => {
 
   const isAdmin = user?.role_name?.toLowerCase() === "admin";
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Backend logout failed:", error);
+    } finally {
+      dispatch(logout());
+      navigate("/login");
+    }
   };
 
   const goToHome = () => {
