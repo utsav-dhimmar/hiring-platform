@@ -4,6 +4,7 @@
  */
 
 import type { Job } from "../types/job";
+import type { JobStageConfig } from "../types/stage";
 
 /**
  * Base fields for a permission.
@@ -248,4 +249,5 @@ export interface SkillRead extends SkillBase {
  */
 export interface JobRead extends Job {
   skills?: SkillRead[];
+  stages?: JobStageConfig[];
 }

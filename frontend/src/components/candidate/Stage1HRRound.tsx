@@ -25,7 +25,11 @@ const EvaluationItem = ({ label, score }: { label: string; score: number }) => (
       <span className="small fw-bold">{label}</span>
       <span className="small">{score}/10</span>
     </div>
-    <ProgressBar now={score * 10} variant={score >= 7 ? "success" : score >= 5 ? "warning" : "danger"} style={{ height: "6px" }} />
+    <ProgressBar
+      now={score * 10}
+      variant={score >= 7 ? "success" : score >= 5 ? "warning" : "danger"}
+      style={{ height: "6px" }}
+    />
   </div>
 );
 
@@ -99,8 +103,8 @@ const Stage1HRRound: React.FC<Stage1HRRoundProps> = ({
               <Spinner animation="border" variant="primary" className="mb-3" />
               <h5>Analyzing Transcript...</h5>
               <p className="text-muted">
-                The AI is analyzing the interview transcript and evaluating the candidate.
-                This may take a few moments.
+                The AI is analyzing the interview transcript and evaluating the candidate. This may
+                take a few moments.
               </p>
             </div>
           )}
@@ -132,12 +136,18 @@ const Stage1HRRound: React.FC<Stage1HRRoundProps> = ({
                         </div>
                         <div className="text-muted small">Overall Score</div>
                       </div>
-                      
+
                       <EvaluationItem label="Communication" score={analysis.communication_skill} />
                       <EvaluationItem label="Confidence" score={analysis.confidence} />
                       <EvaluationItem label="Cultural Fit" score={analysis.cultural_fit} />
-                      <EvaluationItem label="Profile Understanding" score={analysis.profile_understanding} />
-                      <EvaluationItem label="Tech-Stack Alignment" score={analysis.tech_stack_alignment} />
+                      <EvaluationItem
+                        label="Profile Understanding"
+                        score={analysis.profile_understanding}
+                      />
+                      <EvaluationItem
+                        label="Tech-Stack Alignment"
+                        score={analysis.tech_stack_alignment}
+                      />
                       <EvaluationItem label="Salary Alignment" score={analysis.salary_alignment} />
                     </CardBody>
                   </Card>
@@ -168,13 +178,15 @@ const Stage1HRRound: React.FC<Stage1HRRoundProps> = ({
                     </Button>
                   </div>
                 ) : (
-                  <div className={`alert ${hr_decision ? "alert-success" : "alert-danger"} d-flex justify-content-between align-items-center mb-0`}>
+                  <div
+                    className={`alert ${hr_decision ? "alert-success" : "alert-danger"} d-flex justify-content-between align-items-center mb-0`}
+                  >
                     <span>
                       Decision: <strong>{hr_decision ? "PROCEEDED TO STAGE 2" : "REJECTED"}</strong>
                     </span>
-                    <Button 
-                      variant="outline-secondary" 
-                      size="sm" 
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
                       onClick={() => onMakeDecision(!hr_decision)}
                       disabled={isLoading}
                     >
