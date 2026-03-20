@@ -72,7 +72,7 @@ function AdminDataTable<T>({
   emptyMessage = "No items found.",
   rowKey,
   className = "",
-  tableClassName = "admin-table",
+  tableClassName = "table w-100 admin-table",
 }: AdminDataTableProps<T>) {
   if (loading && data.length === 0) {
     return <LoadingSpinner message="Loading data..." />;
@@ -91,7 +91,7 @@ function AdminDataTable<T>({
   };
 
   return (
-    <Card className={className}>
+    <Card className={`${className}`}>
       <CardBody>
         {/* If error and data exists, show a smaller alert above the table */}
         {error && data.length > 0 && (
@@ -121,7 +121,7 @@ function AdminDataTable<T>({
                 data.map((item) => (
                   <tr key={getRowKey(item)}>
                     {columns.map((column, index) => (
-                      <td key={index} className={column.className}>
+                      <td key={index} className={column.className} style={column.style}>
                         {typeof column.accessor === "function"
                           ? column.accessor(item)
                           : (item[column.accessor] as ReactNode)}

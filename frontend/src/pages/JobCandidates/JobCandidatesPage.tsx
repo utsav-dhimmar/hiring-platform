@@ -38,6 +38,7 @@ const mapCandidateToResumeInfo = (
   candidate_first_name: candidate.first_name,
   candidate_last_name: candidate.last_name,
   candidate_email: candidate.email,
+  candidate_phone: candidate.phone,
   file_id: candidate.id,
   resume_id: candidate.id,
   file_name: "N/A",
@@ -100,7 +101,7 @@ const JobCandidatesPage = () => {
       first_name: selectedResume.candidate_first_name,
       last_name: selectedResume.candidate_last_name,
       email: selectedResume.candidate_email,
-      phone: null,
+      phone: selectedResume.candidate_phone,
       current_status: null,
       created_at: selectedResume.uploaded_at,
       resume_analysis: selectedResume.analysis,
@@ -176,7 +177,10 @@ const JobCandidatesPage = () => {
       header: "Score",
       accessor: (resume) =>
         resume.resume_score !== null ? (
-          <Badge bg={resume.resume_score >= 65 ? "success" : "warning"}>
+          <Badge
+            bg={resume.resume_score >= 65 ? "success" : "warning"}
+            className={`px-3 py-2 rounded-pill bg-${resume.resume_score >= 65 ? "success" : "warning"}-subtle text-${resume.resume_score >= 65 ? "success" : "warning"}`}
+          >
             {resume.resume_score.toFixed(1)}%
           </Badge>
         ) : (
@@ -185,6 +189,7 @@ const JobCandidatesPage = () => {
     },
     {
       header: "Pass/Fail",
+      style: { width: "120px", minWidth: "120px" },
       accessor: (resume) => (
         <StatusBadge
           status={resume.pass_fail === null ? "pending" : resume.pass_fail ? "pass" : "fail"}
@@ -198,6 +203,7 @@ const JobCandidatesPage = () => {
     },
     {
       header: "Status",
+      style: { width: "150px", minWidth: "150px" },
       accessor: (resume) => {
         const status = resume.processing?.status;
         if (status === "processing" || status === "queued") {
@@ -213,24 +219,33 @@ const JobCandidatesPage = () => {
     },
     {
       header: "Actions",
-      className: "text-end",
+      className: "text-end text-nowrap",
+      style: { width: "250px", minWidth: "250px" },
       accessor: (resume) => (
-        <div className="d-flex gap-2 justify-content-end">
+        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
           <Button
-            variant="primary"
+            variant="outline-primary"
             size="sm"
-            onClick={() => navigate(`/jobs/${jobId}/candidates/${resume.candidate_id}/evaluation`)}
-            disabled={
-              resume.pass_fail === false ||
-              resume.processing?.status === "processing" ||
-              resume.processing?.status === "queued"
-            }
+            className="flex-shrink-0"
+            onClick={() => handleShowMore(resume)}
           >
-            Evaluate
-          </Button>
-          <Button variant="outline-primary" size="sm" onClick={() => handleShowMore(resume)}>
             Show More
           </Button>
+          {resume.pass_fail !== false && (
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex-shrink-0"
+              onClick={() =>
+                navigate(`/jobs/${jobId}/candidates/${resume.candidate_id}/evaluation`)
+              }
+              disabled={
+                resume.processing?.status === "processing" || resume.processing?.status === "queued"
+              }
+            >
+              Evaluate
+            </Button>
+          )}
         </div>
       ),
     },
@@ -246,27 +261,34 @@ const JobCandidatesPage = () => {
 
   return (
     <Container className="py-5">
-      <Breadcrumb className="mb-4">
-        <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>
-          Jobs
-        </Breadcrumb.Item>
-        <Breadcrumb.Item active>{job?.title}</Breadcrumb.Item>
-      </Breadcrumb>
+      <div className="mb-4">
+        <Breadcrumb className="bg-transparent p-0 mb-2">
+          <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>
+            Jobs
+          </Breadcrumb.Item>
+          <Breadcrumb.Item active className="text-muted fw-medium">
+            {job?.title}
+          </Breadcrumb.Item>
+        </Breadcrumb>
+      </div>
 
-      <PageHeader
-        title={`Candidates for ${job?.title}`}
-        subtitle={`${job?.department} | ${job?.is_active ? "Active" : "Inactive"}`}
-        actions={
-          <>
-            <Button variant="outline-primary" onClick={() => setShowJobInfo(true)}>
-              Show Job Info
-            </Button>
-            <Button variant="outline-secondary" onClick={() => navigate("/")}>
-              Back to Jobs
-            </Button>
-          </>
-        }
-      />
+      <div className="bg-white p-4 rounded-4 shadow-sm border border-light mb-4">
+        <PageHeader
+          title={`Candidates for ${job?.title}`}
+          subtitle={`${job?.department} | ${job?.is_active ? "Active" : "Inactive"}`}
+          className="mb-0 border-0 p-0 shadow-none"
+          actions={
+            <div className="d-flex gap-2">
+              <Button variant="outline-primary" onClick={() => setShowJobInfo(true)}>
+                Job Details
+              </Button>
+              <Button variant="outline-secondary" onClick={() => navigate("/")}>
+                Back to Jobs
+              </Button>
+            </div>
+          }
+        />
+      </div>
 
       <Card className="mb-4">
         <CardBody>
@@ -294,9 +316,7 @@ const JobCandidatesPage = () => {
           <Card>
             <CardHeader className="d-flex justify-content-between align-items-center">
               <h3 className="mb-0">{searchQuery ? "Search Results" : "Applicant List"}</h3>
-              <Badge bg="primary">
-                {resumes.length} {searchQuery ? "Found" : "Total"}
-              </Badge>
+              <Badge bg="primary">{resumes.length} Candidate Found</Badge>
             </CardHeader>
             <AdminDataTable
               columns={columns}

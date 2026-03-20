@@ -1,5 +1,11 @@
 import apiClient from "../client";
-import type { UserLogin, LoginResponse, UserCreate, UserRead, UserRegister } from "../types/auth";
+import type {
+  UserLogin,
+  LoginResponse,
+  UserRead,
+  UserRegister,
+  RefreshTokenRequest,
+} from "../types/auth";
 
 /**
  * Authentication service for user login, registration, and profile management.
@@ -41,6 +47,17 @@ export const authService = {
    */
   getUser: async (userId: string): Promise<UserRead> => {
     const response = await apiClient.get<UserRead>(`/users/${userId}`);
+    return response.data;
+  },
+
+  /**
+   * Refreshes the access token using a refresh token.
+   * @param params - Refresh token request payload
+   * @returns Promise resolving to login response with new tokens and user data
+   * @throws {Error} When refresh token is invalid or expired
+   */
+  refreshToken: async (params: RefreshTokenRequest): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>("/users/refresh", params);
     return response.data;
   },
 

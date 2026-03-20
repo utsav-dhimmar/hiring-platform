@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { Col, Form, ProgressBar, Row, Spinner } from "react-bootstrap";
-import { Button, Card, CardBody, CardHeader, StatusBadge } from "../common";
+import { Button, Card, CardBody, StatusBadge } from "../common";
 import type { Stage1Info } from "../../apis/types/stage";
 
 interface Stage1HRRoundProps {
@@ -67,148 +67,217 @@ const Stage1HRRound: React.FC<Stage1HRRoundProps> = ({
 
   return (
     <div className="stage-1-hr-round">
-      <Card className="mb-4">
-        <CardHeader className="d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">Stage 1: HR Screening Round</h5>
-          <StatusBadge status={status} />
-        </CardHeader>
-        <CardBody>
-          {status === "pending" && !stageInfo.transcript_id && (
-            <div className="upload-section py-4 text-center border rounded bg-light mb-4">
-              <h6>Upload Interview Transcript</h6>
-              <p className="text-muted small mb-3">Accepted formats: TXT, JSON, DOCX (Max 10MB)</p>
-              <Form.Group className="mb-3 d-flex justify-content-center">
-                <div style={{ maxWidth: "300px" }}>
-                  <Form.Control
-                    type="file"
-                    accept=".txt,.json,.doc,.docx,application/json,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={handleFileChange}
-                    disabled={isLoading}
+      <div className="stage-1-hr-round animate-fade-in">
+        <Card className="mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
+          <div className="bg-white px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 className="mb-0 fw-bold">Stage 1: HR Screening Round</h5>
+            <StatusBadge status={status} />
+          </div>
+          <CardBody className="p-4">
+            {status === "pending" && !stageInfo.transcript_id && (
+              <div className="upload-section py-5 px-4 text-center border-2 border-dashed rounded-4 bg-light mb-4 transition-all hover-bg-light-blue">
+                <div className="mb-3 text-primary">
+                  <i className="bi bi-cloud-arrow-up display-4"></i>
+                </div>
+                <h6 className="fw-bold mb-2">Upload Interview Transcript</h6>
+                <p className="text-muted small mb-4 mx-auto" style={{ maxWidth: "400px" }}>
+                  Accept interview transcripts in TXT, JSON, or DOCX formats. Our AI will analyze
+                  the conversation to provide skills and culture fit scores.
+                </p>
+                <Form.Group className="mb-4 d-flex justify-content-center">
+                  <div style={{ maxWidth: "350px" }} className="w-100">
+                    <Form.Control
+                      type="file"
+                      className="form-control-lg rounded-3 border-light shadow-sm"
+                      accept=".txt,.json,.doc,.docx,application/json,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      onChange={handleFileChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </Form.Group>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="px-5 rounded-pill shadow-sm fw-bold"
+                  onClick={handleUpload}
+                  disabled={!selectedFile || isLoading}
+                  isLoading={isLoading}
+                >
+                  Start Analysis
+                </Button>
+              </div>
+            )}
+
+            {(status === "processing" || (status === "pending" && stageInfo.transcript_id)) && (
+              <div className="text-center py-5">
+                <div className="mb-4">
+                  <Spinner
+                    animation="border"
+                    variant="primary"
+                    style={{ width: "3rem", height: "3rem" }}
                   />
                 </div>
-              </Form.Group>
-              <Button
-                variant="primary"
-                onClick={handleUpload}
-                disabled={!selectedFile || isLoading}
-                isLoading={isLoading}
-              >
-                Upload & Analyze
-              </Button>
-            </div>
-          )}
-
-          {(status === "processing" || (status === "pending" && stageInfo.transcript_id)) && (
-            <div className="text-center py-5">
-              <Spinner animation="border" variant="primary" className="mb-3" />
-              <h5>Analyzing Transcript...</h5>
-              <p className="text-muted">
-                The AI is analyzing the interview transcript and evaluating the candidate. This may
-                take a few moments.
-              </p>
-            </div>
-          )}
-
-          {status === "completed" && analysis && (
-            <div className="results-section">
-              <Row className="mb-4">
-                <Col md={8}>
-                  <div className="mb-4">
-                    <h6 className="border-bottom pb-2">Response Summary</h6>
-                    <p className="text-muted">{analysis.response_summary}</p>
-                  </div>
-                  <div className="mb-4">
-                    <h6 className="border-bottom pb-2">Communication Evaluation</h6>
-                    <p className="text-muted">{analysis.communication_evaluation}</p>
-                  </div>
-                  <div className="bg-light p-3 rounded">
-                    <h6 className="mb-2">AI Recommendation</h6>
-                    <p className="mb-0 fw-bold text-primary">{analysis.recommendation}</p>
-                  </div>
-                </Col>
-                <Col md={4}>
-                  <Card className="border shadow-none">
-                    <CardBody>
-                      <h6 className="text-center mb-4">Evaluation Scores</h6>
-                      <div className="text-center mb-4">
-                        <div className="display-4 fw-bold text-primary">
-                          {analysis.overall_score.toFixed(0)}
-                        </div>
-                        <div className="text-muted small">Overall Score</div>
-                      </div>
-
-                      <EvaluationItem label="Communication" score={analysis.communication_skill} />
-                      <EvaluationItem label="Confidence" score={analysis.confidence} />
-                      <EvaluationItem label="Cultural Fit" score={analysis.cultural_fit} />
-                      <EvaluationItem
-                        label="Profile Understanding"
-                        score={analysis.profile_understanding}
-                      />
-                      <EvaluationItem
-                        label="Tech-Stack Alignment"
-                        score={analysis.tech_stack_alignment}
-                      />
-                      <EvaluationItem label="Salary Alignment" score={analysis.salary_alignment} />
-                    </CardBody>
-                  </Card>
-                </Col>
-              </Row>
-
-              <hr />
-
-              <div className="decision-section mt-4">
-                <h6 className="mb-3">HR Decision</h6>
-                {hr_decision === null ? (
-                  <div className="d-flex gap-3">
-                    <Button
-                      variant="success"
-                      className="flex-grow-1"
-                      onClick={() => onMakeDecision(true)}
-                      disabled={isLoading}
-                    >
-                      Proceed to Stage 2
-                    </Button>
-                    <Button
-                      variant="danger"
-                      className="flex-grow-1"
-                      onClick={() => onMakeDecision(false)}
-                      disabled={isLoading}
-                    >
-                      Reject Candidate
-                    </Button>
-                  </div>
-                ) : (
-                  <div
-                    className={`alert ${hr_decision ? "alert-success" : "alert-danger"} d-flex justify-content-between align-items-center mb-0`}
-                  >
-                    <span>
-                      Decision: <strong>{hr_decision ? "PROCEEDED TO STAGE 2" : "REJECTED"}</strong>
-                    </span>
-                    <Button
-                      variant="outline-secondary"
-                      size="sm"
-                      onClick={() => onMakeDecision(!hr_decision)}
-                      disabled={isLoading}
-                    >
-                      Change Decision
-                    </Button>
-                  </div>
-                )}
+                <h5 className="fw-bold mb-2">Analyzing Transcript...</h5>
+                <p className="text-muted mx-auto" style={{ maxWidth: "450px" }}>
+                  Our AI is meticulously reviewing the interview transcript to evaluate skills,
+                  confidence, and cultural alignment. This usually takes less than a minute.
+                </p>
               </div>
-            </div>
-          )}
+            )}
 
-          {status === "failed" && (
-            <div className="alert alert-danger mb-0">
-              <h6>Analysis Failed</h6>
-              <p className="mb-3">There was an error processing the interview recording.</p>
-              <Button variant="danger" size="sm" onClick={() => setSelectedFile(null)}>
-                Try Again
-              </Button>
-            </div>
-          )}
-        </CardBody>
-      </Card>
+            {status === "completed" && analysis && (
+              <div className="results-section">
+                <Row className="g-4">
+                  <Col lg={7} xl={8}>
+                    <div className="mb-4">
+                      <h6 className="text-uppercase small fw-bold text-muted mb-3 letter-spacing-wide">
+                        Response Summary
+                      </h6>
+                      <div className="p-3 bg-light rounded-3 border-0 text-dark leading-relaxed">
+                        {analysis.response_summary}
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <h6 className="text-uppercase small fw-bold text-muted mb-3 letter-spacing-wide">
+                        Communication Evaluation
+                      </h6>
+                      <div className="p-3 bg-light rounded-3 border-0 text-dark leading-relaxed">
+                        {analysis.communication_evaluation}
+                      </div>
+                    </div>
+                    <div className="bg-primary-subtle p-4 rounded-4 border-0">
+                      <h6 className="text-primary fw-bold mb-2 d-flex align-items-center">
+                        <i className="bi bi-robot me-2"></i>
+                        AI Recommendation
+                      </h6>
+                      <p className="mb-0 fs-5 fw-medium text-primary-emphasis leading-tight">
+                        {analysis.recommendation}
+                      </p>
+                    </div>
+                  </Col>
+                  <Col lg={5} xl={4}>
+                    <Card className="border-0 bg-white shadow-sm rounded-4">
+                      <CardBody className="p-4">
+                        <h6 className="text-center text-muted small text-uppercase fw-bold mb-4 letter-spacing-wide">
+                          Evaluation Scores
+                        </h6>
+                        <div className="text-center mb-5">
+                          <div className="position-relative d-inline-block">
+                            <h2 className="display-4 fw-bold text-primary mb-0 tabular-nums">
+                              {analysis.overall_score.toFixed(0)}
+                            </h2>
+                            <span className="text-muted small position-absolute top-0 start-100 ms-1 fw-bold">
+                              /100
+                            </span>
+                          </div>
+                          <div className="text-muted small fw-medium mt-1">
+                            Overall Compatibility
+                          </div>
+                        </div>
+
+                        <div className="scores-list">
+                          <EvaluationItem
+                            label="Communication"
+                            score={analysis.communication_skill}
+                          />
+                          <EvaluationItem label="Confidence" score={analysis.confidence} />
+                          <EvaluationItem label="Cultural Fit" score={analysis.cultural_fit} />
+                          <EvaluationItem
+                            label="Profile Awareness"
+                            score={analysis.profile_understanding}
+                          />
+                          <EvaluationItem
+                            label="Tech Alignment"
+                            score={analysis.tech_stack_alignment}
+                          />
+                          <EvaluationItem label="Salary Match" score={analysis.salary_alignment} />
+                        </div>
+                      </CardBody>
+                    </Card>
+                  </Col>
+                </Row>
+
+                <hr className="my-5 opacity-10" />
+
+                <div className="decision-section">
+                  <h6 className="text-center text-muted small text-uppercase fw-bold mb-4 letter-spacing-wide">
+                    Strategic Decision
+                  </h6>
+                  {hr_decision === null ? (
+                    <div className="d-flex gap-3 justify-content-center">
+                      <Button
+                        variant="success"
+                        className="px-5 py-3 rounded-3 fw-bold shadow-sm flex-grow-1"
+                        onClick={() => onMakeDecision(true)}
+                        disabled={isLoading}
+                      >
+                        Approve for Next Stage
+                      </Button>
+                      <Button
+                        variant="outline-danger"
+                        className="px-5 py-3 rounded-3 fw-bold flex-grow-1"
+                        onClick={() => onMakeDecision(false)}
+                        disabled={isLoading}
+                      >
+                        Decline Candidate
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      className={`p-4 rounded-4 d-flex justify-content-between align-items-center border-0 shadow-sm ${hr_decision ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger"}`}
+                    >
+                      <div className="d-flex align-items-center">
+                        <div
+                          className={`rounded-circle p-2 me-3 ${hr_decision ? "bg-success text-white" : "bg-danger text-white"}`}
+                        >
+                          <i className={`bi bi-${hr_decision ? "check-lg" : "x-lg"} fs-5`}></i>
+                        </div>
+                        <div>
+                          <small className="d-block opacity-75 fw-bold text-uppercase letter-spacing-wide">
+                            Final Decision
+                          </small>
+                          <h5 className="mb-0 fw-bold">
+                            {hr_decision ? "Advancing to Next Round" : "Candidate Rejected"}
+                          </h5>
+                        </div>
+                      </div>
+                      <Button
+                        variant={hr_decision ? "outline-success" : "outline-danger"}
+                        size="sm"
+                        className="px-4 py-2 rounded-pill fw-bold bg-white"
+                        onClick={() => onMakeDecision(!hr_decision)}
+                        disabled={isLoading}
+                      >
+                        Re-evaluate
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {status === "failed" && (
+              <div className="p-5 text-center bg-danger-subtle rounded-4">
+                <div className="text-danger mb-3">
+                  <i className="bi bi-exclamation-triangle-fill display-5"></i>
+                </div>
+                <h5 className="fw-bold text-danger mb-2">Analysis Interrupted</h5>
+                <p className="text-danger-emphasis mb-4">
+                  We encountered an issue while processing the recording. Please ensure the file is
+                  valid and try again.
+                </p>
+                <Button
+                  variant="danger"
+                  className="px-5 rounded-pill fw-bold"
+                  onClick={() => setSelectedFile(null)}
+                >
+                  Retry Upload
+                </Button>
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 };

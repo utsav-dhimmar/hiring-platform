@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import { adminJobService, adminStageTemplateService } from "../../apis/admin/service";
 import type { JobRead } from "../../apis/admin/types";
 import type { JobStageConfig, StageTemplate } from "../../apis/types/stage";
+import { Modal } from "react-bootstrap";
 import { Button, ErrorDisplay, LoadingSpinner, PageHeader } from "../../components/common";
 import "../../css/adminDashboard.css";
 import { extractErrorMessage } from "../../utils/error";
@@ -24,6 +25,7 @@ const ManageJobStagesModal = ({
   job,
   onStagesUpdated,
 }: ManageJobStagesModalProps) => {
+  console.log(`job`);
   const [stages, setStages] = useState<JobStageConfig[]>([]);
   const [templates, setTemplates] = useState<StageTemplate[]>([]);
   const [loading, setLoading] = useState(false);
@@ -113,104 +115,97 @@ const ManageJobStagesModal = ({
     }
   };
 
-  if (!show || !job) return null;
-
   return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-lg">
-        <div className="modal-header">
-          <h2>Manage Stages: {job.title}</h2>
-          <button className="close-btn" onClick={handleClose}>
-            &times;
-          </button>
-        </div>
-        <div className="modal-body">
-          {error && <ErrorDisplay message={error} />}
+    <Modal show={show} onHide={handleClose} size="lg" centered scrollable>
+      <Modal.Header closeButton>
+        <Modal.Title>Manage Stages: {job?.title}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {error && <ErrorDisplay message={error} />}
 
-          {loading ? (
-            <LoadingSpinner />
-          ) : (
-            <div className="row">
-              <div className="col-md-7">
-                <h4>Active Pipeline</h4>
-                <div className="job-stages-list mt-3">
-                  {stages.length === 0 ? (
-                    <p className="text-muted italic">No stages configured for this job.</p>
-                  ) : (
-                    stages.map((stage, index) => (
-                      <div key={stage.id} className="job-stage-item card mb-2 p-2 shadow-sm">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">{index + 1}</span>
-                            <div>
-                              <div className="fw-bold">{stage.template.name}</div>
-                              <small className="text-muted">{stage.template.description}</small>
-                            </div>
-                          </div>
-                          <div className="d-flex gap-1">
-                            <Button
-                              variant="outline-secondary"
-                              size="sm"
-                              onClick={() => moveStage(index, "up")}
-                              disabled={index === 0 || isUpdating}
-                            >
-                              &uarr;
-                            </Button>
-                            <Button
-                              variant="outline-secondary"
-                              size="sm"
-                              onClick={() => moveStage(index, "down")}
-                              disabled={index === stages.length - 1 || isUpdating}
-                            >
-                              &darr;
-                            </Button>
-                            <Button
-                              variant="outline-danger"
-                              size="sm"
-                              onClick={() => handleRemoveStage(stage.id)}
-                              disabled={isUpdating}
-                            >
-                              Remove
-                            </Button>
+        {loading ? (
+          <LoadingSpinner />
+        ) : (
+          <div className="row">
+            <div className="col-md-7">
+              <h4 className="mb-3">Active Pipeline</h4>
+              <div className="job-stages-list">
+                {stages.length === 0 ? (
+                  <p className="text-muted italic">No stages configured for this job.</p>
+                ) : (
+                  stages.map((stage, index) => (
+                    <div key={stage.id} className="job-stage-item card mb-2 p-2 shadow-sm">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center">
+                          <span className="badge bg-secondary me-2">{index + 1}</span>
+                          <div>
+                            <div className="fw-bold">{stage.template.name}</div>
+                            <small className="text-muted">{stage.template.description}</small>
                           </div>
                         </div>
+                        <div className="d-flex gap-1">
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => moveStage(index, "up")}
+                            disabled={index === 0 || isUpdating}
+                          >
+                            &uarr;
+                          </Button>
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => moveStage(index, "down")}
+                            disabled={index === stages.length - 1 || isUpdating}
+                          >
+                            &darr;
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => handleRemoveStage(stage.id)}
+                            disabled={isUpdating}
+                          >
+                            Remove
+                          </Button>
+                        </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              <div className="col-md-5 border-start">
-                <h4>Available Templates</h4>
-                <div className="list-group mt-3">
-                  {templates
-                    .filter((tpl) => !stages.some((s) => s.template_id === tpl.id))
-                    .map((tpl) => (
-                      <button
-                        key={tpl.id}
-                        type="button"
-                        className="list-group-item list-group-item-action"
-                        onClick={() => handleAddStage(tpl.id)}
-                        disabled={isUpdating}
-                      >
-                        <div className="fw-bold">{tpl.name}</div>
-                        <small>{tpl.description}</small>
-                      </button>
-                    ))}
-                  {templates.length === 0 && (
-                    <p className="text-muted small">No stage templates available.</p>
-                  )}
-                </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
-          )}
-        </div>
-        <div className="modal-footer">
-          <Button variant="primary" onClick={handleClose}>
-            Done
-          </Button>
-        </div>
-      </div>
-    </div>
+            <div className="col-md-5 border-start">
+              <h4 className="mb-3">Available Templates</h4>
+              <div className="list-group">
+                {templates
+                  .filter((tpl) => !stages.some((s) => s.template_id === tpl.id))
+                  .map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      className="list-group-item list-group-item-action"
+                      onClick={() => handleAddStage(tpl.id)}
+                      disabled={isUpdating}
+                    >
+                      <div className="fw-bold">{tpl.name}</div>
+                      <small>{tpl.description}</small>
+                    </button>
+                  ))}
+                {templates.length === 0 && (
+                  <p className="text-muted small text-center py-3">No stage templates available.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="primary" onClick={handleClose}>
+          Done
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 };
 

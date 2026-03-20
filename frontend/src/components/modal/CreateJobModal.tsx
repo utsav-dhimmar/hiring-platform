@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { Modal } from "react-bootstrap";
 import { adminJobService, adminSkillService } from "../../apis/admin/service";
 import type { JobRead, SkillRead } from "../../apis/admin/types";
 import { Button, ErrorDisplay, Input } from "../../components/common";
@@ -116,121 +117,126 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
     setShowSkillModal(false);
   };
 
-  if (!show) return null;
-
   return (
     <>
-      <div className="modal-overlay">
-        <div className="modal-container modal-dialog-scrollable">
-          <div className="modal-header">
-            <h2>{isEditMode ? "Edit Job" : "Create New Job"}</h2>
-            <button className="close-btn" onClick={handleClose}>
-              &times;
-            </button>
-          </div>
-          <form onSubmit={handleSubmit}>
-            <div className="modal-body">
-              {submitError && <ErrorDisplay message={submitError} />}
+      <Modal show={show} onHide={handleClose} size="lg" centered scrollable>
+        <Modal.Header closeButton>
+          <Modal.Title>{isEditMode ? "Edit Job" : "Create New Job"}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <form id="create-job-form" onSubmit={handleSubmit}>
+            {submitError && <ErrorDisplay message={submitError} />}
 
-              <Input
-                label="Job Title"
-                {...register("title")}
-                error={errors.title?.message}
-                placeholder="e.g. Senior Software Engineer"
-                required
+            <Input
+              label="Job Title"
+              {...register("title")}
+              error={errors.title?.message}
+              placeholder="e.g. Senior Software Engineer"
+              required
+            />
+
+            <Input
+              label="Department"
+              {...register("department")}
+              error={errors.department?.message}
+              placeholder="e.g. Engineering"
+            />
+
+            <div className="form-group mb-3">
+              <label className="form-label">Job Description</label>
+              <textarea
+                className={`form-control ${errors.jd_text ? "is-invalid" : ""}`}
+                rows={6}
+                {...register("jd_text")}
+                placeholder="Paste the job description here..."
               />
+              {errors.jd_text && <div className="invalid-feedback">{errors.jd_text.message}</div>}
+            </div>
 
-              <Input
-                label="Department"
-                {...register("department")}
-                error={errors.department?.message}
-                placeholder="e.g. Engineering"
-              />
-
-              <div className="form-group mb-3">
-                <label className="form-label">Job Description</label>
-                <textarea
-                  className={`form-control ${errors.jd_text ? "is-invalid" : ""}`}
-                  rows={6}
-                  {...register("jd_text")}
-                  placeholder="Paste the job description here..."
-                />
-                {errors.jd_text && <div className="invalid-feedback">{errors.jd_text.message}</div>}
+            <div className="job-skills-section">
+              <div className="job-skills-header d-flex justify-content-between align-items-center mb-2">
+                <div>
+                  <label className="form-label mb-0">Required Skills</label>
+                  <p className="job-skills-help text-muted small mb-0">
+                    Select the skills that should be linked to this job.
+                  </p>
+                </div>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  type="button"
+                  onClick={() => setShowSkillModal(true)}
+                >
+                  Add Skill
+                </Button>
               </div>
 
-              <div className="job-skills-section">
-                <div className="job-skills-header">
-                  <div>
-                    <label className="form-label mb-0">Required Skills</label>
-                    <p className="job-skills-help">
-                      Select the skills that should be linked to this job.
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline-primary"
-                    type="button"
-                    onClick={() => setShowSkillModal(true)}
-                  >
-                    Add Skill
-                  </Button>
-                </div>
+              {skillsError && <ErrorDisplay message={skillsError} />}
 
-                {skillsError && <ErrorDisplay message={skillsError} />}
-
-                <div className="job-skills-panel">
-                  {skillsLoading ? (
-                    <p className="job-skills-empty">Loading skills...</p>
-                  ) : skills.length === 0 ? (
-                    <p className="job-skills-empty">
-                      No skills found yet. Add a skill to start linking jobs.
-                    </p>
-                  ) : (
-                    <div className="job-skills-grid">
-                      {skills.map((skill) => (
-                        <label key={skill.id} className="job-skill-option">
+              <div className="job-skills-panel border rounded p-3 bg-light">
+                {skillsLoading ? (
+                  <p className="job-skills-empty text-center py-3">Loading skills...</p>
+                ) : skills.length === 0 ? (
+                  <p className="job-skills-empty text-center py-3">
+                    No skills found yet. Add a skill to start linking jobs.
+                  </p>
+                ) : (
+                  <div className="job-skills-grid d-flex flex-wrap gap-2">
+                    {skills.map((skill) => (
+                      <label
+                        key={skill.id}
+                        className={`job-skill-option d-flex flex-column p-2 border rounded cursor-pointer ${
+                          selectedSkillIds.includes(skill.id)
+                            ? "border-primary bg-primary bg-opacity-10"
+                            : "bg-white"
+                        }`}
+                        style={{ width: "calc(33.33% - 0.75rem)", minWidth: "150px" }}
+                      >
+                        <div className="d-flex align-items-center gap-2">
                           <input
                             type="checkbox"
+                            className="form-check-input"
                             checked={selectedSkillIds.includes(skill.id)}
                             onChange={() => toggleSkill(skill.id)}
                           />
-                          <span>
-                            <strong>{skill.name}</strong>
-                            <small>{skill.description || "No description"}</small>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {errors.skill_ids?.message && (
-                  <div className="invalid-feedback d-block">{errors.skill_ids.message}</div>
+                          <span className="fw-bold">{skill.name}</span>
+                        </div>
+                        <small className="text-muted text-truncate">
+                          {skill.description || "No description"}
+                        </small>
+                      </label>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              <div className="form-check mb-3">
-                <input
-                  type="checkbox"
-                  className="form-check-input"
-                  id="is_active"
-                  {...register("is_active")}
-                />
-                <label className="form-check-label" htmlFor="is_active">
-                  Active (Accepting applications)
-                </label>
-              </div>
+              {errors.skill_ids?.message && (
+                <div className="invalid-feedback d-block">{errors.skill_ids.message}</div>
+              )}
             </div>
-            <div className="modal-footer">
-              <Button variant="outline-secondary" onClick={handleClose} type="button">
-                Cancel
-              </Button>
-              <Button variant="primary" type="submit" isLoading={isSubmitting}>
-                {isEditMode ? "Update Job" : "Create Job"}
-              </Button>
+
+            <div className="form-check mt-3">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="is_active"
+                {...register("is_active")}
+              />
+              <label className="form-check-label" htmlFor="is_active">
+                Active (Accepting applications)
+              </label>
             </div>
           </form>
-        </div>
-      </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={handleClose} type="button">
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" form="create-job-form" isLoading={isSubmitting}>
+            {isEditMode ? "Update Job" : "Create Job"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       <CreateSkillModal
         show={showSkillModal}

@@ -80,3 +80,11 @@ export interface LoginResponse {
   /** The authenticated user's data */
   user: UserRead;
 }
+
+/**
+ * Schema for refreshing an access token.
+ */
+export interface RefreshTokenRequest {
+  /** The refresh token to use for obtaining a new access token */
+  refresh_token: string;
+}

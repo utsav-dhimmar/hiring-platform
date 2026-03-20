@@ -47,19 +47,25 @@ const RegisterPage = () => {
 
   if (isSuccess) {
     return (
-      <Container className="py-5">
-        <Row className="justify-content-center">
-          <Col md={6} lg={4}>
-            <Card>
-              <CardHeader>
-                <h3 className="text-center mb-0">Registration Successful</h3>
-              </CardHeader>
-              <CardBody className="text-center">
-                <Alert variant="success">
+      <Container className="py-5 min-vh-100 d-flex align-items-center justify-content-center">
+        <Row className="justify-content-center w-100">
+          <Col md={8} lg={5} xl={4}>
+            <Card className="shadow-lg border-0 rounded-4 overflow-hidden text-center p-4">
+              <CardBody className="py-5">
+                <div className="mb-4">
+                  <div
+                    className="bg-success-subtle text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                    style={{ width: "80px", height: "80px" }}
+                  >
+                    <i className="bi bi-check-lg display-4 font-weight-bold"></i>
+                  </div>
+                  <h2 className="fw-bold mb-3">Registration Successful</h2>
+                </div>
+                <Alert variant="success" className="rounded-3 border-0 shadow-sm mb-4">
                   Your account has been created successfully! Redirecting you to the login page...
                 </Alert>
                 <Link to="/login">
-                  <Button variant="primary" className="w-100">
+                  <Button variant="primary" className="w-100 py-3 fw-bold rounded-3">
                     Go to Login Now
                   </Button>
                 </Link>
@@ -72,20 +78,25 @@ const RegisterPage = () => {
   }
 
   return (
-    <Container className="py-5">
-      <Row className="justify-content-center">
-        <Col md={6} lg={4}>
-          <Card>
-            <CardHeader>
-              <h3 className="text-center mb-0">Create Account</h3>
+    <Container className="py-5 min-vh-100 d-flex align-items-center justify-content-center">
+      <Row className="justify-content-center w-100">
+        <Col md={8} lg={6} xl={5}>
+          <Card className="shadow-lg border-0 rounded-4 overflow-hidden">
+            <CardHeader className="bg-white border-0 pt-5 pb-2">
+              <h2 className="text-center fw-bold mb-0">Create Account</h2>
+              <p className="text-center text-muted mt-2">Join our platform and start hiring</p>
             </CardHeader>
-            <CardBody>
-              {error && <Alert variant="danger">{error}</Alert>}
+            <CardBody className="px-4 pb-5">
+              {error && (
+                <Alert variant="danger" className="rounded-3 border-0 shadow-sm mb-4">
+                  {error}
+                </Alert>
+              )}
               <form onSubmit={handleSubmit(onSubmit)}>
                 <Input
                   label="Full Name"
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="John Doe"
                   {...register("full_name")}
                   error={errors.full_name?.message}
                   className="mb-3"
@@ -93,7 +104,7 @@ const RegisterPage = () => {
                 <Input
                   label="Email Address"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="name@example.com"
                   {...register("email")}
                   error={errors.email?.message}
                   className="mb-3"
@@ -101,18 +112,26 @@ const RegisterPage = () => {
                 <Input
                   label="Password"
                   type="password"
-                  placeholder="Create a password"
+                  placeholder="Create a strong password"
                   {...register("password")}
                   error={errors.password?.message}
                   className="mb-4"
                 />
-                <Button type="submit" variant="primary" className="w-100" isLoading={isLoading}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-100 py-3 fw-bold rounded-3"
+                  isLoading={isLoading}
+                >
                   Register
                 </Button>
               </form>
-              <div className="text-center mt-3">
-                <p className="text-muted">
-                  Already have an account? <Link to="/login">Sign In</Link>
+              <div className="text-center mt-4">
+                <p className="text-muted small">
+                  Already have an account?{" "}
+                  <Link to="/login" className="text-primary fw-semibold text-decoration-none">
+                    Sign In
+                  </Link>
                 </p>
               </div>
             </CardBody>

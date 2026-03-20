@@ -300,7 +300,10 @@ export const adminJobService = {
   },
 
   reorderJobStages: async (jobId: string, reorder: JobStageReorder): Promise<JobStageConfig[]> => {
-    const response = await apiClient.put<JobStageConfig[]>(`/jobs/${jobId}/stages/reorder`, reorder);
+    const response = await apiClient.put<JobStageConfig[]>(
+      `/jobs/${jobId}/stages/reorder`,
+      reorder,
+    );
     return response.data;
   },
 };
