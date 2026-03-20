@@ -28,10 +28,10 @@ const CandidateEvaluationPage: React.FC = () => {
   const [job, setJob] = useState<Job | null>(null);
   const [jobStages, setJobStages] = useState<JobStageConfig[]>([]);
   const [evaluations, setEvaluations] = useState<Record<string, StageEvaluation>>({});
-  
+
   // Keep legacy state for now while we transition
   const [stage1, setStage1] = useState<Stage1Info | null>(null);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("stage0");
@@ -44,9 +44,12 @@ const CandidateEvaluationPage: React.FC = () => {
         setLoading(true);
         const [jobData, candidateData] = await Promise.all([
           adminJobService.getJobById(jobId),
-          adminCandidateService.getCandidatesForJob(jobId).then((candidates: CandidateResponse[]) => 
-            candidates.find((c: CandidateResponse) => c.id === candidateId) || null
-          )
+          adminCandidateService
+            .getCandidatesForJob(jobId)
+            .then(
+              (candidates: CandidateResponse[]) =>
+                candidates.find((c: CandidateResponse) => c.id === candidateId) || null,
+            ),
         ]);
 
         if (!jobData || !candidateData) {
@@ -62,19 +65,18 @@ const CandidateEvaluationPage: React.FC = () => {
           // If API isn't ready, this will fail and we fallback to mock data
           const stages = await adminJobService.getJobStages(jobId);
           const evals = await adminCandidateService.getCandidateEvaluations(candidateId);
-          
+
           setJobStages(stages.sort((a, b) => a.stage_order - b.stage_order));
-          
+
           const evalMap: Record<string, StageEvaluation> = {};
-          evals.forEach(e => {
+          evals.forEach((e) => {
             evalMap[e.job_stage_config_id] = e;
           });
           setEvaluations(evalMap);
-          
+
           if (stages.length > 0) {
             setActiveTab(stages[0].id);
           }
-          
         } catch (apiError) {
           console.warn("Dynamic stages API not ready, using mock fallback");
           // Mock Dynamic Stages
@@ -90,8 +92,8 @@ const CandidateEvaluationPage: React.FC = () => {
                 id: "tpl-hr",
                 name: "Stage 1: HR Screening Round",
                 description: "HR screening call",
-                default_config: null
-              }
+                default_config: null,
+              },
             },
             {
               id: "config-2",
@@ -104,8 +106,8 @@ const CandidateEvaluationPage: React.FC = () => {
                 id: "tpl-tech",
                 name: "Stage 2: Technical Practical Round",
                 description: "Technical practical round",
-                default_config: null
-              }
+                default_config: null,
+              },
             },
             {
               id: "config-3",
@@ -118,13 +120,13 @@ const CandidateEvaluationPage: React.FC = () => {
                 id: "tpl-panel",
                 name: "Stage 3: Technical + HR Panel",
                 description: "Panel interview",
-                default_config: null
-              }
-            }
+                default_config: null,
+              },
+            },
           ];
-          
+
           setJobStages(mockStages);
-          
+
           // Mock Eval for Stage 1
           const mockEval: StageEvaluation = {
             id: "eval-1",
@@ -133,10 +135,10 @@ const CandidateEvaluationPage: React.FC = () => {
             status: "pending",
             analysis: null,
             decision: null,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
           };
           setEvaluations({ "config-1": mockEval });
-          
+
           // Mock legacy stage1
           setStage1({
             id: mockEval.id,
@@ -149,12 +151,11 @@ const CandidateEvaluationPage: React.FC = () => {
             created_at: new Date().toISOString(),
             completed_at: null,
           });
-          
+
           if (mockStages.length > 0) {
             setActiveTab(mockStages[0].id);
           }
         }
-
       } catch (err) {
         console.error("Failed to fetch evaluation data:", err);
         setError("Failed to load candidate evaluation data.");
@@ -169,19 +170,21 @@ const CandidateEvaluationPage: React.FC = () => {
   const handleUploadTranscript = async (file: File) => {
     console.log("Uploading transcript:", file.name);
     // Update legacy state
-    setStage1(prev => prev ? { ...prev, status: "processing", transcript_id: "trans-123" } : null);
-    
+    setStage1((prev) =>
+      prev ? { ...prev, status: "processing", transcript_id: "trans-123" } : null,
+    );
+
     // Update dynamic state if it matches active tab
     if (activeTab === "config-1") {
-      setEvaluations(prev => ({
+      setEvaluations((prev) => ({
         ...prev,
         [activeTab]: {
           ...prev[activeTab],
-          status: "processing"
-        }
+          status: "processing",
+        },
       }));
     }
-    
+
     // Simulate API delay
     setTimeout(() => {
       const mockAnalysis = {
@@ -192,25 +195,31 @@ const CandidateEvaluationPage: React.FC = () => {
         tech_stack_alignment: 6,
         salary_alignment: 9,
         overall_score: 78,
-        response_summary: "The candidate demonstrated strong communication skills and confidence. They have a good understanding of the role but may need some training on our specific tech stack.",
-        communication_evaluation: "Clear and articulate. Professional tone throughout the conversation.",
+        response_summary:
+          "The candidate demonstrated strong communication skills and confidence. They have a good understanding of the role but may need some training on our specific tech stack.",
+        communication_evaluation:
+          "Clear and articulate. Professional tone throughout the conversation.",
         recommendation: "Proceed to Stage 2 - Technical Practical Round.",
       };
-      
-      setStage1(prev => prev ? {
-        ...prev,
-        status: "completed",
-        analysis: mockAnalysis
-      } : null);
-      
+
+      setStage1((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "completed",
+              analysis: mockAnalysis,
+            }
+          : null,
+      );
+
       if (activeTab === "config-1") {
-        setEvaluations(prev => ({
+        setEvaluations((prev) => ({
           ...prev,
           [activeTab]: {
             ...prev[activeTab],
             status: "completed",
-            analysis: mockAnalysis
-          }
+            analysis: mockAnalysis,
+          },
         }));
       }
     }, 3000);
@@ -218,14 +227,14 @@ const CandidateEvaluationPage: React.FC = () => {
 
   const handleMakeDecision = async (decision: boolean) => {
     console.log("Making decision:", decision);
-    setStage1(prev => prev ? { ...prev, hr_decision: decision } : null);
+    setStage1((prev) => (prev ? { ...prev, hr_decision: decision } : null));
     if (activeTab === "config-1") {
-      setEvaluations(prev => ({
+      setEvaluations((prev) => ({
         ...prev,
         [activeTab]: {
           ...prev[activeTab],
-          decision: decision
-        }
+          decision: decision,
+        },
       }));
     }
   };
@@ -234,7 +243,11 @@ const CandidateEvaluationPage: React.FC = () => {
   if (error || !candidate || !job) {
     return (
       <Container className="py-5">
-        <ErrorDisplay message={error || "Data not found"} onRetry={() => navigate(`/jobs/${jobId}`)} fullPage />
+        <ErrorDisplay
+          message={error || "Data not found"}
+          onRetry={() => navigate(`/jobs/${jobId}`)}
+          fullPage
+        />
       </Container>
     );
   }
@@ -242,9 +255,15 @@ const CandidateEvaluationPage: React.FC = () => {
   return (
     <Container className="py-5">
       <Breadcrumb className="mb-4">
-        <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>Jobs</Breadcrumb.Item>
-        <Breadcrumb.Item linkAs={Link} linkProps={{ to: `/jobs/${jobId}` }}>{job.title}</Breadcrumb.Item>
-        <Breadcrumb.Item active>Evaluation: {candidate.first_name} {candidate.last_name}</Breadcrumb.Item>
+        <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>
+          Jobs
+        </Breadcrumb.Item>
+        <Breadcrumb.Item linkAs={Link} linkProps={{ to: `/jobs/${jobId}` }}>
+          {job.title}
+        </Breadcrumb.Item>
+        <Breadcrumb.Item active>
+          Evaluation: {candidate.first_name} {candidate.last_name}
+        </Breadcrumb.Item>
       </Breadcrumb>
 
       <PageHeader
@@ -262,7 +281,12 @@ const CandidateEvaluationPage: React.FC = () => {
           <Card className="mb-4">
             <CardBody>
               <h6 className="text-muted small text-uppercase fw-bold mb-3">Interview Stages</h6>
-              <Nav variant="pills" className="flex-column" activeKey={activeTab} onSelect={(k) => setActiveTab(k || "stage0")}>
+              <Nav
+                variant="pills"
+                className="flex-column"
+                activeKey={activeTab}
+                onSelect={(k) => setActiveTab(k || "stage0")}
+              >
                 <Nav.Item>
                   <Nav.Link eventKey="stage0" disabled>
                     <div className="d-flex justify-content-between align-items-center">
@@ -271,13 +295,14 @@ const CandidateEvaluationPage: React.FC = () => {
                     </div>
                   </Nav.Link>
                 </Nav.Item>
-                
+
                 {jobStages.map((stageConfig) => {
                   const evalData = evaluations[stageConfig.id];
                   const evalStatus = evalData?.status || "pending";
                   const decision = evalData?.decision;
                   // Handle legacy stage1 for mock fallback
-                  const displayDecision = stageConfig.id === "config-1" ? stage1?.hr_decision : decision;
+                  const displayDecision =
+                    stageConfig.id === "config-1" ? stage1?.hr_decision : decision;
                   const displayStatus = stageConfig.id === "config-1" ? stage1?.status : evalStatus;
 
                   return (
@@ -286,8 +311,20 @@ const CandidateEvaluationPage: React.FC = () => {
                         <div className="d-flex justify-content-between align-items-center">
                           <span>{stageConfig.template.name}</span>
                           {displayStatus === "completed" ? (
-                            <Badge bg={displayDecision === null ? "warning" : displayDecision ? "success" : "danger"}>
-                              {displayDecision === null ? "Pending Decision" : displayDecision ? "Passed" : "Rejected"}
+                            <Badge
+                              bg={
+                                displayDecision === null
+                                  ? "warning"
+                                  : displayDecision
+                                    ? "success"
+                                    : "danger"
+                              }
+                            >
+                              {displayDecision === null
+                                ? "Pending Decision"
+                                : displayDecision
+                                  ? "Passed"
+                                  : "Rejected"}
                             </Badge>
                           ) : (
                             <Badge bg="secondary">Incomplete</Badge>
@@ -304,9 +341,15 @@ const CandidateEvaluationPage: React.FC = () => {
           <Card>
             <CardBody>
               <h6 className="text-muted small text-uppercase fw-bold mb-3">Candidate Info</h6>
-              <p className="mb-1"><strong>Email:</strong> {candidate.email}</p>
-              <p className="mb-1"><strong>Resume Score:</strong> {candidate.resume_score?.toFixed(1)}%</p>
-              <p className="mb-0"><strong>Status:</strong> {candidate.current_status || "In Process"}</p>
+              <p className="mb-1">
+                <strong>Email:</strong> {candidate.email}
+              </p>
+              <p className="mb-1">
+                <strong>Resume Score:</strong> {candidate.resume_score?.toFixed(1)}%
+              </p>
+              <p className="mb-0">
+                <strong>Status:</strong> {candidate.current_status || "In Process"}
+              </p>
             </CardBody>
           </Card>
         </Col>
@@ -318,22 +361,31 @@ const CandidateEvaluationPage: React.FC = () => {
               <p className="text-muted">Passed with score {candidate.resume_score?.toFixed(1)}%</p>
             </div>
           )}
-          
-          {jobStages.find(s => s.id === activeTab)?.template.name.toLowerCase().includes("hr screening") && (
+
+          {jobStages
+            .find((s) => s.id === activeTab)
+            ?.template.name.toLowerCase()
+            .includes("hr screening") && (
             <Stage1HRRound
               stageInfo={stage1}
               onUploadTranscript={handleUploadTranscript}
               onMakeDecision={handleMakeDecision}
             />
           )}
-          
-          {jobStages.find(s => s.id === activeTab) && 
-           !jobStages.find(s => s.id === activeTab)?.template.name.toLowerCase().includes("hr screening") && (
-            <div className="text-center py-5 bg-light rounded border">
-              <h5>{jobStages.find(s => s.id === activeTab)?.template.name}</h5>
-              <p className="text-muted">This interview stage template is dynamically loaded but the corresponding UI component is not yet implemented.</p>
-            </div>
-          )}
+
+          {jobStages.find((s) => s.id === activeTab) &&
+            !jobStages
+              .find((s) => s.id === activeTab)
+              ?.template.name.toLowerCase()
+              .includes("hr screening") && (
+              <div className="text-center py-5 bg-light rounded border">
+                <h5>{jobStages.find((s) => s.id === activeTab)?.template.name}</h5>
+                <p className="text-muted">
+                  This interview stage template is dynamically loaded but the corresponding UI
+                  component is not yet implemented.
+                </p>
+              </div>
+            )}
         </Col>
       </Row>
     </Container>

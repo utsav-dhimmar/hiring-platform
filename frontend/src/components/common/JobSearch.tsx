@@ -26,12 +26,7 @@ interface JobSearchProps {
  * Job search component with input field and search logic.
  * Encapsulates the job search functionality for reusability.
  */
-const JobSearch = ({
-  onResultsFound,
-  onClear,
-  onError,
-  onSearching,
-}: JobSearchProps) => {
+const JobSearch = ({ onResultsFound, onClear, onError, onSearching }: JobSearchProps) => {
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 

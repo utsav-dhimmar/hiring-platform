@@ -13,6 +13,8 @@ import {
   DateDisplay,
   PageHeader,
   StatusBadge,
+  StagesBadgeList,
+  SkillsBadgeList,
   type Column,
 } from "../../components/common";
 import { CreateJobModal, DeleteModal } from "../../components/modal";
@@ -70,6 +72,14 @@ const AdminJobs = () => {
     {
       header: "Status",
       accessor: (job) => <StatusBadge status={job.is_active} />,
+    },
+    {
+      header: "Skills",
+      accessor: (job) => <SkillsBadgeList skills={job.skills} />,
+    },
+    {
+      header: "Stages",
+      accessor: (job) => <StagesBadgeList stages={job.stages} />,
     },
     {
       header: "Created At",

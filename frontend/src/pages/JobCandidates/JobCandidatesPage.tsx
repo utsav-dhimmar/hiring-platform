@@ -213,18 +213,12 @@ const JobCandidatesPage = () => {
           <Button
             variant="primary"
             size="sm"
-            onClick={() =>
-              navigate(`/jobs/${jobId}/candidates/${resume.candidate_id}/evaluation`)
-            }
+            onClick={() => navigate(`/jobs/${jobId}/candidates/${resume.candidate_id}/evaluation`)}
             disabled={resume.pass_fail === false} // Optional: disable if resume screening failed
           >
             Evaluate
           </Button>
-          <Button
-            variant="outline-primary"
-            size="sm"
-            onClick={() => handleShowMore(resume)}
-          >
+          <Button variant="outline-primary" size="sm" onClick={() => handleShowMore(resume)}>
             Show More
           </Button>
         </div>
