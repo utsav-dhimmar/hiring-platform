@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
-from app.v1.dependencies.dependencies import check_permission
+from app.v1.dependencies import check_permission
 from app.v1.schemas.upload import CandidateResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
