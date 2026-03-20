@@ -121,5 +121,11 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     CACHE_TTL_SECONDS: int = 300
 
+    @computed_field
+    @property
+    def CELERY_BROKER_URL(self) -> str:
+        """The broker URL for Celery, defaulting to REDIS_URL."""
+        return self.REDIS_URL
+
 
 settings = Settings()
