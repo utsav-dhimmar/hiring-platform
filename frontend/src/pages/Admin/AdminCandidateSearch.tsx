@@ -20,6 +20,8 @@ import {
   PageHeader,
   SearchBar,
   StatusBadge,
+  SkillsBadgeList,
+  StagesBadgeList,
 } from "../../components/common";
 import { CandidateDetailModal } from "../../components/modal";
 
@@ -145,6 +147,31 @@ const AdminCandidateSearch = () => {
           )
         }
       />
+
+      {job && (
+        <Card className="mb-4 bg-light border-0 shadow-sm">
+          <CardBody className="p-4">
+            <div className="row g-4">
+              <div className="col-md-3 border-end">
+                <h6 className="text-muted small text-uppercase fw-bold mb-2">Department</h6>
+                <div className="fs-5">{job.department || "N/A"}</div>
+              </div>
+              <div className="col-md-2 border-end">
+                <h6 className="text-muted small text-uppercase fw-bold mb-2">Status</h6>
+                <StatusBadge status={job.is_active} />
+              </div>
+              <div className="col-md-3 border-end">
+                <h6 className="text-muted small text-uppercase fw-bold mb-2">Required Skills</h6>
+                <SkillsBadgeList skills={job.skills} />
+              </div>
+              <div className="col-md-4">
+                <h6 className="text-muted small text-uppercase fw-bold mb-2">Hiring Pipeline</h6>
+                <StagesBadgeList stages={job.stages} />
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       <Card className="mb-4">
         <CardBody>

@@ -302,7 +302,9 @@ export const adminCandidateService = {
   },
 
   getCandidateEvaluations: async (candidateId: string): Promise<StageEvaluation[]> => {
-    const response = await apiClient.get<StageEvaluation[]>(`/candidates/${candidateId}/evaluations`);
+    const response = await apiClient.get<StageEvaluation[]>(
+      `/candidates/${candidateId}/evaluations`,
+    );
     return response.data;
   },
 };

@@ -30,7 +30,7 @@ export interface StageEvaluation {
   job_stage_config_id: string;
   status: StageStatus;
   // Dynamic payload based on stage type (e.g., HRScreeningAnalysis)
-  analysis: any | null; 
+  analysis: any | null;
   decision: boolean | null;
   created_at?: string;
   completed_at?: string | null;
