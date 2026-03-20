@@ -20,6 +20,8 @@ import type { CandidateResponse } from "../../apis/types/resume";
 import type { Job } from "../../apis/types/job";
 import type { JobStageConfig, StageEvaluation, Stage1Info } from "../../apis/types/stage";
 
+import { extractErrorMessage } from "../../utils/error";
+
 const CandidateEvaluationPage: React.FC = () => {
   const { jobId, candidateId } = useParams<{ jobId: string; candidateId: string }>();
   const navigate = useNavigate();
@@ -42,6 +44,7 @@ const CandidateEvaluationPage: React.FC = () => {
 
       try {
         setLoading(true);
+        setError(null);
         const [jobData, candidateData] = await Promise.all([
           adminJobService.getJobById(jobId),
           adminCandidateService
@@ -78,7 +81,7 @@ const CandidateEvaluationPage: React.FC = () => {
             setActiveTab(stages[0].id);
           }
         } catch (apiError) {
-          console.warn("Dynamic stages API not ready, using mock fallback");
+          console.warn("Dynamic stages API not ready, using mock fallback", apiError);
           // Mock Dynamic Stages
           const mockStages: JobStageConfig[] = [
             {
@@ -158,7 +161,7 @@ const CandidateEvaluationPage: React.FC = () => {
         }
       } catch (err) {
         console.error("Failed to fetch evaluation data:", err);
-        setError("Failed to load candidate evaluation data.");
+        setError(extractErrorMessage(err, "Failed to load candidate evaluation data."));
       } finally {
         setLoading(false);
       }

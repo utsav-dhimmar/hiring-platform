@@ -25,6 +25,8 @@ import {
 } from "../../components/common";
 import { CandidateDetailModal } from "../../components/modal";
 
+import { extractErrorMessage } from "../../utils/error";
+
 import "../../css/adminDashboard.css";
 
 const AdminCandidateSearch = () => {
@@ -54,11 +56,14 @@ const AdminCandidateSearch = () => {
         }
       } else if (searchQuery.trim()) {
         data = await adminCandidateService.searchCandidates(searchQuery);
+      } else {
+        // Clear if nothing to search and no jobId
+        data = [];
       }
       setCandidates(data);
     } catch (err) {
       console.error("Failed to fetch candidates:", err);
-      setError("Failed to load candidates.");
+      setError(extractErrorMessage(err, "Failed to load candidates."));
     } finally {
       setLoading(false);
     }
@@ -71,6 +76,7 @@ const AdminCandidateSearch = () => {
       setJob(jobData);
     } catch (err) {
       console.error("Failed to fetch job info:", err);
+      // Optional: set a separate job fetch error if needed
     }
   }, [jobId]);
 

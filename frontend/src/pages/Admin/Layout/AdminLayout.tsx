@@ -75,6 +75,14 @@ const AdminLayout = () => {
           </NavLink>
           {isAdmin && (
             <NavLink
+              to="/admin/stage-templates"
+              className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
+            >
+              Stage Templates
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink
               to="/admin/roles"
               className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
             >

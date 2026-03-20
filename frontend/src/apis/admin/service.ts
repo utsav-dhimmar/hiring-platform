@@ -5,6 +5,9 @@ import type {
   HiringReport,
   JobCreate,
   JobRead,
+  JobStageConfigCreate,
+  JobStageConfigUpdate,
+  JobStageReorder,
   JobUpdate,
   PermissionCreate,
   PermissionRead,
@@ -16,12 +19,14 @@ import type {
   SkillCreate,
   SkillRead,
   SkillUpdate,
+  StageTemplateCreate,
+  StageTemplateUpdate,
   UserAdminCreate,
   UserAdminRead,
   UserAdminUpdate,
 } from "./types";
-import type { CandidateResponse } from "../types/resume";
-import type { JobStageConfig, StageEvaluation } from "../types/stage";
+import type { CandidateResponse, JobResumesResponse } from "../types/resume";
+import type { JobStageConfig, StageEvaluation, StageTemplate } from "../types/stage";
 
 /**
  * Admin API service module.
@@ -197,12 +202,46 @@ export const adminAnalyticsService = {
 };
 
 /**
+ * Stage Template Management APIs (Admin only)
+ */
+export const adminStageTemplateService = {
+  getAllTemplates: async (): Promise<StageTemplate[]> => {
+    const response = await apiClient.get<StageTemplate[]>(`${ADMIN_PATH}/stage-templates`);
+    return response.data;
+  },
+
+  createTemplate: async (template: StageTemplateCreate): Promise<StageTemplate> => {
+    const response = await apiClient.post<StageTemplate>(`${ADMIN_PATH}/stage-templates`, template);
+    return response.data;
+  },
+
+  updateTemplate: async (id: string, template: StageTemplateUpdate): Promise<StageTemplate> => {
+    const response = await apiClient.patch<StageTemplate>(
+      `${ADMIN_PATH}/stage-templates/${id}`,
+      template,
+    );
+    return response.data;
+  },
+
+  deleteTemplate: async (id: string): Promise<void> => {
+    await apiClient.delete(`${ADMIN_PATH}/stage-templates/${id}`);
+  },
+};
+
+/**
  * Job Management APIs
  */
 export const adminJobService = {
   getAllJobs: async (skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
     const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs", {
       params: { skip, limit },
+    });
+    return response.data.data;
+  },
+
+  searchJobs: async (query: string, skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
+    const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs/search", {
+      params: { q: query, skip, limit },
     });
     return response.data.data;
   },
@@ -226,8 +265,42 @@ export const adminJobService = {
     await apiClient.delete(`/jobs/${jobId}`);
   },
 
+  getJobResumes: async (jobId: string): Promise<JobResumesResponse> => {
+    const response = await apiClient.get<JobResumesResponse>(`/jobs/${jobId}/resumes`);
+    return response.data;
+  },
+
+  /**
+   * Job Stage Configuration
+   */
   getJobStages: async (jobId: string): Promise<JobStageConfig[]> => {
     const response = await apiClient.get<JobStageConfig[]>(`/jobs/${jobId}/stages`);
+    return response.data;
+  },
+
+  addStageToJob: async (jobId: string, stage: JobStageConfigCreate): Promise<JobStageConfig> => {
+    const response = await apiClient.post<JobStageConfig>(`/jobs/${jobId}/stages`, stage);
+    return response.data;
+  },
+
+  updateJobStage: async (
+    jobId: string,
+    configId: string,
+    stage: JobStageConfigUpdate,
+  ): Promise<JobStageConfig> => {
+    const response = await apiClient.patch<JobStageConfig>(
+      `/jobs/${jobId}/stages/${configId}`,
+      stage,
+    );
+    return response.data;
+  },
+
+  removeStageFromJob: async (jobId: string, configId: string): Promise<void> => {
+    await apiClient.delete(`/jobs/${jobId}/stages/${configId}`);
+  },
+
+  reorderJobStages: async (jobId: string, reorder: JobStageReorder): Promise<JobStageConfig[]> => {
+    const response = await apiClient.put<JobStageConfig[]>(`/jobs/${jobId}/stages/reorder`, reorder);
     return response.data;
   },
 };

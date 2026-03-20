@@ -37,11 +37,12 @@ class GlobalErrorHandlerMiddleware(BaseHTTPMiddleware):
         )
 
         status_code = getattr(exc, "status_code", 500)
-        detail = (
-            "Internal server error"
-            if status_code == 500 and not settings.DEBUG
-            else str(exc)
-        )
+        
+        # Extract detail from HTTPException if available, otherwise use str(exc)
+        detail = getattr(exc, "detail", str(exc))
+        
+        if status_code == 500 and not settings.DEBUG:
+            detail = "Internal server error"
 
         response: dict[str, Any] = {
             "error": {

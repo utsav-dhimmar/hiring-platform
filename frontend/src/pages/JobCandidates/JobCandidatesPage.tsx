@@ -27,6 +27,8 @@ import type { Job } from "../../apis/types/job";
 import type { CandidateResponse, JobResumeInfoResponse } from "../../apis/types/resume";
 import { useAdminData } from "../../hooks";
 
+import { extractErrorMessage } from "../../utils/error";
+
 const mapCandidateToResumeInfo = (
   jobId: string,
   candidate: CandidateResponse,
@@ -85,6 +87,7 @@ const JobCandidatesPage = () => {
     loading,
     error,
     fetchData,
+    setError,
   } = useAdminData<JobResumeInfoResponse>(fetchJobAndCandidates, {
     fetchOnMount: !!jobId,
   });
@@ -131,6 +134,7 @@ const JobCandidatesPage = () => {
     if (!jobId) return;
 
     setIsSearching(true);
+    setError(null);
     try {
       let candidatesData: CandidateResponse[] = [];
       if (searchQuery.trim()) {
@@ -142,6 +146,7 @@ const JobCandidatesPage = () => {
       setResumes(candidatesData.map((candidate) => mapCandidateToResumeInfo(jobId, candidate)));
     } catch (err) {
       console.error("Search failed:", err);
+      setError(extractErrorMessage(err, "Search failed."));
     } finally {
       setIsSearching(false);
     }

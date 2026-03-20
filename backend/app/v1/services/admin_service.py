@@ -143,5 +143,12 @@ class AdminService:
     ) -> list[CandidateResponse]:
         return await candidate_admin_service.search_candidates(*args, **kwargs)
 
+    async def get_candidate_evaluations(
+        self, *args, **kwargs
+    ) -> list[Any]:
+        return await candidate_admin_service.get_candidate_evaluations(
+            *args, **kwargs
+        )
+
 
 admin_service = AdminService()
