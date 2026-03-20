@@ -42,6 +42,30 @@ async def read_jobs(
     return jobs_data["data"]
 
 
+@router.get("/search", response_model=list[JobRead])
+async def search_jobs(
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:access")),
+    q: str = Query(..., min_length=1),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+) -> Any:
+    """
+    Search for jobs by title and description.
+
+    Args:
+        db (AsyncSession): Database session.
+        q (str): The search query.
+        skip (int): Number of records to skip.
+        limit (int): Maximum number of records to return.
+
+    Returns:
+        Any: A list of matching jobs.
+    """
+    jobs_data = await job_service.search_jobs(db=db, query=q, skip=skip, limit=limit)
+    return jobs_data["data"]
+
+
 @router.post("/", response_model=JobRead, status_code=status.HTTP_201_CREATED)
 async def create_job(
     *,
