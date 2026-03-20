@@ -74,9 +74,7 @@ async def ensure_skills(session) -> list[Skill]:
     existing_skills = {
         skill.name: skill
         for skill in (
-            (await session.execute(select(Skill).order_by(Skill.name)))
-            .scalars()
-            .all()
+            (await session.execute(select(Skill).order_by(Skill.name))).scalars().all()
         )
     }
 
@@ -87,9 +85,7 @@ async def ensure_skills(session) -> list[Skill]:
             if skill.description != description:
                 skill.description = description
             skill_text = build_skill_text(skill)
-            skill.skill_embedding = (
-                encode_skill(skill_text) if skill_text else None
-            )
+            skill.skill_embedding = encode_skill(skill_text) if skill_text else None
             skills.append(skill)
             continue
 

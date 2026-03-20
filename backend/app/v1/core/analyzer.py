@@ -67,8 +67,6 @@ class ResumeJdAnalyzer:
         try:
             parsed_output = self.model.parse_output(raw_output)
         except ValueError as exc:
-            raise ValueError(
-                "LLM returned invalid JSON for resume analysis."
-            ) from exc
+            raise ValueError("LLM returned invalid JSON for resume analysis.") from exc
         validated = ResumeJobAnalysisResult.model_validate(parsed_output)
         return validated.model_dump()

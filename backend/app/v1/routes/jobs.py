@@ -50,9 +50,7 @@ async def create_job(
     job_in: JobCreate,
 ) -> Any:
     """Create a new job."""
-    return await admin_service.create_job(
-        db=db, admin_user_id=user.id, job_in=job_in
-    )
+    return await admin_service.create_job(db=db, admin_user_id=user.id, job_in=job_in)
 
 
 @router.get("/{job_id}", response_model=JobRead)

@@ -23,6 +23,7 @@ from app.v1.core.resume_executor import (
     run_in_resume_executor,
     shutdown_resume_executor,
 )
+from app.v1.core.cache import cache
 from app.v1.db.session import init_db
 from app.v1.repository.resume_upload_repository import resume_upload_repository
 
@@ -48,9 +49,8 @@ async def lifespan(app: FastAPI):
     logger.info("Database initialized successfully")
     yield
     shutdown_resume_executor()
-    await resume_upload_repository.close_cache()
+    await cache.close()
     logger.info("Shutting down application")
-
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

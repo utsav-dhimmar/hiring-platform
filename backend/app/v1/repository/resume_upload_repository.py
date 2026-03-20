@@ -5,18 +5,14 @@ This module provides the data access layer for resume upload operations,
 including candidate creation, file recording, and resume parsing summary storage.
 """
 
-import json
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Any
 
-import redis.asyncio as aioredis
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.v1.core.config import settings
 from app.v1.db.models.candidate_skills import candidate_skills
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.files import File as FileRecord
@@ -29,69 +25,6 @@ from app.v1.db.models.skills import Skill
 _log = logging.getLogger(__name__)
 
 
-class _RedisCache:
-    """Minimal async Redis cache with JSON serialization."""
-
-    def __init__(self) -> None:
-        self._client: aioredis.Redis | None = None
-
-    def _get_client(self) -> aioredis.Redis | None:
-        """Lazily initialize the Redis client; returns None if Redis is unavailable."""
-        if self._client is not None:
-            return self._client
-        try:
-            self._client = aioredis.from_url(
-                settings.REDIS_URL,
-                encoding="utf-8",
-                decode_responses=True,
-                socket_connect_timeout=1,
-            )
-        except Exception as exc:  # noqa: BLE001
-            _log.warning("Redis unavailable, caching disabled: %s", exc)
-        return self._client
-
-    async def get(self, key: str) -> Any | None:
-        client = self._get_client()
-        if client is None:
-            return None
-        try:
-            raw = await client.get(key)
-            return json.loads(raw) if raw else None
-        except Exception as exc:  # noqa: BLE001
-            _log.debug("Redis GET failed key=%s: %s", key, exc)
-            return None
-
-    async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
-        client = self._get_client()
-        if client is None:
-            return
-        try:
-            raw = json.dumps(value, default=str)
-            await client.set(key, raw, ex=ttl or settings.CACHE_TTL_SECONDS)
-        except Exception as exc:  # noqa: BLE001
-            _log.debug("Redis SET failed key=%s: %s", key, exc)
-
-    async def delete(self, key: str) -> None:
-        client = self._get_client()
-        if client is None:
-            return
-        try:
-            await client.delete(key)
-        except Exception as exc:  # noqa: BLE001
-            _log.debug("Redis DELETE failed key=%s: %s", key, exc)
-
-    async def close(self) -> None:
-        if self._client is not None:
-            try:
-                await self._client.aclose()
-            except Exception:  # noqa: BLE001
-                pass
-            self._client = None
-
-
-_cache = _RedisCache()
-
-
 class ResumeUploadRepository:
     """Repository for resume upload database operations.
 
@@ -100,19 +33,11 @@ class ResumeUploadRepository:
     """
 
     # ------------------------------------------------------------------ #
-    # Cache helpers
-    # ------------------------------------------------------------------ #
-
-    async def close_cache(self) -> None:
-        """Close the Redis connection (call from app shutdown)."""
-        await _cache.close()
-
-    # ------------------------------------------------------------------ #
     # Job
     # ------------------------------------------------------------------ #
 
     async def get_job(self, db: AsyncSession, job_id: uuid.UUID) -> Job | None:
-        """Retrieve a job by its unique ID (Redis-cached).
+        """Retrieve a job by its unique ID.
 
         Args:
             db: The async database session.
@@ -121,15 +46,6 @@ class ResumeUploadRepository:
         Returns:
             The job object if found, None otherwise.
         """
-        cache_key = f"job:{job_id}"
-        cached = await _cache.get(cache_key)
-        if cached is not None:
-            _log.debug("cache hit key=%s", cache_key)
-            # Return DB object so callers can mutate it normally.
-            # Fall through to DB on cache hit just for the ORM object —
-            # but skip the network overhead of the cache for job_skills.
-            # We use the cache only to avoid repeated DB round-trips.
-        # Always load from DB; cache is used for job_skills (list) below.
         return await db.get(Job, job_id)
 
     async def get_file_by_content_hash_for_job(
@@ -399,7 +315,7 @@ class ResumeUploadRepository:
         *,
         job_id: uuid.UUID,
     ) -> list[Skill]:
-        """Retrieve all skills associated with a specific job (Redis-cached).
+        """Retrieve all skills associated with a specific job.
 
         Args:
             db: The async database session.
@@ -408,24 +324,7 @@ class ResumeUploadRepository:
         Returns:
             A list of Skill objects.
         """
-        cache_key = f"job_skills:{job_id}"
-        cached = await _cache.get(cache_key)
-        if cached is not None:
-            _log.debug("cache hit key=%s", cache_key)
-            # Cached value is a list of dicts; we need ORM objects —
-            # fetch from DB using the skill IDs stored in cache.
-            skill_ids = [uuid.UUID(item["id"]) for item in cached]
-            if not skill_ids:
-                return []
-            return list(
-                (
-                    await db.scalars(
-                        select(Skill).where(Skill.id.in_(skill_ids))
-                    )
-                ).all()
-            )
-
-        skills = list(
+        return list(
             (
                 await db.scalars(
                     select(Skill)
@@ -434,11 +333,6 @@ class ResumeUploadRepository:
                 )
             ).all()
         )
-        # Serialize only the fields we need for cache-based re-fetching.
-        serializable = [{"id": str(s.id), "name": s.name} for s in skills]
-        await _cache.set(cache_key, serializable)
-        return skills
-
 
     async def get_resume_for_job(
         self,

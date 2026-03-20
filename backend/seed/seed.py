@@ -38,11 +38,9 @@ def utc_now() -> datetime:
 
 async def ensure_permissions(session) -> list[Permission]:
     now = utc_now()
-    
+
     # Get existing permissions
-    existing_perms = (
-        await session.execute(select(Permission))
-    ).scalars().all()
+    existing_perms = (await session.execute(select(Permission))).scalars().all()
     existing_names = {p.name for p in existing_perms}
 
     new_permissions = []
@@ -56,14 +54,12 @@ async def ensure_permissions(session) -> list[Permission]:
             )
             session.add(permission)
             new_permissions.append(permission)
-    
+
     if new_permissions:
         await session.flush()
-    
+
     # Return all permissions (existing + new)
-    all_perms = (
-        await session.execute(select(Permission))
-    ).scalars().all()
+    all_perms = (await session.execute(select(Permission))).scalars().all()
     return list(all_perms)
 
 

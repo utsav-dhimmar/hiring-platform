@@ -31,12 +31,7 @@ class JobRepository:
             dict[str, object]: A dictionary containing the jobs and total count.
         """
         total = await db.scalar(select(func.count()).select_from(Job))
-        stmt = (
-            select(Job)
-            .options(selectinload(Job.skills))
-            .offset(skip)
-            .limit(limit)
-        )
+        stmt = select(Job).options(selectinload(Job.skills)).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return {"data": list(result.scalars().unique().all()), "total": total or 0}
 
@@ -65,9 +60,7 @@ class JobRepository:
             raise ValueError("Failed to load created job.")
         return created_job
 
-    async def update(
-        self, db: AsyncSession, id: uuid.UUID, object: JobUpdate
-    ) -> Job:
+    async def update(self, db: AsyncSession, id: uuid.UUID, object: JobUpdate) -> Job:
         """Update a job and optionally replace its skill associations."""
         job = await self.get(db=db, id=id)
         if job is None:
