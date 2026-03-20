@@ -91,6 +91,45 @@ class JobRepository:
         await db.delete(job)
         await db.commit()
 
+    async def search(
+        self,
+        db: AsyncSession,
+        query: str,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> dict[str, object]:
+        """
+        Search for jobs by title and description.
+
+        Args:
+            db (AsyncSession): Database session.
+            query (str): The search query.
+            skip (int): Number of records to skip.
+            limit (int): Maximum number of records to return.
+
+        Returns:
+            dict[str, object]: A dictionary containing the matching jobs and total count.
+        """
+        from sqlalchemy import or_
+
+        search_filter = or_(
+            Job.title.ilike(f"%{query}%"),
+            Job.jd_text.ilike(f"%{query}%"),
+        )
+
+        total_stmt = select(func.count()).select_from(Job).where(search_filter)
+        total = await db.scalar(total_stmt)
+
+        stmt = (
+            select(Job)
+            .options(selectinload(Job.skills))
+            .where(search_filter)
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        return {"data": list(result.scalars().unique().all()), "total": total or 0}
+
     async def _sync_skills(
         self, db: AsyncSession, job_id: uuid.UUID, skill_ids: list[uuid.UUID]
     ) -> None:

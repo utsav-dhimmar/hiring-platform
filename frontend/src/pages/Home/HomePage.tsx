@@ -6,13 +6,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { adminCandidateService } from "../../apis/admin/service";
 import jobService from "../../apis/services/job";
 import { resumeService } from "../../apis/services/resume";
 import type { Job } from "../../apis/types/job";
-import type { CandidateResponse } from "../../apis/types/resume";
-import { Button, Card, CardBody, CardHeader } from "../../components/common";
-import { CandidateDetailModal } from "../../components/modal";
+import { Button, Card, CardBody, CardHeader, JobSearch } from "../../components/common";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logout, selectCurrentUser } from "../../store/slices/authSlice";
 
@@ -22,15 +19,9 @@ const HomePage = () => {
   const user = useAppSelector(selectCurrentUser);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchingJobs, setSearchingJobs] = useState(false);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
-
-  // Candidate Search State
-  const [candidateQuery, setCandidateQuery] = useState("");
-  const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
-  const [searchingCandidates, setSearchingCandidates] = useState(false);
-  const [showCandidateDetail, setShowCandidateDetail] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateResponse | null>(null);
 
   const isAuthorized =
     user?.role_name?.toLowerCase() === "admin" ||
@@ -46,21 +37,34 @@ const HomePage = () => {
     navigate("/admin");
   };
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const data = await jobService.getJobs();
-        setJobs(data);
-      } catch (error) {
-        console.error("Failed to fetch jobs:", error);
-        setMessage({ type: "danger", text: "Failed to load jobs." });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJobs();
+  const fetchJobs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await jobService.getJobs();
+      setJobs(data);
+    } catch (error) {
+      console.error("Failed to fetch jobs:", error);
+      setMessage({ type: "danger", text: "Failed to load jobs." });
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
+  const handleJobsFound = (results: Job[]) => {
+    setJobs(results);
+  };
+
+  const handleClearSearch = () => {
+    fetchJobs();
+  };
+
+  const handleSearchError = (errorMsg: string) => {
+    setMessage({ type: "danger", text: errorMsg });
+  };
 
   const handleLogout = () => {
     dispatch(logout());
@@ -84,33 +88,6 @@ const HomePage = () => {
       // Clear file input
       event.target.value = "";
     }
-  };
-
-  const handleCandidateSearch = useCallback(
-    async (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
-      if (!candidateQuery.trim()) {
-        setCandidates([]);
-        return;
-      }
-
-      setSearchingCandidates(true);
-      try {
-        const data = await adminCandidateService.searchCandidates(candidateQuery);
-        setCandidates(data);
-      } catch (error) {
-        console.error("Failed to search candidates:", error);
-        setMessage({ type: "danger", text: "Failed to search candidates." });
-      } finally {
-        setSearchingCandidates(false);
-      }
-    },
-    [candidateQuery],
-  );
-
-  const handleShowCandidateDetail = (candidate: CandidateResponse) => {
-    setSelectedCandidate(candidate);
-    setShowCandidateDetail(true);
   };
 
   return (
@@ -137,117 +114,6 @@ const HomePage = () => {
         </Alert>
       )}
 
-      {/* {isAuthorized && (
-        <Row className="mb-5">
-          <Col>
-            <Card>
-              <CardHeader>
-                <h3 className="mb-0">Quick Candidate Search</h3>
-              </CardHeader>
-              <CardBody>
-                <Form onSubmit={handleCandidateSearch} className="mb-4">
-                  <Row className="g-2">
-                    <Col>
-                      <Input
-                        placeholder="Search candidates by name or email..."
-                        value={candidateQuery}
-                        onChange={(e) => setCandidateQuery(e.target.value)}
-                      />
-                    </Col>
-                    <Col xs="auto">
-                      <Button
-                        variant="primary"
-                        type="submit"
-                        isLoading={searchingCandidates}
-                      >
-                        Search
-                      </Button>
-                    </Col>
-                  </Row>
-                </Form>
-
-                {searchingCandidates && candidates.length === 0 ? (
-                  <div className="text-center py-4">
-                    <Spinner animation="border" variant="primary" />
-                    <p className="mt-2 text-muted">Searching...</p>
-                  </div>
-                ) : candidateQuery && candidates.length === 0 && !searchingCandidates ? (
-                  <div className="text-center py-4 text-muted">
-                    <p>No candidates found matching "{candidateQuery}"</p>
-                  </div>
-                ) : candidates.length > 0 ? (
-                  <div className="table-responsive">
-                    <table className="table table-hover align-middle">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Email</th>
-                          <th>Score</th>
-                          <th>Result</th>
-                          <th>Applied At</th>
-                          <th className="text-end">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {candidates.map((candidate) => (
-                          <tr key={candidate.id}>
-                            <td>
-                              {candidate.first_name} {candidate.last_name}
-                            </td>
-                            <td>{candidate.email}</td>
-                            <td>
-                              {candidate.resume_score !== null ? (
-                                <Badge
-                                  bg={
-                                    candidate.resume_score >= 65
-                                      ? "success"
-                                      : "warning"
-                                  }
-                                >
-                                  {candidate.resume_score.toFixed(1)}%
-                                </Badge>
-                              ) : (
-                                <span className="text-muted">N/A</span>
-                              )}
-                            </td>
-                            <td>
-                              {candidate.pass_fail !== null ? (
-                                <Badge
-                                  bg={candidate.pass_fail ? "success" : "danger"}
-                                >
-                                  {candidate.pass_fail ? "PASS" : "FAIL"}
-                                </Badge>
-                              ) : (
-                                <Badge bg="secondary">PENDING</Badge>
-                              )}
-                            </td>
-                            <td>
-                              <DateDisplay
-                                date={candidate.created_at}
-                                showTime={false}
-                              />
-                            </td>
-                            <td className="text-end">
-                              <Button
-                                variant="outline-primary"
-                                size="sm"
-                                onClick={() => handleShowCandidateDetail(candidate)}
-                              >
-                                View Profile
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : null}
-              </CardBody>
-            </Card>
-          </Col>
-        </Row>
-      )} */}
-
       <Row>
         <Col>
           <Card>
@@ -255,6 +121,15 @@ const HomePage = () => {
               <h3 className="mb-0">Available Jobs</h3>
             </CardHeader>
             <CardBody>
+              <div className="mb-4">
+                <JobSearch
+                  onResultsFound={handleJobsFound}
+                  onClear={handleClearSearch}
+                  onError={handleSearchError}
+                  onSearching={setSearchingJobs}
+                />
+              </div>
+
               {loading ? (
                 <div className="text-center py-5">
                   <Spinner animation="border" variant="primary" />
@@ -322,15 +197,9 @@ const HomePage = () => {
           </Card>
         </Col>
       </Row>
-
-      {/* Candidate Detail Modal */}
-      <CandidateDetailModal
-        show={showCandidateDetail}
-        onHide={() => setShowCandidateDetail(false)}
-        candidate={selectedCandidate}
-      />
     </Container>
   );
 };
+
 
 export default HomePage;

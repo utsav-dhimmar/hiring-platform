@@ -26,5 +26,22 @@ class JobService:
         """
         return await job_repository.get_multi(db=db, skip=skip, limit=limit)
 
+    async def search_jobs(
+        self, db: AsyncSession, query: str, skip: int = 0, limit: int = 100
+    ):
+        """
+        Search for jobs by title and description.
+
+        Args:
+            db (AsyncSession): Database session.
+            query (str): The search query.
+            skip (int): Number of records to skip.
+            limit (int): Maximum number of records to return.
+
+        Returns:
+            dict[str, Any]: A dictionary containing the matching jobs and total count.
+        """
+        return await job_repository.search(db=db, query=query, skip=skip, limit=limit)
+
 
 job_service = JobService()
