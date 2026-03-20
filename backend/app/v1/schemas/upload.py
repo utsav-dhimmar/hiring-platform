@@ -119,6 +119,7 @@ class CandidateResponse(BaseModel):
     pass_fail: bool | None = None
     is_parsed: bool = False
     processing_status: str | None = None
+    processing_error: str | None = None
 
 
 class JobCandidatesResponse(BaseModel):

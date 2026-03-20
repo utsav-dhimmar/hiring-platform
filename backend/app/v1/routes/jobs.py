@@ -94,6 +94,23 @@ async def get_job(
     return await admin_service.get_job_by_id(db=db, job_id=job_id)
 
 
+@router.get(
+    "/{job_id}/resumes",
+    response_model=JobResumesResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_job_resumes(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: UserRead = Depends(check_permission("jobs:access")),
+) -> JobResumesResponse:
+    """Retrieve all resumes uploaded for a specific job."""
+    return await resume_upload_service.get_resumes_for_job(
+        db=db,
+        job_id=job_id,
+    )
+
+
 @router.patch("/{job_id}", response_model=JobRead)
 async def update_job(
     job_id: uuid.UUID,

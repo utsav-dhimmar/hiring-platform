@@ -46,7 +46,7 @@ const mapCandidateToResumeInfo = (
   parsed: candidate.is_parsed,
   processing: {
     status: candidate.processing_status ?? "completed",
-    error: null,
+    error: candidate.processing_error ?? null,
   },
   analysis: candidate.resume_analysis,
   resume_score: candidate.resume_score,
@@ -105,6 +105,7 @@ const JobCandidatesPage = () => {
       pass_fail: selectedResume.pass_fail,
       is_parsed: selectedResume.parsed,
       processing_status: selectedResume.processing?.status || null,
+      processing_error: selectedResume.processing?.error || null,
     } as CandidateResponse;
   }, [selectedResume]);
 

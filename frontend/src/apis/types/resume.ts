@@ -134,6 +134,8 @@ export interface CandidateResponse {
   is_parsed: boolean;
   /** Current processing status */
   processing_status: string | null;
+  /** Error message if processing failed */
+  processing_error: string | null;
 }
 
 /**

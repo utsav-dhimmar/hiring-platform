@@ -64,7 +64,7 @@ export const resumeService = {
    * @returns Promise resolving to job resumes response with all submitted resumes
    */
   getJobResumes: async (jobId: string): Promise<JobResumesResponse> => {
-    const response = await apiClient.get<JobResumesResponse>(`/jobs/${jobId}`);
+    const response = await apiClient.get<JobResumesResponse>(`/jobs/${jobId}/resumes`);
     return response.data;
   },
 };

@@ -87,6 +87,7 @@ class CandidateAdminService:
         resume_score = None
         pass_fail = None
         processing_status = None
+        processing_error = None
 
         if latest_resume:
             is_parsed = bool(latest_resume.parsed)
@@ -97,6 +98,7 @@ class CandidateAdminService:
             processing_info = parse_summary.get("processing", {})
             if isinstance(processing_info, dict):
                 processing_status = processing_info.get("status")
+                processing_error = processing_info.get("error")
 
             analysis_payload = parse_summary.get("analysis")
             if isinstance(analysis_payload, dict):
@@ -115,6 +117,7 @@ class CandidateAdminService:
             pass_fail=pass_fail,
             is_parsed=is_parsed,
             processing_status=processing_status,
+            processing_error=processing_error,
         )
 
 candidate_admin_service = CandidateAdminService()
