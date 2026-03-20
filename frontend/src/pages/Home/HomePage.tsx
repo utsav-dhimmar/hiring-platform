@@ -7,11 +7,13 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import jobService from "../../apis/services/job";
+import { authService } from "../../apis/services/auth";
 import { resumeService } from "../../apis/services/resume";
 import type { Job } from "../../apis/types/job";
 import { Button, Card, CardBody, CardHeader, JobSearch } from "../../components/common";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logout, selectCurrentUser } from "../../store/slices/authSlice";
+import { extractErrorMessage } from "../../utils/error";
 
 const HomePage = () => {
   const dispatch = useAppDispatch();
@@ -44,7 +46,8 @@ const HomePage = () => {
       setJobs(data);
     } catch (error) {
       console.error("Failed to fetch jobs:", error);
-      setMessage({ type: "danger", text: "Failed to load jobs." });
+      const errorMessage = extractErrorMessage(error, "Failed to load jobs.");
+      setMessage({ type: "danger", text: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -66,8 +69,15 @@ const HomePage = () => {
     setMessage({ type: "danger", text: errorMsg });
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Backend logout failed:", error);
+    } finally {
+      dispatch(logout());
+      navigate("/login");
+    }
   };
 
   const handleFileUpload = async (jobId: string, event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +92,8 @@ const HomePage = () => {
       setMessage({ type: "success", text: "Resume uploaded successfully!" });
     } catch (error) {
       console.error("Upload failed:", error);
-      setMessage({ type: "danger", text: "Failed to upload resume." });
+      const errorMessage = extractErrorMessage(error, "Failed to upload resume.");
+      setMessage({ type: "danger", text: errorMessage });
     } finally {
       setUploading((prev) => ({ ...prev, [jobId]: false }));
       // Clear file input

@@ -13,17 +13,57 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.logging import get_logger
 from app.v1.db.session import get_db
+from app.v1.dependencies.auth import get_current_user
 from app.v1.schemas.user import (
     LoginResponse,
     UserCreate,
     UserLogin,
     UserRead,
+    UserRegister,
 )
 from app.v1.services.user_service import user_service
 
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+async def register_user(
+    *,
+    db: AsyncSession = Depends(get_db),
+    user_in: UserRegister,
+) -> Any:
+    """
+    Register a new user.
+
+    Args:
+        db: Async database session.
+        user_in: User registration schema.
+
+    Returns:
+        The created user.
+    """
+    logger.info(f"Received request to register user with email: {user_in.email}")
+    return await user_service.register_user(db=db, user_in=user_in)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout_user(
+    *,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+) -> None:
+    """
+    Logout the current user.
+
+    Args:
+        db: Async database session.
+        current_user: The currently authenticated user.
+    """
+    logger.info(f"Logout request for user: {current_user.email}")
+    await user_service.logout_user(db=db, user_id=uuid.UUID(current_user.id))
+    return None
 
 
 @router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)

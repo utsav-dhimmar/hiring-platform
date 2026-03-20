@@ -7,13 +7,13 @@ import { useState } from "react";
 import { Container, Row, Col, Alert } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "../../store/hooks";
 import { setCredentials } from "../../store/slices/authSlice";
 import { authService } from "../../apis/services/auth";
 import { Card, CardHeader, CardBody, Input, Button } from "../../components/common";
 import { loginSchema, type LoginFormValues } from "../../schemas/auth";
+import { extractErrorMessage } from "../../utils/error";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -43,12 +43,7 @@ const LoginPage = () => {
       );
       navigate("/");
     } catch (err: unknown) {
-      let errorMsg = "Failed to login. Please check your credentials.";
-      if (axios.isAxiosError(err)) {
-        errorMsg = err.response?.data?.detail || err.message || errorMsg;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
+      const errorMsg = extractErrorMessage(err, "Failed to login. Please check your credentials.");
       setError(errorMsg);
     } finally {
       setIsLoading(false);
@@ -86,11 +81,6 @@ const LoginPage = () => {
                   Sign In
                 </Button>
               </form>
-              <div className="text-center mt-3">
-                <p className="text-muted">
-                  Don't have an account? <Link to="/register">Register</Link>
-                </p>
-              </div>
             </CardBody>
           </Card>
         </Col>
