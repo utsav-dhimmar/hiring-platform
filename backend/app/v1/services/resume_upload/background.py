@@ -178,11 +178,13 @@ class BackgroundProcessor:
                 # ---- Issue #25: content-level deduplication ------
                 text_hash = hashlib.sha256(raw_text.encode()).hexdigest()
                 stage_started_at = time.perf_counter()
-                twin_resume = await resume_upload_repository.get_resume_by_text_hash_for_job(
-                    db,
-                    job_id=job_id,
-                    text_hash=text_hash,
-                    exclude_resume_id=resume_record.id,
+                twin_resume = (
+                    await resume_upload_repository.get_resume_by_text_hash_for_job(
+                        db,
+                        job_id=job_id,
+                        text_hash=text_hash,
+                        exclude_resume_id=resume_record.id,
+                    )
                 )
                 if twin_resume is not None:
                     # Same text content found (e.g. pdf vs docx of same file).
@@ -242,8 +244,7 @@ class BackgroundProcessor:
                 )
 
                 stage_started_at = time.perf_counter()
-                insights = await run_in_resume_executor(
-                    self.processor.generate_resume_insights,
+                insights = await self.processor.generate_resume_insights(
                     raw_text=raw_text,
                     parsed_summary=parsed_summary,
                     job=job,

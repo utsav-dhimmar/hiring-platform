@@ -120,7 +120,9 @@ class AdminRepository:
         @returns Role object if found, None otherwise
         """
         result = await db.execute(
-            select(Role).where(Role.id == role_id).options(selectinload(Role.permissions))
+            select(Role)
+            .where(Role.id == role_id)
+            .options(selectinload(Role.permissions))
         )
         return result.scalar_one_or_none()
 
@@ -348,11 +350,9 @@ class AdminRepository:
         total_jobs = await db.scalar(select(func.count(Job.id)))
         total_candidates = await db.scalar(select(func.count(Candidate.id)))
         total_resumes = await db.scalar(select(func.count(Resume.id)))
-        active_jobs = await db.scalar(
-            select(func.count(Job.id)).where(Job.is_active == True)
-        )
+        active_jobs = await db.scalar(select(func.count(Job.id)).where(Job.is_active))
         active_users = await db.scalar(
-            select(func.count(User.id)).where(User.is_active == True)
+            select(func.count(User.id)).where(User.is_active)
         )
 
         return {
@@ -376,8 +376,7 @@ class AdminRepository:
         """
         total_jobs = await db.scalar(select(func.count(Job.id))) or 0
         active_jobs = (
-            await db.scalar(select(func.count(Job.id)).where(Job.is_active == True))
-            or 0
+            await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0
         )
         total_candidates = await db.scalar(select(func.count(Candidate.id))) or 0
 
@@ -396,10 +395,7 @@ class AdminRepository:
         )
 
         total_passed = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail == True)
-            )
-            or 0
+            await db.scalar(select(func.count(Resume.id)).where(Resume.pass_fail)) or 0
         )
         total_resumes_count = (
             await db.scalar(

@@ -8,6 +8,7 @@ import time
 import uuid
 from typing import Any
 
+from app.v1.core.cache import cache
 from app.v1.core.analyzer import ResumeJdAnalyzer
 from app.v1.core.embeddings import EmbeddingService
 from app.v1.core.extractor import (
@@ -73,7 +74,7 @@ class ResumeProcessor:
         )
         return raw_text, normalized
 
-    def generate_resume_insights(
+    async def generate_resume_insights(
         self,
         *,
         raw_text: str,
@@ -96,14 +97,30 @@ class ResumeProcessor:
         """
         candidate_text = build_candidate_text(parsed_summary, raw_text)
         job_text = build_job_text(job)
+        job_id = getattr(job, "id", None)
 
-        stage_started_at = time.perf_counter()
-        job_embedding = self.embeddings.encode_jd(job_text) if job_text else None
-        log_stage(
-            stage="job_embedding",
-            started_at=stage_started_at,
-            job_chars=len(job_text),
-        )
+        # ---- Redis Cache for Job Embedding ----
+        job_embedding = None
+        if job_id:
+            cache_key = f"job_embedding:{job_id}"
+            job_embedding = await cache.get(cache_key)
+            if job_embedding:
+                log_stage(
+                    stage="job_embedding_cache_hit",
+                    job_id=job_id,
+                )
+
+        if job_embedding is None:
+            stage_started_at = time.perf_counter()
+            job_embedding = self.embeddings.encode_jd(job_text) if job_text else None
+            log_stage(
+                stage="job_embedding_generated",
+                started_at=stage_started_at,
+                job_chars=len(job_text) if job_text else 0,
+            )
+            if job_id and job_embedding:
+                await cache.set(f"job_embedding:{job_id}", job_embedding)
+        # ---------------------------------------
 
         stage_started_at = time.perf_counter()
         candidate_embedding = (

@@ -575,7 +575,9 @@ class AdminService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_in: JobCreate
     ) -> Job:
         """Create a new job."""
-        job = await job_repository.create(db=db, object=job_in, created_by=admin_user_id)
+        job = await job_repository.create(
+            db=db, object=job_in, created_by=admin_user_id
+        )
         await self.log_action(
             db=db,
             user_id=admin_user_id,
@@ -686,9 +688,7 @@ class AdminService:
             action="update_skill",
             target_type="skill",
             target_id=skill_id,
-            details={
-                "updated_fields": list(update_data.keys())
-            },
+            details={"updated_fields": list(update_data.keys())},
         )
         return updated_skill
 

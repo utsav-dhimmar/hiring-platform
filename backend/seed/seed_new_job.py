@@ -200,16 +200,11 @@ async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
     job.jd_embedding = encode_jd(job_text) if job_text else None
 
     skill_ids = [skill.id for skill in skills if skill.name in REQUIRED_SKILLS]
-    await session.execute(
-        delete(job_skills).where(job_skills.c.job_id == job.id)
-    )
+    await session.execute(delete(job_skills).where(job_skills.c.job_id == job.id))
     if skill_ids:
         await session.execute(
             insert(job_skills),
-            [
-                {"job_id": job.id, "skill_id": skill_id}
-                for skill_id in skill_ids
-            ],
+            [{"job_id": job.id, "skill_id": skill_id} for skill_id in skill_ids],
         )
 
     await session.flush()
