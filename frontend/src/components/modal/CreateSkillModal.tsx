@@ -4,6 +4,7 @@
  */
 
 import { useCallback } from "react";
+import { Modal } from "react-bootstrap";
 import { adminSkillService } from "../../apis/admin/service";
 import type { SkillRead } from "../../apis/admin/types";
 import { Button, Input } from "../../components/common";
@@ -58,7 +59,7 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
     submitError,
     formState: { errors },
   } = useFormModal<SkillCreateFormValues, SkillRead>({
-    schema: isEditMode ? skillUpdateSchema : skillCreateSchema,
+    schema: skillCreateSchema,
     defaultValues: DEFAULT_SKILL_VALUES,
     item: skill,
     show,
@@ -66,53 +67,46 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
     onSubmit,
   });
 
-  if (!show) return null;
-
   return (
-    <div className="modal-overlay">
-      <div className="modal-container modal-dialog-scrollable">
-        <div className="modal-header">
-          <h2>{isEditMode ? "Edit Skill" : "Create New Skill"}</h2>
-          <button className="close-btn" onClick={handleClose}>
-            &times;
-          </button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            {submitError && <div className="alert alert-danger">{submitError}</div>}
+    <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
+      <Modal.Header closeButton>
+        <Modal.Title>{isEditMode ? "Edit Skill" : "Create New Skill"}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <form id="create-skill-form" onSubmit={handleSubmit}>
+          {submitError && <div className="alert alert-danger">{submitError}</div>}
 
-            <Input
-              label="Skill Name"
-              {...register("name")}
-              error={errors.name?.message}
-              placeholder="e.g. React.js"
-              required
+          <Input
+            label="Skill Name"
+            {...register("name")}
+            error={errors.name?.message}
+            placeholder="e.g. React.js"
+            required
+          />
+
+          <div className="form-group mb-3">
+            <label className="form-label">Description</label>
+            <textarea
+              className={`form-control ${errors.description ? "is-invalid" : ""}`}
+              rows={3}
+              {...register("description")}
+              placeholder="Briefly describe the skill..."
             />
-
-            <div className="form-group mb-3">
-              <label className="form-label">Description</label>
-              <textarea
-                className={`form-control ${errors.description ? "is-invalid" : ""}`}
-                rows={3}
-                {...register("description")}
-                placeholder="Briefly describe the skill..."
-              />
-              {errors.description && (
-                <div className="invalid-feedback">{errors.description.message}</div>
-              )}
-            </div>
-          </div>
-          <div className="modal-footer">
-            <Button variant="outline-secondary" onClick={handleClose} type="button">
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" isLoading={isSubmitting}>
-              {isEditMode ? "Update Skill" : "Create Skill"}
-            </Button>
+            {errors.description && (
+              <div className="invalid-feedback">{errors.description.message}</div>
+            )}
           </div>
         </form>
-      </div>
-    </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="outline-secondary" onClick={handleClose} type="button">
+          Cancel
+        </Button>
+        <Button variant="primary" type="submit" form="create-skill-form" isLoading={isSubmitting}>
+          {isEditMode ? "Update Skill" : "Create Skill"}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 };
 

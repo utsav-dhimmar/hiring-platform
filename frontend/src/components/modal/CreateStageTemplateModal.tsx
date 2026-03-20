@@ -4,6 +4,7 @@
  */
 
 import { useCallback } from "react";
+import { Modal } from "react-bootstrap";
 import { adminStageTemplateService } from "../../apis/admin/service";
 import type { StageTemplate } from "../../apis/types/stage";
 import { Button, ErrorDisplay, Input } from "../../components/common";
@@ -69,67 +70,67 @@ const CreateStageTemplateModal = ({
     onSubmit,
   });
 
-  if (!show) return null;
-
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
-        <div className="modal-header">
-          <h2>{isEditMode ? "Edit Stage Template" : "Create New Stage Template"}</h2>
-          <button className="close-btn" onClick={handleClose}>
-            &times;
-          </button>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            {submitError && <ErrorDisplay message={submitError} />}
+    <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
+      <Modal.Header closeButton>
+        <Modal.Title>
+          {isEditMode ? "Edit Stage Template" : "Create New Stage Template"}
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <form id="create-stage-template-form" onSubmit={handleSubmit}>
+          {submitError && <ErrorDisplay message={submitError} />}
 
-            <Input
-              label="Template Name"
-              {...register("name")}
-              error={errors.name?.message}
-              placeholder="e.g. HR Screening, Technical Round"
-              required
+          <Input
+            label="Template Name"
+            {...register("name")}
+            error={errors.name?.message}
+            placeholder="e.g. HR Screening, Technical Round"
+            required
+          />
+
+          <div className="form-group mb-3">
+            <label className="form-label">Description</label>
+            <textarea
+              className={`form-control ${errors.description ? "is-invalid" : ""}`}
+              rows={3}
+              {...register("description")}
+              placeholder="Briefly describe the purpose of this stage..."
             />
-
-            <div className="form-group mb-3">
-              <label className="form-label">Description</label>
-              <textarea
-                className={`form-control ${errors.description ? "is-invalid" : ""}`}
-                rows={3}
-                {...register("description")}
-                placeholder="Briefly describe the purpose of this stage..."
-              />
-              {errors.description && (
-                <div className="invalid-feedback">{errors.description.message}</div>
-              )}
-            </div>
-
-            <div className="form-group mb-3">
-              <label className="form-label">Default Configuration (JSON)</label>
-              <textarea
-                className="form-control"
-                rows={4}
-                readOnly
-                value={JSON.stringify(DEFAULT_TEMPLATE_VALUES.default_config, null, 2)}
-                disabled
-              />
-              <small className="text-muted">
-                Advanced configuration is currently read-only in the UI.
-              </small>
-            </div>
+            {errors.description && (
+              <div className="invalid-feedback">{errors.description.message}</div>
+            )}
           </div>
-          <div className="modal-footer">
-            <Button variant="outline-secondary" onClick={handleClose} type="button">
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" isLoading={isSubmitting}>
-              {isEditMode ? "Update Template" : "Create Template"}
-            </Button>
+
+          <div className="form-group mb-3">
+            <label className="form-label">Default Configuration (JSON)</label>
+            <textarea
+              className="form-control"
+              rows={4}
+              readOnly
+              value={JSON.stringify(DEFAULT_TEMPLATE_VALUES.default_config, null, 2)}
+              disabled
+            />
+            <small className="text-muted">
+              Advanced configuration is currently read-only in the UI.
+            </small>
           </div>
         </form>
-      </div>
-    </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="outline-secondary" onClick={handleClose} type="button">
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          type="submit"
+          form="create-stage-template-form"
+          isLoading={isSubmitting}
+        >
+          {isEditMode ? "Update Template" : "Create Template"}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 };
 

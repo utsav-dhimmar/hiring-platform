@@ -98,12 +98,14 @@ const AdminJobs = () => {
     },
     {
       header: "Actions",
+      className: "text-end text-nowrap",
+      style: { width: "350px", minWidth: "350px" },
       accessor: (job) => (
-        <>
+        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
           <Button
             variant="outline-primary"
             size="sm"
-            className="me-2"
+            className="flex-shrink-0"
             onClick={() => handleViewCandidates(job.id)}
           >
             Candidates
@@ -111,7 +113,7 @@ const AdminJobs = () => {
           <Button
             variant="outline-secondary"
             size="sm"
-            className="me-2"
+            className="flex-shrink-0"
             onClick={() => handleManageStages(job)}
           >
             Pipeline
@@ -119,15 +121,20 @@ const AdminJobs = () => {
           <Button
             variant="outline-secondary"
             size="sm"
-            className="me-2"
+            className="flex-shrink-0"
             onClick={() => handleEditClick(job)}
           >
             Edit
           </Button>
-          <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(job)}>
+          <Button
+            variant="outline-danger"
+            size="sm"
+            className="flex-shrink-0"
+            onClick={() => handleDeleteClick(job)}
+          >
             Delete
           </Button>
-        </>
+        </div>
       ),
     },
   ];

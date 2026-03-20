@@ -40,7 +40,7 @@ export function Card({
 }: CustomCardProps) {
   return (
     <BSCard
-      className={`custom-card ${hoverable ? "custom-card--hoverable" : ""} ${clickable ? "custom-card--clickable" : ""} ${className}`}
+      className={`custom-card ${hoverable ? "custom-card--hoverable" : ""} ${clickable ? "custom-card--clickable" : ""} shadow-sm border-0 ${className}`}
       onClick={clickable ? onCardClick : undefined}
       {...props}
     >

@@ -71,7 +71,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <Form.Control
             id={inputId}
             size={inputSize}
-            className={`custom-input__field ${leftElement ? "custom-input__field--with-left" : ""} ${rightElement ? "custom-input__field--with-right" : ""}`}
+            className={`custom-input__field py-2 px-3 ${leftElement ? "custom-input__field--with-left" : ""} ${rightElement ? "custom-input__field--with-right" : ""}`}
             ref={ref}
             {...props}
           />

@@ -114,21 +114,19 @@ const HomePage = () => {
 
   return (
     <Container className="py-5">
-      <Row className="mb-4 align-items-center">
-        <Col>
-          <h1>Welcome to Hiring Platform</h1>
-        </Col>
-        <Col xs="auto" className="d-flex gap-2">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="mb-0 fw-bold text-primary">Hiring Platform</h2>
+        <div className="d-flex gap-2">
           {isAuthorized && (
             <Button variant="primary" onClick={goToAdmin}>
               Admin Dashboard
             </Button>
           )}
-          <Button variant="danger" onClick={handleLogout}>
+          <Button variant="outline-danger" onClick={handleLogout}>
             Logout
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       {message && (
         <Alert variant={message.type} dismissible onClose={() => setMessage(null)}>
@@ -143,13 +141,18 @@ const HomePage = () => {
               <h3 className="mb-0">Available Jobs</h3>
             </CardHeader>
             <CardBody>
-              <div className="mb-4">
+              <div className="mb-4 position-relative">
                 <JobSearch
                   onResultsFound={handleJobsFound}
                   onClear={handleClearSearch}
                   onError={handleSearchError}
                   onSearching={setSearchingJobs}
                 />
+                {searchingJobs && (
+                  <div className="position-absolute end-0 top-50 translate-middle-y me-5">
+                    <Spinner animation="border" size="sm" variant="primary" />
+                  </div>
+                )}
               </div>
 
               {loading ? (
@@ -163,49 +166,61 @@ const HomePage = () => {
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <table className="table table-hover align-middle">
-                    <thead>
+                  <table className="table table-hover align-middle border-0">
+                    <thead className="bg-light text-muted small text-uppercase fw-bold">
                       <tr>
-                        <th>Title</th>
-                        <th>Department</th>
-                        <th>Status</th>
-                        <th className="text-end">Actions</th>
+                        <th className="px-4 py-3 border-0">Job Title</th>
+                        <th className="px-4 py-3 border-0">Department</th>
+                        <th className="px-4 py-3 border-0">Status</th>
+                        <th className="px-4 py-3 border-0 text-end">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="border-0">
                       {jobs.map((job) => (
-                        <tr key={job.id}>
-                          <td>
-                            <strong>{job.title}</strong>
+                        <tr key={job.id} className="border-bottom">
+                          <td className="px-4 py-3 border-0">
+                            <div className="fw-semibold text-dark">{job.title}</div>
                           </td>
-                          <td>{job.department || "N/A"}</td>
-                          <td>
-                            <span className={`badge bg-${job.is_active ? "success" : "secondary"}`}>
+                          <td className="px-4 py-3 border-0 text-muted">
+                            {job.department || "N/A"}
+                          </td>
+                          <td className="px-4 py-3 border-0">
+                            <span
+                              className={`badge px-3 py-2 rounded-pill bg-${job.is_active ? "success" : "secondary"}-subtle text-${job.is_active ? "success" : "secondary"}`}
+                            >
                               {job.is_active ? "Active" : "Inactive"}
                             </span>
                           </td>
-                          <td className="text-end">
+                          <td className="px-4 py-3 border-0 text-end">
                             <div className="d-inline-flex align-items-center gap-2">
                               {uploading[job.id] ? (
-                                <Spinner animation="border" size="sm" />
+                                <Spinner animation="border" size="sm" variant="primary" />
                               ) : (
-                                <Form.Group controlId={`upload-${job.id}`}>
+                                <Form.Group controlId={`upload-${job.id}`} className="mb-0">
                                   <Form.Control
                                     type="file"
                                     size="sm"
+                                    className="d-none"
+                                    id={`file-input-${job.id}`}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                       handleFileUpload(job.id, e)
                                     }
                                     accept=".pdf,.doc,.docx"
                                   />
+                                  <label
+                                    htmlFor={`file-input-${job.id}`}
+                                    className="btn btn-sm btn-outline-primary mb-0 cursor-pointer"
+                                  >
+                                    Upload Resume
+                                  </label>
                                 </Form.Group>
                               )}
                               <Button
-                                variant="outline-primary"
+                                variant="primary"
                                 size="sm"
                                 onClick={() => viewCandidates(job.id)}
                               >
-                                View Candidates
+                                Candidates
                               </Button>
                             </div>
                           </td>

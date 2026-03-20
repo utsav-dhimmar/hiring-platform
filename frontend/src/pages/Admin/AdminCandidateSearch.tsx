@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Badge } from "react-bootstrap";
+import { Badge, Row, Col } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { adminCandidateService, adminJobService } from "../../apis/admin/service";
 import type { JobRead } from "../../apis/admin/types";
@@ -44,6 +44,7 @@ const AdminCandidateSearch = () => {
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateResponse | null>(null);
 
   const fetchCandidates = useCallback(async () => {
+    console.log("fetchCandidates");
     setLoading(true);
     setError(null);
     try {
@@ -87,7 +88,7 @@ const AdminCandidateSearch = () => {
     fetchCandidates();
   }, [jobId, fetchCandidates, fetchJob]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: React.SyntheticEvent) => {
     e.preventDefault();
     fetchCandidates();
   };
@@ -133,48 +134,71 @@ const AdminCandidateSearch = () => {
     },
     {
       header: "Actions",
+      className: "text-end text-nowrap",
+      style: { width: "150px", minWidth: "150px" },
       accessor: (c) => (
-        <Button variant="outline-primary" size="sm" onClick={() => handleShowMore(c)}>
-          View Details
-        </Button>
+        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
+          <Button
+            variant="outline-primary"
+            size="sm"
+            className="flex-shrink-0"
+            onClick={() => handleShowMore(c)}
+          >
+            View Details
+          </Button>
+        </div>
       ),
     },
   ];
 
   return (
     <div className="admin-dashboard">
-      <PageHeader
-        title={jobId ? `Candidates for ${job?.title || "Job"}` : "Global Candidate Search"}
-        actions={
-          jobId && (
-            <Button variant="outline-secondary" onClick={() => navigate("/admin/jobs")}>
-              Back to Jobs
-            </Button>
-          )
-        }
-      />
+      <div className="bg-white p-4 rounded-4 shadow-sm border border-light mb-4">
+        <PageHeader
+          title={jobId ? `Candidates for ${job?.title || "Job"}` : "Global Candidate Search"}
+          className="mb-0 border-0 p-0"
+          actions={
+            jobId && (
+              <Button variant="outline-secondary" onClick={() => navigate("/admin/jobs")}>
+                Back to Jobs
+              </Button>
+            )
+          }
+        />
+      </div>
 
       {job && (
-        <Card className="mb-4 bg-light border-0 shadow-sm">
+        <Card className="mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
+          <div className="bg-light px-4 py-2 border-bottom">
+            <h6 className="text-muted small text-uppercase fw-bold mb-0 letter-spacing-wide">
+              Job Details Context
+            </h6>
+          </div>
           <CardBody className="p-4">
-            <div className="row g-4">
-              <div className="col-md-3 border-end">
-                <h6 className="text-muted small text-uppercase fw-bold mb-2">Department</h6>
-                <div className="fs-5">{job.department || "N/A"}</div>
-              </div>
-              <div className="col-md-2 border-end">
-                <h6 className="text-muted small text-uppercase fw-bold mb-2">Status</h6>
+            <Row className="g-4">
+              <Col md={3} className="border-end border-light">
+                <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">
+                  Department
+                </h6>
+                <div className="fw-bold text-dark">{job.department || "General"}</div>
+              </Col>
+              <Col md={2} className="border-end border-light">
+                <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">Status</h6>
                 <StatusBadge status={job.is_active} />
-              </div>
-              <div className="col-md-3 border-end">
-                <h6 className="text-muted small text-uppercase fw-bold mb-2">Required Skills</h6>
+              </Col>
+              <Col md={3} className="border-end border-light">
+                <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">
+                  Required Skills
+                </h6>
                 <SkillsBadgeList skills={job.skills} />
-              </div>
-              <div className="col-md-4">
-                <h6 className="text-muted small text-uppercase fw-bold mb-2">Hiring Pipeline</h6>
+              </Col>
+              <Col md={4}>
+                <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">
+                  Hiring Pipeline
+                </h6>
                 <StagesBadgeList stages={job.stages} />
-              </div>
-            </div>
+              </Col>
+            </Row>
           </CardBody>
         </Card>
       )}

@@ -109,14 +109,14 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
   }, [show, setSubmitError]);
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered>
+    <Modal show={show} onHide={handleClose} size="lg" centered scrollable>
       <Modal.Header closeButton>
         <Modal.Title>{isEditMode ? "Edit User" : "Create New User"}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {submitError && <ErrorDisplay message={submitError} />}
 
-        <Form onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit} id="create-user-form">
           <Row>
             <Col md={6}>
               <Input
@@ -194,17 +194,16 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
           <Form.Group className="mb-3">
             <Form.Check type="checkbox" label="Active User" {...register("is_active")} />
           </Form.Group>
-
-          <div className="d-flex justify-content-end gap-2 mt-4">
-            <Button variant="outline-secondary" onClick={handleClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" isLoading={isSubmitting}>
-              {isEditMode ? "Update User" : "Create User"}
-            </Button>
-          </div>
         </Form>
       </Modal.Body>
+      <Modal.Footer>
+        <Button variant="outline-secondary" onClick={handleClose} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="primary" form="create-user-form" isLoading={isSubmitting}>
+          {isEditMode ? "Update User" : "Create User"}
+        </Button>
+      </Modal.Footer>
     </Modal>
   );
 };

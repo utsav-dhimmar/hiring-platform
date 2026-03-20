@@ -3,7 +3,7 @@
  * Provides a form to input role name and select permissions.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Col, Form, Modal, Row } from "react-bootstrap";
 import { adminPermissionService, adminRoleService } from "../../apis/admin/service";
 import type { PermissionRead } from "../../apis/admin/types";
@@ -110,7 +110,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered size="lg" className="modal-dialog-scrollable">
+    <Modal show={show} onHide={onHide} centered size="lg" scrollable>
       <Modal.Header closeButton>
         <Modal.Title>{isEditMode ? "Edit Role" : "Create New Role"}</Modal.Title>
       </Modal.Header>
@@ -122,7 +122,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
             <p>Loading data...</p>
           </div>
         ) : (
-          <Form onSubmit={handleSubmit}>
+          <Form id="role-form" onSubmit={handleSubmit}>
             <Input
               label="Role Name"
               placeholder="e.g. Moderator"
@@ -154,18 +154,17 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
             {errors.permission_ids && (
               <div className="text-danger small mt-2">{errors.permission_ids.message}</div>
             )}
-
-            <div className="d-flex justify-content-end gap-2 mt-4">
-              <Button variant="outline-secondary" onClick={onHide} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary" isLoading={isSubmitting}>
-                {isEditMode ? "Update Role" : "Create Role"}
-              </Button>
-            </div>
           </Form>
         )}
       </Modal.Body>
+      <Modal.Footer>
+        <Button variant="outline-secondary" onClick={onHide} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="primary" form="role-form" isLoading={isSubmitting}>
+          {isEditMode ? "Update Role" : "Create Role"}
+        </Button>
+      </Modal.Footer>
     </Modal>
   );
 };
