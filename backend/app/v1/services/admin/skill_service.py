@@ -37,7 +37,14 @@ class SkillService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, skill_in: SkillCreate
     ) -> Skill:
         """Create a new skill."""
-        skill = await skill_repository.crud.create(db=db, object=skill_in)
+        skill = Skill(
+            name=skill_in.name,
+            description=skill_in.description,
+        )
+        db.add(skill)
+        await db.commit()
+        await db.refresh(skill)
+
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,

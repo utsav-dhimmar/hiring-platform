@@ -8,8 +8,9 @@ from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.v1.db.models.jobs import Job
 from app.v1.db.models.job_skills import job_skills
+from app.v1.db.models.job_stage_configs import JobStageConfig
+from app.v1.db.models.jobs import Job
 from app.v1.schemas.job import JobCreate, JobUpdate
 
 
@@ -18,7 +19,9 @@ class JobRepository:
     Repository class for handling Job database operations.
     """
 
-    async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100):
+    async def get_multi(
+        self, db: AsyncSession, skip: int = 0, limit: int = 100
+    ):
         """
         Retrieve multiple job records with pagination.
 
@@ -31,13 +34,31 @@ class JobRepository:
             dict[str, object]: A dictionary containing the jobs and total count.
         """
         total = await db.scalar(select(func.count()).select_from(Job))
-        stmt = select(Job).options(selectinload(Job.skills)).offset(skip).limit(limit)
+        stmt = (
+            select(Job)
+            .options(
+                selectinload(Job.skills),
+                selectinload(Job.stages).selectinload(JobStageConfig.template),
+            )
+            .offset(skip)
+            .limit(limit)
+        )
         result = await db.execute(stmt)
-        return {"data": list(result.scalars().unique().all()), "total": total or 0}
+        return {
+            "data": list(result.scalars().unique().all()),
+            "total": total or 0,
+        }
 
     async def get(self, db: AsyncSession, id: uuid.UUID) -> Job | None:
-        """Retrieve a single job with its related skills."""
-        stmt = select(Job).options(selectinload(Job.skills)).where(Job.id == id)
+        """Retrieve a single job with its related skills and stages."""
+        stmt = (
+            select(Job)
+            .options(
+                selectinload(Job.skills),
+                selectinload(Job.stages).selectinload(JobStageConfig.template),
+            )
+            .where(Job.id == id)
+        )
         result = await db.execute(stmt)
         return result.scalars().unique().first()
 
@@ -60,7 +81,9 @@ class JobRepository:
             raise ValueError("Failed to load created job.")
         return created_job
 
-    async def update(self, db: AsyncSession, id: uuid.UUID, object: JobUpdate) -> Job:
+    async def update(
+        self, db: AsyncSession, id: uuid.UUID, object: JobUpdate
+    ) -> Job:
         """Update a job and optionally replace its skill associations."""
         job = await self.get(db=db, id=id)
         if job is None:
@@ -122,25 +145,36 @@ class JobRepository:
 
         stmt = (
             select(Job)
-            .options(selectinload(Job.skills))
+            .options(
+                selectinload(Job.skills),
+                selectinload(Job.stages).selectinload(JobStageConfig.template),
+            )
             .where(search_filter)
             .offset(skip)
             .limit(limit)
         )
         result = await db.execute(stmt)
-        return {"data": list(result.scalars().unique().all()), "total": total or 0}
+        return {
+            "data": list(result.scalars().unique().all()),
+            "total": total or 0,
+        }
 
     async def _sync_skills(
         self, db: AsyncSession, job_id: uuid.UUID, skill_ids: list[uuid.UUID]
     ) -> None:
         """Replace a job's skill links with the provided skill ids."""
-        await db.execute(delete(job_skills).where(job_skills.c.job_id == job_id))
+        await db.execute(
+            delete(job_skills).where(job_skills.c.job_id == job_id)
+        )
         if not skill_ids:
             return
 
         await db.execute(
             insert(job_skills),
-            [{"job_id": job_id, "skill_id": skill_id} for skill_id in skill_ids],
+            [
+                {"job_id": job_id, "skill_id": skill_id}
+                for skill_id in skill_ids
+            ],
         )
 
 
