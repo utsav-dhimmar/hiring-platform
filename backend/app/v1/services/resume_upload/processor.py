@@ -8,13 +8,13 @@ import time
 import uuid
 from typing import Any
 
-from app.v1.core.cache import cache
-from app.v1.core.analyzer import ResumeJdAnalyzer
-from app.v1.core.embeddings import EmbeddingService
-from app.v1.core.extractor import (
+from app.core.embeddings import EmbeddingService
+from app.core.extractor import (
     DocumentParser,
     ResumeLLMExtractor,
 )
+from app.v1.core.cache import cache
+from app.v1.core.analyzer import ResumeJdAnalyzer
 from app.v1.utils.resume_upload import (
     normalize_extractions,
 )

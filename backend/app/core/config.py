@@ -97,7 +97,7 @@ class Settings(BaseSettings):
 
     # Embeddings
     EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
-    EMBEDDING_VECTOR_DIM: int = 1024
+    EMBEDDING_VECTOR_DIM: int = 384
     EMBEDDING_TRUNCATE_DIM: int = 384
     EMBEDDING_USE_INSTRUCTIONS: bool = False
 

@@ -11,10 +11,11 @@ import uuid
 from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.v1.core.logging import get_logger
-from app.v1.core.resume_executor import run_in_resume_executor
+from app.core.logging import get_logger
+from app.core.resume_executor import run_in_resume_executor
 from app.v1.db.session import async_session_maker
 from app.v1.repository.resume_upload_repository import resume_upload_repository
+from app.v1.repository.job_repository import job_repository
 from app.v1.schemas.upload import ResumeMatchAnalysis
 from app.v1.utils.resume_upload import (
     extract_skill_names,
@@ -146,7 +147,7 @@ class BackgroundProcessor:
 
             candidate = resume_record.candidate
             stage_started_at = time.perf_counter()
-            job = await resume_upload_repository.get_job(db, job_id)
+            job = await job_repository.get(db, job_id)
             log_stage(
                 stage="load_job",
                 started_at=stage_started_at,

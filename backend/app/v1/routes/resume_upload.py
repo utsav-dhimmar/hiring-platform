@@ -12,8 +12,9 @@ from fastapi import File as FastAPIFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
-from app.v1.dependencies import get_current_user
+from app.v1.dependencies import check_permission, get_current_user
 from app.v1.schemas.upload import (
+    JobCandidatesResponse,
     ResumeStatusResponse,
     ResumeUploadResponse,
 )
@@ -58,6 +59,23 @@ async def upload_resume_for_job(
         resume=resume,
         current_user=current_user,
         background_tasks=background_tasks,
+    )
+
+
+@router.get(
+    "/jobs/{job_id}/candidates",
+    response_model=JobCandidatesResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_job_candidates(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _user: UserRead = Depends(check_permission("candidates:access")),
+) -> JobCandidatesResponse:
+    """Retrieve all candidates who have applied for a specific job."""
+    return await resume_upload_service.get_candidates_for_job(
+        db=db,
+        job_id=job_id,
     )
 
 

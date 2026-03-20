@@ -220,7 +220,11 @@ const JobCandidatesPage = () => {
             variant="primary"
             size="sm"
             onClick={() => navigate(`/jobs/${jobId}/candidates/${resume.candidate_id}/evaluation`)}
-            disabled={resume.pass_fail === false} // Optional: disable if resume screening failed
+            disabled={
+              resume.pass_fail === false ||
+              resume.processing?.status === "processing" ||
+              resume.processing?.status === "queued"
+            }
           >
             Evaluate
           </Button>

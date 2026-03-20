@@ -14,8 +14,9 @@ from uuid import uuid7
 from fastapi import BackgroundTasks, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.v1.core.config import settings
+from app.core.config import settings
 from app.v1.repository.resume_upload_repository import resume_upload_repository
+from app.v1.repository.job_repository import job_repository
 from app.v1.schemas.job import JobRead
 from app.v1.schemas.upload import (
     CandidateResponse,
@@ -81,7 +82,8 @@ class ResumeUploadService:
         )
 
         stage_started_at = time.perf_counter()
-        job = await resume_upload_repository.get_job(db, job_id)
+        from app.v1.repository.job_repository import job_repository
+        job = await job_repository.get(db, job_id)
         log_stage(
             stage="upload_load_job",
             started_at=stage_started_at,
