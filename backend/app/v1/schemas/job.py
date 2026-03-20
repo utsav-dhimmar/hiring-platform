@@ -56,3 +56,12 @@ class JobRead(JobBase):
     stages: list[JobStageConfigRead] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class JobsListRead(BaseModel):
+    """
+    Schema for a paginated list of jobs.
+    """
+
+    data: list[JobRead]
+    total: int

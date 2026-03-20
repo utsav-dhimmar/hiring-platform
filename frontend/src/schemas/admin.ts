@@ -140,3 +140,60 @@ export const jobUpdateSchema = z.object({
  * Type inferred from jobUpdateSchema.
  */
 export type JobUpdateFormValues = z.infer<typeof jobUpdateSchema>;
+
+/**
+ * Schema for creating a new stage template.
+ */
+export const stageTemplateCreateSchema = z.object({
+  name: z.string().min(3, "Template name must be at least 3 characters long"),
+  description: z.string().optional(),
+  default_config: z.record(z.any()).optional().default({}),
+});
+
+/**
+ * Type inferred from stageTemplateCreateSchema.
+ */
+export type StageTemplateCreateFormValues = z.infer<typeof stageTemplateCreateSchema>;
+
+/**
+ * Schema for updating an existing stage template.
+ */
+export const stageTemplateUpdateSchema = z.object({
+  name: z.string().min(3, "Template name must be at least 3 characters long").optional(),
+  description: z.string().optional(),
+  default_config: z.record(z.any()).optional(),
+});
+
+/**
+ * Type inferred from stageTemplateUpdateSchema.
+ */
+export type StageTemplateUpdateFormValues = z.infer<typeof stageTemplateUpdateSchema>;
+
+/**
+ * Schema for adding a stage configuration to a job.
+ */
+export const jobStageConfigCreateSchema = z.object({
+  template_id: z.string().uuid("Invalid template ID"),
+  stage_order: z.number().int().min(0, "Order must be a non-negative integer"),
+  is_mandatory: z.boolean().default(true),
+  config: z.record(z.any()).optional().default({}),
+});
+
+/**
+ * Type inferred from jobStageConfigCreateSchema.
+ */
+export type JobStageConfigCreateFormValues = z.infer<typeof jobStageConfigCreateSchema>;
+
+/**
+ * Schema for updating a job stage configuration.
+ */
+export const jobStageConfigUpdateSchema = z.object({
+  stage_order: z.number().int().min(0, "Order must be a non-negative integer").optional(),
+  is_mandatory: z.boolean().optional(),
+  config: z.record(z.any()).optional(),
+});
+
+/**
+ * Type inferred from jobStageConfigUpdateSchema.
+ */
+export type JobStageConfigUpdateFormValues = z.infer<typeof jobStageConfigUpdateSchema>;

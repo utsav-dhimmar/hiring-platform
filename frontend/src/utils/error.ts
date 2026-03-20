@@ -23,6 +23,12 @@ export const extractErrorMessage = (
 			return detail;
 		}
 
+		// Handle GlobalErrorHandlerMiddleware nested error structure
+		const nestedError = err.response?.data?.error;
+		if (nestedError && typeof nestedError.message === "string") {
+			return nestedError.message;
+		}
+
 		return err.response?.data?.message || err.message || fallback;
 	}
 	if (err instanceof Error) {

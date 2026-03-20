@@ -78,6 +78,7 @@ function AdminDataTable<T>({
     return <LoadingSpinner message="Loading data..." />;
   }
 
+  // If error and no data, show full ErrorDisplay
   if (error && data.length === 0) {
     return <ErrorDisplay message={error} onRetry={onRetry} />;
   }
@@ -92,6 +93,12 @@ function AdminDataTable<T>({
   return (
     <Card className={className}>
       <CardBody>
+        {/* If error and data exists, show a smaller alert above the table */}
+        {error && data.length > 0 && (
+          <div className="mb-3">
+            <ErrorDisplay message={error} onRetry={onRetry} />
+          </div>
+        )}
         <div className="table-responsive">
           <table className={tableClassName}>
             <thead>

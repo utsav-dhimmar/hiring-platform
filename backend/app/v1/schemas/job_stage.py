@@ -84,3 +84,18 @@ class JobStageReorder(BaseModel):
     stage_ids: list[uuid.UUID] = Field(
         ..., description="Ordered list of JobStageConfig IDs"
     )
+
+
+class StageEvaluationRead(BaseModel):
+    """Schema for reading Stage Evaluation data."""
+
+    id: uuid.UUID
+    candidate_id: uuid.UUID
+    job_stage_config_id: uuid.UUID
+    status: str
+    analysis: dict[str, Any] | None = None
+    decision: bool | None = None
+    created_at: datetime
+    completed_at: datetime | None = None
+
+    model_config = ConfigDict(from_attributes=True)

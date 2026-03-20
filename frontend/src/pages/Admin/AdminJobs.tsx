@@ -17,13 +17,14 @@ import {
   SkillsBadgeList,
   type Column,
 } from "../../components/common";
-import { CreateJobModal, DeleteModal } from "../../components/modal";
+import { CreateJobModal, DeleteModal, ManageJobStagesModal } from "../../components/modal";
 import "../../css/adminDashboard.css";
 import { useAdminData, useDeleteConfirmation } from "../../hooks";
 
 const AdminJobs = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [showStagesModal, setShowStagesModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobRead | null>(null);
 
   const {
@@ -57,12 +58,22 @@ const AdminJobs = () => {
     setShowModal(true);
   };
 
+  const handleManageStages = (job: JobRead) => {
+    setSelectedJob(job);
+    setShowStagesModal(true);
+  };
+
   const handleViewCandidates = (jobId: string) => {
     navigate(`/admin/jobs/${jobId}/candidates`);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
+    setSelectedJob(null);
+  };
+
+  const handleCloseStagesModal = () => {
+    setShowStagesModal(false);
     setSelectedJob(null);
   };
 
@@ -96,6 +107,14 @@ const AdminJobs = () => {
             onClick={() => handleViewCandidates(job.id)}
           >
             Candidates
+          </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            className="me-2"
+            onClick={() => handleManageStages(job)}
+          >
+            Pipeline
           </Button>
           <Button
             variant="outline-secondary"
@@ -139,6 +158,13 @@ const AdminJobs = () => {
         handleClose={handleCloseModal}
         onJobSaved={fetchJobs}
         job={selectedJob}
+      />
+
+      <ManageJobStagesModal
+        show={showStagesModal}
+        handleClose={handleCloseStagesModal}
+        job={selectedJob}
+        onStagesUpdated={fetchJobs}
       />
 
       <DeleteModal

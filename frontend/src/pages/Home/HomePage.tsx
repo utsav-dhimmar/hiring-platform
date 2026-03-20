@@ -84,6 +84,17 @@ const HomePage = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Client-side validation for file size (5MB)
+    const MAX_SIZE_MB = Number(import.meta.env.VITE_RESUME_MAX_SIZE_MB) || 5;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setMessage({
+        type: "danger",
+        text: `Resume size must be <= ${MAX_SIZE_MB} MB.`,
+      });
+      event.target.value = "";
+      return;
+    }
+
     setUploading((prev) => ({ ...prev, [jobId]: true }));
     setMessage(null);
 

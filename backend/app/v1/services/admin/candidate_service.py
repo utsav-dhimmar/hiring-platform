@@ -1,11 +1,14 @@
 import uuid
+
 from sqlalchemy import or_, select
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidates import Candidate
 from app.v1.repository.candidate_repository import candidate_repository
+from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
+
 
 class CandidateAdminService:
     """
@@ -71,6 +74,18 @@ class CandidateAdminService:
         candidates = list(result.scalars().all())
         return [self._map_candidate_to_response(c) for c in candidates]
 
+    async def get_candidate_evaluations(
+        self,
+        db: AsyncSession,
+        candidate_id: uuid.UUID,
+    ) -> list[StageEvaluationRead]:
+        """
+        Get all interview stage evaluations for a specific candidate.
+        Currently returns mock data as StageEvaluation model is not yet implemented.
+        """
+        # PENDING
+        return []
+
     def _map_candidate_to_response(
         self, candidate: Candidate
     ) -> CandidateResponse:
@@ -87,6 +102,7 @@ class CandidateAdminService:
         resume_score = None
         pass_fail = None
         processing_status = None
+        processing_error = None
 
         if latest_resume:
             is_parsed = bool(latest_resume.parsed)
@@ -97,6 +113,7 @@ class CandidateAdminService:
             processing_info = parse_summary.get("processing", {})
             if isinstance(processing_info, dict):
                 processing_status = processing_info.get("status")
+                processing_error = processing_info.get("error")
 
             analysis_payload = parse_summary.get("analysis")
             if isinstance(analysis_payload, dict):
@@ -115,6 +132,8 @@ class CandidateAdminService:
             pass_fail=pass_fail,
             is_parsed=is_parsed,
             processing_status=processing_status,
+            processing_error=processing_error,
         )
+
 
 candidate_admin_service = CandidateAdminService()

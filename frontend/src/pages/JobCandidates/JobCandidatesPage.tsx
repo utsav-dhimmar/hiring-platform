@@ -27,6 +27,8 @@ import type { Job } from "../../apis/types/job";
 import type { CandidateResponse, JobResumeInfoResponse } from "../../apis/types/resume";
 import { useAdminData } from "../../hooks";
 
+import { extractErrorMessage } from "../../utils/error";
+
 const mapCandidateToResumeInfo = (
   jobId: string,
   candidate: CandidateResponse,
@@ -46,7 +48,7 @@ const mapCandidateToResumeInfo = (
   parsed: candidate.is_parsed,
   processing: {
     status: candidate.processing_status ?? "completed",
-    error: null,
+    error: candidate.processing_error ?? null,
   },
   analysis: candidate.resume_analysis,
   resume_score: candidate.resume_score,
@@ -85,6 +87,7 @@ const JobCandidatesPage = () => {
     loading,
     error,
     fetchData,
+    setError,
   } = useAdminData<JobResumeInfoResponse>(fetchJobAndCandidates, {
     fetchOnMount: !!jobId,
   });
@@ -105,6 +108,7 @@ const JobCandidatesPage = () => {
       pass_fail: selectedResume.pass_fail,
       is_parsed: selectedResume.parsed,
       processing_status: selectedResume.processing?.status || null,
+      processing_error: selectedResume.processing?.error || null,
     } as CandidateResponse;
   }, [selectedResume]);
 
@@ -130,6 +134,7 @@ const JobCandidatesPage = () => {
     if (!jobId) return;
 
     setIsSearching(true);
+    setError(null);
     try {
       let candidatesData: CandidateResponse[] = [];
       if (searchQuery.trim()) {
@@ -141,6 +146,7 @@ const JobCandidatesPage = () => {
       setResumes(candidatesData.map((candidate) => mapCandidateToResumeInfo(jobId, candidate)));
     } catch (err) {
       console.error("Search failed:", err);
+      setError(extractErrorMessage(err, "Search failed."));
     } finally {
       setIsSearching(false);
     }

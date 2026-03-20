@@ -12,6 +12,7 @@ import AdminAuditLogs from "../pages/Admin/AdminAuditLogs";
 import AdminRecentUploads from "../pages/Admin/AdminRecentUploads";
 import AdminJobs from "../pages/Admin/AdminJobs";
 import AdminSkills from "../pages/Admin/AdminSkills";
+import AdminStageTemplates from "../pages/Admin/AdminStageTemplates";
 import AdminCandidateSearch from "../pages/Admin/AdminCandidateSearch";
 import RoleRoute from "../components/auth/RoleRoute";
 
@@ -77,6 +78,14 @@ const AdminRoutes = () => {
           element={
             <RoleRoute allowedRoles={[]} requiredPermissions={["skills:access"]}>
               <AdminSkills />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="stage-templates"
+          element={
+            <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:manage"]}>
+              <AdminStageTemplates />
             </RoleRoute>
           }
         />

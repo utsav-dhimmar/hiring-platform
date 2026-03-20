@@ -17,10 +17,10 @@ const jobService = {
    * ```
    */
   getJobs: async (skip = 0, limit = 100): Promise<Job[]> => {
-    const response = await client.get<Job[]>("/jobs/", {
+    const response = await client.get<{ data: Job[]; total: number }>("/jobs/", {
       params: { skip, limit },
     });
-    return response.data;
+    return response.data.data;
   },
 
   /**
@@ -31,10 +31,10 @@ const jobService = {
    * @returns Promise resolving to an array of matching job postings
    */
   searchJobs: async (query: string, skip = 0, limit = 100): Promise<Job[]> => {
-    const response = await client.get<Job[]>("/jobs/search", {
+    const response = await client.get<{ data: Job[]; total: number }>("/jobs/search", {
       params: { q: query, skip, limit },
     });
-    return response.data;
+    return response.data.data;
   },
 };
 
