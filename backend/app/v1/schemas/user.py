@@ -107,3 +107,9 @@ class LoginResponse(BaseModel):
     expires_at: datetime
     refresh_token_expires_at: datetime
     user: UserRead
+
+
+class RefreshTokenRequest(BaseModel):
+    """Schema for refreshing an access token."""
+
+    refresh_token: str
