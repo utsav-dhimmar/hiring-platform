@@ -201,10 +201,10 @@ export const adminAnalyticsService = {
  */
 export const adminJobService = {
   getAllJobs: async (skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
-    const response = await apiClient.get<JobRead[]>("/jobs", {
+    const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs", {
       params: { skip, limit },
     });
-    return response.data;
+    return response.data.data;
   },
 
   createJob: async (job: JobCreate): Promise<JobRead> => {

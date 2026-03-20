@@ -10,14 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission
-from app.v1.schemas.job import JobCreate, JobRead, JobUpdate
+from app.v1.schemas.job import JobCreate, JobRead, JobUpdate, JobsListRead
 from app.v1.schemas.job_stage import (
     JobStageConfigCreate,
     JobStageConfigRead,
     JobStageConfigUpdate,
     JobStageReorder,
 )
-from app.v1.schemas.upload import JobCandidatesResponse
+from app.v1.schemas.upload import JobCandidatesResponse, JobResumesResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
 from app.v1.services.job_service import job_service
@@ -27,7 +27,7 @@ from app.v1.services.stage_service import stage_service
 router = APIRouter()
 
 
-@router.get("/", response_model=list[JobRead])
+@router.get("/", response_model=JobsListRead)
 async def read_jobs(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("jobs:access")),
@@ -45,11 +45,10 @@ async def read_jobs(
     Returns:
         Any: A list of jobs.
     """
-    jobs_data = await job_service.get_jobs(db=db, skip=skip, limit=limit)
-    return jobs_data["data"]
+    return await job_service.get_jobs(db=db, skip=skip, limit=limit)
 
 
-@router.get("/search", response_model=list[JobRead])
+@router.get("/search", response_model=JobsListRead)
 async def search_jobs(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("jobs:access")),
@@ -69,8 +68,7 @@ async def search_jobs(
     Returns:
         Any: A list of matching jobs.
     """
-    jobs_data = await job_service.search_jobs(db=db, query=q, skip=skip, limit=limit)
-    return jobs_data["data"]
+    return await job_service.search_jobs(db=db, query=q, skip=skip, limit=limit)
 
 
 @router.post("/", response_model=JobRead, status_code=status.HTTP_201_CREATED)
@@ -133,23 +131,6 @@ async def delete_job(
 ) -> None:
     """Delete a job."""
     await admin_service.delete_job(db=db, admin_user_id=user.id, job_id=job_id)
-
-
-@router.get(
-    "/{job_id}/candidates",
-    response_model=JobCandidatesResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def get_candidates_for_job(
-    job_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    _user: UserRead = Depends(check_permission("jobs:access")),
-) -> JobCandidatesResponse:
-    """Retrieve all candidates for a specific job."""
-    return await resume_upload_service.get_candidates_for_job(
-        db=db,
-        job_id=job_id,
-    )
 
 
 # --- Job Stage Configuration ---

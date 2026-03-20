@@ -388,7 +388,9 @@ class ResumeUploadService:
         Raises:
             HTTPException: If the job is not found.
         """
-        job = await resume_upload_repository.get_job(db, job_id)
+        # Use job_repository to get full job with relationships (skills, stages)
+        from app.v1.repository.job_repository import job_repository
+        job = await job_repository.get(db, job_id)
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -401,16 +403,7 @@ class ResumeUploadService:
         )
         return JobResumesResponse(
             job_id=job_id,
-            job=JobRead(
-                id=job.id,
-                title=getattr(job, "title", ""),
-                department=getattr(job, "department", None),
-                jd_text=getattr(job, "jd_text", None),
-                jd_json=getattr(job, "jd_json", None),
-                is_active=job.is_active,
-                created_by=getattr(job, "created_by", uuid.UUID(int=0)),
-                created_at=getattr(job, "created_at", datetime.now(UTC)),
-            ),
+            job=JobRead.model_validate(job),
             resumes=[
                 job_resume_response_from_resume(
                     job_id=job_id,
