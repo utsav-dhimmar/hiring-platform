@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.logging import get_logger
 from app.v1.db.session import get_db
-from app.v1.dependencies.dependencies import check_permission
+from app.v1.dependencies import check_permission
 from app.v1.schemas.admin import (
     AnalyticsSummary,
     AuditLogRead,
@@ -29,8 +29,14 @@ from app.v1.schemas.admin import (
     UserAdminRead,
     UserAdminUpdate,
 )
+from app.v1.schemas.job_stage import (
+    StageTemplateCreate,
+    StageTemplateRead,
+    StageTemplateUpdate,
+)
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
+from app.v1.services.stage_service import stage_service
 
 logger = get_logger(__name__)
 
@@ -99,7 +105,9 @@ async def delete_user(
     admin: UserRead = Depends(check_permission("users:manage")),
 ) -> None:
     """Delete a user."""
-    await admin_service.delete_user(db=db, admin_user_id=admin.id, user_id=user_id)
+    await admin_service.delete_user(
+        db=db, admin_user_id=admin.id, user_id=user_id
+    )
 
 
 @router.get("/roles", response_model=list[RoleRead])
@@ -161,7 +169,9 @@ async def delete_role(
     admin: UserRead = Depends(check_permission("roles:manage")),
 ) -> None:
     """Delete a role."""
-    await admin_service.delete_role(db=db, admin_user_id=admin.id, role_id=role_id)
+    await admin_service.delete_role(
+        db=db, admin_user_id=admin.id, role_id=role_id
+    )
 
 
 @router.get("/permissions", response_model=list[PermissionRead])
@@ -172,7 +182,9 @@ async def get_all_permissions(
     limit: int = Query(100, ge=1, le=500),
 ) -> Any:
     """Get all permissions."""
-    return await admin_service.get_all_permissions(db=db, skip=skip, limit=limit)
+    return await admin_service.get_all_permissions(
+        db=db, skip=skip, limit=limit
+    )
 
 
 @router.post(
@@ -192,7 +204,9 @@ async def create_permission(
     )
 
 
-@router.delete("/permissions/{permission_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/permissions/{permission_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_permission(
     permission_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -242,3 +256,58 @@ async def get_hiring_report(
 ) -> Any:
     """Get hiring report with detailed statistics."""
     return await admin_service.get_hiring_report(db=db)
+
+
+# --- Stage Template Management ---
+
+
+@router.get("/stage-templates", response_model=list[StageTemplateRead])
+async def get_stage_templates(
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("jobs:access")),
+) -> Any:
+    """Get all stage templates."""
+    return await stage_service.get_all_templates(db=db)
+
+
+@router.post(
+    "/stage-templates",
+    response_model=StageTemplateRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_stage_template(
+    *,
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("jobs:manage")),
+    template_in: StageTemplateCreate,
+) -> Any:
+    """Create a new stage template."""
+    return await stage_service.create_template(db=db, template_in=template_in)
+
+
+@router.patch(
+    "/stage-templates/{template_id}", response_model=StageTemplateRead
+)
+async def update_stage_template(
+    template_id: uuid.UUID,
+    *,
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("jobs:manage")),
+    template_update: StageTemplateUpdate,
+) -> Any:
+    """Update a stage template."""
+    return await stage_service.update_template(
+        db=db, template_id=template_id, template_update=template_update
+    )
+
+
+@router.delete(
+    "/stage-templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_stage_template(
+    template_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("jobs:manage")),
+) -> None:
+    """Delete a stage template."""
+    await stage_service.delete_template(db=db, template_id=template_id)
