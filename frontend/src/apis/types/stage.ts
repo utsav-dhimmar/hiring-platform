@@ -7,6 +7,35 @@
  */
 export type StageStatus = "pending" | "processing" | "completed" | "failed";
 
+export interface StageTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  default_config: Record<string, any> | null;
+}
+
+export interface JobStageConfig {
+  id: string;
+  job_id: string;
+  template_id: string;
+  stage_order: number;
+  config: Record<string, any> | null;
+  is_mandatory: boolean;
+  template: StageTemplate;
+}
+
+export interface StageEvaluation {
+  id: string;
+  candidate_id: string;
+  job_stage_config_id: string;
+  status: StageStatus;
+  // Dynamic payload based on stage type (e.g., HRScreeningAnalysis)
+  analysis: any | null; 
+  decision: boolean | null;
+  created_at?: string;
+  completed_at?: string | null;
+}
+
 /**
  * HR Screening Round (Stage 1) evaluation results.
  */
@@ -34,7 +63,7 @@ export interface HRScreeningAnalysis {
 }
 
 /**
- * Stage 1 information for a candidate.
+ * Legacy Stage 1 information for a candidate. Kept for backwards compatibility if needed.
  */
 export interface Stage1Info {
   /** Unique identifier for the stage */

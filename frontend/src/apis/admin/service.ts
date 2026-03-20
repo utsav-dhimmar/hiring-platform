@@ -21,6 +21,7 @@ import type {
   UserAdminUpdate,
 } from "./types";
 import type { CandidateResponse } from "../types/resume";
+import type { JobStageConfig, StageEvaluation } from "../types/stage";
 
 /**
  * Admin API service module.
@@ -224,6 +225,11 @@ export const adminJobService = {
   deleteJob: async (jobId: string): Promise<void> => {
     await apiClient.delete(`/jobs/${jobId}`);
   },
+
+  getJobStages: async (jobId: string): Promise<JobStageConfig[]> => {
+    const response = await apiClient.get<JobStageConfig[]>(`/jobs/${jobId}/stages`);
+    return response.data;
+  },
 };
 
 /**
@@ -292,6 +298,11 @@ export const adminCandidateService = {
     const response = await apiClient.get<CandidateResponse[]>("/candidates/search", {
       params: { query, skip, limit },
     });
+    return response.data;
+  },
+
+  getCandidateEvaluations: async (candidateId: string): Promise<StageEvaluation[]> => {
+    const response = await apiClient.get<StageEvaluation[]>(`/candidates/${candidateId}/evaluations`);
     return response.data;
   },
 };
