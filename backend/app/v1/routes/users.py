@@ -7,15 +7,17 @@ This module provides endpoints for user registration, login, and retrieval.
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.v1.core import settings
 from app.v1.core.logging import get_logger
 from app.v1.db.session import get_db
 from app.v1.dependencies.auth import get_current_user
 from app.v1.schemas.user import (
     LoginResponse,
+    RefreshTokenRequest,
     UserCreate,
     UserLogin,
     UserRead,
@@ -28,7 +30,9 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserRead, status_code=status.HTTP_201_CREATED
+)
 async def register_user(
     *,
     db: AsyncSession = Depends(get_db),
@@ -44,7 +48,9 @@ async def register_user(
     Returns:
         The created user.
     """
-    logger.info(f"Received request to register user with email: {user_in.email}")
+    logger.info(
+        f"Received request to register user with email: {user_in.email}"
+    )
     return await user_service.register_user(db=db, user_in=user_in)
 
 
@@ -52,6 +58,7 @@ async def register_user(
 async def logout_user(
     *,
     db: AsyncSession = Depends(get_db),
+    response: Response,
     current_user: UserRead = Depends(get_current_user),
 ) -> None:
     """
@@ -59,10 +66,13 @@ async def logout_user(
 
     Args:
         db: Async database session.
+        response: FastAPI response object.
         current_user: The currently authenticated user.
     """
     logger.info(f"Logout request for user: {current_user.email}")
     await user_service.logout_user(db=db, user_id=uuid.UUID(current_user.id))
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
     return None
 
 
@@ -90,6 +100,7 @@ async def create_user(
 async def login_user(
     *,
     db: AsyncSession = Depends(get_db),
+    response: Response,
     credentials: UserLogin,
 ) -> Any:
     """
@@ -97,13 +108,78 @@ async def login_user(
 
     Args:
         db: Async database session.
+        response: FastAPI response object.
         credentials: User login credentials.
 
     Returns:
         Login response with tokens.
     """
     logger.info(f"Login attempt for email: {credentials.email}")
-    return await user_service.login_user(db=db, credentials=credentials)
+    login_response = await user_service.login_user(
+        db=db, credentials=credentials
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=login_response.access_token,
+        httponly=True,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=login_response.refresh_token,
+        httponly=True,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production",
+    )
+
+    return login_response
+
+
+@router.post("/refresh", response_model=LoginResponse)
+async def refresh_token(
+    *,
+    db: AsyncSession = Depends(get_db),
+    response: Response,
+    request: RefreshTokenRequest,
+) -> Any:
+    """
+    Refresh access token using a refresh token.
+
+    Args:
+        db: Async database session.
+        response: FastAPI response object.
+        request: Refresh token request schema.
+
+    Returns:
+        New login response with tokens.
+    """
+    logger.info("Token refresh attempt")
+    login_response = await user_service.refresh_token(
+        db=db, refresh_token=request.refresh_token
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=login_response.access_token,
+        httponly=True,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=login_response.refresh_token,
+        httponly=True,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production",
+    )
+
+    return login_response
 
 
 @router.post(
@@ -114,6 +190,7 @@ async def login_user(
 async def swagger_login_user(
     *,
     db: AsyncSession = Depends(get_db),
+    response: Response,
     credentials: OAuth2PasswordRequestForm = Depends(),
 ) -> Any:
     """
@@ -121,19 +198,39 @@ async def swagger_login_user(
 
     Args:
         db: Async database session.
+        response: FastAPI response object.
         credentials: OAuth2 password request form.
 
     Returns:
         Login response with tokens.
     """
     logger.info(f"Swagger login attempt for email: {credentials.username}")
-    return await user_service.login_user(
+    login_response = await user_service.login_user(
         db=db,
         credentials=UserLogin(
             email=credentials.username,
             password=credentials.password,
         ),
     )
+
+    response.set_cookie(
+        key="access_token",
+        value=login_response.access_token,
+        httponly=True,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=login_response.refresh_token,
+        httponly=True,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        samesite="lax",
+        secure=settings.ENVIRONMENT == "production",
+    )
+
+    return login_response
 
 
 @router.get("/{userid}", response_model=UserRead)
