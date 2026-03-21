@@ -20,6 +20,7 @@ const formatMissingSkill = (skill: MissingSkill | string) =>
   typeof skill === "string" ? skill : `${skill.name} (${skill.score.toFixed(0)}%)`;
 
 const CandidateDetailModal = ({ show, onHide, candidate }: CandidateDetailModalProps) => {
+  console.log(candidate);
   return (
     <Modal show={show} onHide={onHide} size="lg" className="modal-dialog-scrollable">
       <Modal.Header closeButton>
@@ -66,8 +67,20 @@ const CandidateDetailModal = ({ show, onHide, candidate }: CandidateDetailModalP
                   )}
                 </p>
                 <p className="mb-1">
-                  <strong>Parsing:</strong> {candidate.is_parsed ? "Success" : "Pending/Failed"}
+                  <strong>Parsing:</strong>{" "}
+                  {candidate.is_parsed ? (
+                    "Success"
+                  ) : candidate.processing_status === "failed" ? (
+                    <span className="text-danger">Failed</span>
+                  ) : (
+                    "Pending"
+                  )}
                 </p>
+                {candidate.processing_status === "failed" && candidate.processing_error && (
+                  <p className="mb-1 text-danger small">
+                    <strong>Error:</strong> {candidate.processing_error}
+                  </p>
+                )}
               </div>
             </div>
 

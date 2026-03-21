@@ -37,7 +37,7 @@ export interface UserCreate {
   /** Whether the user account should be active on creation */
   is_active?: boolean;
   /** Role identifier to assign to the user */
-  role_id?: string;
+  role_id: string;
 }
 
 /**
@@ -48,6 +48,18 @@ export interface UserLogin {
   email: string;
   /** User's password */
   password: string;
+}
+
+/**
+ * Payload for initial user registration.
+ */
+export interface UserRegister {
+  /** User's email address */
+  email: string;
+  /** User's password */
+  password: string;
+  /** User's full name */
+  full_name: string;
 }
 
 /**
@@ -67,4 +79,12 @@ export interface LoginResponse {
   refresh_token_expires_at: string;
   /** The authenticated user's data */
   user: UserRead;
+}
+
+/**
+ * Schema for refreshing an access token.
+ */
+export interface RefreshTokenRequest {
+  /** The refresh token to use for obtaining a new access token */
+  refresh_token: string;
 }

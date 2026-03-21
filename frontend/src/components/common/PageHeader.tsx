@@ -15,6 +15,8 @@ interface PageHeaderProps {
   subtitle?: string;
   /** Optional action buttons or content to display on the right */
   actions?: ReactNode;
+  /** Optional additional CSS classes */
+  className?: string;
 }
 
 /**
@@ -28,9 +30,9 @@ interface PageHeaderProps {
  * />
  * ```
  */
-const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => {
+const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions, className = "" }) => {
   return (
-    <div className="d-flex justify-content-between align-items-center mb-4">
+    <div className={`d-flex justify-content-between align-items-center mb-4 ${className}`}>
       <div>
         <h1 className="h2 mb-1">{title}</h1>
         {subtitle && <p className="text-muted mb-0">{subtitle}</p>}

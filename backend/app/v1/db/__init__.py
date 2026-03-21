@@ -9,7 +9,7 @@ from ..db.models.job_skills import job_skills
 from ..db.models.job_stage_configs import JobStageConfig
 from ..db.models.jobs import Job
 from ..db.models.permissions import Permission
-from ..db.models.recordings import Recording
+from ..db.models.recordings import Recording  # NOT USED
 from ..db.models.resume_chunks import ResumeChunk
 from ..db.models.resumes import Resume
 from ..db.models.roleAndPermission import role_permission
@@ -37,7 +37,7 @@ __all__ = [
     "ResumeChunk",
     "HrDecision",
     "Interview",
-    "Recording",
+    "Recording",  # NOT USED
     "Transcript",
     "AuditLog",
 ]

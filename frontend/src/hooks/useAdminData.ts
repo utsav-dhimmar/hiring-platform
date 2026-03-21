@@ -49,7 +49,14 @@ export const useAdminData = <T>(
       setLoading(true);
       setError(null);
       const result = await fetchFnRef.current();
-      setData(result);
+      // Handle both plain array and paginated response structure { data: T[], total: number }
+      if (Array.isArray(result)) {
+        setData(result);
+      } else if (result && typeof result === "object" && Array.isArray((result as any).data)) {
+        setData((result as any).data);
+      } else {
+        setData([]);
+      }
     } catch (err) {
       setError(extractErrorMessage(err, "Failed to load data."));
     } finally {

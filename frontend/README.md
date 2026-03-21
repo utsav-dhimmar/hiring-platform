@@ -93,17 +93,17 @@ frontend/
 
 ## Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run lint` | Run ESLint |
+| Script            | Description              |
+| ----------------- | ------------------------ |
+| `npm run dev`     | Start development server |
+| `npm run build`   | Build for production     |
+| `npm run lint`    | Run ESLint               |
 | `npm run preview` | Preview production build |
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
+| Variable       | Description     | Default                        |
+| -------------- | --------------- | ------------------------------ |
 | `VITE_API_URL` | Backend API URL | `http://localhost:8000/api/v1` |
 
 ## Authentication & Authorization
@@ -111,26 +111,27 @@ frontend/
 The app uses JWT tokens stored in localStorage. Protected routes automatically redirect unauthenticated users to login.
 
 **Role-based routes:**
+
 - `/admin/*` - Requires admin role
 - RoleRoute component for granular permission control
 
 ## Available Pages
 
-| Route | Description | Access |
-|-------|-------------|--------|
-| `/` | Home page | Public |
-| `/login` | User login | Public |
-| `/register` | User registration | Public |
-| `/jobs` | Job listings | Authenticated |
-| `/jobs/:id/candidates` | Candidates for a job | Authenticated |
-| `/admin` | Admin dashboard | Admin |
-| `/admin/users` | User management | Admin |
-| `/admin/jobs` | Job management | Admin |
-| `/admin/skills` | Skill management | Admin |
-| `/admin/roles` | Role management | Admin |
-| `/admin/audit-logs` | Audit logs | Admin |
-| `/admin/candidate-search` | Candidate search | Admin/HR |
-| `/admin/recent-uploads` | Recent resume uploads | Admin/HR |
+| Route                     | Description           | Access        |
+| ------------------------- | --------------------- | ------------- |
+| `/`                       | Home page             | Public        |
+| `/login`                  | User login            | Public        |
+| `/register`               | User registration     | Public        |
+| `/jobs`                   | Job listings          | Authenticated |
+| `/jobs/:id/candidates`    | Candidates for a job  | Authenticated |
+| `/admin`                  | Admin dashboard       | Admin         |
+| `/admin/users`            | User management       | Admin         |
+| `/admin/jobs`             | Job management        | Admin         |
+| `/admin/skills`           | Skill management      | Admin         |
+| `/admin/roles`            | Role management       | Admin         |
+| `/admin/audit-logs`       | Audit logs            | Admin         |
+| `/admin/candidate-search` | Candidate search      | Admin/HR      |
+| `/admin/recent-uploads`   | Recent resume uploads | Admin/HR      |
 
 ## Tech Stack
 

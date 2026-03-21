@@ -134,6 +134,8 @@ export interface CandidateResponse {
   is_parsed: boolean;
   /** Current processing status */
   processing_status: string | null;
+  /** Error message if processing failed */
+  processing_error: string | null;
 }
 
 /**
@@ -151,6 +153,8 @@ export interface JobResumeInfoResponse {
   candidate_last_name: string | null;
   /** Candidate's email address */
   candidate_email: string | null;
+  /** Candidate's phone number */
+  candidate_phone: string | null;
   /** ID of the uploaded file */
   file_id: string;
   /** Unique identifier for the resume record */

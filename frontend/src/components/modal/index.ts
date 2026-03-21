@@ -10,3 +10,5 @@ export { default as CreateUserModal } from "./CreateUserModal";
 export { default as DeleteModal } from "./DeleteModal";
 export { default as RoleModal } from "./RoleModal";
 export { default as CandidateDetailModal } from "./CandidateDetailModal";
+export { default as CreateStageTemplateModal } from "./CreateStageTemplateModal";
+export { default as ManageJobStagesModal } from "./ManageJobStagesModal";

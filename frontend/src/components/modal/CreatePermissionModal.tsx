@@ -5,7 +5,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Form, Modal } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { adminPermissionService } from "../../apis/admin/service";
@@ -84,7 +84,7 @@ const CreatePermissionModal = ({
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal show={show} onHide={onHide} centered scrollable>
       <Modal.Header closeButton>
         <Modal.Title>Create New Permission</Modal.Title>
       </Modal.Header>
@@ -95,7 +95,7 @@ const CreatePermissionModal = ({
           </Alert>
         )}
 
-        <Form onSubmit={handleSubmit(onSubmit)}>
+        <Form id="create-permission-form" onSubmit={handleSubmit(onSubmit)}>
           <Input
             label="Permission Name"
             placeholder="e.g. users:write"
@@ -111,17 +111,16 @@ const CreatePermissionModal = ({
             error={errors.description?.message}
             className="mb-3"
           />
-
-          <div className="d-flex justify-content-end gap-2 mt-4">
-            <Button variant="outline-secondary" onClick={onHide} disabled={isLoading}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" isLoading={isLoading}>
-              Create Permission
-            </Button>
-          </div>
         </Form>
       </Modal.Body>
+      <Modal.Footer>
+        <Button variant="outline-secondary" onClick={onHide} disabled={isLoading}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="primary" form="create-permission-form" isLoading={isLoading}>
+          Create Permission
+        </Button>
+      </Modal.Footer>
     </Modal>
   );
 };

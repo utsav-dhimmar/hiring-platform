@@ -9,7 +9,6 @@ import JobCandidatesPage from "../pages/JobCandidates/JobCandidatesPage";
 import CandidateEvaluationPage from "../pages/JobCandidates/CandidateEvaluationPage";
 import AdminRoutes from "./AdminRoutes";
 import LoginPage from "../pages/Login/LoginPage";
-import RegisterPage from "../pages/RegisterPage";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import RoleRoute from "../components/auth/RoleRoute";
 import PublicRoute from "../components/auth/PublicRoute";
@@ -28,14 +27,6 @@ const AppRoutes = () => {
         element={
           <PublicRoute>
             <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
           </PublicRoute>
         }
       />

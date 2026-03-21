@@ -9,7 +9,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
-from app.v1.dependencies.dependencies import check_permission
+from app.v1.dependencies import check_permission
+from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.upload import CandidateResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
@@ -57,4 +58,16 @@ async def search_job_candidates(
     """Search candidates for a specific job."""
     return await admin_service.search_candidates_for_job(
         db=db, job_id=job_id, query=query, skip=skip, limit=limit
+    )
+
+
+@router.get("/{candidate_id}/evaluations", response_model=list[StageEvaluationRead])
+async def get_candidate_evaluations(
+    candidate_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:access")),
+) -> Any:
+    """Get all interview stage evaluations for a specific candidate."""
+    return await admin_service.get_candidate_evaluations(
+        db=db, candidate_id=candidate_id
     )

@@ -75,22 +75,29 @@ const AdminUsers = () => {
     },
     {
       header: "Actions",
+      className: "text-end text-nowrap",
+      style: { width: "200px", minWidth: "200px" },
       accessor: (user) => (
-        <>
+        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
           <Button
             variant="outline-primary"
             size="sm"
-            className="me-2"
+            className="flex-shrink-0"
             onClick={() => handleEditClick(user)}
           >
             Edit
           </Button>
           {user.full_name !== "System Admin" && (
-            <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(user)}>
+            <Button
+              variant="outline-danger"
+              size="sm"
+              className="flex-shrink-0"
+              onClick={() => handleDeleteClick(user)}
+            >
               Delete
             </Button>
           )}
-        </>
+        </div>
       ),
     },
   ];

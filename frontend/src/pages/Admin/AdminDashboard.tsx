@@ -54,14 +54,8 @@ const AdminDashboard = () => {
             label="Resumes (Last 30 Days)"
             value={report?.resumes_uploaded_last_30_days ?? 0}
           />
-          <StatCard
-            label="Avg Resume Score"
-            value={report?.average_resume_score?.toFixed(2) || "N/A"}
-          />
-          <StatCard
-            label="Pass Rate"
-            value={report?.pass_rate ? (report.pass_rate * 100).toFixed(1) + "%" : "N/A"}
-          />
+          <StatCard label="Avg Resume Score" value={report?.average_resume_score || "N/A"} />
+          <StatCard label="Pass Rate" value={report?.pass_rate ? report.pass_rate + "%" : "N/A"} />
         </div>
 
         <div className="jobs-table-container">

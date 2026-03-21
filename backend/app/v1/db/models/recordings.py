@@ -7,24 +7,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.db.base_class import Base
-
-
 from app.v1.utils.uuid import UUIDHelper
 
 
 class Recording(Base):
-    """Recording ORM model.
+    """Recording ORM model. (NOT USED: HR uploads transcript files directly)
 
     Represents an audio/video recording of an interview.
-
-    Attributes:
-        id: The primary key (UUID7).
-        interview_id: FK to the interview this recording belongs to.
-        file_id: FK to the file record where recording is stored.
-        format: File format (e.g., mp3, wav, mp4).
-        duration_seconds: Length of the recording in seconds.
-        uploaded_at: Timestamp when recording was uploaded.
-        processing_status: Status — 'uploaded', 'processing', 'completed', 'failed'.
     """
 
     __tablename__ = "recordings"

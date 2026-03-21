@@ -7,7 +7,6 @@ from __future__ import annotations
 import hashlib
 import time
 import uuid
-from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid7
 
@@ -15,6 +14,7 @@ from fastapi import BackgroundTasks, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings
+from app.v1.repository.job_repository import job_repository
 from app.v1.repository.resume_upload_repository import resume_upload_repository
 from app.v1.schemas.job import JobRead
 from app.v1.schemas.upload import (
@@ -80,7 +80,7 @@ class ResumeUploadService:
         )
 
         stage_started_at = time.perf_counter()
-        job = await resume_upload_repository.get_job(db, job_id)
+        job = await job_repository.get(db, job_id)
         log_stage(
             stage="upload_load_job",
             started_at=stage_started_at,
@@ -131,10 +131,12 @@ class ResumeUploadService:
             )
 
         content_hash = hashlib.sha256(content).hexdigest()
-        existing_file = await resume_upload_repository.get_file_by_content_hash_for_job(
-            db,
-            job_id=job_id,
-            content_hash=content_hash,
+        existing_file = (
+            await resume_upload_repository.get_file_by_content_hash_for_job(
+                db,
+                job_id=job_id,
+                content_hash=content_hash,
+            )
         )
         if existing_file is not None:
             raise HTTPException(
@@ -323,7 +325,9 @@ class ResumeUploadService:
         for candidate in candidates:
             resumes = getattr(candidate, "resumes", [])
             latest_resume = (
-                max(resumes, key=lambda resume: resume.uploaded_at) if resumes else None
+                max(resumes, key=lambda resume: resume.uploaded_at)
+                if resumes
+                else None
             )
 
             analysis = None
@@ -331,6 +335,7 @@ class ResumeUploadService:
             resume_score = None
             pass_fail = None
             processing_status = None
+            processing_error = None
 
             if latest_resume:
                 is_parsed = bool(latest_resume.parsed)
@@ -341,10 +346,13 @@ class ResumeUploadService:
                 processing_info = parse_summary.get("processing", {})
                 if isinstance(processing_info, dict):
                     processing_status = processing_info.get("status")
+                    processing_error = processing_info.get("error")
 
                 analysis_payload = parse_summary.get("analysis")
                 if isinstance(analysis_payload, dict):
-                    analysis = ResumeMatchAnalysis.model_validate(analysis_payload)
+                    analysis = ResumeMatchAnalysis.model_validate(
+                        analysis_payload
+                    )
 
             candidate_responses.append(
                 CandidateResponse(
@@ -360,10 +368,13 @@ class ResumeUploadService:
                     pass_fail=pass_fail,
                     is_parsed=is_parsed,
                     processing_status=processing_status,
+                    processing_error=processing_error,
                 )
             )
 
-        return JobCandidatesResponse(job_id=job_id, candidates=candidate_responses)
+        return JobCandidatesResponse(
+            job_id=job_id, candidates=candidate_responses
+        )
 
     async def get_resumes_for_job(
         self,
@@ -383,7 +394,8 @@ class ResumeUploadService:
         Raises:
             HTTPException: If the job is not found.
         """
-        job = await resume_upload_repository.get_job(db, job_id)
+        # Use job_repository to get full job with relationships (skills, stages)
+        job = await job_repository.get(db, job_id)
         if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -396,16 +408,7 @@ class ResumeUploadService:
         )
         return JobResumesResponse(
             job_id=job_id,
-            job=JobRead(
-                id=job.id,
-                title=getattr(job, "title", ""),
-                department=getattr(job, "department", None),
-                jd_text=getattr(job, "jd_text", None),
-                jd_json=getattr(job, "jd_json", None),
-                is_active=job.is_active,
-                created_by=getattr(job, "created_by", uuid.UUID(int=0)),
-                created_at=getattr(job, "created_at", datetime.now(UTC)),
-            ),
+            job=JobRead.model_validate(job),
             resumes=[
                 job_resume_response_from_resume(
                     job_id=job_id,

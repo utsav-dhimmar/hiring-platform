@@ -4,6 +4,7 @@
  */
 
 import type { Job } from "../types/job";
+import type { JobStageConfig } from "../types/stage";
 
 /**
  * Base fields for a permission.
@@ -244,8 +245,61 @@ export interface SkillRead extends SkillBase {
 }
 
 /**
+ * Stage Template Management Types
+ */
+
+/**
+ * Payload for creating a new stage template.
+ */
+export interface StageTemplateCreate {
+  name: string;
+  description?: string;
+  default_config?: Record<string, any>;
+}
+
+/**
+ * Payload for updating an existing stage template.
+ */
+export interface StageTemplateUpdate {
+  name?: string;
+  description?: string;
+  default_config?: Record<string, any>;
+}
+
+/**
+ * Job Stage Configuration Types
+ */
+
+/**
+ * Payload for adding a stage to a job.
+ */
+export interface JobStageConfigCreate {
+  template_id: string;
+  stage_order: number;
+  config?: Record<string, any>;
+  is_mandatory?: boolean;
+}
+
+/**
+ * Payload for updating a job-specific stage configuration.
+ */
+export interface JobStageConfigUpdate {
+  stage_order?: number;
+  config?: Record<string, any>;
+  is_mandatory?: boolean;
+}
+
+/**
+ * Payload for reordering stages within a job.
+ */
+export interface JobStageReorder {
+  stage_ids: string[];
+}
+
+/**
  * Job returned from read operations.
  */
 export interface JobRead extends Job {
   skills?: SkillRead[];
+  stages?: JobStageConfig[];
 }

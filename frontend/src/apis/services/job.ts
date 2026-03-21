@@ -17,10 +17,24 @@ const jobService = {
    * ```
    */
   getJobs: async (skip = 0, limit = 100): Promise<Job[]> => {
-    const response = await client.get<Job[]>("/jobs/", {
+    const response = await client.get<{ data: Job[]; total: number }>("/jobs/", {
       params: { skip, limit },
     });
-    return response.data;
+    return response.data.data;
+  },
+
+  /**
+   * Searches for jobs by title or description.
+   * @param query - The search query
+   * @param skip - Number of records to skip
+   * @param limit - Maximum number of records to return
+   * @returns Promise resolving to an array of matching job postings
+   */
+  searchJobs: async (query: string, skip = 0, limit = 100): Promise<Job[]> => {
+    const response = await client.get<{ data: Job[]; total: number }>("/jobs/search", {
+      params: { q: query, skip, limit },
+    });
+    return response.data.data;
   },
 };
 

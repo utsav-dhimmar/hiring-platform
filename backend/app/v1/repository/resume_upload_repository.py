@@ -344,6 +344,8 @@ class ResumeUploadRepository:
     ) -> Resume | None:
         """Retrieve a specific resume record for a job, with optional ownership check.
 
+        Uses selectinload for candidate and file to prevent lazy-loading errors.
+
         Args:
             db: The async database session.
             job_id: The UUID of the job.
@@ -360,14 +362,15 @@ class ResumeUploadRepository:
                 selectinload(Resume.file),
             )
             .join(Candidate, Candidate.id == Resume.candidate_id)
-            .join(FileRecord, FileRecord.id == Resume.file_id)
             .where(
                 Resume.id == resume_id,
                 Candidate.applied_job_id == job_id,
             )
         )
         if owner_id is not None:
-            query = query.where(FileRecord.owner_id == owner_id)
+            query = query.join(FileRecord, FileRecord.id == Resume.file_id).where(
+                FileRecord.owner_id == owner_id
+            )
         return await db.scalar(query)
 
     async def mark_resume_failed(

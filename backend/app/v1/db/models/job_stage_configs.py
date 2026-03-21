@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -7,8 +8,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.db.base_class import Base
-
 from app.v1.utils.uuid import UUIDHelper
+
+if TYPE_CHECKING:
+    from app.v1.db.models.jobs import Job
+    from app.v1.db.models.stage_templates import StageTemplate
 
 
 class JobStageConfig(Base):
@@ -73,5 +77,9 @@ class JobStageConfig(Base):
     )
 
     # RELATIONSHIPS
-    job = relationship("Job", foreign_keys=[job_id])
-    template = relationship("StageTemplate", foreign_keys=[template_id])
+    job: Mapped["Job"] = relationship(
+        "Job", back_populates="stages", foreign_keys=[job_id]
+    )
+    template: Mapped["StageTemplate"] = relationship(
+        "StageTemplate", foreign_keys=[template_id]
+    )

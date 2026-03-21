@@ -7,6 +7,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.v1.schemas.job_stage import JobStageConfigRead
 from app.v1.schemas.skill import SkillRead
 
 
@@ -52,5 +53,15 @@ class JobRead(JobBase):
     created_by: uuid.UUID
     created_at: datetime
     skills: list[SkillRead] = []
+    stages: list[JobStageConfigRead] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class JobsListRead(BaseModel):
+    """
+    Schema for a paginated list of jobs.
+    """
+
+    data: list[JobRead]
+    total: int

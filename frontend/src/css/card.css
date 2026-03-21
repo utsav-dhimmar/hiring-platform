@@ -1,14 +1,15 @@
 .custom-card {
   border-radius: 12px;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.25s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  background-color: #ffffff;
 }
 
 .custom-card--hoverable:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .custom-card--clickable {
@@ -16,22 +17,23 @@
 }
 
 .custom-card--clickable:active {
-  transform: scale(0.98);
+  transform: scale(0.99);
 }
 
 .custom-card__header {
-  background: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 16px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1.25rem 1.5rem;
   font-weight: 600;
+  color: #0f172a;
 }
 
 .custom-card__body {
-  padding: 20px;
+  padding: 1.5rem;
 }
 
 .custom-card__footer {
-  background: #fafafa;
-  border-top: 1px solid #e0e0e0;
-  padding: 16px 20px;
+  background: #f8fafc;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1rem 1.5rem;
 }

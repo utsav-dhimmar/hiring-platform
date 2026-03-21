@@ -15,14 +15,15 @@ from app.v1.utils.uuid import UUIDHelper
 class Transcript(Base):
     """Transcript ORM model.
 
-    Represents a generated transcript from an interview recording.
+    Represents a transcript from an interview session, uploaded as a file.
 
     Attributes:
         id: The primary key (UUID7).
-        recording_id: FK to the recording this transcript is generated from.
+        interview_id: FK to the interview session this transcript belongs to.
+        file_id: FK to the file record where the transcript text/json is stored.
         transcript_text: Full plain text of the transcript.
         segments: Structured JSONB segments with speaker and timing info.
-        generated_at: Timestamp when transcript was generated.
+        generated_at: Timestamp when transcript was added.
     """
 
     __tablename__ = "transcripts"
@@ -34,10 +35,16 @@ class Transcript(Base):
         default=UUIDHelper.generate_uuid7,
     )
 
-    # FOREIGN KEY
-    recording_id: Mapped[uuid.UUID] = mapped_column(
+    # FOREIGN KEYS
+    interview_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("recordings.id"),
+        ForeignKey("interviews.id"),
+        nullable=False,
+    )
+
+    file_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("files.id"),
         nullable=False,
     )
 
@@ -60,4 +67,5 @@ class Transcript(Base):
     )
 
     # RELATIONSHIPS
-    recording = relationship("Recording", foreign_keys=[recording_id])
+    interview = relationship("Interview", foreign_keys=[interview_id])
+    file = relationship("File", foreign_keys=[file_id])

@@ -13,15 +13,18 @@ import {
   DateDisplay,
   PageHeader,
   StatusBadge,
+  StagesBadgeList,
+  SkillsBadgeList,
   type Column,
 } from "../../components/common";
-import { CreateJobModal, DeleteModal } from "../../components/modal";
+import { CreateJobModal, DeleteModal, ManageJobStagesModal } from "../../components/modal";
 import "../../css/adminDashboard.css";
 import { useAdminData, useDeleteConfirmation } from "../../hooks";
 
 const AdminJobs = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [showStagesModal, setShowStagesModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobRead | null>(null);
 
   const {
@@ -55,12 +58,22 @@ const AdminJobs = () => {
     setShowModal(true);
   };
 
+  const handleManageStages = (job: JobRead) => {
+    setSelectedJob(job);
+    setShowStagesModal(true);
+  };
+
   const handleViewCandidates = (jobId: string) => {
     navigate(`/admin/jobs/${jobId}/candidates`);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
+    setSelectedJob(null);
+  };
+
+  const handleCloseStagesModal = () => {
+    setShowStagesModal(false);
     setSelectedJob(null);
   };
 
@@ -72,17 +85,27 @@ const AdminJobs = () => {
       accessor: (job) => <StatusBadge status={job.is_active} />,
     },
     {
+      header: "Skills",
+      accessor: (job) => <SkillsBadgeList skills={job.skills} />,
+    },
+    {
+      header: "Stages",
+      accessor: (job) => <StagesBadgeList stages={job.stages} />,
+    },
+    {
       header: "Created At",
       accessor: (job) => <DateDisplay date={job.created_at} showTime={false} />,
     },
     {
       header: "Actions",
+      className: "text-end text-nowrap",
+      style: { width: "350px", minWidth: "350px" },
       accessor: (job) => (
-        <>
+        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
           <Button
             variant="outline-primary"
             size="sm"
-            className="me-2"
+            className="flex-shrink-0"
             onClick={() => handleViewCandidates(job.id)}
           >
             Candidates
@@ -90,15 +113,28 @@ const AdminJobs = () => {
           <Button
             variant="outline-secondary"
             size="sm"
-            className="me-2"
+            className="flex-shrink-0"
+            onClick={() => handleManageStages(job)}
+          >
+            Pipeline
+          </Button>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            className="flex-shrink-0"
             onClick={() => handleEditClick(job)}
           >
             Edit
           </Button>
-          <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(job)}>
+          <Button
+            variant="outline-danger"
+            size="sm"
+            className="flex-shrink-0"
+            onClick={() => handleDeleteClick(job)}
+          >
             Delete
           </Button>
-        </>
+        </div>
       ),
     },
   ];
@@ -129,6 +165,13 @@ const AdminJobs = () => {
         handleClose={handleCloseModal}
         onJobSaved={fetchJobs}
         job={selectedJob}
+      />
+
+      <ManageJobStagesModal
+        show={showStagesModal}
+        handleClose={handleCloseStagesModal}
+        job={selectedJob}
+        onStagesUpdated={fetchJobs}
       />
 
       <DeleteModal

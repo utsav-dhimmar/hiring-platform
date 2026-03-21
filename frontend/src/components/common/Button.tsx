@@ -20,7 +20,9 @@ interface ButtonProps extends Omit<BSButtonProps, "size"> {
     | "outline-primary"
     | "outline-secondary"
     | "success"
+    | "outline-success"
     | "danger"
+    | "outline-danger"
     | "warning"
     | "ghost";
   /** Size of the button */
@@ -61,10 +63,10 @@ export function Button({
 }: ButtonProps) {
   return (
     <BSButton
-      variant={variant}
+      variant={variant === "ghost" ? "link" : variant}
       size={size}
       disabled={disabled || isLoading}
-      className={`custom-btn ${className}`}
+      className={`custom-btn ${variant === "ghost" ? "text-decoration-none shadow-none" : ""} ${className}`}
       {...props}
     >
       {isLoading ? (

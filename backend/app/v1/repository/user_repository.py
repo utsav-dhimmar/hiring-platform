@@ -106,7 +106,7 @@ class UserRepository:
         db: AsyncSession,
         *,
         user_id,
-        refresh_token: str,
+        refresh_token: str | None,
         refresh_token_expires_at,
     ) -> None:
         """Update a user's refresh token and its expiration.
@@ -114,7 +114,7 @@ class UserRepository:
         Args:
             db: The async database session.
             user_id: The ID of the user to update.
-            refresh_token: The new refresh token string.
+            refresh_token: The new refresh token string (can be None to clear).
             refresh_token_expires_at: The expiration datetime for the refresh token.
         """
         await db.execute(
@@ -123,6 +123,23 @@ class UserRepository:
             .values(
                 refresh_token=refresh_token,
                 refresh_token_expires_at=refresh_token_expires_at,
+            )
+        )
+        await db.commit()
+
+    async def clear_refresh_token(self, db: AsyncSession, user_id) -> None:
+        """Clear a user's refresh token.
+
+        Args:
+            db: The async database session.
+            user_id: The ID of the user to clear tokens for.
+        """
+        await db.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(
+                refresh_token=None,
+                refresh_token_expires_at=None,
             )
         )
         await db.commit()

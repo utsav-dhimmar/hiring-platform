@@ -2,7 +2,7 @@ import asyncio
 
 from sqlalchemy import select
 
-from app.v1.core.embeddings import encode_skill
+from app.v1.core.embeddings import embedding_service
 from app.v1.db.models.skills import Skill
 from app.v1.db.session import async_session_maker, init_db
 from app.v1.utils.text import build_skill_text
@@ -85,13 +85,13 @@ async def ensure_skills(session) -> list[Skill]:
             if skill.description != description:
                 skill.description = description
             skill_text = build_skill_text(skill)
-            skill.skill_embedding = encode_skill(skill_text) if skill_text else None
+            skill.skill_embedding = embedding_service.encode_skill(skill_text) if skill_text else None
             skills.append(skill)
             continue
 
         skill = Skill(name=name, description=description)
         skill_text = build_skill_text(skill)
-        skill.skill_embedding = encode_skill(skill_text) if skill_text else None
+        skill.skill_embedding = embedding_service.encode_skill(skill_text) if skill_text else None
         session.add(skill)
         skills.append(skill)
 
