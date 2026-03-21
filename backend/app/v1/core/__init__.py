@@ -1,15 +1,6 @@
 from app.v1.core.analyzer import ResumeJdAnalyzer, ResumeJobAnalysisResult
 from app.v1.core.config import settings
-from app.v1.core.embeddings import (
-    EmbeddingService,
-    encode_jd,
-    encode_resume,
-    encode_skill,
-    get_embedding_model,
-    get_semantic_score,
-    get_semantic_score_from_embeddings,
-    preload_embedding_model,
-)
+from app.v1.core.embeddings import embedding_service
 from app.v1.core.exceptions import (
     AppException,
     ForbiddenException,
@@ -46,14 +37,7 @@ __all__ = [
     "ValidationException",
     "UnauthorizedException",
     "ForbiddenException",
-    "preload_embedding_model",
-    "get_embedding_model",
-    "EmbeddingService",
-    "encode_resume",
-    "encode_jd",
-    "encode_skill",
-    "get_semantic_score",
-    "get_semantic_score_from_embeddings",
+    "embedding_service",
     "build_job_text",
     "build_skill_text",
     "build_candidate_text",

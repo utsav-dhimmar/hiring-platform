@@ -1,7 +1,8 @@
-from sentence_transformers import SentenceTransformer
-from app.core.config import settings
 import numpy as np
 from numpy.linalg import norm
+from sentence_transformers import SentenceTransformer
+
+from app.v1.core.config import settings
 
 
 class EmbeddingService:

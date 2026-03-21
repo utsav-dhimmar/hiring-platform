@@ -11,21 +11,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
-from app.core.logging import get_logger, setup_logging
 from app.v1.api import api_router
+from app.v1.core.cache import cache
+from app.v1.core.config import settings
 from app.v1.core.embeddings import (
     preload_embedding_model,
 )
+from app.v1.core.logging import get_logger, setup_logging
 from app.v1.core.middleware import GlobalErrorHandlerMiddleware
 from app.v1.core.resume_executor import (
     initialize_resume_executor,
     run_in_resume_executor,
     shutdown_resume_executor,
 )
-from app.v1.core.cache import cache
 from app.v1.db.session import init_db
-from app.v1.repository.resume_upload_repository import resume_upload_repository
 
 setup_logging(debug=settings.DEBUG)
 logger = get_logger(__name__)
@@ -40,7 +39,9 @@ async def lifespan(app: FastAPI):
     Args:
         app: The FastAPI application instance.
     """
-    logger.info(f"Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode")
+    logger.info(
+        f"Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode"
+    )
     await init_db()
     initialize_resume_executor()
     logger.info("Preloading embedding model")
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
     shutdown_resume_executor()
     await cache.close()
     logger.info("Shutting down application")
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

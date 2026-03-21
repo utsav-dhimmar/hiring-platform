@@ -5,7 +5,7 @@ This module defines the application settings using Pydantic BaseSettings.
 Settings are loaded from environment variables and .env files.
 """
 
-from pydantic import computed_field
+from pydantic import computed_field, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.v1.core.logging import get_logger
@@ -13,29 +13,42 @@ from app.v1.core.logging import get_logger
 logger = get_logger(__name__)
 
 
-# TODO: validate through pydantic Field
 class Settings(BaseSettings):
     """Application settings loaded from environment variables.
 
     Attributes:
-        PROJECT_NAME: The name of the project. Defaults to "HR Platform".
-        ENVIRONMENT: The deployment environment. Defaults to "development".
-        DEBUG: Whether debug mode is enabled. Defaults to False.
+        PROJECT_NAME: The name of the project.
+        ENVIRONMENT: The deployment environment.
+        DEBUG: Whether debug mode is enabled.
         SECRET_KEY: Secret key for JWT signing.
-        ACCESS_TOKEN_EXPIRE_MINUTES: Expiration time for access tokens.
-        REFRESH_TOKEN_EXPIRE_DAYS: Expiration time for refresh tokens.
-        POSTGRES_SERVER: PostgreSQL server hostname. Defaults to "localhost".
-        POSTGRES_PORT: PostgreSQL server port. Defaults to 5432.
-        POSTGRES_USER: PostgreSQL username. Defaults to "postgres".
-        POSTGRES_PASSWORD: PostgreSQL password. Defaults to "postgres".
-        POSTGRES_DB: PostgreSQL database name. Defaults to "app".
+        ACCESS_TOKEN_EXPIRE_MINUTES: Expiration time for access tokens in minutes.
+        REFRESH_TOKEN_EXPIRE_DAYS: Expiration time for refresh tokens in days.
+        POSTGRES_SERVER: PostgreSQL server hostname.
+        POSTGRES_PORT: PostgreSQL server port.
+        POSTGRES_USER: PostgreSQL username.
+        POSTGRES_PASSWORD: PostgreSQL password.
+        POSTGRES_DB: PostgreSQL database name.
         SQLALCHEMY_DATABASE_URI: Optional explicit database URI override.
         BACKEND_CORS_ORIGINS: List of allowed CORS origins.
         OLLAMA_URL: URL for the Ollama service.
         OLLAMA_MODEL: Name of the Ollama model to use.
         OLLAMA_API_KEY: API key for Ollama Cloud (if applicable).
+        EMBEDDING_MODEL_NAME: Name of the sentence-transformers model to use for embeddings.
+        EMBEDDING_VECTOR_DIM: Dimension of the embedding vectors.
+        EMBEDDING_TRUNCATE_DIM: Dimension to truncate embeddings to.
+        EMBEDDING_USE_INSTRUCTIONS: Whether to use instructions for generating embeddings.
         LANGEXTRACT_RETRY_ATTEMPTS: Number of retry attempts for extraction.
         LANGEXTRACT_RETRY_DELAY: Delay between retry attempts in seconds.
+        RESUME_MAX_SIZE_MB: Maximum allowed size for resume uploads in MB.
+        RESUME_UPLOAD_DIR: Directory where uploaded resumes are stored.
+        ALLOWED_RESUME_EXTENSIONS: List of allowed file extensions for resumes.
+        RESUME_PROCESSING_MAX_WORKERS: Maximum number of parallel workers for resume processing.
+        ADMIN_ROLE_NAME: Role name for the admin user.
+        ADMIN_EMAIL: Email address for the default admin user.
+        ADMIN_PASSWORD: Password for the default admin user.
+        ADMIN_FULL_NAME: Full name for the default admin user.
+        REDIS_URL: URL for the Redis cache service.
+        CACHE_TTL_SECONDS: Time-to-live for cached items in seconds.
     """
 
     model_config = SettingsConfigDict(
@@ -44,24 +57,40 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    PROJECT_NAME: str = "HR Platform"
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = False
-    SECRET_KEY: str = (
-        ""  # generate using openssl rand -hex 32 on linux or any other way
+    PROJECT_NAME: str = Field(
+        default="HR Platform", description="The name of the project"
     )
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ENVIRONMENT: str = Field(
+        default="development",
+        description="The deployment environment (e.g., development, staging, production)",
+    )
+    DEBUG: bool = Field(default=False, description="Whether debug mode is enabled")
+    SECRET_KEY: str = Field(
+        default="",
+        description="Secret key for JWT signing. Generate using 'openssl rand -hex 32'",
+    )
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
+        default=60, description="Expiration time for access tokens in minutes"
+    )
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(
+        default=7, description="Expiration time for refresh tokens in days"
+    )
 
     # Postgres
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "app"
+    POSTGRES_SERVER: str = Field(
+        default="localhost", description="PostgreSQL server hostname"
+    )
+    POSTGRES_PORT: int = Field(default=5432, description="PostgreSQL server port")
+    POSTGRES_USER: str = Field(default="postgres", description="PostgreSQL username")
+    POSTGRES_PASSWORD: str = Field(
+        default="postgres", description="PostgreSQL password"
+    )
+    POSTGRES_DB: str = Field(default="app", description="PostgreSQL database name")
 
     # Optional explicit override
-    SQLALCHEMY_DATABASE_URI: str | None = None
+    SQLALCHEMY_DATABASE_URI: str | None = Field(
+        default=None, description="Optional explicit database URI override"
+    )
 
     @computed_field
     @property
@@ -84,42 +113,79 @@ class Settings(BaseSettings):
         )
 
     # CORS
-    BACKEND_CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8000",
-    ]
+    BACKEND_CORS_ORIGINS: list[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:8000",
+        ],
+        description="List of allowed CORS origins",
+    )
 
     # Ollama
-    OLLAMA_URL: str = "https://ollama.com"
-    OLLAMA_MODEL: str = "qwen3.5:cloud"
-    OLLAMA_API_KEY: str = ""
+    OLLAMA_URL: str = Field(default="https://ollama.com", description="URL for the Ollama service")
+    OLLAMA_MODEL: str = Field(
+        default="qwen3.5:cloud", description="Name of the Ollama model to use"
+    )
+    OLLAMA_API_KEY: str = Field(
+        default="", description="API key for Ollama Cloud (if applicable)"
+    )
 
     # Embeddings
-    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
-    EMBEDDING_VECTOR_DIM: int = 384
-    EMBEDDING_TRUNCATE_DIM: int = 384
-    EMBEDDING_USE_INSTRUCTIONS: bool = False
+    EMBEDDING_MODEL_NAME: str = Field(
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        description="Name of the sentence-transformers model to use for embeddings",
+    )
+    EMBEDDING_VECTOR_DIM: int = Field(
+        default=384, description="Dimension of the embedding vectors"
+    )
+    EMBEDDING_TRUNCATE_DIM: int = Field(
+        default=384, description="Dimension to truncate embeddings to"
+    )
+    EMBEDDING_USE_INSTRUCTIONS: bool = Field(
+        default=False, description="Whether to use instructions for generating embeddings"
+    )
 
     # LangExtract Retry
-    LANGEXTRACT_RETRY_ATTEMPTS: int = 3
-    LANGEXTRACT_RETRY_DELAY: int = 60
+    LANGEXTRACT_RETRY_ATTEMPTS: int = Field(
+        default=3, description="Number of retry attempts for extraction"
+    )
+    LANGEXTRACT_RETRY_DELAY: int = Field(
+        default=60, description="Delay between retry attempts in seconds"
+    )
 
     # Resume uploads
-    RESUME_MAX_SIZE_MB: int = 5
-    RESUME_UPLOAD_DIR: str = "uploads/resumes"
-    ALLOWED_RESUME_EXTENSIONS: list[str] = ["pdf", "docx"]
-    RESUME_PROCESSING_MAX_WORKERS: int = 4
+    RESUME_MAX_SIZE_MB: int = Field(
+        default=5, description="Maximum allowed size for resume uploads in MB"
+    )
+    RESUME_UPLOAD_DIR: str = Field(
+        default="uploads/resumes", description="Directory where uploaded resumes are stored"
+    )
+    ALLOWED_RESUME_EXTENSIONS: list[str] = Field(
+        default=["pdf", "docx"], description="List of allowed file extensions for resumes"
+    )
+    RESUME_PROCESSING_MAX_WORKERS: int = Field(
+        default=4,
+        description="Maximum number of parallel workers for resume processing",
+    )
 
     # admin user
-    ADMIN_ROLE_NAME: str = "admin"
-    ADMIN_EMAIL: str = "admin@example.com"
-    ADMIN_PASSWORD: str = "admin123"
-    ADMIN_FULL_NAME: str = "admin"
+    ADMIN_ROLE_NAME: str = Field(default="admin", description="Role name for the admin user")
+    ADMIN_EMAIL: str = Field(
+        default="admin@example.com", description="Email address for the default admin user"
+    )
+    ADMIN_PASSWORD: str = Field(
+        default="admin123", description="Password for the default admin user"
+    )
+    ADMIN_FULL_NAME: str = Field(
+        default="admin", description="Full name for the default admin user"
+    )
 
     # Redis cache
-    REDIS_URL: str = "redis://localhost:6379/0"
-    CACHE_TTL_SECONDS: int = 300
+    REDIS_URL: str = Field(default="redis://localhost:6379/0", description="URL for the Redis cache service")
+    CACHE_TTL_SECONDS: int = Field(
+        default=300, description="Time-to-live for cached items in seconds"
+    )
 
 
 settings = Settings()

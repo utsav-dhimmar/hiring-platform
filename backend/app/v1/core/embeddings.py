@@ -166,48 +166,4 @@ class EmbeddingService:
         return round(max(0.0, score) * 100.0, 2)
 
 
-# --- Backward Compatibility Wrappers ---
-
-_DEFAULT_SERVICE: EmbeddingService | None = None
-
-
-def get_embedding_service() -> EmbeddingService:
-    """Retrieve or create the default embedding service singleton.
-
-    Returns:
-        The shared EmbeddingService instance.
-    """
-    global _DEFAULT_SERVICE
-    if _DEFAULT_SERVICE is None:
-        _DEFAULT_SERVICE = EmbeddingService()
-    return _DEFAULT_SERVICE
-
-
-def encode_resume(text: str) -> list[float]:
-    """Encode resume text into a vector embedding."""
-    return get_embedding_service().encode_resume(text)
-
-
-def encode_jd(text: str) -> list[float]:
-    """Encode job description text into a vector embedding."""
-    return get_embedding_service().encode_jd(text)
-
-
-def encode_skill(text: str) -> list[float]:
-    """Encode skill name/description into a vector embedding."""
-    return get_embedding_service().encode_skill(text)
-
-
-def get_semantic_score(resume_text: str, jd_text: str) -> float:
-    """Calculate the semantic similarity score between resume and JD text."""
-    return get_embedding_service().get_semantic_score(resume_text, jd_text)
-
-
-def get_semantic_score_from_embeddings(
-    resume_embedding: list[float],
-    jd_embedding: list[float],
-) -> float:
-    """Compute semantic score from pre-calculated embedding vectors."""
-    return get_embedding_service().get_semantic_score_from_embeddings(
-        resume_embedding, jd_embedding
-    )
+embedding_service = EmbeddingService()
