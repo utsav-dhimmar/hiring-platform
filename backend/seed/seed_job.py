@@ -2,7 +2,7 @@ import asyncio
 
 from sqlalchemy import delete, insert, select
 
-from app.v1.core.embeddings import encode_jd
+from app.v1.core.embeddings import embedding_service
 from app.v1.db import Job, Skill, job_skills
 from app.v1.db.session import async_session_maker, init_db
 from app.v1.services.stage_service import stage_service
@@ -212,7 +212,7 @@ async def ensure_job(
         await session.flush()
 
     job_text = build_job_text(job)
-    job.jd_embedding = encode_jd(job_text) if job_text else None
+    job.jd_embedding = embedding_service.encode_jd(job_text) if job_text else None
 
     # Link skills
     skill_ids = [skill.id for skill in skills if skill.name in required_skills]

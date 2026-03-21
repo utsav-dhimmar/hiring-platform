@@ -6,7 +6,7 @@ from sqlalchemy import delete, insert, select
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from app.v1.core.embeddings import encode_jd
+from app.v1.core.embeddings import embedding_service
 from app.v1.db import Job, Skill, job_skills
 from app.v1.db.session import async_session_maker, init_db
 from app.v1.utils.text import build_job_text
@@ -197,7 +197,7 @@ async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
         await session.flush()
 
     job_text = build_job_text(job)
-    job.jd_embedding = encode_jd(job_text) if job_text else None
+    job.jd_embedding = embedding_service.encode_jd(job_text) if job_text else None
 
     skill_ids = [skill.id for skill in skills if skill.name in REQUIRED_SKILLS]
     await session.execute(delete(job_skills).where(job_skills.c.job_id == job.id))
