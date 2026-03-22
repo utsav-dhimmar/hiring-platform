@@ -7,6 +7,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.v1.schemas.department import DepartmentRead
 from app.v1.schemas.job_stage import JobStageConfigRead
 from app.v1.schemas.skill import SkillRead
 
@@ -17,7 +18,7 @@ class JobBase(BaseModel):
     """
 
     title: str
-    department: str | None = None
+    department_id: uuid.UUID | None = None
     jd_text: str | None = None
     jd_json: dict | None = None
     is_active: bool = True
@@ -37,7 +38,7 @@ class JobUpdate(BaseModel):
     """
 
     title: str | None = None
-    department: str | None = None
+    department_id: uuid.UUID | None = None
     jd_text: str | None = None
     jd_json: dict | None = None
     is_active: bool | None = None
@@ -52,6 +53,8 @@ class JobRead(JobBase):
     id: uuid.UUID
     created_by: uuid.UUID
     created_at: datetime
+    department_name: str | None = None
+    department: DepartmentRead | None = None
     skills: list[SkillRead] = []
     stages: list[JobStageConfigRead] = []
 

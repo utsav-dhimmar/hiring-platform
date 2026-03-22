@@ -27,7 +27,7 @@ const JobDetailsModal = ({ show, onHide, job }: JobDetailsModalProps): ReactElem
           <Col md={6}>
             <h5>Basic Info</h5>
             <p className="mb-1">
-              <strong>Department:</strong> {job.department || "N/A"}
+              <strong>Department:</strong> {job.department?.name ?? job.department_name ?? "N/A"}
             </p>
             <p className="mb-1">
               <strong>Status:</strong> <StatusBadge status={job.is_active} />

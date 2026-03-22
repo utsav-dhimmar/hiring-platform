@@ -20,7 +20,12 @@ def build_job_text(job: Any) -> str:
     parts: list[str] = []
 
     title = getattr(job, "title", None)
-    department = getattr(job, "department", None)
+    # Support both FK-based relationship (department.name) and plain string fallback
+    dept_obj = getattr(job, "department", None)
+    if dept_obj is not None and hasattr(dept_obj, "name"):
+        department = dept_obj.name
+    else:
+        department = dept_obj  # may be None or already a string (legacy)
     jd_text = getattr(job, "jd_text", None)
     jd_json = getattr(job, "jd_json", None)
 
