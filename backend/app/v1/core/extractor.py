@@ -119,7 +119,7 @@ class ResumeLLMExtractor:
             model_id=settings.OLLAMA_MODEL,
             model_url=settings.OLLAMA_URL,
             api_key=settings.OLLAMA_API_KEY,
-            timeout=300,
+            timeout=settings.OLLAMA_TIMEOUT,
             format_type=FormatType.JSON,
         )
 

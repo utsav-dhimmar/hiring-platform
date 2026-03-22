@@ -40,10 +40,14 @@ class EmbeddingService:
     """Service for generating and comparing text embeddings."""
 
     def __init__(self) -> None:
-        self.model = get_embedding_model()
         self.target_dim = settings.EMBEDDING_VECTOR_DIM
         self.use_instructions = settings.EMBEDDING_USE_INSTRUCTIONS
         self.truncate_dim = settings.EMBEDDING_TRUNCATE_DIM
+
+    @property
+    def model(self) -> SentenceTransformer:
+        """Lazily retrieve the embedding model."""
+        return get_embedding_model()
 
     def _fit_vector_dim(self, vector: list[float]) -> list[float]:
         """Ensure the vector matches the configured target dimension.
@@ -117,6 +121,45 @@ class EmbeddingService:
             Embedding vector.
         """
         return self._encode_text(text, SKILL_INSTRUCTION)
+
+    def _encode_text_batch(self, texts: list[str], instruction: str) -> list[list[float]]:
+        """Internal helper to encode a batch of texts into vectors.
+
+        Args:
+            texts: List of text strings to encode.
+            instruction: The task-specific instruction prefix.
+
+        Returns:
+            A list of embedding vectors.
+        """
+        if not texts:
+            return []
+        
+        payloads = []
+        for text in texts:
+            normalized_text = text.strip()
+            if self.use_instructions:
+                payloads.append(instruction + normalized_text)
+            else:
+                payloads.append(normalized_text)
+        
+        vectors = self.model.encode(
+            payloads,
+            normalize_embeddings=True,
+            truncate_dim=self.truncate_dim,
+        )
+        return [self._fit_vector_dim(vector.tolist()) for vector in vectors]
+
+    def encode_skills_batch(self, texts: list[str]) -> list[list[float]]:
+        """Encode a list of skill names/descriptions into vector embeddings in a batch.
+
+        Args:
+            texts: List of skill texts.
+
+        Returns:
+            List of embedding vectors.
+        """
+        return self._encode_text_batch(texts, SKILL_INSTRUCTION)
 
     def get_semantic_score(self, resume_text: str, jd_text: str) -> float:
         """Calculate the semantic similarity score between resume and JD text.

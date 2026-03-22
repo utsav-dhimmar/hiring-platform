@@ -70,7 +70,7 @@ async def logout_user(
         current_user: The currently authenticated user.
     """
     logger.info(f"Logout request for user: {current_user.email}")
-    await user_service.logout_user(db=db, user_id=uuid.UUID(current_user.id))
+    await user_service.logout_user(db=db, user_id=current_user.id)
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return None

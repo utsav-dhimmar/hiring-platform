@@ -60,7 +60,7 @@ export const DateDisplay = ({
     } else if (formatOptions) {
       formattedDate = dateObj.toLocaleString(undefined, formatOptions);
     } else {
-      formattedDate = showTime ? dateObj.toLocaleString() : dateObj.toLocaleDateString();
+      formattedDate = showTime ? dateObj.toLocaleString() : dateObj.toLocaleDateString("en-GB");
     }
 
     return (
