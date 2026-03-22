@@ -6,7 +6,7 @@ import asyncio
 import uuid
 import logging
 
-from app.core.celery_app import celery_app
+from app.v1.core.celery_app import celery_app
 from .background import BackgroundProcessor
 from .processor import ResumeProcessor
 

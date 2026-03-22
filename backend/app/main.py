@@ -14,14 +14,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.v1.api import api_router
 from app.v1.core.cache import cache
 from app.v1.core.config import settings
-from app.v1.core.embeddings import (
-    preload_embedding_model,
-)
 from app.v1.core.logging import get_logger, setup_logging
 from app.v1.core.middleware import GlobalErrorHandlerMiddleware
 from app.v1.core.resume_executor import (
     initialize_resume_executor,
-    run_in_resume_executor,
     shutdown_resume_executor,
 )
 from app.v1.db.session import init_db
@@ -44,9 +40,6 @@ async def lifespan(app: FastAPI):
     )
     await init_db()
     initialize_resume_executor()
-    logger.info("Preloading embedding model")
-    await run_in_resume_executor(preload_embedding_model)
-    logger.info("Embedding model preloaded successfully")
     logger.info("Database initialized successfully")
     yield
     shutdown_resume_executor()

@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /bin/
@@ -8,6 +8,8 @@ WORKDIR /app
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
+ENV UV_HTTP_TIMEOUT=300
+ENV UV_TCP_KEEPALIVE=1
 
 # Copy dependency files
 # We only copy the pyproject.toml and uv.lock so dependencies are cached properly

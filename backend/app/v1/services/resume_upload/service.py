@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from uuid import uuid7
 
-from fastapi import BackgroundTasks, HTTPException, UploadFile, status
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings

@@ -17,7 +17,7 @@ from app.v1.schemas.job_stage import (
     JobStageConfigUpdate,
     JobStageReorder,
 )
-from app.v1.schemas.upload import JobCandidatesResponse, JobResumesResponse
+from app.v1.schemas.upload import  JobResumesResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
 from app.v1.services.job_service import job_service

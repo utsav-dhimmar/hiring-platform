@@ -130,6 +130,9 @@ class Settings(BaseSettings):
     OLLAMA_API_KEY: str = Field(
         default="", description="API key for Ollama Cloud (if applicable)"
     )
+    OLLAMA_TIMEOUT: int = Field(
+        default=120, description="Timeout for Ollama API calls in seconds"
+    )
 
     # Embeddings
     EMBEDDING_MODEL_NAME: str = Field(
@@ -151,7 +154,7 @@ class Settings(BaseSettings):
         default=3, description="Number of retry attempts for extraction"
     )
     LANGEXTRACT_RETRY_DELAY: int = Field(
-        default=60, description="Delay between retry attempts in seconds"
+        default=5, description="Delay between retry attempts in seconds"
     )
 
     # Resume uploads

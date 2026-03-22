@@ -8,7 +8,7 @@ import hashlib
 import time
 import uuid
 
-from fastapi import BackgroundTasks
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.logging import get_logger
@@ -157,7 +157,7 @@ class BackgroundProcessor:
             if job is None:
                 await self._mark_resume_failed(
                     db=db,
-                    resume_id=resume_record.id,
+                    resume_id=resume_id,
                     current_parse_summary=getattr(
                         resume_record, "parse_summary", None
                     ),
@@ -323,7 +323,7 @@ class BackgroundProcessor:
                 stage_started_at = time.perf_counter()
                 await resume_upload_repository.create_resume_chunk(
                     db,
-                    resume_id=resume_record.id,
+                    resume_id=resume_id,
                     parsed_json=parse_summary_with_analysis,
                     raw_text=raw_text,
                     chunk_embedding=insights["chunk_embedding"],
@@ -401,7 +401,7 @@ class BackgroundProcessor:
                 )
                 await self._mark_resume_failed(
                     db=db,
-                    resume_id=resume_record.id,
+                    resume_id=resume_id,
                     current_parse_summary=parse_summary_snapshot,
                     error_message=str(exc),
                 )

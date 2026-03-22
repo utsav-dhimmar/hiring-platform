@@ -24,7 +24,7 @@ from app.v1.utils.text import (
     build_skill_text,
 )
 
-from .logging import log_stage
+from .logging import log_stage, log_event
 
 
 class ResumeProcessor:
@@ -104,8 +104,8 @@ class ResumeProcessor:
             cache_key = f"job_embedding:{job_id}"
             job_embedding = await cache.get(cache_key)
             if job_embedding:
-                log_stage(
-                    stage="job_embedding_cache_hit",
+                log_event(
+                    event="job_embedding_cache_hit",
                     job_id=job_id,
                 )
 
@@ -149,12 +149,21 @@ class ResumeProcessor:
 
         skill_embeddings: dict[uuid.UUID, list[float]] = {}
         stage_started_at = time.perf_counter()
+        skills_to_encode = []
+        skill_ids = []
         for skill in job_skills:
+            if getattr(skill, "skill_embedding", None) is not None:
+                continue
             skill_text = build_skill_text(skill)
-            if skill_text and getattr(skill, "skill_embedding", None) is None:
-                skill_embeddings[skill.id] = embedding_service.encode_skill(
-                    skill_text
-                )
+            if skill_text:
+                skills_to_encode.append(skill_text)
+                skill_ids.append(skill.id)
+                
+        if skills_to_encode:
+            encoded_vectors = embedding_service.encode_skills_batch(skills_to_encode)
+            for sid, vec in zip(skill_ids, encoded_vectors):
+                skill_embeddings[sid] = vec
+
         log_stage(
             stage="job_skill_embeddings",
             started_at=stage_started_at,
@@ -210,14 +219,21 @@ class ResumeProcessor:
         """
         embeddings: dict[uuid.UUID, list[float]] = {}
         stage_started_at = time.perf_counter()
+        skills_to_encode = []
+        skill_ids = []
         for skill in skills:
             if getattr(skill, "skill_embedding", None) is not None:
                 continue
             skill_text = build_skill_text(skill)
             if skill_text:
-                embeddings[skill.id] = embedding_service.encode_skill(
-                    skill_text
-                )
+                skills_to_encode.append(skill_text)
+                skill_ids.append(skill.id)
+                
+        if skills_to_encode:
+            encoded_vectors = embedding_service.encode_skills_batch(skills_to_encode)
+            for sid, vec in zip(skill_ids, encoded_vectors):
+                embeddings[sid] = vec
+
         log_stage(
             stage="candidate_skill_embeddings_internal",
             started_at=stage_started_at,
