@@ -98,9 +98,9 @@ export type SkillUpdateFormValues = z.infer<typeof skillUpdateSchema>;
  */
 export const jobCreateSchema = z.object({
   title: z.string().min(3, "Job title must be at least 3 characters long"),
-  department: z
+  department_id: z
     .string()
-    .min(2, "Department must be at least 2 characters long")
+    .uuid("Please select a valid department")
     .optional()
     .or(z.literal("")),
   jd_text: z
@@ -122,9 +122,9 @@ export type JobCreateFormValues = z.infer<typeof jobCreateSchema>;
  */
 export const jobUpdateSchema = z.object({
   title: z.string().min(3, "Job title must be at least 3 characters long").optional(),
-  department: z
+  department_id: z
     .string()
-    .min(2, "Department must be at least 2 characters long")
+    .uuid("Please select a valid department")
     .optional()
     .or(z.literal("")),
   jd_text: z

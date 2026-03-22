@@ -306,6 +306,41 @@ export interface SkillRead extends SkillBase {
 }
 
 /**
+ * Department Management Types
+ */
+
+/**
+ * Shared fields for a department.
+ */
+export interface DepartmentBase {
+  /** Unique name of the department */
+  name: string;
+  /** Optional description of the department */
+  description?: string | null;
+}
+
+/**
+ * Payload for creating a new department.
+ */
+export interface DepartmentCreate extends DepartmentBase {}
+
+/**
+ * Payload for updating an existing department.
+ */
+export interface DepartmentUpdate {
+  name?: string;
+  description?: string | null;
+}
+
+/**
+ * Department returned from read operations.
+ */
+export interface DepartmentRead extends DepartmentBase {
+  /** Unique identifier (UUID) */
+  id: string;
+}
+
+/**
  * Stage Template Management Types
  */
 

@@ -21,6 +21,7 @@ from app.v1.schemas.upload import CandidateResponse
 from app.v1.services.admin.analytics_service import analytics_service
 from app.v1.services.admin.audit_service import audit_service
 from app.v1.services.admin.candidate_service import candidate_admin_service
+from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.job_service import job_admin_service
 from app.v1.services.admin.role_service import role_service
 from app.v1.services.admin.skill_service import skill_service
@@ -106,6 +107,22 @@ class AdminService:
 
     async def delete_job(self, *args, **kwargs) -> None:
         return await job_admin_service.delete_job(*args, **kwargs)
+
+    # Department Management
+    async def get_all_departments(self, *args, **kwargs):
+        return await department_service.get_all_departments(*args, **kwargs)
+
+    async def get_department_by_id(self, *args, **kwargs):
+        return await department_service.get_department_by_id(*args, **kwargs)
+
+    async def create_department(self, *args, **kwargs):
+        return await department_service.create_department(*args, **kwargs)
+
+    async def update_department(self, *args, **kwargs):
+        return await department_service.update_department(*args, **kwargs)
+
+    async def delete_department(self, *args, **kwargs):
+        return await department_service.delete_department(*args, **kwargs)
 
     # Skill Management
     async def get_all_skills(self, *args, **kwargs):

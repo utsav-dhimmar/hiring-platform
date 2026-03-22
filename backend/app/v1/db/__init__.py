@@ -1,4 +1,5 @@
 from ..db.models.audit_logs import AuditLog
+from ..db.models.departments import Department
 from ..db.models.candidate_skills import candidate_skills
 from ..db.models.candidates import Candidate
 from ..db.models.cover_letters import CoverLetter
@@ -22,6 +23,7 @@ from ..db.models.user import User
 __all__ = [
     "User",
     "Role",
+    "Department",
     "Permission",
     "role_permission",
     "Job",

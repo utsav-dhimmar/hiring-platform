@@ -89,7 +89,7 @@ const AdminJobs = () => {
 
   const columns: Column<JobRead>[] = [
     { header: "Title", accessor: "title" },
-    { header: "Department", accessor: (job) => job.department || "N/A" },
+    { header: "Department", accessor: (job) => job.department?.name ?? job.department_name ?? "N/A" },
     {
       header: "Status",
       accessor: (job) => <StatusBadge status={job.is_active} />,

@@ -182,7 +182,7 @@ const HomePage = () => {
                             <div className="fw-semibold text-dark">{job.title}</div>
                           </td>
                           <td className="px-4 py-3 border-0 text-muted">
-                            {job.department || "N/A"}
+                            {job.department?.name ?? job.department_name ?? "N/A"}
                           </td>
                           <td className="px-4 py-3 border-0">
                             <span

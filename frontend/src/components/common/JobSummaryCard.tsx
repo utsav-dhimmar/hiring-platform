@@ -27,7 +27,7 @@ const JobSummaryCard = ({ job }: JobSummaryCardProps): ReactElement => {
             <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">
               Department
             </h6>
-            <div className="fw-bold text-dark">{job.department || "General"}</div>
+            <div className="fw-bold text-dark">{job.department?.name ?? job.department_name ?? "General"}</div>
           </Col>
           <Col md={2} className="border-end border-light">
             <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">Status</h6>

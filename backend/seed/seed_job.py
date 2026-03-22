@@ -7,6 +7,7 @@ from app.v1.db import Job, Skill, job_skills
 from app.v1.db.session import async_session_maker, init_db
 from app.v1.services.stage_service import stage_service
 from app.v1.utils.text import build_job_text
+from seed.seed_departments import ensure_department
 from seed.seed_for_user import ensure_dev_test_role, ensure_user, get_admin_role
 from seed.seed_skills import ensure_skills
 
@@ -178,7 +179,10 @@ async def ensure_job(
     description = job_config["description"]
     job_json = job_config["json"]
     required_skills = job_config["required_skills"]
-    department = job_config["department"]
+    department_name = job_config["department"]
+
+    # Resolve or create the department FK
+    department = await ensure_department(session, department_name)
 
     job = (
         (
@@ -194,14 +198,14 @@ async def ensure_job(
     )
 
     if job:
-        job.department = department
+        job.department_id = department.id
         job.jd_text = description
         job.jd_json = job_json
         job.is_active = True
     else:
         job = Job(
             title=title,
-            department=department,
+            department_id=department.id,
             jd_text=description,
             jd_json=job_json,
             jd_embedding=None,
