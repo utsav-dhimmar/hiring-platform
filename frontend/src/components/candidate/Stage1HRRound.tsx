@@ -19,6 +19,9 @@ interface Stage1HRRoundProps {
   isLoading?: boolean;
 }
 
+/**
+ * Individual evaluation metric display with a progress bar and score.
+ */
 const EvaluationItem = ({ label, score }: { label: string; score: number }) => (
   <div className="mb-3">
     <div className="d-flex justify-content-between mb-1">
