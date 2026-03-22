@@ -52,7 +52,6 @@ class ResumeUploadService:
         job_id: uuid.UUID,
         resume: UploadFile,
         current_user: UserRead,
-        background_tasks: BackgroundTasks,
     ) -> ResumeUploadResponse:
         """Handle the initial upload of a resume.
 
@@ -235,7 +234,6 @@ class ResumeUploadService:
             job_id=job_id,
             resume_id=resume_record.id,
             file_path=str(target_path),
-            background_tasks=background_tasks,
         )
         log_event(
             event="background_scheduled",

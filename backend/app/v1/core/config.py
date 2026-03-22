@@ -187,5 +187,11 @@ class Settings(BaseSettings):
         default=300, description="Time-to-live for cached items in seconds"
     )
 
+    @computed_field
+    @property
+    def CELERY_BROKER_URL(self) -> str:
+        """The broker URL for Celery, defaulting to REDIS_URL."""
+        return self.REDIS_URL
+
 
 settings = Settings()
