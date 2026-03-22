@@ -312,8 +312,11 @@ export const adminJobService = {
  * Skill Management APIs
  */
 export const adminSkillService = {
-  getAllSkills: async (skip: number = 0, limit: number = 100): Promise<SkillRead[]> => {
-    const response = await apiClient.get<SkillRead[]>("/skills", {
+  getAllSkills: async (
+    skip: number = 0,
+    limit: number = 100,
+  ): Promise<{ data: SkillRead[]; total: number }> => {
+    const response = await apiClient.get<{ data: SkillRead[]; total: number }>("/skills", {
       params: { skip, limit },
     });
     return response.data;
@@ -347,10 +350,13 @@ export const adminCandidateService = {
     jobId: string,
     skip: number = 0,
     limit: number = 100,
-  ): Promise<CandidateResponse[]> => {
-    const response = await apiClient.get<CandidateResponse[]>(`/candidates/jobs/${jobId}`, {
-      params: { skip, limit },
-    });
+  ): Promise<{ data: CandidateResponse[]; total: number }> => {
+    const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
+      `/candidates/jobs/${jobId}`,
+      {
+        params: { skip, limit },
+      },
+    );
     return response.data;
   },
 
@@ -359,10 +365,13 @@ export const adminCandidateService = {
     query: string,
     skip: number = 0,
     limit: number = 100,
-  ): Promise<CandidateResponse[]> => {
-    const response = await apiClient.get<CandidateResponse[]>(`/candidates/jobs/${jobId}/search`, {
-      params: { query, skip, limit },
-    });
+  ): Promise<{ data: CandidateResponse[]; total: number }> => {
+    const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
+      `/candidates/jobs/${jobId}/search`,
+      {
+        params: { query, skip, limit },
+      },
+    );
     return response.data;
   },
 
@@ -370,10 +379,13 @@ export const adminCandidateService = {
     query: string,
     skip: number = 0,
     limit: number = 100,
-  ): Promise<CandidateResponse[]> => {
-    const response = await apiClient.get<CandidateResponse[]>("/candidates/search", {
-      params: { query, skip, limit },
-    });
+  ): Promise<{ data: CandidateResponse[]; total: number }> => {
+    const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
+      "/candidates/search",
+      {
+        params: { query, skip, limit },
+      },
+    );
     return response.data;
   },
 

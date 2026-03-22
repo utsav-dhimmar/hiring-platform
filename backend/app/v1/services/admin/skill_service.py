@@ -1,3 +1,4 @@
+from typing import Any
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,12 +15,15 @@ class SkillService:
 
     async def get_all_skills(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ):
+    ) -> dict[str, Any]:
         """Get all skills with pagination."""
         result = await skill_repository.crud.get_multi(
             db=db, offset=skip, limit=limit
         )
-        return result["data"]
+        return {
+            "data": result["data"],
+            "total": result.get("total_count", 0),
+        }
 
     async def get_skill_by_id(
         self, db: AsyncSession, skill_id: uuid.UUID

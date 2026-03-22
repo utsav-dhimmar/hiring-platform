@@ -3,7 +3,7 @@
  * Dynamically manages all interview stages for a specific candidate based on job config.
  */
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Container, Breadcrumb, Row, Col, Nav, Badge } from "react-bootstrap";
 import {
@@ -22,7 +22,7 @@ import type { JobStageConfig, StageEvaluation, Stage1Info } from "../../apis/typ
 
 import { extractErrorMessage } from "../../utils/error";
 
-const CandidateEvaluationPage: React.FC = () => {
+const CandidateEvaluationPage = () => {
   const { jobId, candidateId } = useParams<{ jobId: string; candidateId: string }>();
   const navigate = useNavigate();
 
@@ -50,8 +50,8 @@ const CandidateEvaluationPage: React.FC = () => {
           adminCandidateService
             .getCandidatesForJob(jobId)
             .then(
-              (candidates: CandidateResponse[]) =>
-                candidates.find((c: CandidateResponse) => c.id === candidateId) || null,
+              (result: { data: CandidateResponse[]; total: number }) =>
+                result.data.find((c: CandidateResponse) => c.id === candidateId) || null,
             ),
         ]);
 
@@ -208,10 +208,10 @@ const CandidateEvaluationPage: React.FC = () => {
       setStage1((prev) =>
         prev
           ? {
-              ...prev,
-              status: "completed",
-              analysis: mockAnalysis,
-            }
+            ...prev,
+            status: "completed",
+            analysis: mockAnalysis,
+          }
           : null,
       );
 
@@ -345,19 +345,17 @@ const CandidateEvaluationPage: React.FC = () => {
                                     ? "success"
                                     : "danger"
                               }
-                              className={`rounded-pill px-2 py-1 bg-${
-                                displayDecision === null
+                              className={`rounded-pill px-2 py-1 bg-${displayDecision === null
+                                ? "warning"
+                                : displayDecision
+                                  ? "success"
+                                  : "danger"
+                                }-subtle text-${displayDecision === null
                                   ? "warning"
                                   : displayDecision
                                     ? "success"
                                     : "danger"
-                              }-subtle text-${
-                                displayDecision === null
-                                  ? "warning"
-                                  : displayDecision
-                                    ? "success"
-                                    : "danger"
-                              }`}
+                                }`}
                             >
                               {displayDecision === null
                                 ? "Pending"
@@ -422,12 +420,12 @@ const CandidateEvaluationPage: React.FC = () => {
             .find((s) => s.id === activeTab)
             ?.template.name.toLowerCase()
             .includes("hr screening") && (
-            <Stage1HRRound
-              stageInfo={stage1}
-              onUploadTranscript={handleUploadTranscript}
-              onMakeDecision={handleMakeDecision}
-            />
-          )}
+              <Stage1HRRound
+                stageInfo={stage1}
+                onUploadTranscript={handleUploadTranscript}
+                onMakeDecision={handleMakeDecision}
+              />
+            )}
 
           {jobStages.find((s) => s.id === activeTab) &&
             !jobStages

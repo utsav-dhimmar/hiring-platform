@@ -46,6 +46,14 @@ interface AdminDataTableProps<T> {
   className?: string;
   /** Additional CSS class for the table element */
   tableClassName?: string;
+  /** Current page number (1-indexed) */
+  page?: number;
+  /** Number of items per page */
+  pageSize?: number;
+  /** Total number of items (for pagination) */
+  total?: number;
+  /** Callback when page is changed */
+  onPageChange?: (page: number) => void;
 }
 
 /**
@@ -73,6 +81,10 @@ function AdminDataTable<T>({
   rowKey,
   className = "",
   tableClassName = "table w-100 admin-table",
+  page,
+  pageSize = 10,
+  total,
+  onPageChange,
 }: AdminDataTableProps<T>) {
   if (loading && data.length === 0) {
     return <LoadingSpinner message="Loading data..." />;
@@ -89,6 +101,8 @@ function AdminDataTable<T>({
     }
     return item[rowKey] as unknown as string | number;
   };
+
+  const totalPages = total !== undefined ? Math.ceil(total / pageSize) : 0;
 
   return (
     <Card className={`${className}`}>
@@ -133,6 +147,60 @@ function AdminDataTable<T>({
             </tbody>
           </table>
         </div>
+
+        {total !== undefined && onPageChange && totalPages > 1 && (
+          <div className="d-flex justify-content-between align-items-center mt-3 border-top pt-3 px-2">
+            <div className="text-muted small">
+              Showing {data.length > 0 ? ((page || 1) - 1) * pageSize + 1 : 0} to{" "}
+              {Math.min((page || 1) * pageSize, total)} of {total} entries
+            </div>
+            <ul className="pagination pagination-sm mb-0">
+              <li className={`page-item ${(page || 1) === 1 ? "disabled" : ""}`}>
+                <button
+                  className="page-link"
+                  onClick={() => onPageChange((page || 1) - 1)}
+                  disabled={(page || 1) === 1}
+                >
+                  Previous
+                </button>
+              </li>
+
+              {/* Simple page numbers approach for now */}
+              {[...Array(totalPages)].map((_, i) => {
+                const p = i + 1;
+                // Only show a few pages around current to prevent huge lists
+                const current = page || 1;
+                if (p === 1 || p === totalPages || (p >= current - 1 && p <= current + 1)) {
+                  return (
+                    <li key={p} className={`page-item ${current === p ? "active" : ""}`}>
+                      <button className="page-link" onClick={() => onPageChange(p)}>
+                        {p}
+                      </button>
+                    </li>
+                  );
+                }
+                if (p === current - 2 || p === current + 2) {
+                  return (
+                    <li key={p} className="page-item disabled">
+                      <span className="page-link">...</span>
+                    </li>
+                  );
+                }
+                return null;
+              })}
+
+              <li className={`page-item ${(page || 1) === totalPages ? "disabled" : ""}`}>
+                <button
+                  className="page-link"
+                  onClick={() => onPageChange((page || 1) + 1)}
+                  disabled={(page || 1) === totalPages}
+                >
+                  Next
+                </button>
+              </li>
+            </ul>
+          </div>
+        )}
       </CardBody>
     </Card>
   );

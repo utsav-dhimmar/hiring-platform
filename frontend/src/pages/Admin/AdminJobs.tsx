@@ -3,7 +3,7 @@
  * Displays all jobs with ability to create, edit, and delete.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { adminJobService } from "../../apis/admin/service";
 import type { JobRead } from "../../apis/admin/types";
@@ -27,12 +27,22 @@ const AdminJobs = () => {
   const [showStagesModal, setShowStagesModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobRead | null>(null);
 
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const skip = (page - 1) * pageSize;
+
   const {
     data: jobs,
+    total,
     loading,
     error,
     fetchData: fetchJobs,
-  } = useAdminData<JobRead>(() => adminJobService.getAllJobs());
+  } = useAdminData<JobRead>(() => adminJobService.getAllJobs(skip, pageSize));
+
+  // Refetch when page changes
+  useEffect(() => {
+    fetchJobs();
+  }, [page, fetchJobs]);
 
   const {
     showModal: showDeleteModal,
@@ -153,6 +163,10 @@ const AdminJobs = () => {
       <AdminDataTable
         columns={columns}
         data={jobs}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
         loading={loading}
         error={error}
         onRetry={fetchJobs}

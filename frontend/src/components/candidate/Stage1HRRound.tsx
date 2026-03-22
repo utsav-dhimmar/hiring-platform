@@ -33,12 +33,7 @@ const EvaluationItem = ({ label, score }: { label: string; score: number }) => (
   </div>
 );
 
-const Stage1HRRound: React.FC<Stage1HRRoundProps> = ({
-  stageInfo,
-  onUploadTranscript,
-  onMakeDecision,
-  isLoading = false,
-}) => {
+const Stage1HRRound = ({ stageInfo, onUploadTranscript, onMakeDecision, isLoading = false }: Stage1HRRoundProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

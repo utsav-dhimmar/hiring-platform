@@ -83,8 +83,8 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
     try {
       setSkillsLoading(true);
       setSkillsError(null);
-      const data = await adminSkillService.getAllSkills();
-      setSkills(data);
+      const result = await adminSkillService.getAllSkills();
+      setSkills(result.data);
     } catch (err) {
       console.error("Failed to fetch skills:", err);
       setSkillsError("Failed to load skills.");

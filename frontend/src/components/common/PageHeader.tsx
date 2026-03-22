@@ -3,7 +3,7 @@
  * Used as a consistent header across application pages.
  */
 
-import React, { type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 /**
  * Props for the PageHeader component.
@@ -30,7 +30,7 @@ interface PageHeaderProps {
  * />
  * ```
  */
-const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions, className = "" }) => {
+const PageHeader = ({ title, subtitle, actions, className = "" }: PageHeaderProps) => {
   return (
     <div className={`d-flex justify-content-between align-items-center mb-4 ${className}`}>
       <div>

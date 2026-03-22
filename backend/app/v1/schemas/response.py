@@ -38,3 +38,10 @@ class PaginatedResponse(BaseModel, Generic[T]):
     page: int
     page_size: int
     total_pages: int
+
+
+class PaginatedData(BaseModel, Generic[T]):
+    """Simple paginated response with data and total."""
+
+    data: list[T]
+    total: int
