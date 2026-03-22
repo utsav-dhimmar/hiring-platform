@@ -37,14 +37,14 @@ interface SearchBarProps {
  * />
  * ```
  */
-const SearchBar: React.FC<SearchBarProps> = ({
+const SearchBar = ({
   placeholder = "Search...",
   value,
   onChange,
   onSearch,
   isLoading = false,
   className = "",
-}) => {
+}: SearchBarProps) => {
   return (
     <Form onSubmit={onSearch} className={className}>
       <Row className="g-2">

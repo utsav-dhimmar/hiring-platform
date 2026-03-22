@@ -139,7 +139,8 @@ const JobCandidatesPage = () => {
     try {
       let candidatesData: CandidateResponse[] = [];
       if (searchQuery.trim()) {
-        candidatesData = await adminCandidateService.searchJobCandidates(jobId, searchQuery);
+        const result = await adminCandidateService.searchJobCandidates(jobId, searchQuery);
+        candidatesData = result.data;
       } else {
         const resp = await resumeService.getJobCandidates(jobId);
         candidatesData = resp.candidates;

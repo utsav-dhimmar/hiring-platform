@@ -5,7 +5,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Alert, Form, Modal } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { adminPermissionService } from "../../apis/admin/service";

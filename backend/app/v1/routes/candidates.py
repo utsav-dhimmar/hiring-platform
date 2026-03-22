@@ -14,11 +14,12 @@ from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.upload import CandidateResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
+from app.v1.schemas.response import PaginatedData
 
 router = APIRouter()
 
 
-@router.get("/search", response_model=list[CandidateResponse])
+@router.get("/search", response_model=PaginatedData[CandidateResponse])
 async def search_candidates(
     query: str = Query(..., min_length=1),
     db: AsyncSession = Depends(get_db),
@@ -32,7 +33,7 @@ async def search_candidates(
     )
 
 
-@router.get("/jobs/{job_id}", response_model=list[CandidateResponse])
+@router.get("/jobs/{job_id}", response_model=PaginatedData[CandidateResponse])
 async def get_job_candidates(
     job_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -46,7 +47,7 @@ async def get_job_candidates(
     )
 
 
-@router.get("/jobs/{job_id}/search", response_model=list[CandidateResponse])
+@router.get("/jobs/{job_id}/search", response_model=PaginatedData[CandidateResponse])
 async def search_job_candidates(
     job_id: uuid.UUID,
     query: str = Query(..., min_length=1),

@@ -2,8 +2,6 @@
  * Error display component with optional retry button.
  * Shows an alert message with error details and recovery options.
  */
-
-import React from "react";
 import { Alert, Button, Container } from "react-bootstrap";
 
 /**
@@ -26,7 +24,7 @@ interface ErrorDisplayProps {
  * <ErrorDisplay message="Error occurred" fullPage />
  * ```
  */
-const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message, onRetry, fullPage = false }) => {
+const ErrorDisplay = ({ message, onRetry, fullPage = false }: ErrorDisplayProps) => {
   const content = (
     <div className="py-4">
       <Alert variant="danger" className="text-center shadow-sm">

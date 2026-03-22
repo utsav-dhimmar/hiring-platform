@@ -17,7 +17,9 @@ from app.v1.services.admin_service import admin_service
 router = APIRouter()
 
 
-@router.get("/", response_model=list[SkillRead])
+from app.v1.schemas.response import PaginatedData
+
+@router.get("/", response_model=PaginatedData[SkillRead])
 async def get_all_skills(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("skills:access")),

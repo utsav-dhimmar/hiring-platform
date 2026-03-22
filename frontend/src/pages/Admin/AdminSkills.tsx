@@ -3,7 +3,7 @@
  * Displays all skills with ability to create, edit, and delete.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { adminSkillService } from "../../apis/admin/service";
 import type { SkillRead } from "../../apis/admin/types";
 import { AdminDataTable, Button, PageHeader, type Column } from "../../components/common";
@@ -15,12 +15,22 @@ const AdminSkills = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<SkillRead | null>(null);
 
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const skip = (page - 1) * pageSize;
+
   const {
     data: skills,
+    total,
     loading,
     error,
     fetchData: fetchSkills,
-  } = useAdminData<SkillRead>(() => adminSkillService.getAllSkills());
+  } = useAdminData<SkillRead>(() => adminSkillService.getAllSkills(skip, pageSize));
+
+  // Refetch when page changes
+  useEffect(() => {
+    fetchSkills();
+  }, [page, fetchSkills]);
 
   const {
     showModal: showDeleteModal,
@@ -88,6 +98,10 @@ const AdminSkills = () => {
       <AdminDataTable
         columns={columns}
         data={skills}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
         loading={loading}
         error={error}
         onRetry={fetchSkills}

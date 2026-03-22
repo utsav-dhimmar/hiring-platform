@@ -15,16 +15,16 @@ import "../../css/button.css";
 interface ButtonProps extends Omit<BSButtonProps, "size"> {
   /** Visual style variant of the button */
   variant?:
-    | "primary"
-    | "secondary"
-    | "outline-primary"
-    | "outline-secondary"
-    | "success"
-    | "outline-success"
-    | "danger"
-    | "outline-danger"
-    | "warning"
-    | "ghost";
+  | "primary"
+  | "secondary"
+  | "outline-primary"
+  | "outline-secondary"
+  | "success"
+  | "outline-success"
+  | "danger"
+  | "outline-danger"
+  | "warning"
+  | "ghost";
   /** Size of the button */
   size?: "sm" | "lg";
   /** Shows loading spinner and disables button when true */
@@ -66,7 +66,7 @@ export function Button({
       variant={variant === "ghost" ? "link" : variant}
       size={size}
       disabled={disabled || isLoading}
-      className={`custom-btn ${variant === "ghost" ? "text-decoration-none shadow-none" : ""} ${className}`}
+      className={`custom-btn flex-grow-1 my-1 ${variant === "ghost" ? "text-decoration-none shadow-none" : ""} ${className}`}
       {...props}
     >
       {isLoading ? (

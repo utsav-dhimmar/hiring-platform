@@ -8,7 +8,7 @@ import { adminJobService, adminStageTemplateService } from "../../apis/admin/ser
 import type { JobRead } from "../../apis/admin/types";
 import type { JobStageConfig, StageTemplate } from "../../apis/types/stage";
 import { Modal } from "react-bootstrap";
-import { Button, ErrorDisplay, LoadingSpinner, PageHeader } from "../../components/common";
+import { Button, ErrorDisplay, LoadingSpinner } from "../../components/common";
 import "../../css/adminDashboard.css";
 import { extractErrorMessage } from "../../utils/error";
 

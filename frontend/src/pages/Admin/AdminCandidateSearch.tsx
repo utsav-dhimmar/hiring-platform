@@ -34,6 +34,10 @@ const AdminCandidateSearch = () => {
   const navigate = useNavigate();
 
   const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   const [job, setJob] = useState<JobRead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,20 +52,26 @@ const AdminCandidateSearch = () => {
     setLoading(true);
     setError(null);
     try {
-      let data: CandidateResponse[] = [];
+      const skip = (page - 1) * pageSize;
+      let result: { data: CandidateResponse[]; total: number } = { data: [], total: 0 };
+
       if (jobId) {
         if (searchQuery.trim()) {
-          data = await adminCandidateService.searchJobCandidates(jobId, searchQuery);
+          result = await adminCandidateService.searchJobCandidates(
+            jobId,
+            searchQuery,
+            skip,
+            pageSize,
+          );
         } else {
-          data = await adminCandidateService.getCandidatesForJob(jobId);
+          result = await adminCandidateService.getCandidatesForJob(jobId, skip, pageSize);
         }
       } else if (searchQuery.trim()) {
-        data = await adminCandidateService.searchCandidates(searchQuery);
-      } else {
-        // Clear if nothing to search and no jobId
-        data = [];
+        result = await adminCandidateService.searchCandidates(searchQuery, skip, pageSize);
       }
-      setCandidates(data);
+
+      setCandidates(result.data);
+      setTotal(result.total);
     } catch (err) {
       console.error("Failed to fetch candidates:", err);
       setError(extractErrorMessage(err, "Failed to load candidates."));
@@ -86,10 +96,11 @@ const AdminCandidateSearch = () => {
       fetchJob();
     }
     fetchCandidates();
-  }, [jobId, fetchCandidates, fetchJob]);
+  }, [jobId, fetchCandidates, fetchJob, page]);
 
   const handleSearch = (e: React.SyntheticEvent) => {
     e.preventDefault();
+    setPage(1); // Reset to first page on new search
     fetchCandidates();
   };
 
@@ -220,6 +231,10 @@ const AdminCandidateSearch = () => {
       <AdminDataTable
         columns={columns}
         data={candidates}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
         loading={loading && candidates.length === 0}
         error={null} // Handled above
         onRetry={fetchCandidates}
