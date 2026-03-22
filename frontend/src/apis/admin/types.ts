@@ -10,7 +10,9 @@ import type { JobStageConfig } from "../types/stage";
  * Base fields for a permission.
  */
 export interface PermissionBase {
+  /** Unique name of the permission */
   name: string;
+  /** Detailed description of what this permission allows */
   description: string;
 }
 
@@ -18,7 +20,9 @@ export interface PermissionBase {
  * Permission returned from read operations.
  */
 export interface PermissionRead extends PermissionBase {
+  /** Unique identifier (UUID) */
   id: string;
+  /** ISO timestamp of when the permission was created */
   created_at?: string;
 }
 
@@ -38,6 +42,7 @@ export interface RoleBase {
  * Payload for creating a new role.
  */
 export interface RoleCreate extends RoleBase {
+  /** List of permission IDs to associate with this role */
   permission_ids?: string[];
 }
 
@@ -45,7 +50,9 @@ export interface RoleCreate extends RoleBase {
  * Payload for updating an existing role.
  */
 export interface RoleUpdate {
+  /** Optional new name for the role */
   name?: string;
+  /** Optional new list of permission IDs (replaces existing) */
   permission_ids?: string[];
 }
 
@@ -53,8 +60,11 @@ export interface RoleUpdate {
  * Role returned from read operations.
  */
 export interface RoleRead extends RoleBase {
+  /** Unique identifier (UUID) */
   id: string;
+  /** ISO timestamp of when the role was created */
   created_at?: string;
+  /** ISO timestamp of last update */
   updated_at?: string;
 }
 
@@ -69,10 +79,15 @@ export interface RoleWithPermissions extends RoleRead {
  * Payload for creating a new user via admin.
  */
 export interface UserAdminCreate {
+  /** User's email address (must be unique) */
   email: string;
+  /** Optional initial password */
   password?: string;
+  /** User's full name */
   full_name?: string;
+  /** Whether the account is active */
   is_active?: boolean;
+  /** ID of the role to assign */
   role_id: string;
 }
 
@@ -80,8 +95,11 @@ export interface UserAdminCreate {
  * Payload for updating an existing user via admin.
  */
 export interface UserAdminUpdate {
+  /** Optional new full name */
   full_name?: string;
+  /** Optional status update */
   is_active?: boolean;
+  /** Optional new role assignment */
   role_id?: string;
 }
 
@@ -89,12 +107,19 @@ export interface UserAdminUpdate {
  * User returned from admin read operations.
  */
 export interface UserAdminRead {
+  /** Unique identifier (UUID) */
   id: string;
+  /** User's full name */
   full_name?: string;
+  /** User's email address */
   email: string;
+  /** Whether the account is currently active */
   is_active: boolean;
+  /** ID of the assigned role */
   role_id: string;
+  /** ISO timestamp of creation */
   created_at?: string;
+  /** ISO timestamp of last update */
   updated_at?: string;
 }
 
@@ -109,12 +134,19 @@ export interface UserWithRole extends UserAdminRead {
  * Audit log entry for tracking admin actions.
  */
 export interface AuditLogRead {
+  /** Unique identifier of the log entry */
   id: string;
+  /** ID of the user who performed the action */
   user_id: string;
+  /** Description of the action performed (e.g., "create_user") */
   action: string;
+  /** Type of object affected (e.g., "user", "job") */
   target_type?: string;
+  /** ID of the specific target object affected */
   target_id?: string;
+  /** Additional structured data about the change */
   details?: Record<string, unknown>;
+  /** ISO timestamp of the action */
   created_at?: string;
 }
 
@@ -129,13 +161,21 @@ export interface AuditLogWithUser extends AuditLogRead {
  * Recent file upload record.
  */
 export interface RecentUploadRead {
+  /** Unique identifier of the upload */
   id: string;
+  /** Original name of the uploaded file */
   file_name?: string;
+  /** MIME type or extension of the file */
   file_type?: string;
+  /** File size in bytes */
   size?: number;
+  /** Associated candidate ID if applicable */
   candidate_id?: string;
+  /** Associated job ID if applicable */
   job_id?: string;
+  /** Name or ID of the user who uploaded the file */
   uploaded_by: string;
+  /** ISO timestamp of the upload */
   created_at?: string;
 }
 
@@ -152,13 +192,21 @@ export interface RecentUploadWithDetails extends RecentUploadRead {
  * Summary of platform analytics.
  */
 export interface AnalyticsSummary {
+  /** Total number of users registered in the system */
   total_users: number;
+  /** Total number of defined roles */
   total_roles: number;
+  /** Total number of defined permissions */
   total_permissions: number;
+  /** Total number of job postings */
   total_jobs: number;
+  /** Total number of candidates in the database */
   total_candidates: number;
+  /** Total number of resumes uploaded */
   total_resumes: number;
+  /** Number of jobs currently marked as active */
   active_jobs: number;
+  /** Number of users currently marked as active */
   active_users: number;
 }
 
@@ -175,13 +223,18 @@ export interface JobCandidateStats {
  * Detailed hiring report with statistics.
  */
 export interface HiringReport {
+  /** Total number of jobs created */
   total_jobs: number;
+  /** Number of active job postings */
   active_jobs: number;
+  /** Total number of unique candidates */
   total_candidates: number;
+  /** Breakdown of candidate counts for each job */
   candidates_by_job: JobCandidateStats[];
+  /** Number of resumes uploaded in the past 30 days */
   resumes_uploaded_last_30_days: number;
+  /** Optional aggregate resume score across all candidates */
   average_resume_score?: number;
-  pass_rate?: number;
 }
 
 /**
@@ -192,11 +245,17 @@ export interface HiringReport {
  * Payload for creating a new job posting.
  */
 export interface JobCreate {
+  /** Job title (e.g., "Senior Software Engineer") */
   title: string;
+  /** Department or team name */
   department?: string;
+  /** Plain text job description */
   jd_text?: string;
+  /** Structured JSON data for the job description */
   jd_json?: Record<string, unknown>;
+  /** Whether the job is immediately active */
   is_active?: boolean;
+  /** List of skill IDs required for this job */
   skill_ids?: string[];
 }
 
@@ -220,7 +279,9 @@ export interface JobUpdate {
  * Base fields for a skill.
  */
 export interface SkillBase {
+  /** Name of the skill (e.g., "React", "Python") */
   name: string;
+  /** Optional description of what this skill entails */
   description?: string;
 }
 
@@ -252,8 +313,11 @@ export interface SkillRead extends SkillBase {
  * Payload for creating a new stage template.
  */
 export interface StageTemplateCreate {
+  /** Name of the interview stage (e.g., "Technical Assessment") */
   name: string;
+  /** Description of what happens during this stage */
   description?: string;
+  /** Default configuration parameters for this stage type */
   default_config?: Record<string, any>;
 }
 
@@ -274,9 +338,13 @@ export interface StageTemplateUpdate {
  * Payload for adding a stage to a job.
  */
 export interface JobStageConfigCreate {
+  /** ID of the stage template to use */
   template_id: string;
+  /** Order in which this stage appears (0-indexed) */
   stage_order: number;
+  /** Job-specific configuration overrides for this stage */
   config?: Record<string, any>;
+  /** Whether passing this stage is required to advance */
   is_mandatory?: boolean;
 }
 

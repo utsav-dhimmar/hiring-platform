@@ -196,7 +196,7 @@ const HomePage = () => {
                               {uploading[job.id] ? (
                                 <Spinner animation="border" size="sm" variant="primary" />
                               ) : (
-                                <Form.Group controlId={`upload-${job.id}`} className="mb-0">
+                                <Form.Group className="mb-0">
                                   <Form.Control
                                     type="file"
                                     size="sm"
