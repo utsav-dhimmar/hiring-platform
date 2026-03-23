@@ -1,8 +1,13 @@
-import axios from "axios";
+/**
+ * Utility functions for handling and formatting errors.
+ */
 
 /**
  * Extracts a user-friendly error message from an axios error or any other error.
  * Handles the common backend structure of fastapi style { detail: string } or fallback to message.
+ * @param err - The error object to extract message from
+ * @param fallback - Default message if extraction fails
+ * @returns A user-friendly error message string
  */
 export const extractErrorMessage = (
   err: unknown,
