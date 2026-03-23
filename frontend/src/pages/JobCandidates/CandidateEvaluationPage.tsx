@@ -16,6 +16,9 @@ import Stage1HRRound from "../../components/candidate/Stage1HRRound";
 import InterviewStageNav from "../../components/candidate/InterviewStageNav";
 import CandidateInfoSidebar from "../../components/candidate/CandidateInfoSidebar";
 import { adminCandidateService, adminJobService } from "../../apis/admin/service";
+import { interviewService } from "../../apis/services/interview";
+import { transcriptService } from "../../apis/services/transcript";
+import { evaluationService } from "../../apis/services/evaluation";
 import type { CandidateResponse } from "../../apis/types/resume";
 import type { Job } from "../../apis/types/job";
 import type { JobStageConfig, StageEvaluation, Stage1Info } from "../../apis/types/stage";
@@ -33,6 +36,7 @@ const CandidateEvaluationPage = () => {
 
   // Keep legacy state for now while we transition
   const [stage1, setStage1] = useState<Stage1Info | null>(null);
+  const [interviewId, setInterviewId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,9 +69,13 @@ const CandidateEvaluationPage = () => {
 
         // Try to fetch dynamic stages and evaluations
         try {
-          // If API isn't ready, this will fail and we fallback to mock data
           const stages = await adminJobService.getJobStages(jobId);
           const evals = await adminCandidateService.getCandidateEvaluations(candidateId);
+          const interviews = await interviewService.getInterviewsForCandidate(candidateId);
+          const interview = interviews.interviews.find(i => i.job_id === jobId);
+          if (interview) {
+            setInterviewId(interview.id);
+          }
 
           setJobStages(stages.sort((a, b) => a.stage_order - b.stage_order));
 
@@ -76,6 +84,23 @@ const CandidateEvaluationPage = () => {
             evalMap[e.job_stage_config_id] = e;
           });
           setEvaluations(evalMap);
+
+          // Find the HR Screening stage
+          const hrStage = stages.find(s => s.template.name.toLowerCase().includes("hr screening"));
+          if (hrStage) {
+            const hrEval = evalMap[hrStage.id];
+            setStage1({
+              id: hrEval?.id || "new-stage1",
+              candidate_id: candidateId,
+              job_id: jobId,
+              transcript_id: null,
+              status: hrEval?.status || "pending",
+              analysis: hrEval?.analysis || null,
+              hr_decision: hrEval?.decision || null,
+              created_at: hrEval?.created_at || new Date().toISOString(),
+              completed_at: hrEval?.completed_at || null,
+            });
+          }
 
           if (stages.length > 0) {
             setActiveTab(stages[0].id);
@@ -170,75 +195,144 @@ const CandidateEvaluationPage = () => {
     fetchData();
   }, [jobId, candidateId]);
 
-  const handleUploadTranscript = async (file: File) => {
-    console.log("Uploading transcript:", file.name);
-    // Update legacy state
-    setStage1((prev) =>
-      prev ? { ...prev, status: "processing", transcript_id: "trans-123" } : null,
-    );
-
-    // Update dynamic state if it matches active tab
-    if (activeTab === "config-1") {
-      setEvaluations((prev) => ({
-        ...prev,
-        [activeTab]: {
-          ...prev[activeTab],
-          status: "processing",
-        },
-      }));
+  const initiateInterview = async () => {
+    if (!candidateId || !jobId) return null;
+    try {
+      setLoading(true);
+      const newInterview = await interviewService.createInterview({
+        candidate_id: candidateId,
+        job_id: jobId,
+      });
+      return newInterview;
+    } catch (err) {
+      console.error("Failed to initiate interview:", err);
+      setError(extractErrorMessage(err, "Failed to start interview session."));
+      return null;
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Simulate API delay
-    setTimeout(() => {
-      const mockAnalysis = {
-        communication_skill: 8,
-        confidence: 9,
-        cultural_fit: 7,
-        profile_understanding: 8,
-        tech_stack_alignment: 6,
-        salary_alignment: 9,
-        overall_score: 78,
-        response_summary:
-          "The candidate demonstrated strong communication skills and confidence. They have a good understanding of the role but may need some training on our specific tech stack.",
-        communication_evaluation:
-          "Clear and articulate. Professional tone throughout the conversation.",
-        recommendation: "Proceed to Stage 2 - Technical Practical Round.",
-      };
+  const handleUploadTranscript = async (file: File) => {
+    if (!candidateId || !jobId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // 1. Get or find an interview session
+      const interviewsRes = await interviewService.getInterviewsForCandidate(candidateId);
+      let interview = interviewsRes.interviews.find(i => i.job_id === jobId);
+
+      // 1b. Create interview if it doesn't exist
+      if (!interview) {
+        interview = await initiateInterview() || undefined;
+      }
+
+      if (!interview) {
+        throw new Error("Could not find or create an interview session.");
+      }
+
+      setInterviewId(interview.id);
+
+      // 2. Upload transcript
+      const uploadRes = await transcriptService.uploadTranscript(interview.id, file);
+      const transcriptId = uploadRes.transcript_id;
+
+      setStage1((prev) =>
+        prev ? { ...prev, status: "processing", transcript_id: transcriptId } : null,
+      );
+
+      // 3. Poll for status
+      let statusRes = await transcriptService.getTranscriptStatus(interview.id, transcriptId);
+      let attempts = 0;
+      const maxAttempts = 30; // 60 seconds max
+
+      while ((statusRes.status === "processing" || statusRes.status === "uploaded") && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        statusRes = await transcriptService.getTranscriptStatus(interview.id, transcriptId);
+        attempts++;
+      }
+
+      if (statusRes.status === "failed") {
+        throw new Error(statusRes.error || "Transcript processing failed");
+      }
+      
+      if (statusRes.status !== "completed") {
+        throw new Error("Transcript processing timed out. Please try refreshing.");
+      }
+
+      // 4. Trigger Stage 1 LLM evaluation
+      const evaluation = await evaluationService.runEvaluation(interview.id, transcriptId);
 
       setStage1((prev) =>
         prev
           ? {
             ...prev,
             status: "completed",
-            analysis: mockAnalysis,
+            analysis: evaluation as any,
           }
           : null,
       );
 
-      if (activeTab === "config-1") {
+      // Update evaluations map for dynamic stages as well
+      if (activeTab === "config-1" || activeTab === "eval-1") {
         setEvaluations((prev) => ({
           ...prev,
           [activeTab]: {
             ...prev[activeTab],
             status: "completed",
-            analysis: mockAnalysis,
+            analysis: evaluation as any,
           },
         }));
       }
-    }, 3000);
+
+    } catch (err) {
+      console.error("Evaluation failed:", err);
+      setError(extractErrorMessage(err, "Failed to evaluate transcript."));
+      setStage1(prev => prev ? { ...prev, status: "failed" } : null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMakeDecision = async (decision: boolean) => {
-    console.log("Making decision:", decision);
-    setStage1((prev) => (prev ? { ...prev, hr_decision: decision } : null));
-    if (activeTab === "config-1") {
-      setEvaluations((prev) => ({
-        ...prev,
-        [activeTab]: {
-          ...prev[activeTab],
-          decision: decision,
-        },
-      }));
+    if (!interviewId) {
+      setError("No active interview session found to record decision.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Call API to record decision
+      await interviewService.updateDecision(interviewId, {
+        decision: decision ? "proceed" : "reject",
+        notes: `HR Decision: ${decision ? "Approved" : "Rejected"} through Evaluation Page`,
+      });
+
+      // Update local state on success
+      setStage1((prev) => (prev ? { ...prev, hr_decision: decision } : null));
+
+      // Update dynamic evaluations map
+      const currentStage = jobStages.find((s) => s.id === activeTab);
+      if (currentStage) {
+        setEvaluations((prev) => ({
+          ...prev,
+          [currentStage.id]: {
+            ...prev[currentStage.id],
+            decision: decision,
+          },
+        }));
+      }
+
+      console.log("Decision recorded successfully:", decision);
+    } catch (err) {
+      console.error("Failed to record decision:", err);
+      setError(extractErrorMessage(err, "Failed to record your decision. Please try again."));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -259,7 +353,7 @@ const CandidateEvaluationPage = () => {
     <Container className="py-5">
       <div className="mb-4">
         <Breadcrumb className="bg-transparent p-0 mb-2">
-          <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>
+          <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/admin/jobs" }}>
             Jobs
           </Breadcrumb.Item>
           <Breadcrumb.Item linkAs={Link} linkProps={{ to: `/admin/jobs/${jobId}/candidates` }}>
@@ -316,6 +410,7 @@ const CandidateEvaluationPage = () => {
                 stageInfo={stage1}
                 onUploadTranscript={handleUploadTranscript}
                 onMakeDecision={handleMakeDecision}
+                isLoading={loading}
               />
             )}
 

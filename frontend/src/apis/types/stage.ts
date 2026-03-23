@@ -69,26 +69,40 @@ export interface StageEvaluation {
  * HR Screening Round (Stage 1) evaluation results.
  */
 export interface HRScreeningAnalysis {
-  /** Communication skill score (0-10) */
-  communication_skill: number;
-  /** Confidence score (0-10) */
-  confidence: number;
-  /** Cultural fit score (0-10) */
-  cultural_fit: number;
-  /** Profile understanding score (0-10) */
-  profile_understanding: number;
-  /** Tech-stack alignment score (0-10) */
-  tech_stack_alignment: number;
-  /** Salary alignment score (0-10) */
-  salary_alignment: number;
-  /** Overall HR screening score (0-100) */
-  overall_score: number;
-  /** Summary of candidate responses */
-  response_summary: string;
-  /** Detailed communication evaluation */
-  communication_evaluation: string;
-  /** Final recommendation (e.g., "Proceed to Stage 2", "Reject") */
+  scores: {
+    communication_skill: number;
+    confidence: number;
+    cultural_fit: number;
+    profile_understanding: number;
+    tech_stack_alignment: number;
+    salary_alignment: number;
+    overall_score: number;
+  };
+  criteria_detail: Record<string, {
+    score: number;
+    justification: string;
+    evidence: string[];
+  }>;
+  red_flags: string[];
+  stage_score: number;
   recommendation: string;
+  recommendation_reason: string;
+  strength_summary: string;
+  weakness_summary: string;
+  overall_summary: string;
+  suggested_followups: string[];
+  filler_count: number;
+  
+  // Keep legacy fields for a bit to prevent crashes while migrating components
+  communication_skill?: number;
+  confidence?: number;
+  cultural_fit?: number;
+  profile_understanding?: number;
+  tech_stack_alignment?: number;
+  salary_alignment?: number;
+  overall_score?: number;
+  response_summary?: string;
+  communication_evaluation?: string;
 }
 
 /**

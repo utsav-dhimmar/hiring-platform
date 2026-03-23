@@ -5,7 +5,7 @@ This module defines the application settings using Pydantic BaseSettings.
 Settings are loaded from environment variables and .env files.
 """
 
-from pydantic import computed_field, Field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.v1.core.logging import get_logger
@@ -64,7 +64,9 @@ class Settings(BaseSettings):
         default="development",
         description="The deployment environment (e.g., development, staging, production)",
     )
-    DEBUG: bool = Field(default=False, description="Whether debug mode is enabled")
+    DEBUG: bool = Field(
+        default=False, description="Whether debug mode is enabled"
+    )
     SECRET_KEY: str = Field(
         default="",
         description="Secret key for JWT signing. Generate using 'openssl rand -hex 32'",
@@ -80,12 +82,18 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str = Field(
         default="localhost", description="PostgreSQL server hostname"
     )
-    POSTGRES_PORT: int = Field(default=5432, description="PostgreSQL server port")
-    POSTGRES_USER: str = Field(default="postgres", description="PostgreSQL username")
+    POSTGRES_PORT: int = Field(
+        default=5432, description="PostgreSQL server port"
+    )
+    POSTGRES_USER: str = Field(
+        default="postgres", description="PostgreSQL username"
+    )
     POSTGRES_PASSWORD: str = Field(
         default="postgres", description="PostgreSQL password"
     )
-    POSTGRES_DB: str = Field(default="app", description="PostgreSQL database name")
+    POSTGRES_DB: str = Field(
+        default="app", description="PostgreSQL database name"
+    )
 
     # Optional explicit override
     SQLALCHEMY_DATABASE_URI: str | None = Field(
@@ -123,12 +131,16 @@ class Settings(BaseSettings):
     )
 
     # Ollama
-    OLLAMA_URL: str = Field(default="https://ollama.com/v1", description="URL for the Ollama service")
+    OLLAMA_URL: str = Field(
+        default="https://ollama.com/v1",
+        description="URL for the Ollama service",
+    )
     OLLAMA_MODEL: str = Field(
         default="glm_5:cloud", description="Name of the Ollama model to use"
     )
     OLLAMA_API_KEY: str = Field(
-        default="d35ce7accc034bbc86f51347ae810ea6.mc4X9BO4XwHPR23bcHFtHWLV", description="API key for Ollama Cloud (if applicable)"
+        default="d35ce7accc034bbc86f51347ae810ea6.mc4X9BO4XwHPR23bcHFtHWLV",
+        description="API key for Ollama Cloud (if applicable)",
     )
     OLLAMA_TIMEOUT: int = Field(
         default=120, description="Timeout for Ollama API calls in seconds"
@@ -146,7 +158,8 @@ class Settings(BaseSettings):
         default=384, description="Dimension to truncate embeddings to"
     )
     EMBEDDING_USE_INSTRUCTIONS: bool = Field(
-        default=False, description="Whether to use instructions for generating embeddings"
+        default=False,
+        description="Whether to use instructions for generating embeddings",
     )
 
     # LangExtract Retry
@@ -162,10 +175,12 @@ class Settings(BaseSettings):
         default=5, description="Maximum allowed size for resume uploads in MB"
     )
     RESUME_UPLOAD_DIR: str = Field(
-        default="uploads/resumes", description="Directory where uploaded resumes are stored"
+        default="uploads/resumes",
+        description="Directory where uploaded resumes are stored",
     )
     ALLOWED_RESUME_EXTENSIONS: list[str] = Field(
-        default=["pdf", "docx"], description="List of allowed file extensions for resumes"
+        default=["pdf", "docx"],
+        description="List of allowed file extensions for resumes",
     )
     RESUME_PROCESSING_MAX_WORKERS: int = Field(
         default=4,
@@ -173,9 +188,12 @@ class Settings(BaseSettings):
     )
 
     # admin user
-    ADMIN_ROLE_NAME: str = Field(default="admin", description="Role name for the admin user")
+    ADMIN_ROLE_NAME: str = Field(
+        default="admin", description="Role name for the admin user"
+    )
     ADMIN_EMAIL: str = Field(
-        default="admin@example.com", description="Email address for the default admin user"
+        default="admin@example.com",
+        description="Email address for the default admin user",
     )
     ADMIN_PASSWORD: str = Field(
         default="admin123", description="Password for the default admin user"
@@ -185,7 +203,10 @@ class Settings(BaseSettings):
     )
 
     # Redis cache
-    REDIS_URL: str = Field(default="redis://localhost:6379/0", description="URL for the Redis cache service")
+    REDIS_URL: str = Field(
+        default="redis://localhost:6379/0",
+        description="URL for the Redis cache service",
+    )
     CACHE_TTL_SECONDS: int = Field(
         default=300, description="Time-to-live for cached items in seconds"
     )
