@@ -4,8 +4,8 @@
  */
 
 import { useCallback, useState } from "react";
-import { adminPermissionService, adminRoleService } from "../../apis/admin/service";
-import type { PermissionRead, RoleRead } from "../../apis/admin/types";
+import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
+import type { PermissionRead, RoleRead } from "@/types/admin";
 import {
   AdminDataTable,
   Button,
@@ -14,10 +14,10 @@ import {
   DateDisplay,
   PageHeader,
   type Column,
-} from "../../components/common";
-import { CreatePermissionModal, DeleteModal, RoleModal } from "../../components/modal";
-import "../../css/adminDashboard.css";
-import { useAdminData, useDeleteConfirmation } from "../../hooks";
+} from "@/components/shared";
+import { CreatePermissionModal, DeleteModal, RoleModal } from "@/components/modal";
+import "@/css/adminDashboard.css";
+import { useAdminData, useDeleteConfirmation } from "@/hooks";
 
 const AdminRoles = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);

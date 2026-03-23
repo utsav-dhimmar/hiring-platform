@@ -1,6 +1,6 @@
 import React from "react";
-import type { EvaluationResult } from "../../apis/types/evaluation";
-import "../../css/evaluation.css";
+import type { EvaluationResult } from "@/types/evaluation";
+import "@/css/evaluation.css";
 
 interface EvaluationResultsProps {
   result: EvaluationResult;
@@ -19,9 +19,7 @@ const EvaluationResults: React.FC<EvaluationResultsProps> = ({ result }) => {
 
   return (
     <div className="evaluation-container">
-      <div
-        className={`recommendation-banner recommendation-${result.recommendation}`}
-      >
+      <div className={`recommendation-banner recommendation-${result.recommendation}`}>
         <h1 className="recommendation-header">{result.recommendation}</h1>
         <p>{result.recommendation_reason}</p>
       </div>
@@ -38,9 +36,7 @@ const EvaluationResults: React.FC<EvaluationResultsProps> = ({ result }) => {
               className="score-bar"
               style={{
                 width: `${result.scores.overall_score}%`,
-                backgroundColor: getScoreColor(
-                  result.scores.overall_score / 100,
-                ),
+                backgroundColor: getScoreColor(result.scores.overall_score / 100),
               }}
             />
           </div>
@@ -48,9 +44,7 @@ const EvaluationResults: React.FC<EvaluationResultsProps> = ({ result }) => {
 
         <div className="score-card">
           <h3 className="summary-title">Filler Word Count</h3>
-          <p style={{ fontSize: "1.5rem", fontWeight: "bold" }}>
-            {result.filler_count}
-          </p>
+          <p style={{ fontSize: "1.5rem", fontWeight: "bold" }}>{result.filler_count}</p>
           <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>
             Filler words like "um", "uh", "ah" detected in candidate's speech.
           </p>

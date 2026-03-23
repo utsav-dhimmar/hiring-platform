@@ -5,22 +5,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { adminCandidateService, adminJobService } from "../../apis/admin/service";
-import type { JobRead } from "../../apis/admin/types";
-import type { CandidateResponse } from "../../apis/types/resume";
+import { adminCandidateService, adminJobService } from "@/apis/admin/service";
+import type { JobRead } from "@/types/admin";
+import type { CandidateResponse } from "@/types/resume";
 import {
   Button,
   ErrorDisplay,
   PageHeader,
   CandidateSearchForm,
   JobSummaryCard,
-} from "../../components/common";
-import { CandidateDetailModal } from "../../components/modal";
-import CandidateTable from "../../components/candidate/CandidateTable";
-
-import { extractErrorMessage } from "../../utils/error";
-
-import "../../css/adminDashboard.css";
+} from "@/components/shared";
+import CandidateTable from "@/components/candidate/CandidateTable";
+import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
+import { CandidateDetailModal } from "@/components/modal";
+import { extractErrorMessage } from "@/utils/error";
 
 const AdminCandidateSearch = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -102,19 +100,20 @@ const AdminCandidateSearch = () => {
     setShowDetail(true);
   };
 
-
-
   return (
     <div className="admin-dashboard">
-      <div className="bg-white p-4 rounded-4 shadow-sm border border-light mb-4">
+      <div className="bg-white p-1 mb-1 rounded-4 shadow-sm border border-light">
         <PageHeader
           title={jobId ? `Candidates for ${job?.title || "Job"}` : "Global Candidate Search"}
           className="mb-0 border-0 p-0"
           actions={
             jobId && (
-              <Button variant="outline-secondary" onClick={() => navigate("/admin/jobs")}>
-                Back to Jobs
-              </Button>
+              <div className="d-flex gap-2 align-items-center">
+                <QuickResumeUpload jobId={jobId} onSuccess={fetchCandidates} variant="primary" />
+                <Button variant="outline-secondary" onClick={() => navigate("/admin/jobs")}>
+                  Back to Jobs
+                </Button>
+              </div>
             )
           }
         />
@@ -137,7 +136,7 @@ const AdminCandidateSearch = () => {
         page={page}
         pageSize={pageSize}
         onPageChange={setPage}
-        loading={loading && candidates.length === 0}
+        loading={loading}
         error={null}
         onRetry={fetchCandidates}
         emptyMessage={

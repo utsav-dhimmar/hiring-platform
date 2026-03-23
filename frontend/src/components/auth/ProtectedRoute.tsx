@@ -5,8 +5,8 @@
 
 import type React from "react";
 import { Navigate } from "react-router-dom";
-import { useAppSelector } from "../../store/hooks";
-import { selectIsAuthenticated } from "../../store/slices/authSlice";
+import { useAppSelector } from "@/store/hooks";
+import { selectIsAuthenticated } from "@/store/slices/authSlice";
 
 /**
  * Props for the ProtectedRoute component.

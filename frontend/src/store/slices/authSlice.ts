@@ -4,7 +4,7 @@
  */
 
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { UserRead } from "../../apis/types/auth";
+import type { UserRead } from "@/types/auth";
 
 /**
  * Shape of the authentication state in Redux store.

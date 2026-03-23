@@ -1,8 +1,8 @@
 import type { ReactElement } from "react";
-import { Badge, Spinner } from "react-bootstrap";
+import { Badge } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { AdminDataTable, type Column, StatusBadge, Button, DateDisplay } from "../common";
-import type { HRRoundResult } from "../../apis/admin/types";
+import { AdminDataTable, type Column, StatusBadge, Button, DateDisplay } from "@/components/shared";
+import type { HRRoundResult } from "@/types/admin";
 
 interface HRRoundTableProps {
   results: HRRoundResult[];
@@ -27,9 +27,7 @@ const HRRoundTable = ({
     {
       header: "Candidate Name",
       accessor: (r) => (
-        <strong>
-          {`${r.first_name || ""} ${r.last_name || ""}`.trim() || "N/A"}
-        </strong>
+        <strong>{`${r.first_name || ""} ${r.last_name || ""}`.trim() || "N/A"}</strong>
       ),
     },
     { header: "Email", accessor: "email" },
@@ -38,25 +36,11 @@ const HRRoundTable = ({
       accessor: (r) => (
         <Badge
           bg={
-            r.status === "completed"
-              ? "success"
-              : r.status === "pending"
-              ? "warning"
-              : "secondary"
+            r.status === "completed" ? "success" : r.status === "pending" ? "warning" : "secondary"
           }
-          className={`px-3 py-2 rounded-pill bg-${
-            r.status === "completed"
-              ? "success"
-              : r.status === "pending"
-              ? "warning"
-              : "secondary"
-          }-subtle text-${
-            r.status === "completed"
-              ? "success"
-              : r.status === "pending"
-              ? "warning"
-              : "secondary"
-          }`}
+          className={`px-3 py-2 rounded-pill bg-${r.status === "completed" ? "success" : r.status === "pending" ? "warning" : "secondary"
+            }-subtle text-${r.status === "completed" ? "success" : r.status === "pending" ? "warning" : "secondary"
+            }`}
         >
           {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
         </Badge>
@@ -65,12 +49,11 @@ const HRRoundTable = ({
     {
       header: "HR Score",
       accessor: (r) =>
-        r.overall_score !== null ? (
+        r.overall_score !== undefined && r.overall_score !== null ? (
           <Badge
             bg={r.overall_score >= 65 ? "success" : "warning"}
-            className={`px-3 py-2 rounded-pill bg-${
-              r.overall_score >= 65 ? "success" : "warning"
-            }-subtle text-${r.overall_score >= 65 ? "success" : "warning"}`}
+            className={`px-3 py-2 rounded-pill bg-${r.overall_score >= 65 ? "success" : "warning"
+              }-subtle text-${r.overall_score >= 65 ? "success" : "warning"}`}
           >
             {r.overall_score.toFixed(1)}/100
           </Badge>
@@ -86,15 +69,14 @@ const HRRoundTable = ({
             r.recommendation === "PROCEED"
               ? "pass"
               : r.recommendation === "REJECT"
-              ? "fail"
-              : "pending"
+                ? "fail"
+                : "pending"
           }
           mapping={{
             pass: "success",
             fail: "danger",
             pending: "secondary",
           }}
-          label={r.recommendation || "Pending"}
         />
       ),
     },
@@ -110,9 +92,7 @@ const HRRoundTable = ({
           <Button
             variant="outline-primary"
             size="sm"
-            onClick={() =>
-              navigate(`/admin/jobs/${jobId}/candidates/${r.candidate_id}/evaluation`)
-            }
+            onClick={() => navigate(`/admin/jobs/${jobId}/candidates/${r.candidate_id}/evaluation`)}
           >
             View Evaluation
           </Button>

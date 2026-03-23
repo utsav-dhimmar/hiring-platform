@@ -3,11 +3,11 @@
  * Displays a list of recently uploaded resumes and documents.
  */
 
-import { adminAnalyticsService } from "../../apis/admin/service";
-import type { RecentUploadRead } from "../../apis/admin/types";
-import { AdminDataTable, DateDisplay, PageHeader, type Column } from "../../components/common";
-import "../../css/adminDashboard.css";
-import { useAdminData } from "../../hooks";
+import { adminAnalyticsService } from "@/apis/admin/service";
+import type { RecentUploadRead } from "@/types/admin";
+import { AdminDataTable, DateDisplay, PageHeader, type Column } from "@/components/shared";
+import "@/css/adminDashboard.css";
+import { useAdminData } from "@/hooks";
 
 const AdminRecentUploads = () => {
   const {

@@ -3,16 +3,11 @@
  * Displays analytics summary and hiring reports for administrators.
  */
 
-import { adminAnalyticsService } from "../../apis/admin/service";
-import type { AnalyticsSummary, HiringReport } from "../../apis/admin/types";
-import {
-  AdminDataTable,
-  PageHeader,
-  StatCard,
-  type Column,
-} from "../../components/common";
-import "../../css/adminDashboard.css";
-import { useAdminData } from "../../hooks";
+import { adminAnalyticsService } from "@/apis/admin/service";
+import type { AnalyticsSummary, HiringReport } from "@/types/admin";
+import { AdminDataTable, PageHeader, StatCard, type Column } from "@/components/shared";
+import "@/css/adminDashboard.css";
+import { useAdminData } from "@/hooks";
 
 const AdminDashboard = () => {
   const {
@@ -41,17 +36,14 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
-      <PageHeader title="Admin Dashboard" />
+      <PageHeader title="Panel Dashboard" />
 
       <div className="analytics-grid">
         <StatCard label="Total Users" value={analytics?.total_users ?? 0} />
         <StatCard label="Active Users" value={analytics?.active_users ?? 0} />
         <StatCard label="Total Jobs" value={analytics?.total_jobs ?? 0} />
         <StatCard label="Active Jobs" value={analytics?.active_jobs ?? 0} />
-        <StatCard
-          label="Total Candidates"
-          value={analytics?.total_candidates ?? 0}
-        />
+        <StatCard label="Total Candidates" value={analytics?.total_candidates ?? 0} />
         <StatCard label="Total Resumes" value={analytics?.total_resumes ?? 0} />
       </div>
 
@@ -65,16 +57,12 @@ const AdminDashboard = () => {
           <StatCard
             label="Avg Resume Score"
             value={
-              report?.average_resume_score
-                ? report?.average_resume_score.toFixed(2) + "%"
-                : "N/A"
+              report?.average_resume_score ? report?.average_resume_score.toFixed(2) + "%" : "N/A"
             }
           />
           <StatCard
             label="Pass Rate"
-            value={
-              report?.pass_rate ? report?.pass_rate.toFixed(2) + "%" : "N/A"
-            }
+            value={report?.pass_rate ? report?.pass_rate.toFixed(2) + "%" : "N/A"}
           />
         </div>
 

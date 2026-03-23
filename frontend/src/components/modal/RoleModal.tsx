@@ -5,11 +5,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Col, Form, Modal, Row } from "react-bootstrap";
-import { adminPermissionService, adminRoleService } from "../../apis/admin/service";
-import type { PermissionRead } from "../../apis/admin/types";
-import { Button, ErrorDisplay, Input } from "../../components/common";
-import { useFormModal } from "../../hooks";
-import { roleCreateSchema, type RoleCreateFormValues } from "../../schemas/admin";
+import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
+import type { PermissionRead } from "@/types/admin";
+import { Button, ErrorDisplay, Input } from "@/components/shared";
+import { useFormModal } from "@/hooks";
+import { roleCreateSchema, type RoleCreateFormValues } from "@/schemas/admin";
 
 /**
  * Props for the RoleModal component.

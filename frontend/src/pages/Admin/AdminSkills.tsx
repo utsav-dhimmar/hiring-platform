@@ -4,14 +4,15 @@
  */
 
 import { useState, useEffect } from "react";
-import { adminSkillService } from "../../apis/admin/service";
-import type { SkillRead } from "../../apis/admin/types";
-import { AdminDataTable, Button, PageHeader, type Column } from "../../components/common";
-import { CreateSkillModal, DeleteModal } from "../../components/modal";
-import "../../css/adminDashboard.css";
-import { useAdminData, useDeleteConfirmation } from "../../hooks";
+import { adminSkillService } from "@/apis/admin/service";
+import type { SkillRead } from "@/types/admin";
+import { AdminDataTable, Button, PageHeader, useToast, type Column } from "@/components/shared";
+import { CreateSkillModal, DeleteModal } from "@/components/modal";
+import "@/css/adminDashboard.css";
+import { useAdminData, useDeleteConfirmation } from "@/hooks";
 
 const AdminSkills = () => {
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<SkillRead | null>(null);
 
@@ -42,7 +43,10 @@ const AdminSkills = () => {
     message: deleteMessage,
   } = useDeleteConfirmation<SkillRead>({
     deleteFn: (id) => adminSkillService.deleteSkill(id as string),
-    onSuccess: fetchSkills,
+    onSuccess: () => {
+      fetchSkills();
+      toast.success("Skill deleted successfully");
+    },
     itemTitle: (skill) => `skill "${skill.name}"`,
   });
 
@@ -66,20 +70,16 @@ const AdminSkills = () => {
     { header: "Description", accessor: (skill) => skill.description || "N/A" },
     {
       header: "Actions",
+      className: "text-end",
       accessor: (skill) => (
-        <>
-          <Button
-            variant="outline-secondary"
-            size="sm"
-            className="me-2"
-            onClick={() => handleEditClick(skill)}
-          >
+        <div className="d-flex gap-2 justify-content-end">
+          <Button variant="outline-secondary" size="sm" onClick={() => handleEditClick(skill)}>
             Edit
           </Button>
           <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(skill)}>
             Delete
           </Button>
-        </>
+        </div>
       ),
     },
   ];

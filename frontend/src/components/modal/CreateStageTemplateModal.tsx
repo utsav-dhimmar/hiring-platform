@@ -5,12 +5,12 @@
 
 import { useCallback } from "react";
 import { Modal } from "react-bootstrap";
-import { adminStageTemplateService } from "../../apis/admin/service";
-import type { StageTemplate } from "../../apis/types/stage";
-import { Button, ErrorDisplay, Input } from "../../components/common";
-import "../../css/adminDashboard.css";
-import { useFormModal } from "../../hooks";
-import { stageTemplateCreateSchema, type StageTemplateCreateFormValues } from "../../schemas/admin";
+import { adminStageTemplateService } from "@/apis/admin/service";
+import type { StageTemplate } from "@/types/stage";
+import { Button, ErrorDisplay, Input } from "@/components/shared";
+import "@/css/adminDashboard.css";
+import { useFormModal } from "@/hooks";
+import { stageTemplateCreateSchema, type StageTemplateCreateFormValues } from "@/schemas/admin";
 
 interface CreateStageTemplateModalProps {
   show: boolean;

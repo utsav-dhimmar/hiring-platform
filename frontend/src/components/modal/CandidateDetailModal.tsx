@@ -4,8 +4,8 @@
  */
 
 import { Badge, Modal } from "react-bootstrap";
-import type { CandidateResponse, MissingSkill } from "../../apis/types/resume";
-import { Button } from "../common";
+import type { CandidateResponse, MissingSkill } from "@/types/resume";
+import { Button } from "@/components/shared";
 
 interface CandidateDetailModalProps {
   /** Controls visibility of the modal */
