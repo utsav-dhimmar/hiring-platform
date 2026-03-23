@@ -123,12 +123,12 @@ class Settings(BaseSettings):
     )
 
     # Ollama
-    OLLAMA_URL: str = Field(default="https://ollama.com", description="URL for the Ollama service")
+    OLLAMA_URL: str = Field(default="https://ollama.com/v1", description="URL for the Ollama service")
     OLLAMA_MODEL: str = Field(
-        default="qwen3.5:cloud", description="Name of the Ollama model to use"
+        default="glm_5:cloud", description="Name of the Ollama model to use"
     )
     OLLAMA_API_KEY: str = Field(
-        default="", description="API key for Ollama Cloud (if applicable)"
+        default="d35ce7accc034bbc86f51347ae810ea6.mc4X9BO4XwHPR23bcHFtHWLV", description="API key for Ollama Cloud (if applicable)"
     )
     OLLAMA_TIMEOUT: int = Field(
         default=120, description="Timeout for Ollama API calls in seconds"

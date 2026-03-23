@@ -1,3 +1,7 @@
+"""
+Interview ORM model.
+"""
+
 import uuid
 from datetime import datetime
 
@@ -7,7 +11,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.db.base_class import Base
-
 from app.v1.utils.uuid import UUIDHelper
 
 
@@ -21,7 +24,8 @@ class Interview(Base):
         candidate_id: FK to the candidate being interviewed.
         job_id: FK to the job/position being interviewed for.
         interviewer_id: FK to the user conducting the interview.
-        status: Current status of the interview (default 'pending').
+        stage: Interview round number (1=HR screening, 2=Technical, 3=Panel, 4=CTO).
+        status: Current status — 'pending', 'completed', 'rejected', 'cancelled'.
         created_at: Timestamp when interview was created.
     """
 
@@ -53,7 +57,7 @@ class Interview(Base):
         nullable=False,
     )
 
-    # STATUS
+    # STATUS: 'pending', 'completed', 'rejected', 'cancelled'
     status: Mapped[str] = mapped_column(
         Text,
         default="pending",
