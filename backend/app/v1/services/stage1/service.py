@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.core.logging import get_logger
 from app.v1.repository.interview_repository import interview_repository
 from app.v1.repository.transcript_repository import transcript_repository
-
+from app.v1.repository.resume_upload_repository import resume_upload_repository
 from .evaluator import CriterionResult, Stage1Evaluator
 
 logger = get_logger(__name__)
@@ -135,7 +135,6 @@ def _build_response(result, filler_count: int) -> dict:
             "cultural_fit":          round(cult.score / 10, 1),
             "profile_understanding": round(prof.score / 10, 1),
             "tech_stack_alignment":  round(tech.score / 10, 1),
-            "salary_alignment":      salary_score,
             "overall_score":         round(result.stage_score, 1),
         },
 
@@ -212,7 +211,27 @@ class Stage1Service:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Interview not found.",
             )
+        resumes = await resume_upload_repository.get_resumes_for_job(
+            db, job_id=interview.job_id
+        )
+        # Find resume belonging to this candidate
+        candidate_resume = next(
+            (r for r in resumes if r.candidate_id == interview.candidate_id and r.parsed),
+            None
+        )
 
+        resume_context = ""
+        if candidate_resume and candidate_resume.parse_summary:
+            summary = candidate_resume.parse_summary
+            resume_context = f"""
+            CANDIDATE RESUME SUMMARY:
+            Name: {summary.get('name', '')}
+            Skills: {summary.get('skills', [])}
+            Experience: {summary.get('experience', [])}
+            Education: {summary.get('education', [])}
+            Resume Score: {candidate_resume.resume_score}
+            Pass/Fail: {'PASS' if candidate_resume.pass_fail else 'FAIL'}
+            """
         # ── Load transcript ──────────────────────────────────────────
         transcript = await transcript_repository.get_transcript(
             db, transcript_id=transcript_id
