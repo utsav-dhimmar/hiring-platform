@@ -14,11 +14,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission, get_current_user
 from app.v1.schemas.upload import (
+    CustomExtractionRequest,
+    CustomExtractionResponse,
     JobCandidatesResponse,
     ResumeStatusResponse,
     ResumeUploadResponse,
 )
 from app.v1.schemas.user import UserRead
+from app.v1.services.resume_upload.custom_extractor import (
+    custom_extractor_service,
+)
 from app.v1.services.resume_upload_service import (
     resume_upload_service,
 )
@@ -94,3 +99,24 @@ async def get_resume_status(
         resume_id=resume_id,
         current_user=current_user,
     )
+
+@router.post(
+    "/jobs/{job_id}/resume/{resume_id}/extract-custom",
+    response_model=CustomExtractionResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def extract_custom_resume_fields(
+    job_id: uuid.UUID,
+    resume_id: uuid.UUID,
+    request: CustomExtractionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+) -> CustomExtractionResponse:
+    """Extract custom dynamic fields from a specific resume."""
+    return await custom_extractor_service.extract_custom_fields(
+        db=db,
+        job_id=job_id,
+        resume_id=resume_id,
+        request=request,
+    )
+

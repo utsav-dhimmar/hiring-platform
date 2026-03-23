@@ -17,7 +17,12 @@ from app.v1.db.base import Base  # noqa: F401
 
 logger = get_logger(__name__)
 
-engine = create_async_engine(settings.database_url, echo=settings.DEBUG)
+engine = create_async_engine(
+    settings.database_url,
+    echo=settings.DEBUG,
+    pool_size=2,       # max 2 connections in the pool
+    max_overflow=0,    # no extra connections allowed beyond pool_size
+)
 
 async_session_maker = async_sessionmaker(
     engine,
