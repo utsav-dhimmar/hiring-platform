@@ -58,14 +58,6 @@ const AppRoutes = () => {
             </RoleRoute>
           }
         />
-        <Route
-          path="/jobs/:jobId/candidates/:candidateId/evaluation"
-          element={
-            <RoleRoute allowedRoles={[]} requiredPermissions={["candidates:access"]}>
-              <CandidateEvaluationPage />
-            </RoleRoute>
-          }
-        />
 
         {/* Admin Routes — lazy loaded (only downloaded when user navigates to /admin) */}
         <Route

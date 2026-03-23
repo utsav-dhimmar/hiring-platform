@@ -14,13 +14,17 @@ import AdminAuditLogs from "../pages/Admin/AdminAuditLogs";
 import AdminRecentUploads from "../pages/Admin/AdminRecentUploads";
 import AdminSkills from "../pages/Admin/AdminSkills";
 import AdminStageTemplates from "../pages/Admin/AdminStageTemplates";
+import TestEvaluationPage from "../pages/Admin/TestEvaluationPage";
 import RoleRoute from "../components/auth/RoleRoute";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 
 // Lazy-loaded heavy admin pages
 const AdminJobs = lazy(() => import("../pages/Admin/AdminJobs"));
 const AdminCandidateSearch = lazy(
-  () => import("../pages/Admin/AdminCandidateSearch")
+  () => import("../pages/Admin/AdminCandidateSearch"),
+);
+const CandidateEvaluationPage = lazy(
+  () => import("../pages/JobCandidates/CandidateEvaluationPage"),
 );
 
 /**
@@ -69,7 +73,10 @@ const AdminRoutes = () => {
           <Route
             path="jobs"
             element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+              <RoleRoute
+                allowedRoles={[]}
+                requiredPermissions={["jobs:access"]}
+              >
                 <AdminJobs />
               </RoleRoute>
             }
@@ -77,7 +84,10 @@ const AdminRoutes = () => {
           <Route
             path="jobs/:jobId/candidates"
             element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+              <RoleRoute
+                allowedRoles={[]}
+                requiredPermissions={["jobs:access"]}
+              >
                 <AdminCandidateSearch />
               </RoleRoute>
             }
@@ -85,7 +95,10 @@ const AdminRoutes = () => {
           <Route
             path="skills"
             element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["skills:access"]}>
+              <RoleRoute
+                allowedRoles={[]}
+                requiredPermissions={["skills:access"]}
+              >
                 <AdminSkills />
               </RoleRoute>
             }
@@ -93,7 +106,10 @@ const AdminRoutes = () => {
           <Route
             path="stage-templates"
             element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:manage"]}>
+              <RoleRoute
+                allowedRoles={[]}
+                requiredPermissions={["jobs:manage"]}
+              >
                 <AdminStageTemplates />
               </RoleRoute>
             }
@@ -101,11 +117,33 @@ const AdminRoutes = () => {
           <Route
             path="candidates"
             element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+              <RoleRoute
+                allowedRoles={[]}
+                requiredPermissions={["jobs:access"]}
+              >
                 <AdminCandidateSearch />
               </RoleRoute>
             }
           />
+          <Route
+            path="jobs/:jobId/candidates/:candidateId/evaluation"
+            element={
+              <RoleRoute
+                allowedRoles={[]}
+                requiredPermissions={["jobs:access"]}
+              >
+                <CandidateEvaluationPage />
+              </RoleRoute>
+            }
+          />
+          {/* <Route
+            path="evaluation-lab"
+            element={
+              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+                <TestEvaluationPage />
+              </RoleRoute>
+            }
+          /> */}
         </Route>
       </Routes>
     </Suspense>
