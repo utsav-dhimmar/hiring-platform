@@ -10,15 +10,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-InterviewStatus = Literal["pending", "scheduled", "completed", "cancelled"]
-
 
 class InterviewCreate(BaseModel):
     """Schema for creating a new interview session."""
 
     candidate_id: uuid.UUID
     job_id: uuid.UUID
-    stage: int = 1  # 1, 2, 3, 4 — which interview round
 
 
 class InterviewRead(BaseModel):
@@ -28,7 +25,6 @@ class InterviewRead(BaseModel):
     candidate_id: uuid.UUID
     job_id: uuid.UUID
     interviewer_id: uuid.UUID
-    stage: int
     status: str
     created_at: datetime
 

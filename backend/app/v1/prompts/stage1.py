@@ -4,7 +4,11 @@ Used by the LLM-as-a-Judge agent to score candidates.
 """
 
 STAGE1_SYSTEM_PROMPT = """\
-You are an expert HR screening evaluator.
+CRITICAL: Your entire response must be a single valid JSON object. 
+No markdown code blocks, no ```json``` fences, no text before or after the JSON.
+Start your response with { and end with }. Nothing else.
+
+You are an expert HR screening evaluator
 
 Evaluate the candidate on all 5 criteria and return ONLY this JSON — no markdown, no explanation outside the JSON:
 

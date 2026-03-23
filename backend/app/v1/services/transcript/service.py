@@ -1,9 +1,8 @@
 """
 Transcript upload service.
 
-Orchestrates file validation, storage, DB record creation,
-and background processing — following the same pattern as
-ResumeUploadService in services/resume_upload/service.py.
+Handles .docx transcript upload, processing, and status retrieval.
+Uses the actual Transcript model which links directly to interview_id and file_id.
 """
 
 from __future__ import annotations
@@ -12,10 +11,11 @@ import uuid
 from pathlib import Path
 
 from fastapi import BackgroundTasks, HTTPException, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.v1.core.config import settings
 from app.v1.core.logging import get_logger
+from app.v1.db.models.interviews import Interview
 from app.v1.db.session import async_session_maker
 from app.v1.repository.transcript_repository import transcript_repository
 from app.v1.schemas.transcript import (
@@ -34,14 +34,9 @@ TRANSCRIPT_UPLOAD_DIR = "uploads/transcripts"
 
 
 class TranscriptService:
-    """Service for handling .docx interview transcript upload and processing."""
 
     def __init__(self) -> None:
         self.processor = TranscriptProcessor()
-
-    # ------------------------------------------------------------------
-    # Upload
-    # ------------------------------------------------------------------
 
     async def upload_transcript(
         self,
@@ -52,18 +47,13 @@ class TranscriptService:
         current_user: UserRead,
         background_tasks: BackgroundTasks,
     ) -> TranscriptUploadResponse:
-        """
-        Validate and store the uploaded .docx transcript file,
-        create DB records, and schedule background processing.
 
-        Raises:
-            404: Interview not found.
-            400: Invalid file type, missing filename, or empty file.
-            413: File exceeds size limit.
-        """
-        # --- Validate interview exists ---
-        interview = await transcript_repository.get_interview(db, interview_id)
-        if not interview:
+        # --- Validate interview exists and get candidate_id ---
+        result = await db.execute(
+            select(Interview.candidate_id).where(Interview.id == interview_id)
+        )
+        candidate_id = result.scalar_one_or_none()
+        if not candidate_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Interview not found.",
@@ -105,30 +95,21 @@ class TranscriptService:
         target_path.write_bytes(content)
 
         # --- Create file record ---
-        # Use candidate_id from interview for the file ownership link
         file_record = await transcript_repository.create_file_record(
             db,
             owner_id=current_user.id,
-            candidate_id=interview.candidate_id,
+            candidate_id=candidate_id,
             file_name=filename,
             file_type="docx",
             source_url=target_path.as_posix(),
             size=len(content),
         )
 
-        # --- Create recording record ---
-        recording = await transcript_repository.create_recording(
+        # --- Create transcript record (initially empty) ---
+        transcript = await transcript_repository.create_transcript(
             db,
             interview_id=interview_id,
             file_id=file_record.id,
-            format="docx",
-            processing_status="uploaded",
-        )
-
-        # --- Create empty transcript record (filled by background task) ---
-        transcript = await transcript_repository.create_transcript(
-            db,
-            recording_id=recording.id,
         )
 
         await transcript_repository.commit(db)
@@ -136,29 +117,23 @@ class TranscriptService:
         # --- Schedule background processing ---
         background_tasks.add_task(
             self._process_in_background,
-            recording_id=recording.id,
             transcript_id=transcript.id,
             file_path=str(target_path),
         )
 
         logger.info(
-            "transcript_upload_scheduled interview_id=%s recording_id=%s transcript_id=%s",
+            "transcript_upload_scheduled interview_id=%s transcript_id=%s",
             interview_id,
-            recording.id,
             transcript.id,
         )
 
         return TranscriptUploadResponse(
-            recording_id=recording.id,
+            recording_id=transcript.id,   # reusing field for compatibility
             transcript_id=transcript.id,
             interview_id=interview_id,
             status="processing",
             message="Transcript uploaded successfully. Processing has started.",
         )
-
-    # ------------------------------------------------------------------
-    # Status
-    # ------------------------------------------------------------------
 
     async def get_transcript_status(
         self,
@@ -166,12 +141,6 @@ class TranscriptService:
         db: AsyncSession,
         transcript_id: uuid.UUID,
     ) -> TranscriptStatusResponse:
-        """
-        Retrieve the current status and parsed content of a transcript.
-
-        Raises:
-            404: Transcript not found.
-        """
         transcript = await transcript_repository.get_transcript(
             db, transcript_id=transcript_id
         )
@@ -181,9 +150,12 @@ class TranscriptService:
                 detail="Transcript not found.",
             )
 
-        recording = transcript.recording
         segments = transcript.segments or {}
-        processing_status = recording.processing_status if recording else "unknown"
+        processing_status = segments.get("status", "processing")
+        if transcript.transcript_text:
+            processing_status = "completed"
+        if segments.get("error"):
+            processing_status = "failed"
 
         metadata = None
         dialogues = []
@@ -194,8 +166,8 @@ class TranscriptService:
 
         return TranscriptStatusResponse(
             transcript_id=transcript.id,
-            recording_id=recording.id if recording else uuid.uuid4(),
-            interview_id=recording.interview_id if recording else uuid.uuid4(),
+            recording_id=transcript.id,
+            interview_id=transcript.interview_id,
             status=processing_status,
             metadata=metadata,
             dialogue_count=len(dialogues),
@@ -205,37 +177,22 @@ class TranscriptService:
             error=segments.get("error"),
         )
 
-    # ------------------------------------------------------------------
-    # Background processing
-    # ------------------------------------------------------------------
-
     async def _process_in_background(
         self,
         *,
-        recording_id: uuid.UUID,
         transcript_id: uuid.UUID,
         file_path: str,
     ) -> None:
-        """
-        Background task: run the transcript processor and persist results.
-        Marks the recording as 'completed' or 'failed'.
-        """
         async with async_session_maker() as db:
             try:
-                await transcript_repository.update_recording_status(
-                    db, recording_id=recording_id, status="processing"
-                )
-                await transcript_repository.commit(db)
-
-                # Run processor (CPU-bound — runs in the event loop here,
-                # move to run_in_executor if transcripts are large)
                 file_bytes = Path(file_path).read_bytes()
                 result = self.processor.process(file_bytes)
 
                 segments = {
-                    "metadata": result["metadata"],
-                    "dialogues": result["dialogues"],
+                    "metadata":       result["metadata"],
+                    "dialogues":      result["dialogues"],
                     "dialogue_count": result["dialogue_count"],
+                    "status":         "completed",
                 }
 
                 await transcript_repository.update_transcript(
@@ -244,32 +201,26 @@ class TranscriptService:
                     transcript_text=result["clean_text"],
                     segments=segments,
                 )
-                await transcript_repository.update_recording_status(
-                    db, recording_id=recording_id, status="completed"
-                )
                 await transcript_repository.commit(db)
 
                 logger.info(
-                    "transcript_processing_completed recording_id=%s dialogues=%d",
-                    recording_id,
+                    "transcript_processing_completed transcript_id=%s dialogues=%d",
+                    transcript_id,
                     result["dialogue_count"],
                 )
 
             except Exception as exc:
                 await transcript_repository.rollback(db)
                 logger.exception(
-                    "transcript_processing_failed recording_id=%s error=%s",
-                    recording_id,
+                    "transcript_processing_failed transcript_id=%s error=%s",
+                    transcript_id,
                     str(exc),
-                )
-                await transcript_repository.update_recording_status(
-                    db, recording_id=recording_id, status="failed"
                 )
                 await transcript_repository.update_transcript(
                     db,
                     transcript_id=transcript_id,
                     transcript_text="",
-                    segments={"error": str(exc)},
+                    segments={"error": str(exc), "status": "failed"},
                 )
                 await transcript_repository.commit(db)
 

@@ -223,15 +223,11 @@ class Stage1Service:
                 detail="Transcript not found.",
             )
 
-        recording = transcript.recording
-        if not recording or recording.processing_status != "completed":
+        segments = transcript.segments or {}
+        if segments.get("status") != "completed":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Transcript is not ready for evaluation. "
-                    f"Current status: '{getattr(recording, 'processing_status', 'unknown')}'. "
-                    "Wait for processing to complete before running evaluation."
-                ),
+                detail=f"Transcript is not ready. Current status: '{segments.get('status', 'processing')}'.",
             )
 
         segments      = transcript.segments or {}

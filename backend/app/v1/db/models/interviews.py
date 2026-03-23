@@ -5,7 +5,7 @@ Interview ORM model.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Text
+from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -54,13 +54,6 @@ class Interview(Base):
     interviewer_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
-        nullable=False,
-    )
-
-    # STAGE: 1=HR Screening, 2=Technical Practical, 3=Panel, 4=CTO
-    stage: Mapped[int] = mapped_column(
-        Integer,
-        default=1,
         nullable=False,
     )
 

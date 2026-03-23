@@ -36,7 +36,6 @@ class InterviewRepository:
         candidate_id: uuid.UUID,
         job_id: uuid.UUID,
         interviewer_id: uuid.UUID,
-        stage: int,
         status: str = "pending",
     ) -> Interview:
         """Create a new interview record."""
@@ -44,7 +43,6 @@ class InterviewRepository:
             candidate_id=candidate_id,
             job_id=job_id,
             interviewer_id=interviewer_id,
-            stage=stage,
             status=status,
         )
         db.add(interview)

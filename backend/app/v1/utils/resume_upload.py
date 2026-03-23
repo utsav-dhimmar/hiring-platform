@@ -16,12 +16,12 @@ def split_name(full_name: str | None) -> tuple[str | None, str | None]:
         A tuple of (first_name, last_name). Returns (None, None) if input is empty.
     """
     if not full_name:
-        return None, None
+        return "", ""
     parts = full_name.strip().split(maxsplit=1)
     if not parts:
-        return None, None
+        return "", ""
     first_name = parts[0]
-    last_name = parts[1] if len(parts) > 1 else None
+    last_name = parts[1] if len(parts) > 1 else ""
     return first_name, last_name
 
 
