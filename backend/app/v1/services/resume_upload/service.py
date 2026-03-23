@@ -233,7 +233,7 @@ class ResumeUploadService:
         self.background.schedule_processing(
             job_id=job_id,
             resume_id=resume_record.id,
-            file_path=str(target_path),
+            file_path=target_path.as_posix(),
         )
         log_event(
             event="background_scheduled",

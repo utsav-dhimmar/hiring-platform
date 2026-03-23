@@ -6,6 +6,7 @@ extracting structured information from resume text using LLMs.
 """
 
 import os
+from pathlib import Path, PureWindowsPath
 
 import docx2txt
 import pymupdf
@@ -34,7 +35,7 @@ class DocumentParser:
     """
 
     @staticmethod
-    def extract_text(file_path: str) -> str:
+    def extract_text(file_path: str | Path) -> str:
         """Extract text from a given file path based on its extension.
 
         Args:
@@ -47,20 +48,24 @@ class DocumentParser:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file format is unsupported.
         """
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
+        # Robust platform-independent path normalization
+        # PureWindowsPath handles both / and \ as separators regardless of current OS
+        path = Path(*PureWindowsPath(str(file_path)).parts)
 
-        ext = os.path.splitext(file_path)[1].lower()
+        if not path.exists():
+            raise FileNotFoundError(f"File not found: {path}")
+
+        ext = path.suffix.lower()
 
         if ext == ".pdf":
-            return DocumentParser._extract_from_pdf(file_path)
+            return DocumentParser._extract_from_pdf(path)
         elif ext in [".docx", ".doc"]:
-            return DocumentParser._extract_from_docx(file_path)
+            return DocumentParser._extract_from_docx(path)
         else:
             raise ValueError(f"Unsupported file format: {ext}")
 
     @staticmethod
-    def _extract_from_pdf(file_path: str) -> str:
+    def _extract_from_pdf(file_path: Path) -> str:
         """Extract text from a PDF document using PyMuPDF.
 
         Args:
@@ -83,7 +88,7 @@ class DocumentParser:
         return "".join(pages_text)
 
     @staticmethod
-    def _extract_from_docx(file_path: str) -> str:
+    def _extract_from_docx(file_path: Path) -> str:
         """Extract text from a DOCX document.
 
         Args:
@@ -97,7 +102,7 @@ class DocumentParser:
         """
 
         try:
-            return docx2txt.process(file_path)
+            return docx2txt.process(str(file_path))
         except Exception as e:
             raise RuntimeError(f"Error parsing DOCX: {str(e)}")
 
