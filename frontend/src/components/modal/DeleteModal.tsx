@@ -4,7 +4,7 @@
  */
 
 import { Alert, Modal } from "react-bootstrap";
-import { Button } from "../common";
+import { Button } from "@/components/shared";
 
 /**
  * Props for the DeleteModal component.

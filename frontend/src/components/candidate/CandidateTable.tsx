@@ -1,8 +1,8 @@
 import type { ReactElement } from "react";
 import { Badge, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { AdminDataTable, type Column, StatusBadge, Button, DateDisplay } from "../common";
-import type { CandidateResponse } from "../../apis/types/resume";
+import { AdminDataTable, type Column, StatusBadge, Button, DateDisplay } from "@/components/shared";
+import type { CandidateResponse } from "@/types/resume";
 
 /**
  * Props for the CandidateTable component.
@@ -77,9 +77,8 @@ const CandidateTable = ({
         c.resume_score !== null ? (
           <Badge
             bg={c.resume_score >= 65 ? "success" : "warning"}
-            className={`px-3 py-2 rounded-pill bg-${c.resume_score >= 65 ? "success" : "warning"}-subtle text-${
-              c.resume_score >= 65 ? "success" : "warning"
-            }`}
+            className={`px-3 py-2 rounded-pill bg-${c.resume_score >= 65 ? "success" : "warning"}-subtle text-${c.resume_score >= 65 ? "success" : "warning"
+              }`}
           >
             {c.resume_score.toFixed(1)}%
           </Badge>
@@ -151,7 +150,7 @@ const CandidateTable = ({
     },
   ];
 
-  const paginationProps = 
+  const paginationProps =
     total !== undefined && page !== undefined && pageSize !== undefined && onPageChange
       ? { total, page, pageSize, onPageChange }
       : {};

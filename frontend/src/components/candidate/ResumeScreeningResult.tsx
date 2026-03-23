@@ -1,7 +1,6 @@
-import React from "react";
 import { Row, Col, Badge, ListGroup } from "react-bootstrap";
-import { Card, CardBody } from "../common";
-import type { ResumeMatchAnalysis, CandidateResponse } from "../../apis/types/resume";
+import { Card, CardBody } from "@/components/shared";
+import type { CandidateResponse } from "@/types/resume";
 
 interface ResumeScreeningResultProps {
   candidate: CandidateResponse;
@@ -31,7 +30,7 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
       <Card className="mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
         <div className="bg-white px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
           <h5 className="mb-0 fw-bold">Stage 0: Resume Screening Results</h5>
-          <Badge 
+          <Badge
             bg={candidate.resume_score && candidate.resume_score >= 70 ? "success" : "warning"}
             className="rounded-pill px-3 py-2"
           >
@@ -79,9 +78,14 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
               {analysis.missing_skills && analysis.missing_skills.length > 0 ? (
                 <ListGroup variant="flush" className="rounded-3 border">
                   {analysis.missing_skills.map((skill, idx) => (
-                    <ListGroup.Item key={idx} className="d-flex justify-content-between align-items-center py-2">
+                    <ListGroup.Item
+                      key={idx}
+                      className="d-flex justify-content-between align-items-center py-2"
+                    >
                       <span>{skill.name}</span>
-                      <Badge bg="secondary" pill>Importance: {skill.score}</Badge>
+                      <Badge bg="secondary" pill>
+                        Importance: {skill.score}
+                      </Badge>
                     </ListGroup.Item>
                   ))}
                 </ListGroup>
@@ -97,7 +101,11 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
               {analysis.extraordinary_points && analysis.extraordinary_points.length > 0 ? (
                 <div className="d-flex flex-wrap gap-2">
                   {analysis.extraordinary_points.map((point, idx) => (
-                    <Badge key={idx} bg="info" className="bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-2 rounded-pill">
+                    <Badge
+                      key={idx}
+                      bg="info"
+                      className="bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-2 rounded-pill"
+                    >
                       {point}
                     </Badge>
                   ))}
@@ -110,13 +118,17 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
 
           <div className="mt-5 p-4 bg-primary-subtle rounded-4 border-0">
             <div className="d-flex align-items-center mb-2">
-              <div className="bg-primary text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }}>
+              <div
+                className="bg-primary text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center"
+                style={{ width: "32px", height: "32px" }}
+              >
                 <i className="bi bi-info-circle-fill"></i>
               </div>
               <h6 className="text-primary fw-bold mb-0">Status Note</h6>
             </div>
             <p className="mb-0 text-primary-emphasis">
-              Candidate passed the initial screening with a match score of <strong>{candidate.resume_score?.toFixed(1)}%</strong>. 
+              Candidate passed the initial screening with a match score of{" "}
+              <strong>{candidate.resume_score?.toFixed(1)}%</strong>.
               {candidate.pass_fail ? " They have been moved forward in the hiring pipeline." : ""}
             </p>
           </div>

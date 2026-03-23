@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { evaluationService } from "../../apis/services/evaluation";
-import type { EvaluationResult } from "../../apis/types/evaluation";
+import { evaluationService } from "@/apis/evaluation";
+import type { EvaluationResult } from "@/types/evaluation";
 import EvaluationResults from "./EvaluationResults";
-import "../../css/button.css";
-import "../../css/input.css";
-import "../../css/card.css";
+import "@/css/button.css";
+import "@/css/input.css";
+import "@/css/card.css";
 
 const TestEvaluationForm: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);

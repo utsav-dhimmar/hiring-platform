@@ -8,9 +8,9 @@ import axios from "axios";
 import { useState } from "react";
 import { Alert, Form, Modal } from "react-bootstrap";
 import { useForm } from "react-hook-form";
-import { adminPermissionService } from "../../apis/admin/service";
-import { Button, Input } from "../../components/common";
-import { permissionCreateSchema, type PermissionCreateFormValues } from "../../schemas/admin";
+import { adminPermissionService } from "@/apis/admin/service";
+import { Button, Input } from "@/components/shared";
+import { permissionCreateSchema, type PermissionCreateFormValues } from "@/schemas/admin";
 
 /**
  * Props for the CreatePermissionModal component.

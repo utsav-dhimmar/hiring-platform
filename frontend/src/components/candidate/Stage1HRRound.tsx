@@ -4,11 +4,11 @@
  */
 
 import React, { useState } from "react";
-import { Col, Form, ProgressBar, Row, Spinner } from "react-bootstrap";
-import { Button, Card, CardBody, StatusBadge } from "../common";
-import EvaluationResults from "../evaluation/EvaluationResults";
-import type { Stage1Info } from "../../apis/types/stage";
-import type { EvaluationResult } from "../../apis/types/evaluation";
+import { Col, Form, Row, Spinner } from "react-bootstrap";
+import { Button, Card, CardBody, StatusBadge } from "@/components/shared";
+import EvaluationResults from "@/components/evaluation/EvaluationResults";
+import type { Stage1Info } from "@/types/stage";
+import type { EvaluationResult } from "@/types/evaluation";
 
 interface Stage1HRRoundProps {
   /** Current Stage 1 data */
@@ -45,9 +45,7 @@ const Stage1HRRound = ({
   if (!stageInfo) {
     return (
       <div className="text-center py-5">
-        <p className="text-muted">
-          Stage 1 has not been initiated for this candidate.
-        </p>
+        <p className="text-muted">Stage 1 has not been initiated for this candidate.</p>
         <Button variant="primary">Initiate HR Screening</Button>
       </div>
     );
@@ -70,13 +68,9 @@ const Stage1HRRound = ({
                   <i className="bi bi-cloud-arrow-up display-4"></i>
                 </div>
                 <h6 className="fw-bold mb-2">Upload Interview Transcript</h6>
-                <p
-                  className="text-muted small mb-4 mx-auto"
-                  style={{ maxWidth: "400px" }}
-                >
-                  Accept interview transcripts in TXT, JSON, or DOCX formats.
-                  Our AI will analyze the conversation to provide skills and
-                  culture fit scores.
+                <p className="text-muted small mb-4 mx-auto" style={{ maxWidth: "400px" }}>
+                  Accept interview transcripts in TXT, JSON, or DOCX formats. Our AI will analyze
+                  the conversation to provide skills and culture fit scores.
                 </p>
                 <Form.Group className="mb-4 d-flex justify-content-center">
                   <div style={{ maxWidth: "350px" }} className="w-100">
@@ -102,8 +96,7 @@ const Stage1HRRound = ({
               </div>
             )}
 
-            {(status === "processing" ||
-              (status === "pending" && stageInfo.transcript_id)) && (
+            {(status === "processing" || (status === "pending" && stageInfo.transcript_id)) && (
               <div className="text-center py-5">
                 <div className="mb-4">
                   <Spinner
@@ -114,9 +107,8 @@ const Stage1HRRound = ({
                 </div>
                 <h5 className="fw-bold mb-2">Analyzing Transcript...</h5>
                 <p className="text-muted mx-auto" style={{ maxWidth: "450px" }}>
-                  Our AI is meticulously reviewing the interview transcript to
-                  evaluate skills, confidence, and cultural alignment. This
-                  usually takes less than a minute.
+                  Our AI is meticulously reviewing the interview transcript to evaluate skills,
+                  confidence, and cultural alignment. This usually takes less than a minute.
                 </p>
               </div>
             )}
@@ -125,9 +117,7 @@ const Stage1HRRound = ({
               <div className="results-section">
                 {/* Use the new EvaluationResults component if it's the new structure */}
                 {analysis.scores ? (
-                  <EvaluationResults
-                    result={analysis as unknown as EvaluationResult}
-                  />
+                  <EvaluationResults result={analysis as unknown as EvaluationResult} />
                 ) : (
                   <Row className="g-4">
                     {/* Fallback for legacy data */}
@@ -194,18 +184,14 @@ const Stage1HRRound = ({
                         <div
                           className={`rounded-circle p-2 me-3 ${hr_decision ? "bg-success text-white" : "bg-danger text-white"}`}
                         >
-                          <i
-                            className={`bi bi-${hr_decision ? "check-lg" : "x-lg"} fs-5`}
-                          ></i>
+                          <i className={`bi bi-${hr_decision ? "check-lg" : "x-lg"} fs-5`}></i>
                         </div>
                         <div>
                           <small className="d-block opacity-75 fw-bold text-uppercase letter-spacing-wide">
                             Final Decision
                           </small>
                           <h5 className="mb-0 fw-bold">
-                            {hr_decision
-                              ? "Advancing to Next Round"
-                              : "Candidate Rejected"}
+                            {hr_decision ? "Advancing to Next Round" : "Candidate Rejected"}
                           </h5>
                         </div>
                       </div>
@@ -220,12 +206,10 @@ const Stage1HRRound = ({
                 <div className="text-danger mb-3">
                   <i className="bi bi-exclamation-triangle-fill display-5"></i>
                 </div>
-                <h5 className="fw-bold text-danger mb-2">
-                  Analysis Interrupted
-                </h5>
+                <h5 className="fw-bold text-danger mb-2">Analysis Interrupted</h5>
                 <p className="text-danger-emphasis mb-4">
-                  We encountered an issue while processing the recording. Please
-                  ensure the file is valid and try again.
+                  We encountered an issue while processing the recording. Please ensure the file is
+                  valid and try again.
                 </p>
                 <Button
                   variant="danger"

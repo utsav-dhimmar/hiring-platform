@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm, type FieldValues, type DefaultValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ZodType } from "zod";
-import { extractErrorMessage } from "../utils/error";
+import { extractErrorMessage } from "@/utils/error";
 
 /**
  * Options for configuring the useFormModal hook.

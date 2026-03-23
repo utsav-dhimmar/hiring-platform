@@ -4,21 +4,23 @@
  */
 
 import { useState } from "react";
-import { adminUserService } from "../../apis/admin/service";
-import type { UserAdminRead } from "../../apis/admin/types";
+import { adminUserService } from "@/apis/admin/service";
+import type { UserAdminRead } from "@/types/admin";
 import {
   AdminDataTable,
   Button,
   DateDisplay,
   PageHeader,
   StatusBadge,
+  useToast,
   type Column,
-} from "../../components/common";
-import { CreateUserModal, DeleteModal } from "../../components/modal";
-import "../../css/adminDashboard.css";
-import { useAdminData, useDeleteConfirmation } from "../../hooks";
+} from "@/components/shared";
+import { CreateUserModal, DeleteModal } from "@/components/modal";
+import "@/css/adminDashboard.css";
+import { useAdminData, useDeleteConfirmation } from "@/hooks";
 
 const AdminUsers = () => {
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserAdminRead | null>(null);
 
@@ -39,7 +41,10 @@ const AdminUsers = () => {
     message: deleteMessage,
   } = useDeleteConfirmation<UserAdminRead>({
     deleteFn: (id) => adminUserService.deleteUser(id as string),
-    onSuccess: fetchUsers,
+    onSuccess: () => {
+      fetchUsers();
+      toast.success("User deleted successfully");
+    },
     itemTitle: (user) => `user "${user.full_name || user.email}"`,
   });
 

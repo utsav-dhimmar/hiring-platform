@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { extractErrorMessage } from "../utils/error";
+import { extractErrorMessage } from "@/utils/error";
 
 /**
  * Options for configuring the useDeleteConfirmation hook.

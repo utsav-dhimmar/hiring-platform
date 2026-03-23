@@ -1,0 +1,66 @@
+.main-navbar {
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  transition: all 0.3s ease;
+}
+
+.brand-logo {
+  font-size: 1.4rem;
+  letter-spacing: -0.5px;
+}
+
+.logo-icon {
+  font-size: 1.6rem;
+  filter: drop-shadow(0 2px 4px rgba(79, 70, 229, 0.2));
+}
+
+.main-navbar .nav-link {
+  font-weight: 500;
+  color: #64748b;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.main-navbar .nav-link:hover,
+.main-navbar .nav-link.active {
+  color: #4f46e5;
+}
+
+.main-navbar .nav-link.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0px;
+  left: 1rem;
+  right: 1rem;
+  height: 2px;
+  background-color: #4f46e5;
+  border-radius: 2px;
+}
+
+.admin-link {
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.admin-link:hover {
+  transform: translateY(-1px);
+  background-color: #e0e7ff !important;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-nav-dropdown .dropdown-toggle::after {
+  display: none;
+}
+
+@media (max-width: 991.98px) {
+  .main-navbar .nav-link.active::after {
+    display: none;
+  }
+}

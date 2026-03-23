@@ -1,6 +1,6 @@
 import axios from "axios";
-import { store } from "../store";
-import { setCredentials, logout } from "../store/slices/authSlice";
+import { store } from "@/store";
+import { setCredentials, logout } from "@/store/slices/authSlice";
 
 /**
  * Axios HTTP client configured for the hiring platform API.

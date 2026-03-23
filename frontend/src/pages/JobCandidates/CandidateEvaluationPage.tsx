@@ -6,32 +6,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Container, Breadcrumb, Row, Col } from "react-bootstrap";
-import {
-  PageHeader,
-  ErrorDisplay,
-  LoadingSpinner,
-  Button,
-} from "../../components/common";
-import Stage1HRRound from "../../components/candidate/Stage1HRRound";
-import ResumeScreeningResult from "../../components/candidate/ResumeScreeningResult";
-import InterviewStageNav from "../../components/candidate/InterviewStageNav";
-import CandidateInfoSidebar from "../../components/candidate/CandidateInfoSidebar";
-import {
-  adminCandidateService,
-  adminJobService,
-} from "../../apis/admin/service";
-import { interviewService } from "../../apis/services/interview";
-import { transcriptService } from "../../apis/services/transcript";
-import { evaluationService } from "../../apis/services/evaluation";
-import type { CandidateResponse } from "../../apis/types/resume";
-import type { Job } from "../../apis/types/job";
-import type {
-  JobStageConfig,
-  StageEvaluation,
-  Stage1Info,
-} from "../../apis/types/stage";
+import { PageHeader, ErrorDisplay, LoadingSpinner, Button } from "@/components/shared";
+import { useToast } from "@/components/shared/ToastProvider";
+import Stage1HRRound from "@/components/candidate/Stage1HRRound";
+import ResumeScreeningResult from "@/components/candidate/ResumeScreeningResult";
+import CustomResumeExtraction from "@/components/candidate/CustomResumeExtraction";
+import InterviewStageNav from "@/components/candidate/InterviewStageNav";
+import CandidateInfoSidebar from "@/components/candidate/CandidateInfoSidebar";
+import { adminCandidateService, adminJobService } from "@/apis/admin/service";
+import { interviewService } from "@/apis/interview";
+import { transcriptService } from "@/apis/transcript";
+import { evaluationService } from "@/apis/evaluation";
 
-import { extractErrorMessage } from "../../utils/error";
+
+import { extractErrorMessage } from "@/utils/error";
+import type { CandidateResponse } from "../../types/resume";
+import type { Job } from "../../types/job";
+import type { JobStageConfig, Stage1Info, StageEvaluation } from "../../types/stage";
 
 const CandidateEvaluationPage = () => {
   const { jobId, candidateId } = useParams<{
@@ -39,20 +30,19 @@ const CandidateEvaluationPage = () => {
     candidateId: string;
   }>();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [candidate, setCandidate] = useState<CandidateResponse | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [jobStages, setJobStages] = useState<JobStageConfig[]>([]);
-  const [evaluations, setEvaluations] = useState<
-    Record<string, StageEvaluation>
-  >({});
+  const [evaluations, setEvaluations] = useState<Record<string, StageEvaluation>>({});
 
   // Keep legacy state for now while we transition
   const [stage1, setStage1] = useState<Stage1Info | null>(null);
   const [interviewId, setInterviewId] = useState<string | null>(null);
+  const [resumeId, setResumeId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
-  const [fetchingStage, setFetchingStage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("stage0");
 
@@ -61,11 +51,7 @@ const CandidateEvaluationPage = () => {
       if (!candidateId || tabId === "stage0" || loading) return;
 
       try {
-        setFetchingStage(true);
-        const stageEval = await adminCandidateService.getStageEvaluation(
-          candidateId,
-          tabId,
-        );
+        const stageEval = await adminCandidateService.getStageEvaluation(candidateId, tabId);
 
         setEvaluations((prev) => ({
           ...prev,
@@ -74,25 +60,21 @@ const CandidateEvaluationPage = () => {
 
         // If it's the HR Screening stage, update legacy stage1 state too
         const currentStage = jobStages.find((s) => s.id === tabId);
-        if (
-          currentStage?.template.name.toLowerCase().includes("hr screening")
-        ) {
+        if (currentStage?.template.name.toLowerCase().includes("hr screening")) {
           setStage1({
             id: stageEval.id,
             candidate_id: candidateId,
             job_id: jobId || "",
             transcript_id: null,
-            status: stageEval.status as any,
+            status: (stageEval.status || "pending") as any,
             analysis: stageEval.analysis as any,
-            hr_decision: stageEval.decision,
-            created_at: stageEval.created_at,
-            completed_at: stageEval.completed_at,
+            hr_decision: stageEval.decision ?? null,
+            created_at: stageEval.created_at || new Date().toISOString(),
+            completed_at: stageEval.completed_at || null,
           });
         }
       } catch (err) {
         console.error(`Failed to fetch evaluation for stage ${tabId}:`, err);
-      } finally {
-        setFetchingStage(false);
       }
     },
     [candidateId, loading, jobStages, jobId],
@@ -109,16 +91,15 @@ const CandidateEvaluationPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const [jobData, candidateData] = await Promise.all([
+        const [jobData, candidateData, resumesData] = await Promise.all([
           adminJobService.getJobById(jobId),
           adminCandidateService
             .getCandidatesForJob(jobId)
             .then(
               (result: { data: CandidateResponse[]; total: number }) =>
-                result.data.find(
-                  (c: CandidateResponse) => c.id === candidateId,
-                ) || null,
+                result.data.find((c: CandidateResponse) => c.id === candidateId) || null,
             ),
+          adminJobService.getJobResumes(jobId),
         ]);
 
         if (!jobData || !candidateData) {
@@ -129,16 +110,18 @@ const CandidateEvaluationPage = () => {
         setJob(jobData);
         setCandidate(candidateData);
 
+        // Find resume_id for this candidate
+        const candidateResume = resumesData.resumes.find((r) => r.candidate_id === candidateId);
+        if (candidateResume) {
+          setResumeId(candidateResume.resume_id);
+        }
+
         // Try to fetch dynamic stages and evaluations
         try {
           const stages = await adminJobService.getJobStages(jobId);
-          const evals =
-            await adminCandidateService.getCandidateEvaluations(candidateId);
-          const interviews =
-            await interviewService.getInterviewsForCandidate(candidateId);
-          const interview = interviews.interviews.find(
-            (i) => i.job_id === jobId,
-          );
+          const evals = await adminCandidateService.getCandidateEvaluations(candidateId);
+          const interviews = await interviewService.getInterviewsForCandidate(candidateId);
+          const interview = interviews.interviews.find((i) => i.job_id === jobId);
           if (interview) {
             setInterviewId(interview.id);
           }
@@ -174,10 +157,7 @@ const CandidateEvaluationPage = () => {
             setActiveTab(stages[0].id);
           }
         } catch (apiError) {
-          console.warn(
-            "Dynamic stages API not ready, using mock fallback",
-            apiError,
-          );
+          console.warn("Dynamic stages API not ready, using mock fallback", apiError);
           // Mock Dynamic Stages
           const mockStages: JobStageConfig[] = [
             {
@@ -257,9 +237,7 @@ const CandidateEvaluationPage = () => {
         }
       } catch (err) {
         console.error("Failed to fetch evaluation data:", err);
-        setError(
-          extractErrorMessage(err, "Failed to load candidate evaluation data."),
-        );
+        setError(extractErrorMessage(err, "Failed to load candidate evaluation data."));
       } finally {
         setLoading(false);
       }
@@ -294,8 +272,7 @@ const CandidateEvaluationPage = () => {
       setError(null);
 
       // 1. Get or find an interview session
-      const interviewsRes =
-        await interviewService.getInterviewsForCandidate(candidateId);
+      const interviewsRes = await interviewService.getInterviewsForCandidate(candidateId);
       let interview = interviewsRes.interviews.find((i) => i.job_id === jobId);
 
       // 1b. Create interview if it doesn't exist
@@ -310,36 +287,24 @@ const CandidateEvaluationPage = () => {
       setInterviewId(interview.id);
 
       // 2. Upload transcript
-      const uploadRes = await transcriptService.uploadTranscript(
-        interview.id,
-        file,
-      );
+      const uploadRes = await transcriptService.uploadTranscript(interview.id, file);
       const transcriptId = uploadRes.transcript_id;
 
       setStage1((prev) =>
-        prev
-          ? { ...prev, status: "processing", transcript_id: transcriptId }
-          : null,
+        prev ? { ...prev, status: "processing", transcript_id: transcriptId } : null,
       );
 
       // 3. Poll for status
-      let statusRes = await transcriptService.getTranscriptStatus(
-        interview.id,
-        transcriptId,
-      );
+      let statusRes = await transcriptService.getTranscriptStatus(interview.id, transcriptId);
       let attempts = 0;
       const maxAttempts = 30; // 60 seconds max
 
       while (
-        (statusRes.status === "processing" ||
-          statusRes.status === "uploaded") &&
+        (statusRes.status === "processing" || statusRes.status === "uploaded") &&
         attempts < maxAttempts
       ) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        statusRes = await transcriptService.getTranscriptStatus(
-          interview.id,
-          transcriptId,
-        );
+        statusRes = await transcriptService.getTranscriptStatus(interview.id, transcriptId);
         attempts++;
       }
 
@@ -348,24 +313,19 @@ const CandidateEvaluationPage = () => {
       }
 
       if (statusRes.status !== "completed") {
-        throw new Error(
-          "Transcript processing timed out. Please try refreshing.",
-        );
+        throw new Error("Transcript processing timed out. Please try refreshing.");
       }
 
       // 4. Trigger Stage 1 LLM evaluation
-      const evaluation = await evaluationService.runEvaluation(
-        interview.id,
-        transcriptId,
-      );
+      const evaluation = await evaluationService.runEvaluation(interview.id, transcriptId);
 
       setStage1((prev) =>
         prev
           ? {
-              ...prev,
-              status: "completed",
-              analysis: evaluation as any,
-            }
+            ...prev,
+            status: "completed",
+            analysis: evaluation as any,
+          }
           : null,
       );
 
@@ -421,17 +381,15 @@ const CandidateEvaluationPage = () => {
       }
 
       console.log("Decision recorded successfully:", decision);
+      toast.success(decision ? "Candidate marked as Proceed." : "Candidate marked as Rejected.");
 
       // Fetch latest stage data to ensure state is synced with server
       await fetchStageData(activeTab);
     } catch (err) {
       console.error("Failed to record decision:", err);
-      setError(
-        extractErrorMessage(
-          err,
-          "Failed to record your decision. Please try again.",
-        ),
-      );
+      const errMsg = extractErrorMessage(err, "Failed to record your decision.");
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -451,16 +409,13 @@ const CandidateEvaluationPage = () => {
   }
 
   return (
-    <Container className="py-5">
+    <Container className="py-2">
       <div className="mb-4">
         <Breadcrumb className="bg-transparent p-0 mb-2">
           <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/admin/jobs" }}>
             Jobs
           </Breadcrumb.Item>
-          <Breadcrumb.Item
-            linkAs={Link}
-            linkProps={{ to: `/admin/jobs/${jobId}/candidates` }}
-          >
+          <Breadcrumb.Item linkAs={Link} linkProps={{ to: `/admin/jobs/${jobId}/candidates` }}>
             {job.title} Candidates
           </Breadcrumb.Item>
           <Breadcrumb.Item active className="text-muted fw-medium">
@@ -500,20 +455,27 @@ const CandidateEvaluationPage = () => {
 
         <Col lg={9}>
           {activeTab === "stage0" && (
-            <ResumeScreeningResult candidate={candidate} />
+            <>
+              <ResumeScreeningResult candidate={candidate} />
+              {jobId && resumeId && (
+                <div className="mt-4">
+                  <CustomResumeExtraction jobId={jobId} resumeId={resumeId} />
+                </div>
+              )}
+            </>
           )}
 
           {jobStages
             .find((s) => s.id === activeTab)
             ?.template.name.toLowerCase()
             .includes("hr screening") && (
-            <Stage1HRRound
-              stageInfo={stage1}
-              onUploadTranscript={handleUploadTranscript}
-              onMakeDecision={handleMakeDecision}
-              isLoading={loading}
-            />
-          )}
+              <Stage1HRRound
+                stageInfo={stage1}
+                onUploadTranscript={handleUploadTranscript}
+                onMakeDecision={handleMakeDecision}
+                isLoading={loading}
+              />
+            )}
 
           {jobStages.find((s) => s.id === activeTab) &&
             !jobStages
@@ -521,12 +483,10 @@ const CandidateEvaluationPage = () => {
               ?.template.name.toLowerCase()
               .includes("hr screening") && (
               <div className="text-center py-5 bg-light rounded border">
-                <h5>
-                  {jobStages.find((s) => s.id === activeTab)?.template.name}
-                </h5>
+                <h5>{jobStages.find((s) => s.id === activeTab)?.template.name}</h5>
                 <p className="text-muted">
-                  This interview stage template is dynamically loaded but the
-                  corresponding UI component is not yet implemented.
+                  This interview stage template is dynamically loaded but the corresponding UI
+                  component is not yet implemented.
                 </p>
               </div>
             )}

@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminJobService } from "../../apis/admin/service";
-import type { JobRead } from "../../apis/admin/types";
+import { adminJobService } from "@/apis/admin/service";
+import type { JobRead } from "@/types/admin";
 import {
   AdminDataTable,
   Button,
@@ -15,14 +15,17 @@ import {
   StatusBadge,
   StagesBadgeList,
   SkillsBadgeList,
+  useToast,
   type Column,
-} from "../../components/common";
-import { CreateJobModal, DeleteModal, ManageJobStagesModal } from "../../components/modal";
-import "../../css/adminDashboard.css";
-import { useAdminData, useDeleteConfirmation } from "../../hooks";
+} from "@/components/shared";
+import { CreateJobModal, DeleteModal, ManageJobStagesModal } from "@/components/modal";
+import "@/css/adminDashboard.css";
+import { useAdminData, useDeleteConfirmation } from "@/hooks";
+import JobActionButtons from "./components/JobActionButtons";
 
 const AdminJobs = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [showStagesModal, setShowStagesModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobRead | null>(null);
@@ -54,7 +57,10 @@ const AdminJobs = () => {
     message: deleteMessage,
   } = useDeleteConfirmation<JobRead>({
     deleteFn: (id) => adminJobService.deleteJob(id as string),
-    onSuccess: fetchJobs,
+    onSuccess: () => {
+      fetchJobs();
+      toast.success("Job deleted successfully");
+    },
     itemTitle: (job) => `job "${job.title}"`,
   });
 
@@ -89,7 +95,10 @@ const AdminJobs = () => {
 
   const columns: Column<JobRead>[] = [
     { header: "Title", accessor: "title" },
-    { header: "Department", accessor: (job) => job.department?.name ?? job.department_name ?? "N/A" },
+    {
+      header: "Department",
+      accessor: (job) => job.department?.name ?? job.department_name ?? "N/A",
+    },
     {
       header: "Status",
       accessor: (job) => <StatusBadge status={job.is_active} />,
@@ -111,40 +120,13 @@ const AdminJobs = () => {
       className: "text-end text-nowrap",
       style: { width: "350px", minWidth: "350px" },
       accessor: (job) => (
-        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
-          <Button
-            variant="outline-primary"
-            size="sm"
-            className="flex-shrink-0"
-            onClick={() => handleViewCandidates(job.id)}
-          >
-            Candidates
-          </Button>
-          <Button
-            variant="outline-secondary"
-            size="sm"
-            className="flex-shrink-0"
-            onClick={() => handleManageStages(job)}
-          >
-            Pipeline
-          </Button>
-          <Button
-            variant="outline-secondary"
-            size="sm"
-            className="flex-shrink-0"
-            onClick={() => handleEditClick(job)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="outline-danger"
-            size="sm"
-            className="flex-shrink-0"
-            onClick={() => handleDeleteClick(job)}
-          >
-            Delete
-          </Button>
-        </div>
+        <JobActionButtons
+          job={job}
+          onViewCandidates={handleViewCandidates}
+          onManageStages={handleManageStages}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteClick}
+        />
       ),
     },
   ];
