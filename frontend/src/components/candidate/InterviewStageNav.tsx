@@ -45,7 +45,7 @@ const InterviewStageNav = ({
           onSelect={(k) => setActiveTab(k || "stage0")}
         >
           <Nav.Item className="mb-1">
-            <Nav.Link eventKey="stage0" disabled className="rounded-3 border-0 py-3">
+            <Nav.Link eventKey="stage0" className="rounded-3 border-0 py-3">
               <div className="d-flex justify-content-between align-items-center">
                 <span className="fw-medium">Resume Screening</span>
                 <Badge

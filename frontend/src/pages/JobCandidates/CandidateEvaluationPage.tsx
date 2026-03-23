@@ -3,7 +3,7 @@
  * Dynamically manages all interview stages for a specific candidate based on job config.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Container, Breadcrumb, Row, Col } from "react-bootstrap";
 import {
@@ -13,34 +13,94 @@ import {
   Button,
 } from "../../components/common";
 import Stage1HRRound from "../../components/candidate/Stage1HRRound";
+import ResumeScreeningResult from "../../components/candidate/ResumeScreeningResult";
 import InterviewStageNav from "../../components/candidate/InterviewStageNav";
 import CandidateInfoSidebar from "../../components/candidate/CandidateInfoSidebar";
-import { adminCandidateService, adminJobService } from "../../apis/admin/service";
+import {
+  adminCandidateService,
+  adminJobService,
+} from "../../apis/admin/service";
 import { interviewService } from "../../apis/services/interview";
 import { transcriptService } from "../../apis/services/transcript";
 import { evaluationService } from "../../apis/services/evaluation";
 import type { CandidateResponse } from "../../apis/types/resume";
 import type { Job } from "../../apis/types/job";
-import type { JobStageConfig, StageEvaluation, Stage1Info } from "../../apis/types/stage";
+import type {
+  JobStageConfig,
+  StageEvaluation,
+  Stage1Info,
+} from "../../apis/types/stage";
 
 import { extractErrorMessage } from "../../utils/error";
 
 const CandidateEvaluationPage = () => {
-  const { jobId, candidateId } = useParams<{ jobId: string; candidateId: string }>();
+  const { jobId, candidateId } = useParams<{
+    jobId: string;
+    candidateId: string;
+  }>();
   const navigate = useNavigate();
 
   const [candidate, setCandidate] = useState<CandidateResponse | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [jobStages, setJobStages] = useState<JobStageConfig[]>([]);
-  const [evaluations, setEvaluations] = useState<Record<string, StageEvaluation>>({});
+  const [evaluations, setEvaluations] = useState<
+    Record<string, StageEvaluation>
+  >({});
 
   // Keep legacy state for now while we transition
   const [stage1, setStage1] = useState<Stage1Info | null>(null);
   const [interviewId, setInterviewId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [fetchingStage, setFetchingStage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("stage0");
+
+  const fetchStageData = useCallback(
+    async (tabId: string) => {
+      if (!candidateId || tabId === "stage0" || loading) return;
+
+      try {
+        setFetchingStage(true);
+        const stageEval = await adminCandidateService.getStageEvaluation(
+          candidateId,
+          tabId,
+        );
+
+        setEvaluations((prev) => ({
+          ...prev,
+          [tabId]: stageEval,
+        }));
+
+        // If it's the HR Screening stage, update legacy stage1 state too
+        const currentStage = jobStages.find((s) => s.id === tabId);
+        if (
+          currentStage?.template.name.toLowerCase().includes("hr screening")
+        ) {
+          setStage1({
+            id: stageEval.id,
+            candidate_id: candidateId,
+            job_id: jobId || "",
+            transcript_id: null,
+            status: stageEval.status as any,
+            analysis: stageEval.analysis as any,
+            hr_decision: stageEval.decision,
+            created_at: stageEval.created_at,
+            completed_at: stageEval.completed_at,
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to fetch evaluation for stage ${tabId}:`, err);
+      } finally {
+        setFetchingStage(false);
+      }
+    },
+    [candidateId, loading, jobStages, jobId],
+  );
+
+  useEffect(() => {
+    fetchStageData(activeTab);
+  }, [activeTab, fetchStageData]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,7 +115,9 @@ const CandidateEvaluationPage = () => {
             .getCandidatesForJob(jobId)
             .then(
               (result: { data: CandidateResponse[]; total: number }) =>
-                result.data.find((c: CandidateResponse) => c.id === candidateId) || null,
+                result.data.find(
+                  (c: CandidateResponse) => c.id === candidateId,
+                ) || null,
             ),
         ]);
 
@@ -70,9 +132,13 @@ const CandidateEvaluationPage = () => {
         // Try to fetch dynamic stages and evaluations
         try {
           const stages = await adminJobService.getJobStages(jobId);
-          const evals = await adminCandidateService.getCandidateEvaluations(candidateId);
-          const interviews = await interviewService.getInterviewsForCandidate(candidateId);
-          const interview = interviews.interviews.find(i => i.job_id === jobId);
+          const evals =
+            await adminCandidateService.getCandidateEvaluations(candidateId);
+          const interviews =
+            await interviewService.getInterviewsForCandidate(candidateId);
+          const interview = interviews.interviews.find(
+            (i) => i.job_id === jobId,
+          );
           if (interview) {
             setInterviewId(interview.id);
           }
@@ -86,7 +152,9 @@ const CandidateEvaluationPage = () => {
           setEvaluations(evalMap);
 
           // Find the HR Screening stage
-          const hrStage = stages.find(s => s.template.name.toLowerCase().includes("hr screening"));
+          const hrStage = stages.find((s) =>
+            s.template.name.toLowerCase().includes("hr screening"),
+          );
           if (hrStage) {
             const hrEval = evalMap[hrStage.id];
             setStage1({
@@ -106,7 +174,10 @@ const CandidateEvaluationPage = () => {
             setActiveTab(stages[0].id);
           }
         } catch (apiError) {
-          console.warn("Dynamic stages API not ready, using mock fallback", apiError);
+          console.warn(
+            "Dynamic stages API not ready, using mock fallback",
+            apiError,
+          );
           // Mock Dynamic Stages
           const mockStages: JobStageConfig[] = [
             {
@@ -186,7 +257,9 @@ const CandidateEvaluationPage = () => {
         }
       } catch (err) {
         console.error("Failed to fetch evaluation data:", err);
-        setError(extractErrorMessage(err, "Failed to load candidate evaluation data."));
+        setError(
+          extractErrorMessage(err, "Failed to load candidate evaluation data."),
+        );
       } finally {
         setLoading(false);
       }
@@ -219,14 +292,15 @@ const CandidateEvaluationPage = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // 1. Get or find an interview session
-      const interviewsRes = await interviewService.getInterviewsForCandidate(candidateId);
-      let interview = interviewsRes.interviews.find(i => i.job_id === jobId);
+      const interviewsRes =
+        await interviewService.getInterviewsForCandidate(candidateId);
+      let interview = interviewsRes.interviews.find((i) => i.job_id === jobId);
 
       // 1b. Create interview if it doesn't exist
       if (!interview) {
-        interview = await initiateInterview() || undefined;
+        interview = (await initiateInterview()) || undefined;
       }
 
       if (!interview) {
@@ -236,42 +310,62 @@ const CandidateEvaluationPage = () => {
       setInterviewId(interview.id);
 
       // 2. Upload transcript
-      const uploadRes = await transcriptService.uploadTranscript(interview.id, file);
+      const uploadRes = await transcriptService.uploadTranscript(
+        interview.id,
+        file,
+      );
       const transcriptId = uploadRes.transcript_id;
 
       setStage1((prev) =>
-        prev ? { ...prev, status: "processing", transcript_id: transcriptId } : null,
+        prev
+          ? { ...prev, status: "processing", transcript_id: transcriptId }
+          : null,
       );
 
       // 3. Poll for status
-      let statusRes = await transcriptService.getTranscriptStatus(interview.id, transcriptId);
+      let statusRes = await transcriptService.getTranscriptStatus(
+        interview.id,
+        transcriptId,
+      );
       let attempts = 0;
       const maxAttempts = 30; // 60 seconds max
 
-      while ((statusRes.status === "processing" || statusRes.status === "uploaded") && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        statusRes = await transcriptService.getTranscriptStatus(interview.id, transcriptId);
+      while (
+        (statusRes.status === "processing" ||
+          statusRes.status === "uploaded") &&
+        attempts < maxAttempts
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        statusRes = await transcriptService.getTranscriptStatus(
+          interview.id,
+          transcriptId,
+        );
         attempts++;
       }
 
       if (statusRes.status === "failed") {
         throw new Error(statusRes.error || "Transcript processing failed");
       }
-      
+
       if (statusRes.status !== "completed") {
-        throw new Error("Transcript processing timed out. Please try refreshing.");
+        throw new Error(
+          "Transcript processing timed out. Please try refreshing.",
+        );
       }
 
       // 4. Trigger Stage 1 LLM evaluation
-      const evaluation = await evaluationService.runEvaluation(interview.id, transcriptId);
+      const evaluation = await evaluationService.runEvaluation(
+        interview.id,
+        transcriptId,
+      );
 
       setStage1((prev) =>
         prev
           ? {
-            ...prev,
-            status: "completed",
-            analysis: evaluation as any,
-          }
+              ...prev,
+              status: "completed",
+              analysis: evaluation as any,
+            }
           : null,
       );
 
@@ -286,11 +380,10 @@ const CandidateEvaluationPage = () => {
           },
         }));
       }
-
     } catch (err) {
       console.error("Evaluation failed:", err);
       setError(extractErrorMessage(err, "Failed to evaluate transcript."));
-      setStage1(prev => prev ? { ...prev, status: "failed" } : null);
+      setStage1((prev) => (prev ? { ...prev, status: "failed" } : null));
     } finally {
       setLoading(false);
     }
@@ -328,9 +421,17 @@ const CandidateEvaluationPage = () => {
       }
 
       console.log("Decision recorded successfully:", decision);
+
+      // Fetch latest stage data to ensure state is synced with server
+      await fetchStageData(activeTab);
     } catch (err) {
       console.error("Failed to record decision:", err);
-      setError(extractErrorMessage(err, "Failed to record your decision. Please try again."));
+      setError(
+        extractErrorMessage(
+          err,
+          "Failed to record your decision. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
@@ -356,7 +457,10 @@ const CandidateEvaluationPage = () => {
           <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/admin/jobs" }}>
             Jobs
           </Breadcrumb.Item>
-          <Breadcrumb.Item linkAs={Link} linkProps={{ to: `/admin/jobs/${jobId}/candidates` }}>
+          <Breadcrumb.Item
+            linkAs={Link}
+            linkProps={{ to: `/admin/jobs/${jobId}/candidates` }}
+          >
             {job.title} Candidates
           </Breadcrumb.Item>
           <Breadcrumb.Item active className="text-muted fw-medium">
@@ -396,23 +500,20 @@ const CandidateEvaluationPage = () => {
 
         <Col lg={9}>
           {activeTab === "stage0" && (
-            <div className="text-center py-5 bg-light rounded border">
-              <h5>Resume Screening</h5>
-              <p className="text-muted">Passed with score {candidate.resume_score?.toFixed(1)}%</p>
-            </div>
+            <ResumeScreeningResult candidate={candidate} />
           )}
 
           {jobStages
             .find((s) => s.id === activeTab)
             ?.template.name.toLowerCase()
             .includes("hr screening") && (
-              <Stage1HRRound
-                stageInfo={stage1}
-                onUploadTranscript={handleUploadTranscript}
-                onMakeDecision={handleMakeDecision}
-                isLoading={loading}
-              />
-            )}
+            <Stage1HRRound
+              stageInfo={stage1}
+              onUploadTranscript={handleUploadTranscript}
+              onMakeDecision={handleMakeDecision}
+              isLoading={loading}
+            />
+          )}
 
           {jobStages.find((s) => s.id === activeTab) &&
             !jobStages
@@ -420,10 +521,12 @@ const CandidateEvaluationPage = () => {
               ?.template.name.toLowerCase()
               .includes("hr screening") && (
               <div className="text-center py-5 bg-light rounded border">
-                <h5>{jobStages.find((s) => s.id === activeTab)?.template.name}</h5>
+                <h5>
+                  {jobStages.find((s) => s.id === activeTab)?.template.name}
+                </h5>
                 <p className="text-muted">
-                  This interview stage template is dynamically loaded but the corresponding UI
-                  component is not yet implemented.
+                  This interview stage template is dynamically loaded but the
+                  corresponding UI component is not yet implemented.
                 </p>
               </div>
             )}

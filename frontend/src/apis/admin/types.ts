@@ -409,3 +409,49 @@ export interface JobRead extends Job {
   skills?: SkillRead[];
   stages?: JobStageConfig[];
 }
+
+/**
+ * Result of a resume screening for a single candidate.
+ */
+export interface ResumeScreeningResult {
+  candidate_id: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  resume_score?: number;
+  pass_fail?: boolean;
+  analysis?: any;
+  applied_at: string;
+}
+
+/**
+ * Response containing all resume screening results for a job.
+ */
+export interface ResumeScreeningResultsResponse {
+  job_id: string;
+  results: ResumeScreeningResult[];
+}
+
+/**
+ * Result of an HR round interview for a single candidate.
+ */
+export interface HRRoundResult {
+  interview_id: string;
+  candidate_id: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  status: string;
+  overall_score?: number;
+  recommendation?: string;
+  evaluation?: any;
+  scheduled_at: string;
+}
+
+/**
+ * Response containing all HR round results for a job.
+ */
+export interface HRRoundResultsResponse {
+  job_id: string;
+  results: HRRoundResult[];
+}

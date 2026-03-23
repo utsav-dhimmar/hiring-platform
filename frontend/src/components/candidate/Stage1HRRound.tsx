@@ -209,17 +209,6 @@ const Stage1HRRound = ({
                           </h5>
                         </div>
                       </div>
-                      <Button
-                        variant={
-                          hr_decision ? "outline-success" : "outline-danger"
-                        }
-                        size="sm"
-                        className="px-4 py-2 rounded-pill fw-bold bg-white"
-                        onClick={() => onMakeDecision(!hr_decision)}
-                        disabled={isLoading}
-                      >
-                        Re-evaluate
-                      </Button>
                     </div>
                   )}
                 </div>

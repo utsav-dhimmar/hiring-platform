@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Container, Row, Col, Badge, Breadcrumb } from "react-bootstrap";
+import { Container, Row, Col, Badge, Breadcrumb, Nav } from "react-bootstrap";
 import {
   Card,
   CardHeader,
@@ -17,21 +17,32 @@ import {
 } from "../../components/common";
 import { CandidateDetailModal, JobDetailsModal } from "../../components/modal";
 import CandidateTable from "../../components/candidate/CandidateTable";
+import HRRoundTable from "../../components/candidate/HRRoundTable";
 import {
   adminJobService,
   adminCandidateService,
+  adminResultsService,
 } from "../../apis/admin/service";
 import { resumeService } from "../../apis/services/resume";
 import type { Job } from "../../apis/types/job";
 import type { CandidateResponse } from "../../apis/types/resume";
+import type { HRRoundResult } from "../../apis/admin/types";
 import { useAdminData } from "../../hooks";
 
 import { extractErrorMessage } from "../../utils/error";
+
+type Stage = "resume-screening" | "hr-round";
 
 const JobCandidatesPage = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
+  const [activeStage, setActiveStage] = useState<Stage>("resume-screening");
+
+  // HR Round results state
+  const [hrResults, setHrResults] = useState<HRRoundResult[]>([]);
+  const [hrLoading, setHrLoading] = useState(false);
+  const [hrError, setHrError] = useState<string | null>(null);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,10 +77,30 @@ const JobCandidatesPage = () => {
     fetchOnMount: !!jobId,
   });
 
+  const fetchHRResults = useCallback(async () => {
+    if (!jobId) return;
+    setHrLoading(true);
+    setHrError(null);
+    try {
+      const data = await adminResultsService.getHRRoundResults(jobId);
+      setHrResults(data.results);
+    } catch (err) {
+      setHrError(extractErrorMessage(err, "Failed to fetch HR results."));
+    } finally {
+      setHrLoading(false);
+    }
+  }, [jobId]);
+
+  useEffect(() => {
+    if (activeStage === "hr-round") {
+      fetchHRResults();
+    }
+  }, [activeStage, fetchHRResults]);
+
   // Polling for in-progress resumes
   useEffect(() => {
-    // Only poll if not searching and we have resumes
-    if (searchQuery !== "" || candidates.length === 0) return;
+    // Only poll if not searching and we have resumes and on resume screening stage
+    if (activeStage !== "resume-screening" || searchQuery !== "" || candidates.length === 0) return;
 
     const hasInProgress = candidates.some(
       (c) =>
@@ -83,7 +114,7 @@ const JobCandidatesPage = () => {
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [candidates, fetchData, searchQuery]);
+  }, [candidates, fetchData, searchQuery, activeStage]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,7 +175,7 @@ const JobCandidatesPage = () => {
 
       <div className="bg-white p-4 rounded-4 shadow-sm border border-light mb-4">
         <PageHeader
-          title={`Candidates for ${job?.title}`}
+          title={`Results for ${job?.title}`}
           subtitle={`${job?.department?.name} | ${job?.is_active ? "Active" : "Inactive"}`}
           className="mb-0 border-0 p-0 shadow-none"
           actions={
@@ -163,41 +194,89 @@ const JobCandidatesPage = () => {
         />
       </div>
 
-      <CandidateSearchForm
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        handleSearch={handleSearch}
-        loading={isSearching}
-        placeholder="Search candidates for this job by name or email..."
-      />
+      <div className="mb-4">
+        <Nav variant="pills" className="bg-white p-2 rounded-3 shadow-sm border border-light">
+          <Nav.Item>
+            <Nav.Link 
+              active={activeStage === "resume-screening"}
+              onClick={() => setActiveStage("resume-screening")}
+              className="rounded-2 px-4 py-2"
+            >
+              Resume Screening
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link 
+              active={activeStage === "hr-round"}
+              onClick={() => setActiveStage("hr-round")}
+              className="rounded-2 px-4 py-2"
+            >
+              HR Round
+            </Nav.Link>
+          </Nav.Item>
+        </Nav>
+      </div>
 
-      <Row>
-        <Col>
-          <Card>
-            <CardHeader className="d-flex justify-content-between align-items-center">
-              <h3 className="mb-0">
-                {searchQuery ? "Search Results" : "Applicant List"}
-              </h3>
-              <Badge bg="primary">{candidates.length} Candidate Found</Badge>
-            </CardHeader>
-            <CandidateTable
-              candidates={candidates}
-              loading={loading || (isSearching && candidates.length === 0)}
-              error={error}
-              onRetry={fetchData}
-              className="border-0 shadow-none"
-              emptyMessage={
-                searchQuery
-                  ? `No candidates found matching "${searchQuery}"`
-                  : "No candidates have applied for this job yet."
-              }
-              onShowMore={handleShowMore}
-              showEvaluateAction={true}
-              jobId={jobId}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {activeStage === "resume-screening" && (
+        <>
+          <CandidateSearchForm
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            handleSearch={handleSearch}
+            loading={isSearching}
+            placeholder="Search candidates for this job by name or email..."
+          />
+
+          <Row>
+            <Col>
+              <Card>
+                <CardHeader className="d-flex justify-content-between align-items-center">
+                  <h3 className="mb-0">
+                    {searchQuery ? "Search Results" : "Applicant List"}
+                  </h3>
+                  <Badge bg="primary">{candidates.length} Candidate Found</Badge>
+                </CardHeader>
+                <CandidateTable
+                  candidates={candidates}
+                  loading={loading || (isSearching && candidates.length === 0)}
+                  error={error}
+                  onRetry={fetchData}
+                  className="border-0 shadow-none"
+                  emptyMessage={
+                    searchQuery
+                      ? `No candidates found matching "${searchQuery}"`
+                      : "No candidates have applied for this job yet."
+                  }
+                  onShowMore={handleShowMore}
+                  showEvaluateAction={true}
+                  jobId={jobId}
+                />
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
+
+      {activeStage === "hr-round" && (
+        <Row>
+          <Col>
+            <Card>
+              <CardHeader className="d-flex justify-content-between align-items-center">
+                <h3 className="mb-0">HR Screening Results</h3>
+                <Badge bg="primary">{hrResults.length} Interviews Found</Badge>
+              </CardHeader>
+              <HRRoundTable
+                results={hrResults}
+                loading={hrLoading}
+                error={hrError}
+                onRetry={fetchHRResults}
+                jobId={jobId}
+                className="border-0 shadow-none"
+              />
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       <JobDetailsModal
         show={showJobInfo}
