@@ -5,7 +5,12 @@
 
 import { adminAnalyticsService } from "../../apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "../../apis/admin/types";
-import { AdminDataTable, PageHeader, StatCard, type Column } from "../../components/common";
+import {
+  AdminDataTable,
+  PageHeader,
+  StatCard,
+  type Column,
+} from "../../components/common";
 import "../../css/adminDashboard.css";
 import { useAdminData } from "../../hooks";
 
@@ -43,7 +48,10 @@ const AdminDashboard = () => {
         <StatCard label="Active Users" value={analytics?.active_users ?? 0} />
         <StatCard label="Total Jobs" value={analytics?.total_jobs ?? 0} />
         <StatCard label="Active Jobs" value={analytics?.active_jobs ?? 0} />
-        <StatCard label="Total Candidates" value={analytics?.total_candidates ?? 0} />
+        <StatCard
+          label="Total Candidates"
+          value={analytics?.total_candidates ?? 0}
+        />
         <StatCard label="Total Resumes" value={analytics?.total_resumes ?? 0} />
       </div>
 
@@ -54,8 +62,15 @@ const AdminDashboard = () => {
             label="Resumes (Last 30 Days)"
             value={report?.resumes_uploaded_last_30_days ?? 0}
           />
-          <StatCard label="Avg Resume Score" value={report?.average_resume_score ? report?.average_resume_score.toFixed(2) + "%" : "N/A"} />
-          <StatCard label="Pass Rate" value={report?.pass_rate ? report.pass_rate.toFixed(2) + "%" : "N/A"} />
+          <StatCard
+            label="Avg Resume Score"
+            value={
+              report?.average_resume_score
+                ? report?.average_resume_score.toFixed(2) + "%"
+                : "N/A"
+            }
+          />
+          {/* <StatCard label="Pass Rate" value={report?.pass_rate ? report?.pass_rate.toFixed(2) + "%" : "N/A"} /> */}
         </div>
 
         <div className="jobs-table-container">

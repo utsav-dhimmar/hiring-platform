@@ -17,7 +17,10 @@ import {
 } from "../../components/common";
 import { CandidateDetailModal, JobDetailsModal } from "../../components/modal";
 import CandidateTable from "../../components/candidate/CandidateTable";
-import { adminJobService, adminCandidateService } from "../../apis/admin/service";
+import {
+  adminJobService,
+  adminCandidateService,
+} from "../../apis/admin/service";
 import { resumeService } from "../../apis/services/resume";
 import type { Job } from "../../apis/types/job";
 import type { CandidateResponse } from "../../apis/types/resume";
@@ -37,7 +40,8 @@ const JobCandidatesPage = () => {
   // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
   const [showJobInfo, setShowJobInfo] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateResponse | null>(null);
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<CandidateResponse | null>(null);
 
   const fetchJobAndCandidates = useCallback(async () => {
     if (!jobId) return [];
@@ -68,7 +72,9 @@ const JobCandidatesPage = () => {
     if (searchQuery !== "" || candidates.length === 0) return;
 
     const hasInProgress = candidates.some(
-      (c) => c.processing_status && !["completed", "failed"].includes(c.processing_status),
+      (c) =>
+        c.processing_status &&
+        !["completed", "failed"].includes(c.processing_status),
     );
 
     if (hasInProgress) {
@@ -88,7 +94,10 @@ const JobCandidatesPage = () => {
     try {
       let candidatesData: CandidateResponse[] = [];
       if (searchQuery.trim()) {
-        const result = await adminCandidateService.searchJobCandidates(jobId, searchQuery);
+        const result = await adminCandidateService.searchJobCandidates(
+          jobId,
+          searchQuery,
+        );
         candidatesData = result.data;
       } else {
         const resp = await resumeService.getJobCandidates(jobId);
@@ -111,7 +120,11 @@ const JobCandidatesPage = () => {
   if (!loading && (error || !job)) {
     return (
       <Container className="py-5">
-        <ErrorDisplay message={error || "Job not found."} onRetry={() => navigate("/")} fullPage />
+        <ErrorDisplay
+          message={error || "Job not found."}
+          onRetry={() => navigate("/")}
+          fullPage
+        />
       </Container>
     );
   }
@@ -132,11 +145,14 @@ const JobCandidatesPage = () => {
       <div className="bg-white p-4 rounded-4 shadow-sm border border-light mb-4">
         <PageHeader
           title={`Candidates for ${job?.title}`}
-          subtitle={`${job?.department} | ${job?.is_active ? "Active" : "Inactive"}`}
+          subtitle={`${job?.department?.name} | ${job?.is_active ? "Active" : "Inactive"}`}
           className="mb-0 border-0 p-0 shadow-none"
           actions={
             <div className="d-flex gap-2">
-              <Button variant="outline-primary" onClick={() => setShowJobInfo(true)}>
+              <Button
+                variant="outline-primary"
+                onClick={() => setShowJobInfo(true)}
+              >
                 Job Details
               </Button>
               <Button variant="outline-secondary" onClick={() => navigate("/")}>
@@ -159,7 +175,9 @@ const JobCandidatesPage = () => {
         <Col>
           <Card>
             <CardHeader className="d-flex justify-content-between align-items-center">
-              <h3 className="mb-0">{searchQuery ? "Search Results" : "Applicant List"}</h3>
+              <h3 className="mb-0">
+                {searchQuery ? "Search Results" : "Applicant List"}
+              </h3>
               <Badge bg="primary">{candidates.length} Candidate Found</Badge>
             </CardHeader>
             <CandidateTable
