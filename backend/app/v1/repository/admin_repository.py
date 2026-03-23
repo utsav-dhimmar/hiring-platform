@@ -428,7 +428,7 @@ class AdminRepository:
                 {
                     "job_id": str(job.id),
                     "job_title": job.title,
-                    "department": job.department,
+                    "department": job.department.name if job.department else None,
                     "candidate_count": count,
                 }
             )

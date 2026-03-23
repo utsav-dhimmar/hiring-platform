@@ -70,7 +70,12 @@ const AdminDashboard = () => {
                 : "N/A"
             }
           />
-          {/* <StatCard label="Pass Rate" value={report?.pass_rate ? report?.pass_rate.toFixed(2) + "%" : "N/A"} /> */}
+          <StatCard
+            label="Pass Rate"
+            value={
+              report?.pass_rate ? report?.pass_rate.toFixed(2) + "%" : "N/A"
+            }
+          />
         </div>
 
         <div className="jobs-table-container">

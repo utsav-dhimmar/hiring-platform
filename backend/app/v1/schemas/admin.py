@@ -168,13 +168,22 @@ class AnalyticsSummary(BaseModel):
     active_users: int
 
 
+class JobCandidatesStats(BaseModel):
+    """Model for candidate statistics per job."""
+
+    job_id: uuid.UUID
+    job_title: str
+    department: str | None
+    candidate_count: int
+
+
 class HiringReport(BaseModel):
     """Model for hiring analytics report."""
 
     total_jobs: int
     active_jobs: int
     total_candidates: int
-    candidates_by_job: list[dict]
+    candidates_by_job: list[JobCandidatesStats]
     resumes_uploaded_last_30_days: int
     average_resume_score: float | None
     pass_rate: float | None

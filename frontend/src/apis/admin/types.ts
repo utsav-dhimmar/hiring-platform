@@ -35,6 +35,7 @@ export interface PermissionCreate extends PermissionBase {}
  * Base fields for a role.
  */
 export interface RoleBase {
+  /** Name of the role (e.g., "admin", "recruiter") */
   name: string;
 }
 
@@ -235,6 +236,8 @@ export interface HiringReport {
   resumes_uploaded_last_30_days: number;
   /** Optional aggregate resume score across all candidates */
   average_resume_score?: number;
+
+  pass_rate?: number;
 }
 
 /**
