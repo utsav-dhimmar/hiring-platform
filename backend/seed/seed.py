@@ -26,6 +26,8 @@ DEFAULT_PERMISSIONS = [
     {"name": "jobs:manage", "description": "Create, update, and delete jobs."},
     {"name": "skills:access", "description": "View skills list and details."},
     {"name": "skills:manage", "description": "Create, update, and delete skills."},
+    {"name": "departments:access", "description": "View departments list and details."},
+    {"name": "departments:manage", "description": "Create, update, and delete departments."},
     {"name": "audit:read", "description": "View system audit logs."},
     {"name": "files:read", "description": "View uploaded files and resumes."},
     {"name": "analytics:read", "description": "View hiring analytics and reports."},

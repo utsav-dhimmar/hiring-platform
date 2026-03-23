@@ -1,4 +1,3 @@
-import React from "react";
 import { Badge, OverlayTrigger, Tooltip } from "react-bootstrap";
 import type { SkillRead } from "../../apis/admin/types";
 
@@ -23,12 +22,12 @@ interface SkillsBadgeListProps {
  * <SkillsBadgeList skills={job.skills} />
  * ```
  */
-const SkillsBadgeList: React.FC<SkillsBadgeListProps> = ({
+const SkillsBadgeList = ({
   skills,
   className = "",
   emptyLabel = "N/A",
   maxVisible = 3,
-}) => {
+}: SkillsBadgeListProps) => {
   if (!skills || skills.length === 0) {
     return <span className={`text-muted small ${className}`}>{emptyLabel}</span>;
   }

@@ -12,7 +12,6 @@ import "../../css/adminDashboard.css";
 import { useFormModal } from "../../hooks";
 import {
   skillCreateSchema,
-  skillUpdateSchema,
   type SkillCreateFormValues,
 } from "../../schemas/admin";
 

@@ -3,7 +3,6 @@
  * Automatically maps status values to appropriate color variants.
  */
 
-import React from "react";
 import { Badge } from "react-bootstrap";
 
 /**
@@ -34,7 +33,7 @@ interface StatusBadgeProps {
  * <StatusBadge status="pending" mapping={{ pending: 'warning' }} />
  * ```
  */
-const StatusBadge: React.FC<StatusBadgeProps> = ({
+const StatusBadge = ({
   status,
   trueLabel = "Active",
   falseLabel = "Inactive",
@@ -42,7 +41,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   falseVariant = "danger",
   mapping,
   className = "",
-}) => {
+}: StatusBadgeProps) => {
   let label: string;
   let variant: string;
 

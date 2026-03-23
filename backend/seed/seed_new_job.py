@@ -10,6 +10,7 @@ from app.v1.core.embeddings import embedding_service
 from app.v1.db import Job, Skill, job_skills
 from app.v1.db.session import async_session_maker, init_db
 from app.v1.utils.text import build_job_text
+from seed.seed_departments import ensure_department
 from seed.seed_for_user import ensure_dev_test_role, ensure_user, get_admin_role
 from seed.seed_skills import ensure_skills
 
@@ -165,6 +166,9 @@ REQUIRED_SKILLS = [
 
 
 async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
+    # Resolve or create the department FK
+    department = await ensure_department(session, JOB_DEPARTMENT)
+
     job = (
         (
             await session.execute(
@@ -179,14 +183,14 @@ async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
     )
 
     if job:
-        job.department = JOB_DEPARTMENT
+        job.department_id = department.id
         job.jd_text = JOB_DESCRIPTION
         job.jd_json = JOB_JSON
         job.is_active = True
     else:
         job = Job(
             title=JOB_TITLE,
-            department=JOB_DEPARTMENT,
+            department_id=department.id,
             jd_text=JOB_DESCRIPTION,
             jd_json=JOB_JSON,
             jd_embedding=None,

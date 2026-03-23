@@ -1,10 +1,14 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
 
 const target = process.env.VITE_API_URL || "http://localhost:8000";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    babel({ presets: [reactCompilerPreset()] })
+  ],
   server: {
     proxy: {
       "/api": {

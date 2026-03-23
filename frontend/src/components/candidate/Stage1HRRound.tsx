@@ -19,6 +19,9 @@ interface Stage1HRRoundProps {
   isLoading?: boolean;
 }
 
+/**
+ * Individual evaluation metric display with a progress bar and score.
+ */
 const EvaluationItem = ({ label, score }: { label: string; score: number }) => (
   <div className="mb-3">
     <div className="d-flex justify-content-between mb-1">
@@ -33,12 +36,7 @@ const EvaluationItem = ({ label, score }: { label: string; score: number }) => (
   </div>
 );
 
-const Stage1HRRound: React.FC<Stage1HRRoundProps> = ({
-  stageInfo,
-  onUploadTranscript,
-  onMakeDecision,
-  isLoading = false,
-}) => {
+const Stage1HRRound = ({ stageInfo, onUploadTranscript, onMakeDecision, isLoading = false }: Stage1HRRoundProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

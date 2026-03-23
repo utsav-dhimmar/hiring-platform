@@ -13,8 +13,8 @@ Working code is split into:
 
 - Python `3.14+`
 - `uv`
-- PostgreSQL
-- Redis (for caching/sessions)
+- PostgreSQL (with pgvector)
+- Redis (for caching & Celery broker)
 - Docker (for containerized services)
 
 ### Installing uv
@@ -107,7 +107,7 @@ sudo usermod -aG docker $USER
 
 ### Running with Docker Compose (Recommended)
 
-Docker Compose manages both the application and its dependencies (PostgreSQL, Redis) in a single command.
+Docker Compose manages the application, PostgreSQL, Redis, and the Celery worker.
 
 **1. Build and start services:**
 
@@ -178,6 +178,7 @@ Minimum variables:
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
+- `REDIS_URL` (e.g., redis://localhost:6379/0)
 
 You can also set `SQLALCHEMY_DATABASE_URI` directly instead of composing it from the Postgres variables.
 
@@ -193,6 +194,13 @@ postgresql+asyncpg://postgres:postgres@localhost/app
 
 ## 4. Run the API
 
+### Start Celery Worker (In a separate terminal)
+This is required for resume parsing and analysis:
+```bash
+uv run celery -A app.core.celery_app worker --loglevel=info --pool=solo
+```
+
+### Start FastAPI Server
 Use either command:
 
 ```bash
@@ -221,7 +229,7 @@ Current API endpoints:
 - `POST /api/v1/candidates`
 - `GET /api/v1/skills`
 - `POST /api/v1/skills`
-- `POST /api/v1/resume-upload` (resume screening)
+- `POST /api/v1/jobs/{job_id}/resume` (resume screening)
 - `/api/v1/admin/*` (admin routes)
 
 ## Project Structure
@@ -231,35 +239,23 @@ The active project structure is:
 ```text
 app/
   main.py                    # FastAPI entry point
+  core/
+    celery_app.py            # Celery application setup
+    cache.py                 # Redis global cache utility
   v1/
     api/
       main.py                 # Top-level router composition
     core/                     # Config, security, embeddings, extractor
     db/
-      models/                 # SQLAlchemy models (user, jobs, candidates, etc.)
-      base.py                 # SQLAlchemy declarative base
-      base_class.py           # Base classes for models
+      models/                 # SQLAlchemy models
       session.py              # Async engine + session maker
     routes/                   # API route handlers
-      users.py                # User/Auth endpoints
-      jobs.py                 # Job endpoints
-      candidates.py           # Candidate endpoints
-      skills.py               # Skill endpoints
-      resume_upload.py        # Resume screening endpoints
-      admin.py                # Admin endpoints
-    services/                 # Business logic services
+    services/                 # Business logic & Celery tasks
     repository/               # Data access layer
     schemas/                  # Pydantic schemas
-    prompts/                  # LLM prompts for AI features
+    prompts/                  # LLM prompts
     dependencies/             # FastAPI dependencies
     utils/                    # Utility functions
-    constants/                # Constants
-
-test/                      # Test suite
-  admin/                   # Admin route tests
-  user/                    # User service tests
-
-seed/                      # Database seeding scripts
 ```
 
 Rules used in this repo:
@@ -276,3 +272,4 @@ Rules used in this repo:
 
 - Passwords are hashed using bcrypt before storage.
 - `app/v1/core/config.py` handles settings from `.env`.
+- Redis is used for both caching (Job Embeddings) and as a broker for Celery.

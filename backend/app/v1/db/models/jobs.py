@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Boolean, DateTime, ForeignKey, Text
@@ -13,6 +13,7 @@ from app.v1.db.base import Base
 
 if TYPE_CHECKING:
     from app.v1.db.models.candidates import Candidate
+    from app.v1.db.models.departments import Department
     from app.v1.db.models.job_stage_configs import JobStageConfig
     from app.v1.db.models.skills import Skill
     from app.v1.db.models.user import User
@@ -29,7 +30,8 @@ class Job(Base):
     Attributes:
         id: The primary key of the job (UUID7).
         title: The title of the job (not null).
-        department: The department for the job (optional).
+        department_id: FK to the departments table (optional).
+        department: Relationship to the Department entity.
         jd_text: The job description as plain text (optional).
         jd_json: The job description as structured JSON (optional).
         jd_embedding: Combined vector embedding of title + department + jd_text + jd_json.
@@ -53,8 +55,10 @@ class Job(Base):
         nullable=False,
     )
 
-    department: Mapped[str | None] = mapped_column(
-        Text,
+    # DEPARTMENT FK (replaces plain text department column)
+    department_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("departments.id", ondelete="SET NULL"),
         nullable=True,
     )
 
@@ -112,3 +116,14 @@ class Job(Base):
         order_by="JobStageConfig.stage_order",
         cascade="all, delete-orphan",
     )
+    department: Mapped[Optional["Department"]] = relationship(
+        "Department",
+        back_populates="jobs",
+        foreign_keys=[department_id],
+        lazy="joined",
+    )
+
+    @property
+    def department_name(self) -> str | None:
+        """Return the department name for convenience (used in serialisation)."""
+        return self.department.name if self.department else None

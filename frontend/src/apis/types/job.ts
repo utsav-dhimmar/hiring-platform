@@ -7,8 +7,12 @@ export interface Job {
   id: string;
   /** Job title or position name */
   title: string;
-  /** Department the job belongs to */
-  department: string | null;
+  /** UUID of the department this job belongs to */
+  department_id: string | null;
+  /** Resolved department name (read-only, from relationship) */
+  department_name: string | null;
+  /** Full department object returned from the API */
+  department?: { id: string; name: string; description: string | null } | null;
   /** Job description in plain text format */
   jd_text: string | null;
   /** Job description in structured JSON format */

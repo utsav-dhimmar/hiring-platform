@@ -5,14 +5,18 @@ Resume-vs-JD analysis using LLMs.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from langextract.core import types as core_types
 from langextract.providers.ollama import OllamaLanguageModel
 
 from app.v1.core.config import settings
+from app.v1.core.logging import get_logger
 from app.v1.prompts import RESUME_JD_ANALYSIS_PROMPT
 from app.v1.schemas.analyzer import ResumeJobAnalysisResult
+
+logger = get_logger(__name__)
 
 
 class ResumeJdAnalyzer:
@@ -24,8 +28,25 @@ class ResumeJdAnalyzer:
             model_url=settings.OLLAMA_URL,
             api_key=settings.OLLAMA_API_KEY,
             format_type=core_types.FormatType.JSON,
-            timeout=300,
+            timeout=settings.OLLAMA_TIMEOUT,
         )
+
+    def _extract_json(self, text: str) -> dict[str, Any] | None:
+        """Attempt to extract JSON from text that might contain preamble/postamble."""
+        try:
+            # Try direct parse first
+            return json.loads(text)
+        except json.JSONDecodeError:
+            # Try to find something between { and }
+            # Using a slightly more robust regex for nested braces if needed,
+            # but for LLM output, usually { ... } is enough or just taking the first { to the last }.
+            match = re.search(r"(\{.*\})", text, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group(1))
+                except json.JSONDecodeError:
+                    pass
+        return None
 
     def analyze(
         self,
@@ -66,7 +87,14 @@ class ResumeJdAnalyzer:
         raw_output = outputs[0][0].output
         try:
             parsed_output = self.model.parse_output(raw_output)
-        except ValueError as exc:
-            raise ValueError("LLM returned invalid JSON for resume analysis.") from exc
+        except (ValueError, json.JSONDecodeError) as exc:
+            # Try manual extraction as a fallback
+            extracted = self._extract_json(raw_output)
+            if extracted:
+                parsed_output = extracted
+            else:
+                logger.error("Failed to parse LLM output: %s", raw_output)
+                raise ValueError("LLM returned invalid JSON for resume analysis.") from exc
+        
         validated = ResumeJobAnalysisResult.model_validate(parsed_output)
         return validated.model_dump()

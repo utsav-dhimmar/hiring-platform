@@ -91,6 +91,7 @@ class UserRead(BaseModel):
     permissions: list[str] = []
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    refresh_token:str|None = None
 
     model_config = ConfigDict(from_attributes=True)
 

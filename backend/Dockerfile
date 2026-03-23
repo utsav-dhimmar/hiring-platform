@@ -8,6 +8,8 @@ WORKDIR /app
 
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
+ENV UV_HTTP_TIMEOUT=300
+ENV UV_TCP_KEEPALIVE=1
 
 # Copy dependency files
 # We only copy the pyproject.toml and uv.lock so dependencies are cached properly

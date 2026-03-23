@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm, type FieldValues, type DefaultValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { ZodSchema } from "zod";
+import type { ZodType } from "zod";
 import { extractErrorMessage } from "../utils/error";
 
 /**
@@ -18,7 +18,7 @@ import { extractErrorMessage } from "../utils/error";
  */
 interface UseFormModalOptions<TFormValues extends FieldValues, TItem> {
   /** Zod schema for form validation */
-  schema: ZodSchema<TFormValues>;
+  schema: ZodType<TFormValues>;
   /** Default values for the form fields */
   defaultValues: DefaultValues<TFormValues>;
   /** Callback function to handle form submission */
@@ -58,7 +58,7 @@ export const useFormModal = <TFormValues extends FieldValues, TItem>(
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const formMethods = useForm<TFormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema as any),
     defaultValues,
   });
 
@@ -111,7 +111,7 @@ export const useFormModal = <TFormValues extends FieldValues, TItem>(
     ...formMethods,
     isSubmitting,
     submitError,
-    handleSubmit: handleSubmit(handleFormSubmit),
+    handleSubmit: handleSubmit(handleFormSubmit as any),
     setSubmitError,
   };
 };

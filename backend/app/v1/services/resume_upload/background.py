@@ -8,7 +8,7 @@ import hashlib
 import time
 import uuid
 
-from fastapi import BackgroundTasks
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.logging import get_logger
@@ -41,22 +41,22 @@ class BackgroundProcessor:
         job_id: uuid.UUID,
         resume_id: uuid.UUID,
         file_path: str,
-        background_tasks: BackgroundTasks,
     ) -> None:
-        """Schedule the resume processing task in the background.
+        """Schedule the resume processing task via Celery.
 
         Args:
             job_id: The job ID.
             resume_id: The resume ID.
             file_path: Path to the stored resume file.
-            background_tasks: FastAPI background tasks.
         """
-        background_tasks.add_task(
-            self.process_resume_in_background,
-            job_id=job_id,
-            resume_id=resume_id,
-            file_path=file_path,
+        from .tasks import process_resume_task
+        
+        process_resume_task.delay(
+            job_id_str=str(job_id),
+            resume_id_str=str(resume_id),
+            file_path=file_path
         )
+        logger.info("Celery task scheduled for resume_id=%s", resume_id)
 
     async def _mark_resume_failed(
         self,
@@ -157,7 +157,7 @@ class BackgroundProcessor:
             if job is None:
                 await self._mark_resume_failed(
                     db=db,
-                    resume_id=resume_record.id,
+                    resume_id=resume_id,
                     current_parse_summary=getattr(
                         resume_record, "parse_summary", None
                     ),
@@ -323,7 +323,7 @@ class BackgroundProcessor:
                 stage_started_at = time.perf_counter()
                 await resume_upload_repository.create_resume_chunk(
                     db,
-                    resume_id=resume_record.id,
+                    resume_id=resume_id,
                     parsed_json=parse_summary_with_analysis,
                     raw_text=raw_text,
                     chunk_embedding=insights["chunk_embedding"],
@@ -401,7 +401,7 @@ class BackgroundProcessor:
                 )
                 await self._mark_resume_failed(
                     db=db,
-                    resume_id=resume_record.id,
+                    resume_id=resume_id,
                     current_parse_summary=parse_summary_snapshot,
                     error_message=str(exc),
                 )

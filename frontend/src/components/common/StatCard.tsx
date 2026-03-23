@@ -35,7 +35,7 @@ interface StatCardProps {
  * />
  * ```
  */
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon, trend, className = "" }) => {
+const StatCard = ({ label, value, icon, trend, className = "" }: StatCardProps) => {
   return (
     <Card className={`analytics-card border-0 shadow-sm rounded-4 ${className}`}>
       <CardBody className="p-4 text-start">

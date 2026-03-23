@@ -98,9 +98,9 @@ export type SkillUpdateFormValues = z.infer<typeof skillUpdateSchema>;
  */
 export const jobCreateSchema = z.object({
   title: z.string().min(3, "Job title must be at least 3 characters long"),
-  department: z
+  department_id: z
     .string()
-    .min(2, "Department must be at least 2 characters long")
+    .uuid("Please select a valid department")
     .optional()
     .or(z.literal("")),
   jd_text: z
@@ -122,9 +122,9 @@ export type JobCreateFormValues = z.infer<typeof jobCreateSchema>;
  */
 export const jobUpdateSchema = z.object({
   title: z.string().min(3, "Job title must be at least 3 characters long").optional(),
-  department: z
+  department_id: z
     .string()
-    .min(2, "Department must be at least 2 characters long")
+    .uuid("Please select a valid department")
     .optional()
     .or(z.literal("")),
   jd_text: z
@@ -147,7 +147,7 @@ export type JobUpdateFormValues = z.infer<typeof jobUpdateSchema>;
 export const stageTemplateCreateSchema = z.object({
   name: z.string().min(3, "Template name must be at least 3 characters long"),
   description: z.string().optional(),
-  default_config: z.record(z.any()).optional().default({}),
+  default_config: z.record(z.string(), z.any()).optional().default({}),
 });
 
 /**
@@ -161,7 +161,7 @@ export type StageTemplateCreateFormValues = z.infer<typeof stageTemplateCreateSc
 export const stageTemplateUpdateSchema = z.object({
   name: z.string().min(3, "Template name must be at least 3 characters long").optional(),
   description: z.string().optional(),
-  default_config: z.record(z.any()).optional(),
+  default_config: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -176,7 +176,7 @@ export const jobStageConfigCreateSchema = z.object({
   template_id: z.string().uuid("Invalid template ID"),
   stage_order: z.number().int().min(0, "Order must be a non-negative integer"),
   is_mandatory: z.boolean().default(true),
-  config: z.record(z.any()).optional().default({}),
+  config: z.record(z.string(), z.any()).optional().default({}),
 });
 
 /**
@@ -190,7 +190,7 @@ export type JobStageConfigCreateFormValues = z.infer<typeof jobStageConfigCreate
 export const jobStageConfigUpdateSchema = z.object({
   stage_order: z.number().int().min(0, "Order must be a non-negative integer").optional(),
   is_mandatory: z.boolean().optional(),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.string(), z.any()).optional(),
 });
 
 /**

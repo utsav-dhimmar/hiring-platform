@@ -3,7 +3,6 @@
  * Displays a centered loading indicator during async operations.
  */
 
-import React from "react";
 import { Spinner, Container } from "react-bootstrap";
 
 /**
@@ -24,10 +23,10 @@ interface LoadingSpinnerProps {
  * <LoadingSpinner fullPage />
  * ```
  */
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+const LoadingSpinner = ({
   message = "Loading...",
   fullPage = false,
-}) => {
+}: LoadingSpinnerProps) => {
   const content = (
     <div className="text-center py-5">
       <Spinner animation="border" variant="primary" role="status">

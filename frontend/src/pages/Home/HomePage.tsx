@@ -182,7 +182,7 @@ const HomePage = () => {
                             <div className="fw-semibold text-dark">{job.title}</div>
                           </td>
                           <td className="px-4 py-3 border-0 text-muted">
-                            {job.department || "N/A"}
+                            {job.department?.name ?? job.department_name ?? "N/A"}
                           </td>
                           <td className="px-4 py-3 border-0">
                             <span
@@ -196,7 +196,7 @@ const HomePage = () => {
                               {uploading[job.id] ? (
                                 <Spinner animation="border" size="sm" variant="primary" />
                               ) : (
-                                <Form.Group controlId={`upload-${job.id}`} className="mb-0">
+                                <Form.Group className="mb-0">
                                   <Form.Control
                                     type="file"
                                     size="sm"

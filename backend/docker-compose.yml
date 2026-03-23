@@ -38,11 +38,29 @@ services:
     restart: always
     ports:
       - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
     env_file:
       - .env
     environment:
       POSTGRES_SERVER: db
       REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build: .
+    container_name: hr_worker
+    restart: always
+    volumes:
+      - ./uploads:/app/uploads
+    env_file:
+      - .env
+    environment:
+      POSTGRES_SERVER: db
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A app.v1.core.celery_app worker --loglevel=info --pool=solo
     depends_on:
       - db
       - redis

@@ -31,11 +31,12 @@ interface UseAdminDataOptions<T> {
  * ```
  */
 export const useAdminData = <T>(
-  fetchFn: () => Promise<T[]>,
+  fetchFn: () => Promise<T[] | { data: T[]; total: number }>,
   options: UseAdminDataOptions<T> = {},
 ) => {
   const { initialData = [], fetchOnMount = true } = options;
   const [data, setData] = useState<T[]>(initialData);
+  const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(fetchOnMount);
   const [error, setError] = useState<string | null>(null);
   const fetchFnRef = useRef(fetchFn);
@@ -52,10 +53,13 @@ export const useAdminData = <T>(
       // Handle both plain array and paginated response structure { data: T[], total: number }
       if (Array.isArray(result)) {
         setData(result);
+        setTotal(result.length);
       } else if (result && typeof result === "object" && Array.isArray((result as any).data)) {
         setData((result as any).data);
+        setTotal(typeof (result as any).total === "number" ? (result as any).total : 0);
       } else {
         setData([]);
+        setTotal(0);
       }
     } catch (err) {
       setError(extractErrorMessage(err, "Failed to load data."));
@@ -70,5 +74,5 @@ export const useAdminData = <T>(
     }
   }, [fetchOnMount]);
 
-  return { data, setData, loading, error, fetchData, setLoading, setError };
+  return { data, setData, total, setTotal, loading, error, fetchData, setLoading, setError };
 };

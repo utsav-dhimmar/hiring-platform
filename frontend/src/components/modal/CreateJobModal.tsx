@@ -1,12 +1,16 @@
 /**
  * Modal for creating or updating a job posting.
- * Uses Zod for form validation.
+ * Uses Zod for form validation and renders a Bootstrap select for department.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Modal } from "react-bootstrap";
-import { adminJobService, adminSkillService } from "../../apis/admin/service";
-import type { JobRead, SkillRead } from "../../apis/admin/types";
+import { Form, Modal } from "react-bootstrap";
+import {
+  adminDepartmentService,
+  adminJobService,
+  adminSkillService,
+} from "../../apis/admin/service";
+import type { DepartmentRead, JobRead, SkillRead } from "../../apis/admin/types";
 import { Button, ErrorDisplay, Input } from "../../components/common";
 import "../../css/adminDashboard.css";
 import { useFormModal } from "../../hooks";
@@ -22,7 +26,7 @@ interface CreateJobModalProps {
 
 const DEFAULT_JOB_VALUES: JobCreateFormValues = {
   title: "",
-  department: "",
+  department_id: "",
   jd_text: "",
   is_active: true,
   skill_ids: [],
@@ -34,12 +38,15 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
   const [skillsError, setSkillsError] = useState<string | null>(null);
   const [showSkillModal, setShowSkillModal] = useState(false);
 
+  const [departments, setDepartments] = useState<DepartmentRead[]>([]);
+  const [deptLoading, setDeptLoading] = useState(false);
+
   const isEditMode = !!job;
 
   const mapItemToValues = useCallback(
     (j: JobRead): JobCreateFormValues => ({
       title: j.title,
-      department: j.department || "",
+      department_id: j.department_id ?? "",
       jd_text: j.jd_text || "",
       is_active: j.is_active,
       skill_ids: j.skills?.map((skill) => skill.id) || [],
@@ -49,10 +56,15 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
 
   const onSubmit = useCallback(
     async (data: JobCreateFormValues) => {
+      // Convert empty string department_id to undefined before sending
+      const payload = {
+        ...data,
+        department_id: data.department_id || undefined,
+      };
       if (isEditMode && job) {
-        await adminJobService.updateJob(job.id, data);
+        await adminJobService.updateJob(job.id, payload);
       } else {
-        await adminJobService.createJob(data);
+        await adminJobService.createJob(payload);
       }
       onJobSaved();
       handleClose();
@@ -83,8 +95,8 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
     try {
       setSkillsLoading(true);
       setSkillsError(null);
-      const data = await adminSkillService.getAllSkills();
-      setSkills(data);
+      const result = await adminSkillService.getAllSkills();
+      setSkills(result.data);
     } catch (err) {
       console.error("Failed to fetch skills:", err);
       setSkillsError("Failed to load skills.");
@@ -93,12 +105,25 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
     }
   }, []);
 
+  const fetchDepartments = useCallback(async () => {
+    try {
+      setDeptLoading(true);
+      const result = await adminDepartmentService.getAllDepartments();
+      setDepartments(result.data);
+    } catch (err) {
+      console.error("Failed to fetch departments:", err);
+    } finally {
+      setDeptLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (show) {
       void fetchSkills();
+      void fetchDepartments();
       setShowSkillModal(false);
     }
-  }, [show, fetchSkills]);
+  }, [show, fetchSkills, fetchDepartments]);
 
   const toggleSkill = (skillId: string) => {
     const nextSkillIds = selectedSkillIds.includes(skillId)
@@ -135,12 +160,28 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
               required
             />
 
-            <Input
-              label="Department"
-              {...register("department")}
-              error={errors.department?.message}
-              placeholder="e.g. Engineering"
-            />
+            <div className="form-group mb-3">
+              <label className="form-label">Department</label>
+              <Form.Select
+                {...register("department_id")}
+                isInvalid={!!errors.department_id}
+                disabled={deptLoading}
+              >
+                <option value="">
+                  {deptLoading ? "Loading departments…" : "— Select a department —"}
+                </option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </Form.Select>
+              {errors.department_id && (
+                <Form.Control.Feedback type="invalid">
+                  {errors.department_id.message}
+                </Form.Control.Feedback>
+              )}
+            </div>
 
             <div className="form-group mb-3">
               <label className="form-label">Job Description</label>
@@ -249,3 +290,4 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
 };
 
 export default CreateJobModal;
+

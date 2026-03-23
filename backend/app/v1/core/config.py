@@ -130,6 +130,9 @@ class Settings(BaseSettings):
     OLLAMA_API_KEY: str = Field(
         default="d35ce7accc034bbc86f51347ae810ea6.mc4X9BO4XwHPR23bcHFtHWLV", description="API key for Ollama Cloud (if applicable)"
     )
+    OLLAMA_TIMEOUT: int = Field(
+        default=120, description="Timeout for Ollama API calls in seconds"
+    )
 
     # Embeddings
     EMBEDDING_MODEL_NAME: str = Field(
@@ -151,7 +154,7 @@ class Settings(BaseSettings):
         default=3, description="Number of retry attempts for extraction"
     )
     LANGEXTRACT_RETRY_DELAY: int = Field(
-        default=60, description="Delay between retry attempts in seconds"
+        default=5, description="Delay between retry attempts in seconds"
     )
 
     # Resume uploads
@@ -186,6 +189,12 @@ class Settings(BaseSettings):
     CACHE_TTL_SECONDS: int = Field(
         default=300, description="Time-to-live for cached items in seconds"
     )
+
+    @computed_field
+    @property
+    def CELERY_BROKER_URL(self) -> str:
+        """The broker URL for Celery, defaulting to REDIS_URL."""
+        return self.REDIS_URL
 
 
 settings = Settings()
