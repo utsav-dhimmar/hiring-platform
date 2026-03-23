@@ -127,3 +127,24 @@ class JobCandidatesResponse(BaseModel):
 
     job_id: uuid.UUID
     candidates: list[CandidateResponse]
+
+
+class CustomFieldRequest(BaseModel):
+    """A single custom field to extract from the resume."""
+    title: str = Field(..., description="The name or title of the piece of information (e.g. 'Age', 'Notice Period')")
+    description: str = Field(..., description="Detailed instructions on what to extract for this field.")
+
+class CustomExtractionRequest(BaseModel):
+    """Request payload containing a list of custom fields to extract."""
+    fields: list[CustomFieldRequest]
+
+class CustomFieldResponse(BaseModel):
+    """The extraction result for a single custom field."""
+    title: str
+    value: str
+
+class CustomExtractionResponse(BaseModel):
+    """Response containing the list of extracted custom fields."""
+    job_id: uuid.UUID
+    resume_id: uuid.UUID
+    results: list[CustomFieldResponse]
