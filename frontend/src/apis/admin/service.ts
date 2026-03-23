@@ -537,6 +537,21 @@ export const adminCandidateService = {
     );
     return response.data;
   },
+
+  /**
+   * Get a specific stage evaluation for a candidate.
+   * @param candidateId - Candidate ID
+   * @param stageConfigId - Job stage configuration ID
+   */
+  getStageEvaluation: async (
+    candidateId: string,
+    stageConfigId: string,
+  ): Promise<StageEvaluation> => {
+    const response = await apiClient.get<StageEvaluation>(
+      `/candidates/${candidateId}/evaluations/${stageConfigId}`,
+    );
+    return response.data;
+  },
 };
 
 /**
@@ -592,5 +607,30 @@ export const adminDepartmentService = {
    */
   deleteDepartment: async (departmentId: string): Promise<void> => {
     await apiClient.delete(`/departments/${departmentId}`);
+  },
+};
+
+/**
+ * Results Management APIs
+ */
+export const adminResultsService = {
+  /**
+   * Get resume screening results for a job.
+   */
+  getResumeScreeningResults: async (jobId: string): Promise<ResumeScreeningResultsResponse> => {
+    const response = await apiClient.get<ResumeScreeningResultsResponse>(
+      `/jobs/${jobId}/results/resume-screening`,
+    );
+    return response.data;
+  },
+
+  /**
+   * Get HR round results for a job.
+   */
+  getHRRoundResults: async (jobId: string): Promise<HRRoundResultsResponse> => {
+    const response = await apiClient.get<HRRoundResultsResponse>(
+      `/jobs/${jobId}/results/hr-round`,
+    );
+    return response.data;
   },
 };

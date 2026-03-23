@@ -16,6 +16,7 @@ class InterviewCreate(BaseModel):
 
     candidate_id: uuid.UUID
     job_id: uuid.UUID
+    stage: int = 1
 
 
 class InterviewRead(BaseModel):
@@ -25,6 +26,7 @@ class InterviewRead(BaseModel):
     candidate_id: uuid.UUID
     job_id: uuid.UUID
     interviewer_id: uuid.UUID
+    stage: int
     status: str
     created_at: datetime
 

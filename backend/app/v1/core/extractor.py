@@ -5,7 +5,6 @@ This module provides services for parsing document files (PDF, DOCX) and
 extracting structured information from resume text using LLMs.
 """
 
-import os
 from pathlib import Path, PureWindowsPath
 
 import docx2txt

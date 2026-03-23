@@ -10,14 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission
+from app.v1.schemas.response import PaginatedData
 from app.v1.schemas.skill import SkillCreate, SkillRead, SkillUpdate
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
 
 router = APIRouter()
 
-
-from app.v1.schemas.response import PaginatedData
 
 @router.get("/", response_model=PaginatedData[SkillRead])
 async def get_all_skills(
@@ -77,4 +76,6 @@ async def delete_skill(
     user: UserRead = Depends(check_permission("skills:manage")),
 ) -> None:
     """Delete a skill."""
-    await admin_service.delete_skill(db=db, admin_user_id=user.id, skill_id=skill_id)
+    await admin_service.delete_skill(
+        db=db, admin_user_id=user.id, skill_id=skill_id
+    )

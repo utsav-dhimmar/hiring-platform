@@ -57,6 +57,12 @@ class Interview(Base):
         nullable=False,
     )
 
+    # STAGE: 1=HR screening, 2=Technical, 3=Panel, 4=CTO
+    stage: Mapped[int] = mapped_column(
+        nullable=False,
+        default=1,
+    )
+
     # STATUS: 'pending', 'completed', 'rejected', 'cancelled'
     status: Mapped[str] = mapped_column(
         Text,

@@ -10,7 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission
-from app.v1.schemas.department import DepartmentCreate, DepartmentRead, DepartmentUpdate
+from app.v1.schemas.department import (
+    DepartmentCreate,
+    DepartmentRead,
+    DepartmentUpdate,
+)
 from app.v1.schemas.response import PaginatedData
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin.department_service import department_service
@@ -26,10 +30,14 @@ async def get_all_departments(
     limit: int = Query(100, ge=1, le=500),
 ) -> Any:
     """Get all departments with pagination."""
-    return await department_service.get_all_departments(db=db, skip=skip, limit=limit)
+    return await department_service.get_all_departments(
+        db=db, skip=skip, limit=limit
+    )
 
 
-@router.post("/", response_model=DepartmentRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=DepartmentRead, status_code=status.HTTP_201_CREATED
+)
 async def create_department(
     *,
     db: AsyncSession = Depends(get_db),
