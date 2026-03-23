@@ -83,7 +83,7 @@ RESUME TEXT:
 
         try:
             client = openai.AsyncOpenAI(
-                base_url=settings.OLLAMA_URL,
+                base_url=settings.OLLAMA_URL + "v1",
                 api_key=settings.OLLAMA_API_KEY or "ollama"
             )
             response = await client.chat.completions.create(
