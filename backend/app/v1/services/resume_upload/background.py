@@ -4,26 +4,15 @@ Background task orchestration for resume processing.
 
 from __future__ import annotations
 
-import hashlib
-import time
 import uuid
 
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.logging import get_logger
-from app.v1.core.resume_executor import run_in_resume_executor
-from app.v1.db.session import async_session_maker
-from app.v1.repository.job_repository import job_repository
 from app.v1.repository.resume_upload_repository import resume_upload_repository
-from app.v1.schemas.upload import ResumeMatchAnalysis
-from app.v1.utils.resume_upload import (
-    extract_skill_names,
-    split_name,
-)
 
-from .converters import build_processing_info, merge_processing_info
-from .logging import log_event, log_stage
+from .converters import merge_processing_info
 from .processor import ResumeProcessor
 
 logger = get_logger(__name__)
@@ -93,321 +82,79 @@ class BackgroundProcessor:
         resume_id: uuid.UUID,
         file_path: str,
     ) -> None:
-        """Full background processing workflow for an uploaded resume.
-
-        Extracts text, normalizes data, generates embeddings, performs AI analysis,
-        and persists everything to the database.
-
-        Args:
-            job_id: The job ID.
-            resume_id: The resume ID.
-            file_path: Path to the stored resume file.
-        """
-        total_started_at = time.perf_counter()
-        log_event(
-            event="background_started",
+        from .pipeline import run_resume_processing_pipeline
+        await run_resume_processing_pipeline(
             job_id=job_id,
             resume_id=resume_id,
             file_path=file_path,
+            processor=self.processor,
+            mark_failed_cb=self._mark_resume_failed,
         )
 
+    def schedule_mass_refresh(self, job_id: uuid.UUID) -> None:
+        """Schedule a background task to refresh custom extractions for all resumes of a job."""
+        from .tasks import mass_refresh_task
+        mass_refresh_task.delay(job_id_str=str(job_id))
+        logger.info("Celery task scheduled for mass refresh job_id=%s", job_id)
+
+    async def mass_refresh_in_background(
+        self,
+        *,
+        job_id: uuid.UUID,
+    ) -> None:
+        """Re-run custom extraction for all uploaded resumes of a job."""
+        from sqlalchemy import select
+        from sqlalchemy.orm.attributes import flag_modified
+
+        from app.v1.db.models.resume_chunks import ResumeChunk
+        from app.v1.db.session import async_session_maker
+        from app.v1.repository.job_repository import job_repository
+        from app.v1.repository.resume_upload_repository import resume_upload_repository
+        from app.v1.services.resume_upload.custom_extractor import custom_extractor_service
+
+        logger.info("Starting mass refresh in background for job_id=%s", job_id)
         async with async_session_maker() as db:
-            stage_started_at = time.perf_counter()
-            resume_record = await resume_upload_repository.get_resume_for_job(
-                db,
-                job_id=job_id,
-                resume_id=resume_id,
-            )
-            log_stage(
-                stage="load_resume_for_background",
-                started_at=stage_started_at,
-                job_id=job_id,
-                resume_id=resume_id,
-            )
-            if resume_record is None:
-                logger.error(
-                    "resume_processing missing resume_id=%s job_id=%s",
-                    resume_id,
-                    job_id,
-                )
-                return
-
-            stage_started_at = time.perf_counter()
-            resume_record.parse_summary = merge_processing_info(
-                getattr(resume_record, "parse_summary", None),
-                status_value="processing",
-            )
-            await resume_upload_repository.commit(db)
-            log_stage(
-                stage="mark_processing",
-                started_at=stage_started_at,
-                job_id=job_id,
-                resume_id=resume_id,
-            )
-
-            candidate = resume_record.candidate
-            stage_started_at = time.perf_counter()
             job = await job_repository.get(db, job_id)
-            log_stage(
-                stage="load_job",
-                started_at=stage_started_at,
-                job_id=job_id,
-                resume_id=resume_id,
-            )
-            if job is None:
-                await self._mark_resume_failed(
-                    db=db,
-                    resume_id=resume_id,
-                    current_parse_summary=getattr(
-                        resume_record, "parse_summary", None
-                    ),
-                    error_message="Job not found during background processing.",
-                )
+            if not job or not job.custom_extraction_fields:
+                logger.warning("Job %s has no custom fields for mass refresh", job_id)
                 return
 
-            try:
-                stage_started_at = time.perf_counter()
-                raw_text, normalized = await run_in_resume_executor(
-                    self.processor.process_resume,
-                    file_path,
+            resumes = await resume_upload_repository.get_resumes_for_job(db, job_id=job_id)
+            updated = 0
+
+            for resume in resumes:
+                chunk = await db.scalar(
+                    select(ResumeChunk).where(ResumeChunk.resume_id == resume.id).limit(1)
                 )
-                log_stage(
-                    stage="extract_and_normalize",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
+                if not chunk or not chunk.raw_text:
+                    continue
+
+                custom_extractions = await custom_extractor_service.extract_background_custom_fields(
+                    raw_text=chunk.raw_text,
+                    fields_list=job.custom_extraction_fields,
                 )
 
-                # ---- Issue #25: content-level deduplication ------
-                text_hash = hashlib.sha256(raw_text.encode()).hexdigest()
-                stage_started_at = time.perf_counter()
-                twin_resume = await resume_upload_repository.get_resume_by_text_hash_for_job(
-                    db,
-                    job_id=job_id,
-                    text_hash=text_hash,
-                    exclude_resume_id=resume_record.id,
-                )
-                if twin_resume is not None:
-                    # Same text content found (e.g. pdf vs docx of same file).
-                    # Copy the existing analysis instead of re-running LLM.
-                    log_event(
-                        event="content_dedup_hit",
-                        job_id=job_id,
-                        resume_id=resume_id,
-                        twin_resume_id=twin_resume.id,
-                    )
-                    resume_record.parse_summary = twin_resume.parse_summary
-                    resume_record.parsed = True
-                    resume_record.resume_score = twin_resume.resume_score
-                    resume_record.pass_fail = twin_resume.pass_fail
-                    resume_record.text_hash = text_hash
-                    await resume_upload_repository.commit(db)
-                    log_stage(
-                        stage="total_dedup",
-                        started_at=total_started_at,
-                        job_id=job_id,
-                        resume_id=resume_id,
-                    )
-                    return
-                # --------------------------------------------------
+                if custom_extractions:
+                    # Update resume.parse_summary
+                    if resume.parse_summary and isinstance(resume.parse_summary, dict):
+                        new_summary = dict(resume.parse_summary)
+                        if "analysis" in new_summary and isinstance(new_summary["analysis"], dict):
+                            new_summary["analysis"] = dict(new_summary["analysis"])
+                            new_summary["analysis"]["custom_extractions"] = custom_extractions
+                        resume.parse_summary = new_summary
+                        flag_modified(resume, "parse_summary")
 
-                parsed_name = (
-                    str(normalized["name"][0]["text"]).strip()
-                    if normalized["name"]
-                    else None
-                )
-                parsed_email = (
-                    str(normalized["email"][0]["text"]).strip()
-                    if normalized["email"]
-                    else None
-                )
-                parsed_phone = (
-                    str(normalized["phone"][0]["text"]).strip()
-                    if normalized["phone"]
-                    else None
-                )
-                first_name, last_name = split_name(parsed_name)
-                parsed_summary = {
-                    "name": parsed_name,
-                    "email": parsed_email,
-                    "phone": parsed_phone,
-                    "location": normalized["location"],
-                    "skills": normalized["skills"],
-                    "experience": normalized["experience"],
-                    "education": normalized["education"],
-                    "certifications": normalized["certifications"],
-                    "links": normalized["links"],
-                }
-                extracted_skill_names_list = extract_skill_names(normalized)
-                job_skills = await resume_upload_repository.get_job_skills(
-                    db,
-                    job_id=job_id,
-                )
+                    # Update chunk.parsed_json
+                    if chunk.parsed_json and isinstance(chunk.parsed_json, dict):
+                        new_parsed = dict(chunk.parsed_json)
+                        if "analysis" in new_parsed and isinstance(new_parsed["analysis"], dict):
+                            new_parsed["analysis"] = dict(new_parsed["analysis"])
+                            new_parsed["analysis"]["custom_extractions"] = custom_extractions
+                        chunk.parsed_json = new_parsed
+                        flag_modified(chunk, "parsed_json")
 
-                stage_started_at = time.perf_counter()
-                insights = await self.processor.generate_resume_insights(
-                    raw_text=raw_text,
-                    parsed_summary=parsed_summary,
-                    job=job,
-                    job_skills=job_skills,
-                    candidate_skills=extracted_skill_names_list,
-                )
-                log_stage(
-                    stage="analysis_and_embeddings",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                )
+                    updated += 1
 
-                stage_started_at = time.perf_counter()
-                if insights["job_embedding"] and job.jd_embedding is None:
-                    await resume_upload_repository.update_job_embedding(
-                        db,
-                        job=job,
-                        embedding=insights["job_embedding"],
-                    )
-                log_stage(
-                    stage="persist_job_embedding",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                )
+            await resume_upload_repository.commit(db)
+            logger.info("Completed mass refresh for job_id=%s, %d resumes updated", job_id, updated)
 
-                stage_started_at = time.perf_counter()
-                await resume_upload_repository.update_skill_embeddings(
-                    db,
-                    embeddings_by_skill_id=insights["skill_embeddings"],
-                )
-                log_stage(
-                    stage="persist_job_skill_embeddings",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                    count=len(insights["skill_embeddings"]),
-                )
-
-                stage_started_at = time.perf_counter()
-                await resume_upload_repository.update_candidate_profile(
-                    db,
-                    candidate=candidate,
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=parsed_email,
-                    phone=parsed_phone,
-                    info=parsed_summary,
-                    info_embedding=insights["candidate_embedding"],
-                )
-                log_stage(
-                    stage="persist_candidate_profile",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                )
-
-                analysis = ResumeMatchAnalysis.model_validate(
-                    insights["analysis"]
-                )
-                parse_summary_with_analysis = {
-                    **parsed_summary,
-                    "analysis": analysis.model_dump(),
-                    "processing": build_processing_info(
-                        status_value="completed"
-                    ),
-                }
-                resume_record.parsed = True
-                resume_record.parse_summary = parse_summary_with_analysis
-                resume_record.resume_score = analysis.match_percentage
-                resume_record.pass_fail = analysis.match_percentage >= 65.0
-                resume_record.text_hash = text_hash
-
-                stage_started_at = time.perf_counter()
-                await resume_upload_repository.create_resume_chunk(
-                    db,
-                    resume_id=resume_id,
-                    parsed_json=parse_summary_with_analysis,
-                    raw_text=raw_text,
-                    chunk_embedding=insights["chunk_embedding"],
-                )
-                log_stage(
-                    stage="create_resume_chunk",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                )
-
-                stage_started_at = time.perf_counter()
-                candidate_skill_records = (
-                    await resume_upload_repository.sync_candidate_skills(
-                        db,
-                        candidate_id=candidate.id,
-                        skill_names=extracted_skill_names_list,
-                    )
-                )
-                log_stage(
-                    stage="sync_candidate_skills",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                    count=len(candidate_skill_records),
-                )
-
-                stage_started_at = time.perf_counter()
-                candidate_skill_embeddings = await run_in_resume_executor(
-                    self.processor.generate_skill_embeddings,
-                    candidate_skill_records,
-                )
-                log_stage(
-                    stage="candidate_skill_embeddings",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                )
-                stage_started_at = time.perf_counter()
-                await resume_upload_repository.update_skill_embeddings(
-                    db,
-                    embeddings_by_skill_id=candidate_skill_embeddings,
-                )
-                log_stage(
-                    stage="persist_candidate_skill_embeddings",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                    count=len(candidate_skill_embeddings),
-                )
-
-                stage_started_at = time.perf_counter()
-                await resume_upload_repository.commit(db)
-                log_stage(
-                    stage="commit_completed_resume",
-                    started_at=stage_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                )
-                log_stage(
-                    stage="total",
-                    started_at=total_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                )
-            except Exception as exc:
-                parse_summary_snapshot = getattr(
-                    resume_record, "parse_summary", None
-                )
-                await resume_upload_repository.rollback(db)
-                logger.exception(
-                    "resume_processing failed job_id=%s resume_id=%s",
-                    job_id,
-                    resume_id,
-                )
-                await self._mark_resume_failed(
-                    db=db,
-                    resume_id=resume_id,
-                    current_parse_summary=parse_summary_snapshot,
-                    error_message=str(exc),
-                )
-                log_stage(
-                    stage="total_failed",
-                    started_at=total_started_at,
-                    job_id=job_id,
-                    resume_id=resume_id,
-                )

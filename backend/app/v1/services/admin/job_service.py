@@ -57,8 +57,9 @@ class JobAdminService:
         admin_user_id: uuid.UUID,
         job_id: uuid.UUID,
         job_update: JobUpdate,
+        background_tasks=None,
     ) -> Job:
-        """Update a job."""
+        """Update a job. Auto-triggers mass refresh if custom_extraction_fields changed."""
         await self.get_job_by_id(db=db, job_id=job_id)
         updated_job = await job_repository.update(
             db=db, id=job_id, object=job_update
@@ -75,7 +76,20 @@ class JobAdminService:
                 )
             },
         )
+
+        # Auto-trigger mass refresh if custom_extraction_fields was updated
+        updated_fields = job_update.model_dump(exclude_unset=True)
+        if "custom_extraction_fields" in updated_fields and background_tasks is not None:
+            from app.v1.services.resume_upload.background import BackgroundProcessor
+            from app.v1.services.resume_upload.processor import ResumeProcessor
+            bg_processor = BackgroundProcessor(ResumeProcessor())
+            background_tasks.add_task(
+                bg_processor.mass_refresh_in_background,
+                job_id=job_id,
+            )
+
         return updated_job
+
 
     async def delete_job(
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_id: uuid.UUID

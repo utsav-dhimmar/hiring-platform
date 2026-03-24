@@ -104,7 +104,6 @@ async def test_raw_agent(
     job_description: str = Form("Software Engineer"),
 ) -> JSONResponse:
     from app.v1.services.transcript.processor import TranscriptProcessor
-    from app.v1.services.stage1.evaluator import Stage1Evaluator
     from app.v1.services.stage1.service import _count_filler_words, _extract_candidate_speech
     from autogen import AssistantAgent, UserProxyAgent
     from app.v1.core.config import settings

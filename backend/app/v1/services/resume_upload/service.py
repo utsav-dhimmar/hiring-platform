@@ -418,5 +418,49 @@ class ResumeUploadService:
             ],
         )
 
+    async def trigger_mass_refresh(
+        self,
+        *,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+        background_tasks,
+    ) -> None:
+        from app.v1.repository.job_repository import job_repository
+        job = await job_repository.get(db, job_id)
+        if not job:
+            from fastapi import HTTPException, status
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
+
+        from app.v1.services.resume_upload.background import BackgroundProcessor
+        from app.v1.services.resume_upload.processor import ResumeProcessor
+
+        bg_processor = BackgroundProcessor(ResumeProcessor())
+        background_tasks.add_task(
+            bg_processor.mass_refresh_in_background,
+            job_id=job_id,
+        )
+
+    async def delete_resume(
+        self,
+        *,
+        db: AsyncSession,
+        resume_id: uuid.UUID,
+        job_id: uuid.UUID,
+    ) -> bool:
+        """Delete a resume and its associated data.
+
+        Args:
+            db: The async database session.
+            resume_id: The ID of the resume to delete.
+            job_id: The ID of the job it belongs to.
+
+        Returns:
+            True if deleted, False if not found.
+        """
+        success = await resume_upload_repository.delete_resume(
+            db, resume_id=resume_id, job_id=job_id
+        )
+        return success
+
 
 resume_upload_service = ResumeUploadService()

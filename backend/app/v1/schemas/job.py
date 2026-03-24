@@ -22,6 +22,7 @@ class JobBase(BaseModel):
     jd_text: str | None = None
     jd_json: dict | None = None
     is_active: bool = True
+    custom_extraction_fields: list[str] | None = None
 
 
 class JobCreate(JobBase):
@@ -43,6 +44,7 @@ class JobUpdate(BaseModel):
     jd_json: dict | None = None
     is_active: bool | None = None
     skill_ids: list[uuid.UUID] | None = None
+    custom_extraction_fields: list[str] | None = None
 
 
 class JobRead(JobBase):

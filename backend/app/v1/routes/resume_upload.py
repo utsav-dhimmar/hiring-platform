@@ -7,23 +7,18 @@ and retrieving candidate/resume lists for specific jobs.
 
 import uuid
 
-from fastapi import APIRouter, Depends, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status
 from fastapi import File as FastAPIFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission, get_current_user
 from app.v1.schemas.upload import (
-    CustomExtractionRequest,
-    CustomExtractionResponse,
     JobCandidatesResponse,
     ResumeStatusResponse,
     ResumeUploadResponse,
 )
 from app.v1.schemas.user import UserRead
-from app.v1.services.resume_upload.custom_extractor import (
-    custom_extractor_service,
-)
 from app.v1.services.resume_upload_service import (
     resume_upload_service,
 )
@@ -101,22 +96,45 @@ async def get_resume_status(
     )
 
 @router.post(
-    "/jobs/{job_id}/resume/{resume_id}/extract-custom",
-    response_model=CustomExtractionResponse,
-    status_code=status.HTTP_200_OK,
+    "/jobs/{job_id}/refresh-custom-extractions",
+    status_code=status.HTTP_202_ACCEPTED,
 )
-async def extract_custom_resume_fields(
+async def refresh_custom_extractions_for_job(
     job_id: uuid.UUID,
-    resume_id: uuid.UUID,
-    request: CustomExtractionRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
-) -> CustomExtractionResponse:
-    """Extract custom dynamic fields from a specific resume."""
-    return await custom_extractor_service.extract_custom_fields(
+) -> dict[str, str]:
+    """Mass refresh all custom extractions for all existing resumes of a job."""
+    await resume_upload_service.trigger_mass_refresh(
         db=db,
         job_id=job_id,
-        resume_id=resume_id,
-        request=request,
+        background_tasks=background_tasks,
     )
+    return {"message": f"Mass refresh started for job {job_id}. Resumes will be updated shortly."}
 
+
+@router.delete(
+    "/jobs/{job_id}/resumes/{resume_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_resume(
+    job_id: uuid.UUID,
+    resume_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+):
+    """Delete a specific resume from a job.
+    
+    This will also remove associated candidate data if no other resumes exist.
+    """
+    success = await resume_upload_service.delete_resume(
+        db=db,
+        resume_id=resume_id,
+        job_id=job_id,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume not found for this job.",
+        )

@@ -16,7 +16,6 @@ from app.v1.dependencies.auth import get_current_user
 from app.v1.schemas.transcript import TranscriptStatusResponse, TranscriptUploadResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.transcript import transcript_service
-from app.v1.services.transcript.processor import TranscriptProcessor
 
 router = APIRouter()
 

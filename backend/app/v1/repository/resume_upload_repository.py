@@ -519,7 +519,10 @@ class ResumeUploadRepository:
                     .options(
                         selectinload(Candidate.resumes).selectinload(Resume.file),
                     )
-                    .where(Candidate.applied_job_id == job_id)
+                    .where(
+                        Candidate.applied_job_id == job_id,
+                        Candidate.resumes.any(),
+                    )
                 )
             ).all()
         )
@@ -548,7 +551,10 @@ class ResumeUploadRepository:
                         selectinload(Resume.file),
                     )
                     .join(Candidate, Candidate.id == Resume.candidate_id)
-                    .where(Candidate.applied_job_id == job_id)
+                    .where(
+                        Candidate.applied_job_id == job_id,
+                        Candidate.resumes.any(),
+                    )
                     .order_by(Resume.uploaded_at.desc())
                 )
             ).all()
@@ -594,6 +600,52 @@ class ResumeUploadRepository:
         """
         await db.refresh(file_record)
         await db.refresh(resume_record)
+
+    async def delete_resume(
+        self,
+        db: AsyncSession,
+        *,
+        resume_id: uuid.UUID,
+        job_id: uuid.UUID,
+    ) -> bool:
+        """Delete a resume and its associated records (chunk, file, candidate).
+
+        Args:
+            db: The async database session.
+            resume_id: UUID of the resume to delete.
+            job_id: UUID of the job it belongs to (for scoped lookup).
+
+        Returns:
+            True if deleted, False if not found.
+        """
+        # Load the resume with candidate relation
+        resume = await db.scalar(
+            select(Resume)
+            .join(Candidate, Resume.candidate_id == Candidate.id)
+            .options(selectinload(Resume.candidate), selectinload(Resume.file))
+            .where(Resume.id == resume_id, Candidate.applied_job_id == job_id)
+        )
+        if not resume:
+            return False
+
+        file_id = resume.file_id
+
+        # Delete resume chunks first (FK dependency)
+        await db.execute(
+            delete(ResumeChunk).where(ResumeChunk.resume_id == resume_id)
+        )
+
+        # Delete the resume row
+        await db.delete(resume)
+
+        # Explicitly delete the file record to clear deduplication hash
+        if file_id:
+            await db.execute(
+                delete(FileRecord).where(FileRecord.id == file_id)
+            )
+
+        await db.commit()
+        return True
 
 
 resume_upload_repository = ResumeUploadRepository()

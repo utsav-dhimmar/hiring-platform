@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidates import Candidate
-from app.v1.repository.candidate_repository import candidate_repository
 from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
 from sqlalchemy import func
