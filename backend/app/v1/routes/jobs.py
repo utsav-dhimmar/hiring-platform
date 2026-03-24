@@ -5,7 +5,7 @@ API routes for job-related operations in version 1.
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
@@ -118,10 +118,12 @@ async def update_job(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("jobs:manage")),
     job_update: JobUpdate,
+    background_tasks: BackgroundTasks,
 ) -> Any:
-    """Update a job."""
+    """Update a job. Automatically refreshes resumes if custom_extraction_fields changed."""
     return await admin_service.update_job(
-        db=db, admin_user_id=user.id, job_id=job_id, job_update=job_update
+        db=db, admin_user_id=user.id, job_id=job_id, job_update=job_update,
+        background_tasks=background_tasks,
     )
 
 

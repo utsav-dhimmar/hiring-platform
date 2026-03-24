@@ -13,7 +13,9 @@ from seed.seed_skills import ensure_skills
 
 # --- Combined Job: Senior Full Stack Developer (Next.js & Python) ---
 FULLSTACK_JOB_TITLE = "Senior Full Stack Developer (Next.js & Python)"
-FULLSTACK_JOB_DESCRIPTION = """This is a remote position.
+FULLSTACK_JOB_DESCRIPTION = """This is a remo
+
+te position.
 
 About August Infotech,
 By leveraging user-centric thinking, design capabilities, new technologies and cloud solutions, we empower our clients and allow them to rethink how they connect with their customers across every platform, every device and every step of the customer journey. As part of an end-to-end delivery, our technical team builds compelling digital experiences with a focus on channels such as the web and mobile.

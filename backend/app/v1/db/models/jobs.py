@@ -98,6 +98,12 @@ class Job(Base):
         nullable=False,
     )
 
+    # CUSTOM EXTRACTION
+    custom_extraction_fields: Mapped[list[str] | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
+
     # RELATIONSHIPS
     creator: Mapped["User"] = relationship(
         "User", back_populates="jobs", foreign_keys=[created_by]
