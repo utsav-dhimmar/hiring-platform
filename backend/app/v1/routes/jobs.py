@@ -10,14 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission
-from app.v1.schemas.job import JobCreate, JobRead, JobUpdate, JobsListRead
+from app.v1.schemas.job import JobCreate, JobRead, JobsListRead, JobUpdate
 from app.v1.schemas.job_stage import (
     JobStageConfigCreate,
     JobStageConfigRead,
     JobStageConfigUpdate,
     JobStageReorder,
 )
-from app.v1.schemas.upload import  JobResumesResponse
+from app.v1.schemas.upload import JobResumesResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
 from app.v1.services.job_service import job_service
@@ -79,7 +79,9 @@ async def create_job(
     job_in: JobCreate,
 ) -> Any:
     """Create a new job."""
-    return await admin_service.create_job(db=db, admin_user_id=user.id, job_in=job_in)
+    return await admin_service.create_job(
+        db=db, admin_user_id=user.id, job_in=job_in
+    )
 
 
 @router.get("/{job_id}", response_model=JobRead)
@@ -137,6 +139,7 @@ async def delete_job(
 
 # --- Job Stage Configuration ---
 
+
 @router.get("/{job_id}/stages", response_model=list[JobStageConfigRead])
 async def get_job_stages(
     job_id: uuid.UUID,
@@ -160,7 +163,9 @@ async def add_stage_to_job(
     stage_in: JobStageConfigCreate,
 ) -> Any:
     """Add a new stage to a job's interview process."""
-    return await stage_service.add_stage_to_job(db=db, job_id=job_id, stage_in=stage_in)
+    return await stage_service.add_stage_to_job(
+        db=db, job_id=job_id, stage_in=stage_in
+    )
 
 
 @router.patch("/{job_id}/stages/{config_id}", response_model=JobStageConfigRead)
@@ -180,7 +185,9 @@ async def update_job_stage(
     return config
 
 
-@router.delete("/{job_id}/stages/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{job_id}/stages/{config_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def remove_stage_from_job(
     job_id: uuid.UUID,
     config_id: uuid.UUID,

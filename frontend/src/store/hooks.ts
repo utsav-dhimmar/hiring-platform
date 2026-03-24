@@ -5,8 +5,8 @@
 
 import { useMemo } from "react";
 import { useSelector, useDispatch, type TypedUseSelectorHook } from "react-redux";
-import { selectCurrentUser, selectIsAuthenticated } from "./slices/authSlice";
-import type { RootState, AppDispatch } from "./index";
+import { selectCurrentUser, selectIsAuthenticated } from "@/store/slices/authSlice";
+import type { RootState, AppDispatch } from "@/store/index";
 
 /**
  * Typed dispatch hook for dispatching actions to the Redux store.

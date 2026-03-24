@@ -3,13 +3,13 @@
  * Provides navigation sidebar and logout functionality for admin pages.
  */
 
-import { useState, useEffect } from "react";
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../../../store/hooks";
-import { logout, selectCurrentUser } from "../../../store/slices/authSlice";
-import { authService } from "../../../apis/services/auth";
+import { useEffect, useState } from "react";
 import { Button, Offcanvas } from "react-bootstrap";
-import "../../../css/adminLayout.css";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { authService } from "@/apis/auth";
+import "@/css/adminLayout.css";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logout, selectCurrentUser } from "@/store/slices/authSlice";
 
 const AdminLayout = () => {
   const dispatch = useAppDispatch();
@@ -45,76 +45,45 @@ const AdminLayout = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  const navItems = [
+    { to: "/admin", label: "Dashboard", end: true },
+    { to: "/admin/users", label: "Users", adminOnly: true },
+    { to: "/admin/jobs", label: "Jobs" },
+    { to: "/admin/candidates", label: "Candidates" },
+    { to: "/admin/skills", label: "Skills" },
+    { to: "/admin/stage-templates", label: "Templates", adminOnly: true },
+  ];
+
   const SidebarContent = () => (
     <>
       <div className="sidebar-header">
-        <h2 onClick={goToHome} style={{ cursor: "pointer" }}>
-          Hiring <span>Admin</span>
-        </h2>
+        <div
+          className="d-flex align-items-center mb-0"
+          onClick={goToHome}
+          style={{ cursor: "pointer" }}
+        >
+          <h2 className="mb-0">
+            Hiring <span>Panel</span>
+          </h2>
+        </div>
       </div>
       <nav className="sidebar-nav">
-        <NavLink
-          to="/admin"
-          end
-          className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-        >
-          Dashboard
-        </NavLink>
-        {isAdmin && (
-          <NavLink
-            to="/admin/users"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            User Management
-          </NavLink>
-        )}
-        <NavLink
-          to="/admin/jobs"
-          className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-        >
-          Job Management
-        </NavLink>
-        <NavLink
-          to="/admin/candidates"
-          className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-        >
-          Candidate Search
-        </NavLink>
-        <NavLink
-          to="/admin/skills"
-          className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-        >
-          Skill Management
-        </NavLink>
-        {isAdmin && (
-          <NavLink
-            to="/admin/stage-templates"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            Stage Templates
-          </NavLink>
-        )}
-        {isAdmin && (
-          <NavLink
-            to="/admin/roles"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            Role & Permissions
-          </NavLink>
-        )}
-        {isAdmin && (
-          <NavLink
-            to="/admin/audit-logs"
-            className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-          >
-            Audit Logs
-          </NavLink>
-        )}
-        <NavLink
-          to="/admin/recent-uploads"
-          className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
-        >
-          Recent Uploads
+        {navItems.map((item) => {
+          if (item.adminOnly && !isAdmin) return null;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => (isActive ? "nav-item active" : "nav-item")}
+            >
+              {item.label}
+            </NavLink>
+          );
+        })}
+        <div className="nav-divider my-2"></div>
+        <NavLink to="/" className="nav-item back-link">
+          Back to Site
         </NavLink>
       </nav>
       <div className="sidebar-footer">
@@ -139,7 +108,7 @@ const AdminLayout = () => {
         className="admin-offcanvas d-lg-none"
       >
         <Offcanvas.Header closeButton>
-          <Offcanvas.Title>Hiring Admin</Offcanvas.Title>
+          <Offcanvas.Title>Hiring Panel</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body className="p-0">
           <SidebarContent />
@@ -164,7 +133,7 @@ const AdminLayout = () => {
             <span className="hamburger-line"></span>
           </Button>
           <div className="header-breadcrumbs d-none d-sm-block">
-            {location.pathname === "/admin" ? "Dashboard" : "Admin Panel"}
+            {location.pathname === "/admin" ? "Dashboard" : "Panel"}
           </div>
         </header>
         <main className="admin-content">

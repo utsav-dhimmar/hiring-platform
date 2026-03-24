@@ -1,0 +1,158 @@
+import apiClient from "@/apis/client";
+import type {
+  JobCreate,
+  JobRead,
+  JobStageConfigCreate,
+  JobStageConfigUpdate,
+  JobStageReorder,
+  JobUpdate,
+} from "@/types/admin";
+import type { JobResumesResponse } from "@/types/resume";
+import type { JobStageConfig } from "@/types/stage";
+
+/**
+ * Job Management APIs
+ */
+export const adminJobService = {
+  /**
+   * Get all jobs with pagination.
+   * @param skip - Number of records to skip
+   * @param limit - Maximum number of records to return
+   * @returns Promise resolving to the list of jobs
+   */
+  getAllJobs: async (skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
+    const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs", {
+      params: { skip, limit },
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Search for jobs by query.
+   * @param query - Search term
+   * @param skip - Number of records to skip
+   * @param limit - Maximum number of records to return
+   * @returns Promise resolving to matching jobs
+   */
+  searchJobs: async (query: string, skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
+    const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs/search", {
+      params: { q: query, skip, limit },
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Create a new job posting.
+   * @param job - Job creation payload
+   * @returns Promise resolving to the created job
+   */
+  createJob: async (job: JobCreate): Promise<JobRead> => {
+    const response = await apiClient.post<JobRead>("/jobs", job);
+    return response.data;
+  },
+
+  /**
+   * Get job details by ID.
+   * @param jobId - Job ID
+   * @returns Promise resolving to job details
+   */
+  getJobById: async (jobId: string): Promise<JobRead> => {
+    const response = await apiClient.get<JobRead>(`/jobs/${jobId}`);
+    return response.data;
+  },
+
+  /**
+   * Update an existing job.
+   * @param jobId - Job ID
+   * @param job - Job update payload
+   * @returns Promise resolving to updated job details
+   */
+  updateJob: async (jobId: string, job: JobUpdate): Promise<JobRead> => {
+    const response = await apiClient.patch<JobRead>(`/jobs/${jobId}`, job);
+    return response.data;
+  },
+
+  /**
+   * Delete a job posting.
+   * @param jobId - Job ID
+   */
+  deleteJob: async (jobId: string): Promise<void> => {
+    await apiClient.delete(`/jobs/${jobId}`);
+  },
+
+  /**
+   * Get all resumes submitted for a job.
+   * @param jobId - Job ID
+   * @returns Promise resolving to job resumes
+   */
+  getJobResumes: async (jobId: string): Promise<JobResumesResponse> => {
+    const response = await apiClient.get<JobResumesResponse>(`/jobs/${jobId}/resumes`);
+    return response.data;
+  },
+
+  /**
+   * Job Stage Configuration
+   */
+  /**
+   * Get configured stages for a specific job.
+   * @param jobId - Job ID
+   * @returns Promise resolving to job stage configurations
+   */
+  getJobStages: async (jobId: string): Promise<JobStageConfig[]> => {
+    const response = await apiClient.get<JobStageConfig[]>(`/jobs/${jobId}/stages`);
+    return response.data;
+  },
+
+  /**
+   * Add a new stage to a job's workflow.
+   * @param jobId - Job ID
+   * @param stage - Stage configuration payload
+   * @returns Promise resolving to the added stage configuration
+   */
+  addStageToJob: async (jobId: string, stage: JobStageConfigCreate): Promise<JobStageConfig> => {
+    const response = await apiClient.post<JobStageConfig>(`/jobs/${jobId}/stages`, stage);
+    return response.data;
+  },
+
+  /**
+   * Update a specific stage configuration for a job.
+   * @param jobId - Job ID
+   * @param configId - Configuration ID
+   * @param stage - Update payload
+   * @returns Promise resolving to updated configuration
+   */
+  updateJobStage: async (
+    jobId: string,
+    configId: string,
+    stage: JobStageConfigUpdate,
+  ): Promise<JobStageConfig> => {
+    const response = await apiClient.patch<JobStageConfig>(
+      `/jobs/${jobId}/stages/${configId}`,
+      stage,
+    );
+    return response.data;
+  },
+
+  /**
+   * Remove a stage from a job's workflow.
+   * @param jobId - Job ID
+   * @param configId - Configuration ID
+   */
+  removeStageFromJob: async (jobId: string, configId: string): Promise<void> => {
+    await apiClient.delete(`/jobs/${jobId}/stages/${configId}`);
+  },
+
+  /**
+   * Reorder stages for a job.
+   * @param jobId - Job ID
+   * @param reorder - Reorder instructions
+   * @returns Promise resolving to the new list of configurations
+   */
+  reorderJobStages: async (jobId: string, reorder: JobStageReorder): Promise<JobStageConfig[]> => {
+    const response = await apiClient.put<JobStageConfig[]>(
+      `/jobs/${jobId}/stages/reorder`,
+      reorder,
+    );
+    return response.data;
+  },
+};

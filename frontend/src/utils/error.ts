@@ -1,7 +1,7 @@
 /**
  * Utility functions for handling and formatting errors.
  */
-
+import axios from "axios";
 /**
  * Extracts a user-friendly error message from an axios error or any other error.
  * Handles the common backend structure of fastapi style { detail: string } or fallback to message.

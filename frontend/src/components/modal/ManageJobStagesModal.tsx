@@ -4,12 +4,12 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { adminJobService, adminStageTemplateService } from "../../apis/admin/service";
-import type { JobRead } from "../../apis/admin/types";
-import type { JobStageConfig, StageTemplate } from "../../apis/types/stage";
+import { adminJobService, adminStageTemplateService } from "@/apis/admin/service";
+import type { JobRead } from "@/types/admin";
+import type { JobStageConfig, StageTemplate } from "@/types/stage";
 import { Modal } from "react-bootstrap";
-import { Button, ErrorDisplay, LoadingSpinner } from "../../components/common";
-import "../../css/adminDashboard.css";
+import { Button, ErrorDisplay, LoadingSpinner } from "@/components/shared";
+import "@/css/adminDashboard.css";
 import { extractErrorMessage } from "../../utils/error";
 
 interface ManageJobStagesModalProps {

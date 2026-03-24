@@ -5,15 +5,12 @@
 
 import { useCallback } from "react";
 import { Modal } from "react-bootstrap";
-import { adminSkillService } from "../../apis/admin/service";
-import type { SkillRead } from "../../apis/admin/types";
-import { Button, Input } from "../../components/common";
-import "../../css/adminDashboard.css";
-import { useFormModal } from "../../hooks";
-import {
-  skillCreateSchema,
-  type SkillCreateFormValues,
-} from "../../schemas/admin";
+import { adminSkillService } from "@/apis/admin/service";
+import type { SkillRead } from "@/types/admin";
+import { Button, Input } from "@/components/shared";
+import "@/css/adminDashboard.css";
+import { useFormModal } from "@/hooks";
+import { skillCreateSchema, type SkillCreateFormValues } from "@/schemas/admin";
 
 interface CreateSkillModalProps {
   show: boolean;

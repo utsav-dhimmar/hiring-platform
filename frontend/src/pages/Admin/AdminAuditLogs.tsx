@@ -3,11 +3,11 @@
  * Displays a history of user actions and system events.
  */
 
-import { adminAnalyticsService } from "../../apis/admin/service";
-import type { AuditLogRead } from "../../apis/admin/types";
-import { AdminDataTable, DateDisplay, PageHeader, type Column } from "../../components/common";
-import "../../css/adminDashboard.css";
-import { useAdminData } from "../../hooks";
+import { adminAnalyticsService } from "@/apis/admin/service";
+import type { AuditLogRead } from "@/types/admin";
+import { AdminDataTable, DateDisplay, PageHeader, type Column } from "@/components/shared";
+import "@/css/adminDashboard.css";
+import { useAdminData } from "@/hooks";
 
 const AdminAuditLogs = () => {
   const {

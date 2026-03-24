@@ -9,13 +9,14 @@ import {
   adminDepartmentService,
   adminJobService,
   adminSkillService,
-} from "../../apis/admin/service";
-import type { DepartmentRead, JobRead, SkillRead } from "../../apis/admin/types";
-import { Button, ErrorDisplay, Input } from "../../components/common";
-import "../../css/adminDashboard.css";
-import { useFormModal } from "../../hooks";
-import { jobCreateSchema, type JobCreateFormValues } from "../../schemas/admin";
+} from "@/apis/admin/service";
+import type { DepartmentRead, JobRead, SkillRead } from "@/types/admin";
+import { Button, ErrorDisplay, Input } from "@/components/shared";
+import "@/css/adminDashboard.css";
+import { useFormModal } from "@/hooks";
+import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
 import CreateSkillModal from "./CreateSkillModal";
+import JobSkillSelector from "./JobSkillSelector";
 
 interface CreateJobModalProps {
   show: boolean;
@@ -194,67 +195,15 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
               {errors.jd_text && <div className="invalid-feedback">{errors.jd_text.message}</div>}
             </div>
 
-            <div className="job-skills-section">
-              <div className="job-skills-header d-flex justify-content-between align-items-center mb-2">
-                <div>
-                  <label className="form-label mb-0">Required Skills</label>
-                  <p className="job-skills-help text-muted small mb-0">
-                    Select the skills that should be linked to this job.
-                  </p>
-                </div>
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  type="button"
-                  onClick={() => setShowSkillModal(true)}
-                >
-                  Add Skill
-                </Button>
-              </div>
-
-              {skillsError && <ErrorDisplay message={skillsError} />}
-
-              <div className="job-skills-panel border rounded p-3 bg-light">
-                {skillsLoading ? (
-                  <p className="job-skills-empty text-center py-3">Loading skills...</p>
-                ) : skills.length === 0 ? (
-                  <p className="job-skills-empty text-center py-3">
-                    No skills found yet. Add a skill to start linking jobs.
-                  </p>
-                ) : (
-                  <div className="job-skills-grid d-flex flex-wrap gap-2">
-                    {skills.map((skill) => (
-                      <label
-                        key={skill.id}
-                        className={`job-skill-option d-flex flex-column p-2 border rounded cursor-pointer ${
-                          selectedSkillIds.includes(skill.id)
-                            ? "border-primary bg-primary bg-opacity-10"
-                            : "bg-white"
-                        }`}
-                        style={{ width: "calc(33.33% - 0.75rem)", minWidth: "150px" }}
-                      >
-                        <div className="d-flex align-items-center gap-2">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            checked={selectedSkillIds.includes(skill.id)}
-                            onChange={() => toggleSkill(skill.id)}
-                          />
-                          <span className="fw-bold">{skill.name}</span>
-                        </div>
-                        <small className="text-muted text-truncate">
-                          {skill.description || "No description"}
-                        </small>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {errors.skill_ids?.message && (
-                <div className="invalid-feedback d-block">{errors.skill_ids.message}</div>
-              )}
-            </div>
+            <JobSkillSelector
+              skills={skills}
+              selectedSkillIds={selectedSkillIds}
+              loading={skillsLoading}
+              error={skillsError}
+              onToggleSkill={toggleSkill}
+              onAddSkill={() => setShowSkillModal(true)}
+              errorMessage={errors.skill_ids?.message}
+            />
 
             <div className="form-check mt-3">
               <input
@@ -290,4 +239,3 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
 };
 
 export default CreateJobModal;
-

@@ -4,9 +4,11 @@
  */
 
 import React, { useState } from "react";
-import { Col, Form, ProgressBar, Row, Spinner } from "react-bootstrap";
-import { Button, Card, CardBody, StatusBadge } from "../common";
-import type { Stage1Info } from "../../apis/types/stage";
+import { Col, Form, Row, Spinner } from "react-bootstrap";
+import { Button, Card, CardBody, StatusBadge } from "@/components/shared";
+import EvaluationResults from "@/components/evaluation/EvaluationResults";
+import type { Stage1Info } from "@/types/stage";
+import type { EvaluationResult } from "@/types/evaluation";
 
 interface Stage1HRRoundProps {
   /** Current Stage 1 data */
@@ -19,24 +21,12 @@ interface Stage1HRRoundProps {
   isLoading?: boolean;
 }
 
-/**
- * Individual evaluation metric display with a progress bar and score.
- */
-const EvaluationItem = ({ label, score }: { label: string; score: number }) => (
-  <div className="mb-3">
-    <div className="d-flex justify-content-between mb-1">
-      <span className="small fw-bold">{label}</span>
-      <span className="small">{score}/10</span>
-    </div>
-    <ProgressBar
-      now={score * 10}
-      variant={score >= 7 ? "success" : score >= 5 ? "warning" : "danger"}
-      style={{ height: "6px" }}
-    />
-  </div>
-);
-
-const Stage1HRRound = ({ stageInfo, onUploadTranscript, onMakeDecision, isLoading = false }: Stage1HRRoundProps) => {
+const Stage1HRRound = ({
+  stageInfo,
+  onUploadTranscript,
+  onMakeDecision,
+  isLoading = false,
+}: Stage1HRRoundProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,75 +115,41 @@ const Stage1HRRound = ({ stageInfo, onUploadTranscript, onMakeDecision, isLoadin
 
             {status === "completed" && analysis && (
               <div className="results-section">
-                <Row className="g-4">
-                  <Col lg={7} xl={8}>
-                    <div className="mb-4">
-                      <h6 className="text-uppercase small fw-bold text-muted mb-3 letter-spacing-wide">
-                        Response Summary
-                      </h6>
-                      <div className="p-3 bg-light rounded-3 border-0 text-dark leading-relaxed">
-                        {analysis.response_summary}
-                      </div>
-                    </div>
-                    <div className="mb-4">
-                      <h6 className="text-uppercase small fw-bold text-muted mb-3 letter-spacing-wide">
-                        Communication Evaluation
-                      </h6>
-                      <div className="p-3 bg-light rounded-3 border-0 text-dark leading-relaxed">
-                        {analysis.communication_evaluation}
-                      </div>
-                    </div>
-                    <div className="bg-primary-subtle p-4 rounded-4 border-0">
-                      <h6 className="text-primary fw-bold mb-2 d-flex align-items-center">
-                        <i className="bi bi-robot me-2"></i>
-                        AI Recommendation
-                      </h6>
-                      <p className="mb-0 fs-5 fw-medium text-primary-emphasis leading-tight">
-                        {analysis.recommendation}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col lg={5} xl={4}>
-                    <Card className="border-0 bg-white shadow-sm rounded-4">
-                      <CardBody className="p-4">
-                        <h6 className="text-center text-muted small text-uppercase fw-bold mb-4 letter-spacing-wide">
-                          Evaluation Scores
+                {/* Use the new EvaluationResults component if it's the new structure */}
+                {analysis.scores ? (
+                  <EvaluationResults result={analysis as unknown as EvaluationResult} />
+                ) : (
+                  <Row className="g-4">
+                    {/* Fallback for legacy data */}
+                    <Col lg={7} xl={8}>
+                      <div className="mb-4">
+                        <h6 className="text-uppercase small fw-bold text-muted mb-3 letter-spacing-wide">
+                          Response Summary
                         </h6>
-                        <div className="text-center mb-5">
-                          <div className="position-relative d-inline-block">
-                            <h2 className="display-4 fw-bold text-primary mb-0 tabular-nums">
-                              {analysis.overall_score.toFixed(0)}
-                            </h2>
-                            <span className="text-muted small position-absolute top-0 start-100 ms-1 fw-bold">
-                              /100
-                            </span>
-                          </div>
-                          <div className="text-muted small fw-medium mt-1">
-                            Overall Compatibility
-                          </div>
+                        <div className="p-3 bg-light rounded-3 border-0 text-dark leading-relaxed">
+                          {analysis.response_summary}
                         </div>
-
-                        <div className="scores-list">
-                          <EvaluationItem
-                            label="Communication"
-                            score={analysis.communication_skill}
-                          />
-                          <EvaluationItem label="Confidence" score={analysis.confidence} />
-                          <EvaluationItem label="Cultural Fit" score={analysis.cultural_fit} />
-                          <EvaluationItem
-                            label="Profile Awareness"
-                            score={analysis.profile_understanding}
-                          />
-                          <EvaluationItem
-                            label="Tech Alignment"
-                            score={analysis.tech_stack_alignment}
-                          />
-                          <EvaluationItem label="Salary Match" score={analysis.salary_alignment} />
+                      </div>
+                      <div className="mb-4">
+                        <h6 className="text-uppercase small fw-bold text-muted mb-3 letter-spacing-wide">
+                          Communication Evaluation
+                        </h6>
+                        <div className="p-3 bg-light rounded-3 border-0 text-dark leading-relaxed">
+                          {analysis.communication_evaluation}
                         </div>
-                      </CardBody>
-                    </Card>
-                  </Col>
-                </Row>
+                      </div>
+                      <div className="bg-primary-subtle p-4 rounded-4 border-0">
+                        <h6 className="text-primary fw-bold mb-2 d-flex align-items-center">
+                          <i className="bi bi-robot me-2"></i>
+                          AI Recommendation
+                        </h6>
+                        <p className="mb-0 fs-5 fw-medium text-primary-emphasis leading-tight">
+                          {analysis.recommendation}
+                        </p>
+                      </div>
+                    </Col>
+                  </Row>
+                )}
 
                 <hr className="my-5 opacity-10" />
 
@@ -239,15 +195,6 @@ const Stage1HRRound = ({ stageInfo, onUploadTranscript, onMakeDecision, isLoadin
                           </h5>
                         </div>
                       </div>
-                      <Button
-                        variant={hr_decision ? "outline-success" : "outline-danger"}
-                        size="sm"
-                        className="px-4 py-2 rounded-pill fw-bold bg-white"
-                        onClick={() => onMakeDecision(!hr_decision)}
-                        disabled={isLoading}
-                      >
-                        Re-evaluate
-                      </Button>
                     </div>
                   )}
                 </div>

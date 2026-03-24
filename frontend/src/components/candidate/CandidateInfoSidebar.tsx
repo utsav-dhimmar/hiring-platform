@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { Badge } from "react-bootstrap";
-import { Card, CardBody } from "../common";
-import type { CandidateResponse } from "../../apis/types/resume";
+import { Card, CardBody } from "@/components/shared";
+import type { CandidateResponse } from "@/types/resume";
 
 /**
  * Props for the CandidateInfoSidebar component.

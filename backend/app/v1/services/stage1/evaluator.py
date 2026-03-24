@@ -23,16 +23,16 @@ from app.v1.core.config import settings
 logger = logging.getLogger(__name__)
 
 CRITERIA_WEIGHTS: dict[str, float] = {
-    "Communication Skill":   0.20,
-    "Confidence":            0.20,
-    "Cultural Fit":          0.20,
+    "Communication Skill": 0.20,
+    "Confidence": 0.20,
+    "Cultural Fit": 0.20,
     "Profile Understanding": 0.15,
-    "Tech Stack Alignment":  0.25,
+    "Tech Stack Alignment": 0.25,
 }
 
 CRITERIA = list(CRITERIA_WEIGHTS.keys())
 
-MAX_FULL_TEXT_WORDS     = 300
+MAX_FULL_TEXT_WORDS = 300
 MAX_CANDIDATE_TEXT_WORDS = 200
 
 
@@ -76,14 +76,14 @@ class Stage1Evaluator:
         self._llm_config = {
             "config_list": [
                 {
-                    "model":      settings.OLLAMA_MODEL,
-                    "base_url":   settings.OLLAMA_URL,
-                    "api_key":    settings.OLLAMA_API_KEY or "ollama",
+                    "model": "qwen3.5:cloud",
+                    "base_url": settings.OLLAMA_URL + "/v1",
+                    "api_key": settings.OLLAMA_API_KEY or "ollama",
                     "max_tokens": 4000,
                 }
             ],
             "temperature": 0.1,
-            "timeout":     180,
+            "timeout": 180,
         }
 
     # ------------------------------------------------------------------
@@ -138,9 +138,9 @@ Return ONLY valid JSON."""
         logger.info("Stage1Evaluator call 1 keys: %s", list(result1.keys()))
 
         # ── Call 2: Last 2 criteria + summaries ──────────────────────
-        comm_score  = result1.get("Communication Skill", {}).get("score", 65)
-        conf_score  = result1.get("Confidence",          {}).get("score", 65)
-        cult_score  = result1.get("Cultural Fit",        {}).get("score", 65)
+        comm_score = result1.get("Communication Skill", {}).get("score", 65)
+        conf_score = result1.get("Confidence", {}).get("score", 65)
+        cult_score = result1.get("Cultural Fit", {}).get("score", 65)
 
         prompt2 = f"""\
 You are an HR evaluator. Evaluate ONLY these 2 criteria plus summary fields and return ONLY this JSON.
@@ -194,13 +194,23 @@ Return ONLY valid JSON."""
     ) -> tuple[str, str]:
         full_words = full_text.split()
         if len(full_words) > MAX_FULL_TEXT_WORDS:
-            full_text = " ".join(full_words[:MAX_FULL_TEXT_WORDS]) + "\n[trimmed]"
-            logger.info("Stage1Evaluator: full_text trimmed to %d words", MAX_FULL_TEXT_WORDS)
+            full_text = (
+                " ".join(full_words[:MAX_FULL_TEXT_WORDS]) + "\n[trimmed]"
+            )
+            logger.info(
+                "Stage1Evaluator: full_text trimmed to %d words",
+                MAX_FULL_TEXT_WORDS,
+            )
 
         cand_words = candidate_text.split()
         if len(cand_words) > MAX_CANDIDATE_TEXT_WORDS:
-            candidate_text = " ".join(cand_words[:MAX_CANDIDATE_TEXT_WORDS]) + "\n[trimmed]"
-            logger.info("Stage1Evaluator: candidate_text trimmed to %d words", MAX_CANDIDATE_TEXT_WORDS)
+            candidate_text = (
+                " ".join(cand_words[:MAX_CANDIDATE_TEXT_WORDS]) + "\n[trimmed]"
+            )
+            logger.info(
+                "Stage1Evaluator: candidate_text trimmed to %d words",
+                MAX_CANDIDATE_TEXT_WORDS,
+            )
 
         return full_text, candidate_text
 
@@ -282,7 +292,7 @@ Return ONLY valid JSON."""
             elif ch == "}":
                 depth -= 1
                 if depth == 0 and start != -1:
-                    block = cleaned[start: idx + 1]
+                    block = cleaned[start : idx + 1]
                     try:
                         return json.loads(block)
                     except json.JSONDecodeError:
@@ -294,7 +304,8 @@ Return ONLY valid JSON."""
                     start = -1
 
         logger.warning(
-            "Stage1Evaluator: all parse strategies failed. Raw output: %s", raw[:400]
+            "Stage1Evaluator: all parse strategies failed. Raw output: %s",
+            raw[:400],
         )
         return {}
 
@@ -325,7 +336,8 @@ Return ONLY valid JSON."""
                 1,
             )
             logger.warning(
-                "Stage1Evaluator: stage_score missing, computed %.1f", stage_score
+                "Stage1Evaluator: stage_score missing, computed %.1f",
+                stage_score,
             )
 
         recommendation = data.get("recommendation", "")

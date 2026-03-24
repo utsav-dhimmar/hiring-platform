@@ -6,21 +6,16 @@
 
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import HomePage from "../pages/Home/HomePage";
-import LoginPage from "../pages/Login/LoginPage";
-import ProtectedRoute from "../components/auth/ProtectedRoute";
-import RoleRoute from "../components/auth/RoleRoute";
-import PublicRoute from "../components/auth/PublicRoute";
-import LoadingSpinner from "../components/common/LoadingSpinner";
+import HomePage from "@/pages/Home/HomePage";
+import LoginPage from "@/pages/Auth/Login/LoginPage";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import RoleRoute from "@/components/auth/RoleRoute";
+import PublicRoute from "@/components/auth/PublicRoute";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
-// Lazy-loaded route components (code-split for performance)
-const JobCandidatesPage = lazy(
-  () => import("../pages/JobCandidates/JobCandidatesPage")
-);
-const CandidateEvaluationPage = lazy(
-  () => import("../pages/JobCandidates/CandidateEvaluationPage")
-);
-const AdminRoutes = lazy(() => import("./AdminRoutes"));
+// Lazy-loaded route components
+const JobCandidatesPage = lazy(() => import("@/pages/JobCandidates/JobCandidatesPage"));
+const AdminRoutes = lazy(() => import("@/routes/AdminRoutes"));
 
 /**
  * Main routing component for the application.
@@ -55,14 +50,6 @@ const AppRoutes = () => {
           element={
             <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
               <JobCandidatesPage />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/jobs/:jobId/candidates/:candidateId/evaluation"
-          element={
-            <RoleRoute allowedRoles={[]} requiredPermissions={["candidates:access"]}>
-              <CandidateEvaluationPage />
             </RoleRoute>
           }
         />

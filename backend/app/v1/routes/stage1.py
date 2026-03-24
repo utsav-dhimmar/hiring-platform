@@ -16,14 +16,15 @@ HR workflow:
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies.auth import get_current_user
 from app.v1.schemas.user import UserRead
 from app.v1.services.stage1 import stage1_service
-from fastapi.responses import JSONResponse
+
 router = APIRouter()
 
 
@@ -34,7 +35,9 @@ router = APIRouter()
 )
 async def run_stage1_evaluation(
     interview_id: uuid.UUID,
-    transcript_id: uuid.UUID = Query(..., description="ID of the completed transcript to evaluate"),
+    transcript_id: uuid.UUID = Query(
+        ..., description="ID of the completed transcript to evaluate"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
 ) -> dict:
@@ -52,6 +55,7 @@ async def run_stage1_evaluation(
         transcript_id=transcript_id,
     )
 
+
 @router.post(
     "/test-evaluation",
     status_code=status.HTTP_200_OK,
@@ -63,13 +67,14 @@ async def test_stage1_evaluation_parsing(
     candidate_name: str = Form(""),
 ) -> JSONResponse:
     from fastapi.responses import JSONResponse
-    from app.v1.services.transcript.processor import TranscriptProcessor
+
     from app.v1.services.stage1.evaluator import Stage1Evaluator
     from app.v1.services.stage1.service import (
+        _build_response,
         _count_filler_words,
         _extract_candidate_speech,
-        _build_response,
     )
+    from app.v1.services.transcript.processor import TranscriptProcessor
 
     content = await file.read()
 
@@ -94,6 +99,8 @@ async def test_stage1_evaluation_parsing(
     )
 
     return JSONResponse(content=_build_response(result, filler_count))
+
+
 @router.post(
     "/test-raw-agent",
     status_code=status.HTTP_200_OK,
@@ -103,12 +110,16 @@ async def test_raw_agent(
     file: UploadFile = File(...),
     job_description: str = Form("Software Engineer"),
 ) -> JSONResponse:
-    from app.v1.services.transcript.processor import TranscriptProcessor
-    from app.v1.services.stage1.service import _count_filler_words, _extract_candidate_speech
     from autogen import AssistantAgent, UserProxyAgent
+    from fastapi.responses import JSONResponse
+
     from app.v1.core.config import settings
     from app.v1.prompts.stage1 import STAGE1_SYSTEM_PROMPT, STAGE1_USER_PROMPT
-    from fastapi.responses import JSONResponse
+    from app.v1.services.stage1.service import (
+        _count_filler_words,
+        _extract_candidate_speech,
+    )
+    from app.v1.services.transcript.processor import TranscriptProcessor
 
     content = await file.read()
 
@@ -124,9 +135,9 @@ async def test_raw_agent(
     llm_config = {
         "config_list": [
             {
-                "model":    settings.OLLAMA_MODEL,
+                "model": settings.OLLAMA_MODEL,
                 "base_url": settings.OLLAMA_URL,
-                "api_key":  settings.OLLAMA_API_KEY or "ollama",
+                "api_key": settings.OLLAMA_API_KEY or "ollama",
             }
         ],
         "temperature": 0.1,
@@ -147,7 +158,7 @@ async def test_raw_agent(
 
     user_message = STAGE1_USER_PROMPT.format(
         jd=job_description,
-        full_text=full_text[:500],   # short for debug
+        full_text=full_text[:500],  # short for debug
         candidate_text=candidate_text[:300],
         filler_count=filler_count,
     )
@@ -161,10 +172,12 @@ async def test_raw_agent(
         for m in messages
     ]
 
-    return JSONResponse(content={
-        "full_text_length": len(full_text),
-        "candidate_text_length": len(candidate_text),
-        "filler_count": filler_count,
-        "message_count": len(messages),
-        "messages": raw_messages,
-    })    
+    return JSONResponse(
+        content={
+            "full_text_length": len(full_text),
+            "candidate_text_length": len(candidate_text),
+            "filler_count": filler_count,
+            "message_count": len(messages),
+            "messages": raw_messages,
+        }
+    )

@@ -3,14 +3,15 @@
  */
 
 import { useState } from "react";
-import { adminStageTemplateService } from "../../apis/admin/service";
-import type { StageTemplate } from "../../apis/types/stage";
-import { AdminDataTable, Button, PageHeader, type Column } from "../../components/common";
-import { CreateStageTemplateModal, DeleteModal } from "../../components/modal";
-import "../../css/adminDashboard.css";
-import { useAdminData, useDeleteConfirmation } from "../../hooks";
+import { adminStageTemplateService } from "@/apis/admin/service";
+import type { StageTemplate } from "@/types/stage";
+import { AdminDataTable, Button, PageHeader, useToast, type Column } from "@/components/shared";
+import { CreateStageTemplateModal, DeleteModal } from "@/components/modal";
+import "@/css/adminDashboard.css";
+import { useAdminData, useDeleteConfirmation } from "@/hooks";
 
 const AdminStageTemplates = () => {
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<StageTemplate | null>(null);
 
@@ -31,7 +32,10 @@ const AdminStageTemplates = () => {
     message: deleteMessage,
   } = useDeleteConfirmation<StageTemplate>({
     deleteFn: (id) => adminStageTemplateService.deleteTemplate(id as string),
-    onSuccess: fetchTemplates,
+    onSuccess: () => {
+      fetchTemplates();
+      toast.success("Stage template deleted successfully");
+    },
     itemTitle: (tpl) => `template "${tpl.name}"`,
   });
 
@@ -55,20 +59,16 @@ const AdminStageTemplates = () => {
     { header: "Description", accessor: (tpl) => tpl.description || "N/A" },
     {
       header: "Actions",
+      className: "text-end",
       accessor: (tpl) => (
-        <>
-          <Button
-            variant="outline-secondary"
-            size="sm"
-            className="me-2"
-            onClick={() => handleEditClick(tpl)}
-          >
+        <div className="d-flex gap-2 justify-content-end">
+          <Button variant="outline-secondary" size="sm" onClick={() => handleEditClick(tpl)}>
             Edit
           </Button>
           <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(tpl)}>
             Delete
           </Button>
-        </>
+        </div>
       ),
     },
   ];

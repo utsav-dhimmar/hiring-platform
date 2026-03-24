@@ -8,12 +8,22 @@ Endpoints:
 
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies.auth import get_current_user
-from app.v1.schemas.transcript import TranscriptStatusResponse, TranscriptUploadResponse
+from app.v1.schemas.transcript import (
+    TranscriptStatusResponse,
+    TranscriptUploadResponse,
+)
 from app.v1.schemas.user import UserRead
 from app.v1.services.transcript import transcript_service
 
@@ -69,5 +79,3 @@ async def get_transcript_status(
         db=db,
         transcript_id=transcript_id,
     )
-
-

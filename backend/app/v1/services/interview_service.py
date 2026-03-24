@@ -21,7 +21,10 @@ from app.v1.schemas.interview import (
     InterviewRead,
 )
 from app.v1.schemas.user import UserRead
-
+ # Create HrDecision record
+from sqlalchemy import select
+from app.v1.db.models.hr_decisions import HrDecision
+from app.v1.db.models.job_stage_configs import JobStageConfig
 logger = get_logger(__name__)
 
 
@@ -39,7 +42,9 @@ class InterviewService:
         data: InterviewCreate,
         current_user: UserRead,
     ) -> InterviewRead:
-        candidate = await interview_repository.get_candidate(db, data.candidate_id)
+        candidate = await interview_repository.get_candidate(
+            db, data.candidate_id
+        )
         if not candidate:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -58,21 +63,23 @@ class InterviewService:
             candidate_id=data.candidate_id,
             job_id=data.job_id,
             interviewer_id=current_user.id,
+            stage=data.stage,
             status="pending",
         )
 
         await interview_repository.update_candidate_status(
             db,
             candidate_id=data.candidate_id,
-            status="interview_pending",
+            status=f"stage_{data.stage}_pending",
         )
 
         await interview_repository.commit(db)
 
         logger.info(
-            "interview_created interview_id=%s candidate_id=%s",
+            "interview_created interview_id=%s candidate_id=%s stage=%d",
             interview.id,
             data.candidate_id,
+            interview.stage,
         )
 
         return InterviewRead(
@@ -80,6 +87,7 @@ class InterviewService:
             candidate_id=interview.candidate_id,
             job_id=interview.job_id,
             interviewer_id=interview.interviewer_id,
+            stage=interview.stage,
             status=interview.status,
             created_at=interview.created_at,
         )
@@ -106,6 +114,7 @@ class InterviewService:
             candidate_id=interview.candidate_id,
             job_id=interview.job_id,
             interviewer_id=interview.interviewer_id,
+            stage=interview.stage,
             status=interview.status,
             created_at=interview.created_at,
         )
@@ -125,6 +134,7 @@ class InterviewService:
                 candidate_id=i.candidate_id,
                 job_id=i.job_id,
                 interviewer_id=i.interviewer_id,
+                stage=i.stage,
                 status=i.status,
                 created_at=i.created_at,
             )
@@ -147,6 +157,7 @@ class InterviewService:
                 candidate_id=i.candidate_id,
                 job_id=i.job_id,
                 interviewer_id=i.interviewer_id,
+                stage=i.stage,
                 status=i.status,
                 created_at=i.created_at,
             )
@@ -166,14 +177,16 @@ class InterviewService:
         decision: InterviewDecision,
         current_user: UserRead,
     ) -> InterviewRead:
-        from app.v1.repository.interview_repository import interview_repository as _interview_repo
+        from app.v1.repository.interview_repository import (
+            interview_repository as _interview_repo,
+        )
+
         interview = await _interview_repo.get_interview(db, interview_id)
         if not interview:
-          raise HTTPException(
+            raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Interview not found.",
-             )
-            
+            )
 
         if interview.status in ("completed", "rejected", "cancelled"):
             raise HTTPException(
@@ -198,6 +211,26 @@ class InterviewService:
             candidate_id=interview.candidate_id,
             status=new_candidate_status,
         )
+
+       
+
+        # Find stage config for this interview's job and stage
+        stage_stmt = select(JobStageConfig).where(
+            JobStageConfig.job_id == interview.job_id,
+            JobStageConfig.stage_order == interview.stage
+        )
+        stage_res = await db.execute(stage_stmt)
+        stage_config = stage_res.scalar_one_or_none()
+
+        if stage_config:
+            hr_decision = HrDecision(
+                candidate_id=interview.candidate_id,
+                stage_config_id=stage_config.id,
+                user_id=current_user.id,
+                decision=decision.decision,
+            )
+            db.add(hr_decision)
+
         await interview_repository.commit(db)
 
         logger.info(
@@ -212,6 +245,7 @@ class InterviewService:
             candidate_id=interview.candidate_id,
             job_id=interview.job_id,
             interviewer_id=interview.interviewer_id,
+            stage=interview.stage,
             status=new_interview_status,
             created_at=interview.created_at,
         )

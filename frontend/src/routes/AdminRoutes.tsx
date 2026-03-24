@@ -6,21 +6,23 @@
 
 import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
-import AdminLayout from "../pages/Admin/Layout/AdminLayout";
-import AdminDashboard from "../pages/Admin/AdminDashboard";
-import AdminUsers from "../pages/Admin/AdminUsers";
-import AdminRoles from "../pages/Admin/AdminRoles";
-import AdminAuditLogs from "../pages/Admin/AdminAuditLogs";
-import AdminRecentUploads from "../pages/Admin/AdminRecentUploads";
-import AdminSkills from "../pages/Admin/AdminSkills";
-import AdminStageTemplates from "../pages/Admin/AdminStageTemplates";
-import RoleRoute from "../components/auth/RoleRoute";
-import LoadingSpinner from "../components/common/LoadingSpinner";
+import AdminLayout from "@/pages/Admin/Layout/AdminLayout";
+import AdminDashboard from "@/pages/Admin/AdminDashboard";
+import AdminUsers from "@/pages/Admin/AdminUsers";
+import AdminRoles from "@/pages/Admin/AdminRoles";
+import AdminAuditLogs from "@/pages/Admin/AdminAuditLogs";
+import AdminRecentUploads from "@/pages/Admin/AdminRecentUploads";
+import AdminSkills from "@/pages/Admin/AdminSkills";
+import AdminStageTemplates from "@/pages/Admin/AdminStageTemplates";
+// import TestEvaluationPage from "@/pages/Admin/TestEvaluationPage";
+import RoleRoute from "@/components/auth/RoleRoute";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 // Lazy-loaded heavy admin pages
-const AdminJobs = lazy(() => import("../pages/Admin/AdminJobs"));
-const AdminCandidateSearch = lazy(
-  () => import("../pages/Admin/AdminCandidateSearch")
+const AdminJobs = lazy(() => import("@/pages/Admin/AdminJobs"));
+const AdminCandidateSearch = lazy(() => import("@/pages/Admin/AdminCandidateSearch"));
+const CandidateEvaluationPage = lazy(
+  () => import("@/pages/JobCandidates/CandidateEvaluationPage"),
 );
 
 /**
@@ -106,6 +108,22 @@ const AdminRoutes = () => {
               </RoleRoute>
             }
           />
+          <Route
+            path="jobs/:jobId/candidates/:candidateId/evaluation"
+            element={
+              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+                <CandidateEvaluationPage />
+              </RoleRoute>
+            }
+          />
+          {/* <Route
+            path="evaluation-lab"
+            element={
+              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+                <TestEvaluationPage />
+              </RoleRoute>
+            }
+          /> */}
         </Route>
       </Routes>
     </Suspense>

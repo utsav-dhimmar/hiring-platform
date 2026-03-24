@@ -3,6 +3,6 @@
  * Provides reusable stateful logic for forms, data fetching, and UI interactions.
  */
 
-export * from "./useAdminData";
-export * from "./useDeleteConfirmation";
-export * from "./useFormModal";
+export * from "@/hooks/useAdminData";
+export * from "@/hooks/useDeleteConfirmation";
+export * from "@/hooks/useFormModal";

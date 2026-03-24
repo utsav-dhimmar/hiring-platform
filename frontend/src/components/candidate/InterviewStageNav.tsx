@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { Nav, Badge } from "react-bootstrap";
-import { Card, CardBody } from "../common";
-import type { JobStageConfig, StageEvaluation, Stage1Info } from "../../apis/types/stage";
+import { Card, CardBody } from "@/components/shared";
+import type { JobStageConfig, StageEvaluation, Stage1Info } from "@/types/stage";
 
 /**
  * Props for the InterviewStageNav component.
@@ -45,7 +45,7 @@ const InterviewStageNav = ({
           onSelect={(k) => setActiveTab(k || "stage0")}
         >
           <Nav.Item className="mb-1">
-            <Nav.Link eventKey="stage0" disabled className="rounded-3 border-0 py-3">
+            <Nav.Link eventKey="stage0" className="rounded-3 border-0 py-3">
               <div className="d-flex justify-content-between align-items-center">
                 <span className="fw-medium">Resume Screening</span>
                 <Badge
@@ -62,8 +62,7 @@ const InterviewStageNav = ({
             const evalData = evaluations[stageConfig.id];
             const evalStatus = evalData?.status || "pending";
             const decision = evalData?.decision;
-            const displayDecision =
-              stageConfig.id === "config-1" ? stage1?.hr_decision : decision;
+            const displayDecision = stageConfig.id === "config-1" ? stage1?.hr_decision : decision;
             const displayStatus = stageConfig.id === "config-1" ? stage1?.status : evalStatus;
 
             const isActive = activeTab === stageConfig.id;
@@ -84,28 +83,22 @@ const InterviewStageNav = ({
                           displayDecision === null
                             ? "warning"
                             : displayDecision
-                            ? "success"
-                            : "danger"
+                              ? "success"
+                              : "danger"
                         }
-                        className={`rounded-pill px-2 py-1 bg-${
-                          displayDecision === null
+                        className={`rounded-pill px-2 py-1 bg-${displayDecision === null
                             ? "warning"
                             : displayDecision
-                            ? "success"
-                            : "danger"
-                        }-subtle text-${
-                          displayDecision === null
+                              ? "success"
+                              : "danger"
+                          }-subtle text-${displayDecision === null
                             ? "warning"
                             : displayDecision
-                            ? "success"
-                            : "danger"
-                        }`}
+                              ? "success"
+                              : "danger"
+                          }`}
                       >
-                        {displayDecision === null
-                          ? "Pending"
-                          : displayDecision
-                          ? "Pass"
-                          : "Fail"}
+                        {displayDecision === null ? "Pending" : displayDecision ? "Pass" : "Fail"}
                       </Badge>
                     ) : (
                       <Badge

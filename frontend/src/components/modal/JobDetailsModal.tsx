@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { Modal, Row, Col } from "react-bootstrap";
-import { Button, StatusBadge, DateDisplay } from "../common";
-import type { Job } from "../../apis/types/job";
+import { Button, StatusBadge, DateDisplay } from "@/components/shared";
+import type { Job } from "@/types/job";
 
 interface JobDetailsModalProps {
   show: boolean;
@@ -13,12 +13,7 @@ const JobDetailsModal = ({ show, onHide, job }: JobDetailsModalProps): ReactElem
   if (!job) return null;
 
   return (
-    <Modal
-      show={show}
-      onHide={onHide}
-      size="lg"
-      className="modal-dialog-scrollable"
-    >
+    <Modal show={show} onHide={onHide} size="lg" className="modal-dialog-scrollable">
       <Modal.Header closeButton>
         <Modal.Title>Job Details: {job.title}</Modal.Title>
       </Modal.Header>
@@ -33,8 +28,7 @@ const JobDetailsModal = ({ show, onHide, job }: JobDetailsModalProps): ReactElem
               <strong>Status:</strong> <StatusBadge status={job.is_active} />
             </p>
             <p className="mb-1">
-              <strong>Created At:</strong>{" "}
-              <DateDisplay date={job.created_at} showTime={false} />
+              <strong>Created At:</strong> <DateDisplay date={job.created_at} showTime={false} />
             </p>
           </Col>
         </Row>
