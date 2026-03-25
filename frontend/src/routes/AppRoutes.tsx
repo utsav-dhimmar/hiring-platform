@@ -14,7 +14,9 @@ import PublicRoute from "@/components/auth/PublicRoute";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 // Lazy-loaded route components
-const JobCandidatesPage = lazy(() => import("@/pages/JobCandidates/JobCandidatesPage"));
+const JobCandidatesPage = lazy(
+  () => import("@/pages/JobCandidates/JobCandidatesPage"),
+);
 const AdminRoutes = lazy(() => import("@/routes/AdminRoutes"));
 
 /**
@@ -54,7 +56,7 @@ const AppRoutes = () => {
           }
         />
 
-        {/* Admin Routes — lazy loaded (only downloaded when user navigates to /admin) */}
+        {/* Admin Routes — lazy loaded */}
         <Route
           path="/admin/*"
           element={

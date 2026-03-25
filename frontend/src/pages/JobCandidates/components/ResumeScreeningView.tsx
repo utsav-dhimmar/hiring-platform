@@ -6,13 +6,14 @@ import type { CandidateResponse } from "@/types/resume";
 interface ResumeScreeningViewProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  handleSearch: (e: React.FormEvent) => void;
+  handleSearch: (e: React.SyntheticEvent) => void;
   isSearching: boolean;
   candidates: CandidateResponse[];
   loading: boolean;
   error: string | null;
   fetchData: () => void;
   onShowMore: (candidate: CandidateResponse) => void;
+  onShowScreeningDetails: (candidate: CandidateResponse) => void;
   jobId: string | undefined;
 }
 
@@ -26,6 +27,7 @@ const ResumeScreeningView = ({
   error,
   fetchData,
   onShowMore,
+  onShowScreeningDetails,
   jobId,
 }: ResumeScreeningViewProps) => {
   return (
@@ -42,7 +44,9 @@ const ResumeScreeningView = ({
         <Col>
           <Card>
             <CardHeader className="d-flex justify-content-between align-items-center">
-              <h3 className="mb-0">{searchQuery ? "Search Results" : "Applicant List"}</h3>
+              <h3 className="mb-0">
+                {searchQuery ? "Search Results" : "Applicant List"}
+              </h3>
               <Badge bg="primary">{candidates.length} Candidate Found</Badge>
             </CardHeader>
             <CandidateTable
@@ -53,10 +57,11 @@ const ResumeScreeningView = ({
               className="border-0 shadow-none"
               emptyMessage={
                 searchQuery
-                  ? `No candidates found matching "${searchQuery}"`
+                  ? `No candidates found matching with "${searchQuery}"`
                   : "No candidates have applied for this job yet."
               }
               onShowMore={onShowMore}
+              onShowScreeningDetails={onShowScreeningDetails}
               showEvaluateAction={true}
               jobId={jobId}
             />

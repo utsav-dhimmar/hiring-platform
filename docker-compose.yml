@@ -11,7 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./setup_extensions.sql:/docker-entrypoint-initdb.d/setup_extensions.sql
+      - ./backend/setup_extensions.sql:/docker-entrypoint-initdb.d/setup_extensions.sql
 
   pgadmin:
     image: dpage/pgadmin4
@@ -39,6 +39,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      - ./backend:/app/backend
       - ./uploads:/app/uploads
     env_file:
       - .env
@@ -54,6 +55,7 @@ services:
     container_name: hr_worker
     restart: always
     volumes:
+      - ./backend:/app/backend
       - ./uploads:/app/uploads
     env_file:
       - .env

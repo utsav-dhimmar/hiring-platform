@@ -26,6 +26,10 @@ RUN uv sync --frozen --no-dev
 
 # Ensure the virtulal environment is active
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app/backend"
+
+# Run application commands from the backend package root
+WORKDIR /app/backend
 
 # Run the application
 CMD ["fastapi", "run", "app/main.py", "--port", "8000"]

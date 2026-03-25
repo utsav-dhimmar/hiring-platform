@@ -11,5 +11,4 @@ export { default as DeleteModal } from "@/components/modal/DeleteModal";
 export { default as RoleModal } from "@/components/modal/RoleModal";
 export { default as CandidateDetailModal } from "@/components/modal/CandidateDetailModal";
 export { default as JobDetailsModal } from "@/components/modal/JobDetailsModal";
-export { default as CreateStageTemplateModal } from "@/components/modal/CreateStageTemplateModal";
-export { default as ManageJobStagesModal } from "@/components/modal/ManageJobStagesModal";
+export { default as ResumeScreeningDetailModal } from "@/components/modal/ResumeScreeningDetailModal";

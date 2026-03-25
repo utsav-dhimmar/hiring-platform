@@ -8,9 +8,6 @@ permission management, audit logs, analytics, and hiring reports.
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.v1.core.logging import get_logger
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission
@@ -37,6 +34,8 @@ from app.v1.schemas.job_stage import (
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
 from app.v1.services.stage_service import stage_service
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 

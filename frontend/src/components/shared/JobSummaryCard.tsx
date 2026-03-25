@@ -1,7 +1,12 @@
 import type { ReactElement } from "react";
 import { Row, Col } from "react-bootstrap";
 import type { JobRead } from "@/types/admin";
-import { Card, CardBody, StatusBadge, SkillsBadgeList, StagesBadgeList } from "@/components/shared";
+import {
+  Card,
+  CardBody,
+  StatusBadge,
+  SkillsBadgeList,
+} from "@/components/shared";
 
 interface JobSummaryCardProps {
   job: JobRead;
@@ -18,13 +23,17 @@ const JobSummaryCard = ({ job }: JobSummaryCardProps): ReactElement => {
       <CardBody className="p-4">
         <Row className="g-4">
           <Col md={3} className="border-end border-light">
-            <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">Department</h6>
+            <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">
+              Department
+            </h6>
             <div className="fw-bold text-dark">
               {job.department?.name ?? job.department_name ?? "General"}
             </div>
           </Col>
           <Col md={2} className="border-end border-light">
-            <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">Status</h6>
+            <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">
+              Status
+            </h6>
             <StatusBadge status={job.is_active} />
           </Col>
           <Col md={3} className="border-end border-light">
@@ -32,12 +41,6 @@ const JobSummaryCard = ({ job }: JobSummaryCardProps): ReactElement => {
               Required Skills
             </h6>
             <SkillsBadgeList skills={job.skills} />
-          </Col>
-          <Col md={4}>
-            <h6 className="text-muted small text-uppercase fw-bold mb-2 opacity-75">
-              Hiring Pipeline
-            </h6>
-            <StagesBadgeList stages={job.stages} />
           </Col>
         </Row>
       </CardBody>

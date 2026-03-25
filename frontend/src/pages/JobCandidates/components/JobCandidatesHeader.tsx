@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Breadcrumb, Button } from "react-bootstrap";
-import { PageHeader } from "@/components/shared";
+import { Breadcrumb } from "react-bootstrap";
+import { PageHeader, Button } from "@/components/shared";
 import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
 import type { Job } from "@/types/job";
 
@@ -39,11 +39,11 @@ const JobCandidatesHeader = ({
           className="mb-0 border-0 p-0 shadow-none"
           actions={
             <div className="d-flex gap-2 align-items-center">
-              {jobId && <QuickResumeUpload jobId={jobId} onSuccess={onRefresh} variant="primary" />}
-              <Button variant="outline-primary" onClick={onShowJobInfo}>
+              {jobId && <QuickResumeUpload jobId={jobId} onSuccess={onRefresh} variant="primary" className="btn-header-action" />}
+              <Button variant="outline-primary" onClick={onShowJobInfo} className="btn-header-action">
                 Job Details
               </Button>
-              <Button variant="outline-secondary" onClick={() => navigate("/")}>
+              <Button variant="outline-secondary" onClick={() => navigate("/")} className="btn-header-action">
                 Back to Jobs
               </Button>
             </div>

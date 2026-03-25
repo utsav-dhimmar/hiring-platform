@@ -5,7 +5,7 @@ import type { JobRead } from "@/types/admin";
 interface JobActionButtonsProps {
   job: JobRead;
   onViewCandidates: (jobId: string) => void;
-  onManageStages: (job: JobRead) => void;
+  // onManageStages: (job: JobRead) => void;
   onEdit: (job: JobRead) => void;
   onDelete: (job: JobRead) => void;
 }
@@ -13,7 +13,7 @@ interface JobActionButtonsProps {
 const JobActionButtons = ({
   job,
   onViewCandidates,
-  onManageStages,
+  // onManageStages,
   onEdit,
   onDelete,
 }: JobActionButtonsProps) => {
@@ -28,14 +28,14 @@ const JobActionButtons = ({
       >
         Candidates
       </Button>
-      <Button
+      {/* <Button
         variant="outline-secondary"
         size="sm"
         className="flex-shrink-0"
         onClick={() => onManageStages(job)}
       >
         Stages
-      </Button>
+      </Button> */}
       <Button
         variant="outline-secondary"
         size="sm"

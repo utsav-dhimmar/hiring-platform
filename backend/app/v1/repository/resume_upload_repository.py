@@ -15,6 +15,7 @@ from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidate_skills import candidate_skills
 from app.v1.db.models.candidates import Candidate
+from app.v1.db.models.cover_letters import CoverLetter
 from app.v1.db.models.files import File as FileRecord
 from app.v1.db.models.job_skills import job_skills
 from app.v1.db.models.jobs import Job
@@ -628,6 +629,7 @@ class ResumeUploadRepository:
         if not resume:
             return False
 
+        candidate_id = resume.candidate_id
         file_id = resume.file_id
 
         # Delete resume chunks first (FK dependency)
@@ -642,6 +644,29 @@ class ResumeUploadRepository:
         if file_id:
             await db.execute(
                 delete(FileRecord).where(FileRecord.id == file_id)
+            )
+
+        await db.flush()
+
+        remaining_resume_count = await db.scalar(
+            select(func.count(Resume.id)).where(Resume.candidate_id == candidate_id)
+        )
+
+        # The UI treats deleting the last resume as deleting the candidate entry too.
+        if not remaining_resume_count:
+            await db.execute(
+                delete(candidate_skills).where(
+                    candidate_skills.c.candidate_id == candidate_id
+                )
+            )
+            await db.execute(
+                delete(CoverLetter).where(CoverLetter.candidate_id == candidate_id)
+            )
+            await db.execute(
+                delete(FileRecord).where(FileRecord.candidate_id == candidate_id)
+            )
+            await db.execute(
+                delete(Candidate).where(Candidate.id == candidate_id)
             )
 
         await db.commit()

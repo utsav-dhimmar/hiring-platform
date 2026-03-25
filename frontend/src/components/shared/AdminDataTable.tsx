@@ -130,7 +130,7 @@ function AdminDataTable<T>({
                   <td colSpan={columns.length} className="text-center py-5">
                     <div className="py-4 text-muted">
                       <h5 className="fw-bold">{emptyMessage}</h5>
-                      <p>Try different filters or add new entries.</p>
+                      {/* <p>Try different filters or add new entries.</p> */}
                     </div>
                   </td>
                 </tr>

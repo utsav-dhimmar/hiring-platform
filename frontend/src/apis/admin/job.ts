@@ -7,7 +7,7 @@ import type {
   JobStageReorder,
   JobUpdate,
 } from "@/types/admin";
-import type { JobResumesResponse } from "@/types/resume";
+import type { JobResumeInfoResponse, JobResumesResponse } from "@/types/resume";
 import type { JobStageConfig } from "@/types/stage";
 
 /**
@@ -152,6 +152,29 @@ export const adminJobService = {
     const response = await apiClient.put<JobStageConfig[]>(
       `/jobs/${jobId}/stages/reorder`,
       reorder,
+    );
+    return response.data;
+  },
+
+  /**
+   * Refresh custom extractions for all resumes in a job.
+   * Only accessible by admin.
+   * @param jobId - Job ID
+   */
+  refreshCustomExtractions: async (jobId: string): Promise<void> => {
+    await apiClient.post(`/job/${jobId}/refresh-custom-extractions`);
+  },
+
+  /**
+   * Get detailed information for a specific resume in a job.
+   * Only accessible by admin.
+   * @param jobId - Job ID
+   * @param resumeId - Resume ID
+   * @returns Promise resolving to resume details
+   */
+  getJobResumeDetail: async (jobId: string, resumeId: string): Promise<JobResumeInfoResponse> => {
+    const response = await apiClient.get<JobResumeInfoResponse>(
+      `/job/${jobId}/resumes/${resumeId}`,
     );
     return response.data;
   },

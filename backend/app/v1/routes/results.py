@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.session import get_db
 from app.v1.dependencies.auth import get_current_user
 from app.v1.schemas.results import (
-    HRRoundResultsResponse,
     ResumeScreeningResultsResponse,
 )
 from app.v1.schemas.user import UserRead
@@ -29,17 +28,3 @@ async def get_resume_screening_results(
     return await results_service.get_resume_screening_results(
         db=db, job_id=job_id
     )
-
-
-@router.get(
-    "/{job_id}/results/hr-round",
-    response_model=HRRoundResultsResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Get HR round results for a job",
-)
-async def get_hr_round_results(
-    job_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserRead = Depends(get_current_user),
-) -> HRRoundResultsResponse:
-    return await results_service.get_hr_round_results(db=db, job_id=job_id)

@@ -6,42 +6,36 @@ import { CandidateDetailModal, JobDetailsModal } from "@/components/modal";
 import {
   adminJobService,
   adminCandidateService,
-  adminResultsService,
 } from "@/apis/admin/service";
 import { resumeService } from "@/apis/resume";
 import type { Job } from "@/types/job";
 import type { CandidateResponse } from "@/types/resume";
-import type { HRRoundResult } from "@/types/admin";
 import { useAdminData } from "@/hooks";
 import { extractErrorMessage } from "@/utils/error";
 
+
 // Extracted Components
 import JobCandidatesHeader from "@/pages/JobCandidates/components/JobCandidatesHeader";
-import StageTabs from "@/pages/JobCandidates/components/StageTabs";
 import ResumeScreeningView from "@/pages/JobCandidates/components/ResumeScreeningView";
-import HRRoundView from "@/pages/JobCandidates/components/HRRoundView";
-
-type Stage = "resume-screening" | "hr-round";
 
 const JobCandidatesPage = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
-  const [activeStage, setActiveStage] = useState<Stage>("resume-screening");
-
-  // HR Round results state
-  const [hrResults, setHrResults] = useState<HRRoundResult[]>([]);
-  const [hrLoading, setHrLoading] = useState(false);
-  const [hrError, setHrError] = useState<string | null>(null);
+  const activeStage = "resume-screening";
 
   // Search State
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
   // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
   const [showJobInfo, setShowJobInfo] = useState(false);
+  const [showScreeningDetails, setShowScreeningDetails] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateResponse | null>(null);
+  const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
+
 
   const fetchJobAndCandidates = useCallback(async () => {
     if (!jobId) return [];
@@ -52,6 +46,7 @@ const JobCandidatesPage = () => {
     ]);
 
     setJob(jobData);
+
     return candidatesData.candidates;
   }, [jobId]);
 
@@ -66,25 +61,7 @@ const JobCandidatesPage = () => {
     fetchOnMount: !!jobId,
   });
 
-  const fetchHRResults = useCallback(async () => {
-    if (!jobId) return;
-    setHrLoading(true);
-    setHrError(null);
-    try {
-      const data = await adminResultsService.getHRRoundResults(jobId);
-      setHrResults(data.results);
-    } catch (err) {
-      setHrError(extractErrorMessage(err, "Failed to fetch HR results."));
-    } finally {
-      setHrLoading(false);
-    }
-  }, [jobId]);
 
-  useEffect(() => {
-    if (activeStage === "hr-round") {
-      fetchHRResults();
-    }
-  }, [activeStage, fetchHRResults]);
 
   // Polling for in-progress resumes
   useEffect(() => {
@@ -132,6 +109,12 @@ const JobCandidatesPage = () => {
     setShowDetail(true);
   };
 
+  const handleShowScreeningDetails = (candidate: CandidateResponse) => {
+    setSelectedResumeId(candidate.resume_id || null);
+    setShowScreeningDetails(true);
+  };
+
+
   if (!loading && (error || !job)) {
     return (
       <Container className="py-5">
@@ -149,32 +132,19 @@ const JobCandidatesPage = () => {
         onShowJobInfo={() => setShowJobInfo(true)}
       />
 
-      <StageTabs activeStage={activeStage} onStageChange={setActiveStage} />
-
-      {activeStage === "resume-screening" && (
-        <ResumeScreeningView
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          handleSearch={handleSearch}
-          isSearching={isSearching}
-          candidates={candidates}
-          loading={loading}
-          error={error}
-          fetchData={fetchData}
-          onShowMore={handleShowMore}
-          jobId={jobId}
-        />
-      )}
-
-      {activeStage === "hr-round" && (
-        <HRRoundView
-          hrResults={hrResults}
-          hrLoading={hrLoading}
-          hrError={hrError}
-          fetchHRResults={fetchHRResults}
-          jobId={jobId}
-        />
-      )}
+      <ResumeScreeningView
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        handleSearch={handleSearch}
+        isSearching={isSearching}
+        candidates={candidates}
+        loading={loading}
+        error={error}
+        fetchData={fetchData}
+        onShowMore={handleShowMore}
+        onShowScreeningDetails={handleShowScreeningDetails}
+        jobId={jobId}
+      />
 
       <JobDetailsModal show={showJobInfo} onHide={() => setShowJobInfo(false)} job={job} />
 
@@ -183,8 +153,10 @@ const JobCandidatesPage = () => {
         onHide={() => setShowDetail(false)}
         candidate={selectedCandidate}
       />
+
     </Container>
   );
+
 };
 
 export default JobCandidatesPage;

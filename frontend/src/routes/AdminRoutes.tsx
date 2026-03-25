@@ -13,17 +13,12 @@ import AdminRoles from "@/pages/Admin/AdminRoles";
 import AdminAuditLogs from "@/pages/Admin/AdminAuditLogs";
 import AdminRecentUploads from "@/pages/Admin/AdminRecentUploads";
 import AdminSkills from "@/pages/Admin/AdminSkills";
-import AdminStageTemplates from "@/pages/Admin/AdminStageTemplates";
-// import TestEvaluationPage from "@/pages/Admin/TestEvaluationPage";
 import RoleRoute from "@/components/auth/RoleRoute";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 // Lazy-loaded heavy admin pages
 const AdminJobs = lazy(() => import("@/pages/Admin/AdminJobs"));
 const AdminCandidateSearch = lazy(() => import("@/pages/Admin/AdminCandidateSearch"));
-const CandidateEvaluationPage = lazy(
-  () => import("@/pages/JobCandidates/CandidateEvaluationPage"),
-);
 
 /**
  * Router configuration for admin section.
@@ -93,14 +88,6 @@ const AdminRoutes = () => {
             }
           />
           <Route
-            path="stage-templates"
-            element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:manage"]}>
-                <AdminStageTemplates />
-              </RoleRoute>
-            }
-          />
-          <Route
             path="candidates"
             element={
               <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
@@ -108,26 +95,11 @@ const AdminRoutes = () => {
               </RoleRoute>
             }
           />
-          <Route
-            path="jobs/:jobId/candidates/:candidateId/evaluation"
-            element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
-                <CandidateEvaluationPage />
-              </RoleRoute>
-            }
-          />
-          {/* <Route
-            path="evaluation-lab"
-            element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
-                <TestEvaluationPage />
-              </RoleRoute>
-            }
-          /> */}
         </Route>
       </Routes>
     </Suspense>
   );
 };
+
 
 export default AdminRoutes;

@@ -5,7 +5,7 @@ This module provides services for parsing document files (PDF, DOCX) and
 extracting structured information from resume text using LLMs.
 """
 
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 
 import docx2txt
 import pymupdf
@@ -21,6 +21,7 @@ from tenacity import (
 )
 
 from app.v1.core.config import settings
+from app.v1.core.storage import resolve_storage_path
 from app.v1.prompts import (
     RESUME_EXTRACTION_EXAMPLES,
     RESUME_EXTRACTION_PROMPT,
@@ -47,9 +48,7 @@ class DocumentParser:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file format is unsupported.
         """
-        # Robust platform-independent path normalization
-        # PureWindowsPath handles both / and \ as separators regardless of current OS
-        path = Path(*PureWindowsPath(str(file_path)).parts)
+        path = resolve_storage_path(file_path)
 
         if not path.exists():
             raise FileNotFoundError(f"File not found: {path}")

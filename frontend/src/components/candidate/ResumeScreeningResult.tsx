@@ -129,7 +129,7 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
             <p className="mb-0 text-primary-emphasis">
               Candidate passed the initial screening with a match score of{" "}
               <strong>{candidate.resume_score?.toFixed(1)}%</strong>.
-              {candidate.pass_fail ? " They have been moved forward in the hiring pipeline." : ""}
+              {/* {candidate.pass_fail ? " They have been moved forward in the hiring pipeline." : ""} */}
             </p>
           </div>
         </CardBody>

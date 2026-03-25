@@ -81,7 +81,10 @@ const HomePage = () => {
     toast.error(errorMsg);
   };
 
-  const handleFileUpload = async (jobId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    jobId: string,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -99,7 +102,10 @@ const HomePage = () => {
       toast.success("Resume uploaded successfully!");
     } catch (error) {
       console.error("Upload failed:", error);
-      const errorMessage = extractErrorMessage(error, "Failed to upload resume.");
+      const errorMessage = extractErrorMessage(
+        error,
+        "Failed to upload resume.",
+      );
       toast.error(errorMessage);
     } finally {
       setUploading((prev) => ({ ...prev, [jobId]: false }));
@@ -114,10 +120,18 @@ const HomePage = () => {
           <h2 className="fw-bold mb-0">Active Job Openings</h2>
         </Col>
         <Col xs="auto" className="d-flex gap-2">
-          <Button variant="outline-primary" onClick={goToAdmin}>
+          <Button
+            variant="outline-primary"
+            onClick={goToAdmin}
+            className="btn-header-action"
+          >
             Panel
           </Button>
-          <Button variant="outline-danger" onClick={handleLogout}>
+          <Button
+            variant="outline-danger"
+            onClick={handleLogout}
+            className="btn-header-action"
+          >
             Logout
           </Button>
         </Col>
@@ -161,7 +175,9 @@ const HomePage = () => {
                   </thead>
                   <tbody className="border-0">
                     {loading ? (
-                      [...Array(5)].map((_, i) => <TableRowSkeleton key={i} columns={4} />)
+                      [...Array(5)].map((_, i) => (
+                        <TableRowSkeleton key={i} columns={4} />
+                      ))
                     ) : jobs.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="text-center py-5">
@@ -170,7 +186,11 @@ const HomePage = () => {
                             <p className="text-muted">
                               Try adjusting your search or check back later.
                             </p>
-                            <Button variant="outline-primary" size="sm" onClick={handleClearSearch}>
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={handleClearSearch}
+                            >
                               Clear Search
                             </Button>
                           </div>
@@ -180,10 +200,14 @@ const HomePage = () => {
                       jobs.map((job) => (
                         <tr key={job.id} className="border-bottom border-light">
                           <td className="px-4 py-3 border-0">
-                            <div className="fw-semibold text-dark">{job.title}</div>
+                            <div className="fw-semibold text-dark">
+                              {job.title}
+                            </div>
                           </td>
                           <td className="px-4 py-3 border-0 text-muted">
-                            {job.department?.name ?? job.department_name ?? "General"}
+                            {job.department?.name ??
+                              job.department_name ??
+                              "General"}
                           </td>
                           <td className="px-4 py-3 border-0">
                             <span
@@ -206,14 +230,14 @@ const HomePage = () => {
                                     size="sm"
                                     className="d-none"
                                     id={`file-input-${job.id}`}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                      handleFileUpload(job.id, e)
-                                    }
+                                    onChange={(
+                                      e: React.ChangeEvent<HTMLInputElement>,
+                                    ) => handleFileUpload(job.id, e)}
                                     accept=".pdf,.doc,.docx"
                                   />
                                   <label
                                     htmlFor={`file-input-${job.id}`}
-                                    className="btn btn-sm btn-outline-primary mb-0"
+                                    className="btn btn-outline-primary btn-table-action mb-0"
                                     style={{ cursor: "pointer" }}
                                   >
                                     Upload Resume
@@ -222,8 +246,8 @@ const HomePage = () => {
                               )}
                               <Button
                                 variant="primary"
-                                size="sm"
                                 onClick={() => viewCandidates(job.id)}
+                                className="btn-table-action"
                               >
                                 Candidates
                               </Button>

@@ -3,11 +3,13 @@
  * Displays analytics summary and hiring reports for administrators.
  */
 
-import { adminAnalyticsService } from "@/apis/admin/service";
+import { useState } from "react";
+import { adminAnalyticsService, adminJobService } from "@/apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
-import { AdminDataTable, PageHeader, StatCard, type Column } from "@/components/shared";
+import { AdminDataTable, PageHeader, StatCard, Button, useToast, type Column } from "@/components/shared";
 import "@/css/adminDashboard.css";
 import { useAdminData } from "@/hooks";
+import { extractErrorMessage } from "@/utils/error";
 
 const AdminDashboard = () => {
   const {
@@ -28,6 +30,22 @@ const AdminDashboard = () => {
 
   const analytics = dashboardData[0]?.analytics;
   const report = dashboardData[0]?.report;
+
+  const { showToast } = useToast();
+  const [refreshingJobId, setRefreshingJobId] = useState<string | null>(null);
+
+  const handleRefreshExtractions = async (jobId: string) => {
+    setRefreshingJobId(jobId);
+    try {
+      await adminJobService.refreshCustomExtractions(jobId);
+      showToast("Custom extraction refresh triggered successfully.", "success");
+    } catch (err) {
+      console.error("Refresh extractions failed:", err);
+      showToast(extractErrorMessage(err, "Failed to refresh extractions."), "danger");
+    } finally {
+      setRefreshingJobId(null);
+    }
+  };
 
   const jobColumns: Column<any>[] = [
     { header: "Job Title", accessor: "job_title" },

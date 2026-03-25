@@ -51,8 +51,8 @@ const AdminLayout = () => {
     { to: "/admin/jobs", label: "Jobs" },
     { to: "/admin/candidates", label: "Candidates" },
     { to: "/admin/skills", label: "Skills" },
-    { to: "/admin/stage-templates", label: "Templates", adminOnly: true },
   ];
+
 
   const SidebarContent = () => (
     <>

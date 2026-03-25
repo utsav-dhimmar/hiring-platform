@@ -5,17 +5,14 @@ API routes for candidate-related operations in version 1.
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission
-from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.response import PaginatedData
 from app.v1.schemas.upload import CandidateResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
-
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter()
 
 
@@ -65,22 +62,25 @@ async def search_job_candidates(
 
 
 @router.get(
-    "/{candidate_id}/evaluations", response_model=list[StageEvaluationRead]
+    "/{candidate_id}/evaluations",
+    include_in_schema=False,
 )
 async def get_candidate_evaluations(
     candidate_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
 ) -> Any:
-    """Get all interview stage evaluations for a specific candidate."""
-    return await admin_service.get_candidate_evaluations(
-        db=db, candidate_id=candidate_id
+    """Retired: Get all interview stage evaluations for a specific candidate."""
+    from fastapi import HTTPException
+
+    raise HTTPException(
+        status_code=410, detail="Evaluation features are disabled."
     )
 
 
 @router.get(
     "/{candidate_id}/evaluations/{stage_config_id}",
-    response_model=StageEvaluationRead,
+    include_in_schema=False,
 )
 async def get_candidate_stage_evaluation(
     candidate_id: uuid.UUID,
@@ -88,7 +88,9 @@ async def get_candidate_stage_evaluation(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
 ) -> Any:
-    """Get a specific interview stage evaluation for a candidate."""
-    return await admin_service.get_candidate_stage_evaluation(
-        db=db, candidate_id=candidate_id, stage_config_id=stage_config_id
+    """Retired: Get a specific interview stage evaluation for a candidate."""
+    from fastapi import HTTPException
+
+    raise HTTPException(
+        status_code=410, detail="Evaluation features are disabled."
     )

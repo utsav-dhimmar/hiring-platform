@@ -88,4 +88,14 @@ export const resumeService = {
     );
     return response.data;
   },
+
+  /**
+   * Deletes a specific resume and associated candidate data for a job.
+   * @param jobId - The ID of the job
+   * @param resumeId - The unique identifier of the resume to delete
+   * @returns Promise resolving when deletion is complete
+   */
+  deleteResume: async (jobId: string, resumeId: string): Promise<void> => {
+    await apiClient.delete(`/jobs/${jobId}/resumes/${resumeId}`);
+  },
 };

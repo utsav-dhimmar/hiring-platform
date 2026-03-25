@@ -13,12 +13,12 @@ import {
   DateDisplay,
   PageHeader,
   StatusBadge,
-  StagesBadgeList,
+  // StagesBadgeList,
   SkillsBadgeList,
   useToast,
   type Column,
 } from "@/components/shared";
-import { CreateJobModal, DeleteModal, ManageJobStagesModal } from "@/components/modal";
+import { CreateJobModal, DeleteModal/*, ManageJobStagesModal*/ } from "@/components/modal";
 import "@/css/adminDashboard.css";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import JobActionButtons from "./components/JobActionButtons";
@@ -27,7 +27,7 @@ const AdminJobs = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const [showModal, setShowModal] = useState(false);
-  const [showStagesModal, setShowStagesModal] = useState(false);
+  // const [showStagesModal, setShowStagesModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobRead | null>(null);
 
   const [page, setPage] = useState(1);
@@ -74,10 +74,12 @@ const AdminJobs = () => {
     setShowModal(true);
   };
 
+  /*
   const handleManageStages = (job: JobRead) => {
     setSelectedJob(job);
     setShowStagesModal(true);
   };
+  */
 
   const handleViewCandidates = (jobId: string) => {
     navigate(`/admin/jobs/${jobId}/candidates`);
@@ -88,10 +90,12 @@ const AdminJobs = () => {
     setSelectedJob(null);
   };
 
+  /*
   const handleCloseStagesModal = () => {
     setShowStagesModal(false);
     setSelectedJob(null);
   };
+  */
 
   const columns: Column<JobRead>[] = [
     { header: "Title", accessor: "title" },
@@ -107,10 +111,12 @@ const AdminJobs = () => {
       header: "Skills",
       accessor: (job) => <SkillsBadgeList skills={job.skills} />,
     },
+    /*
     {
       header: "Stages",
       accessor: (job) => <StagesBadgeList stages={job.stages} />,
     },
+    */
     {
       header: "Created At",
       accessor: (job) => <DateDisplay date={job.created_at} showTime={false} />,
@@ -123,7 +129,7 @@ const AdminJobs = () => {
         <JobActionButtons
           job={job}
           onViewCandidates={handleViewCandidates}
-          onManageStages={handleManageStages}
+          // onManageStages={handleManageStages}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
         />
@@ -163,12 +169,12 @@ const AdminJobs = () => {
         job={selectedJob}
       />
 
-      <ManageJobStagesModal
+      {/* <ManageJobStagesModal
         show={showStagesModal}
         handleClose={handleCloseStagesModal}
         job={selectedJob}
         onStagesUpdated={fetchJobs}
-      />
+      /> */}
 
       <DeleteModal
         show={showDeleteModal}

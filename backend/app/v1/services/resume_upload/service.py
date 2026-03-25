@@ -14,6 +14,7 @@ from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings
+from app.v1.core.storage import resolve_storage_path, to_storage_relative_path
 from app.v1.repository.job_repository import job_repository
 from app.v1.repository.resume_upload_repository import resume_upload_repository
 from app.v1.schemas.job import JobRead
@@ -158,12 +159,13 @@ class ResumeUploadService:
             candidate_id=candidate.id,
         )
 
-        upload_root = Path(settings.RESUME_UPLOAD_DIR)
+        upload_root = resolve_storage_path(settings.RESUME_UPLOAD_DIR)
         target_dir = upload_root / str(job_id) / str(candidate.id)
         target_dir.mkdir(parents=True, exist_ok=True)
 
         stored_file_name = f"{uuid7()}.{extension}"
         target_path = target_dir / stored_file_name
+        stored_file_path = to_storage_relative_path(target_path)
         stage_started_at = time.perf_counter()
         target_path.write_bytes(content)
         log_stage(
@@ -171,7 +173,7 @@ class ResumeUploadService:
             started_at=stage_started_at,
             job_id=job_id,
             candidate_id=candidate.id,
-            path=target_path.as_posix(),
+            path=stored_file_path,
         )
 
         stage_started_at = time.perf_counter()
@@ -181,7 +183,7 @@ class ResumeUploadService:
             candidate_id=candidate.id,
             file_name=resume.filename,
             file_type=extension,
-            source_url=target_path.as_posix(),
+            source_url=stored_file_path,
             size=file_size,
             content_hash=content_hash,
         )
@@ -233,7 +235,7 @@ class ResumeUploadService:
         self.background.schedule_processing(
             job_id=job_id,
             resume_id=resume_record.id,
-            file_path=target_path.as_posix(),
+            file_path=stored_file_path,
         )
         log_event(
             event="background_scheduled",

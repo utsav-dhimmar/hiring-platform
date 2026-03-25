@@ -1,7 +1,13 @@
 import type { ReactElement } from "react";
 import { Badge, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { AdminDataTable, type Column, StatusBadge, Button, DateDisplay } from "@/components/shared";
+import {
+  AdminDataTable,
+  type Column,
+  StatusBadge,
+  Button,
+  DateDisplay,
+} from "@/components/shared";
 import type { CandidateResponse } from "@/types/resume";
 
 /**
@@ -28,6 +34,10 @@ interface CandidateTableProps {
   emptyMessage?: string;
   /** Callback when a candidate's "Show More" or "View Details" is clicked */
   onShowMore: (candidate: CandidateResponse) => void;
+  /** Callback when a candidate's "Screening Details" is clicked */
+  onShowScreeningDetails: (candidate: CandidateResponse) => void;
+  /** Callback when a candidate is deleted */
+  onDelete?: (candidate: CandidateResponse) => void;
   /** Whether to show the "Evaluate" action button */
   showEvaluateAction?: boolean;
   /** Optional job ID context for evaluations */
@@ -51,11 +61,17 @@ const CandidateTable = ({
   onRetry,
   emptyMessage,
   onShowMore,
+  onShowScreeningDetails,
+  onDelete,
   showEvaluateAction = false,
   jobId,
   className,
 }: CandidateTableProps): ReactElement => {
   const navigate = useNavigate();
+
+  // Silence unused variable warnings for jobId if it's not used in this specific view but kept for API consistency
+  void jobId;
+  void navigate;
 
   const columns: Column<CandidateResponse>[] = [
     {
@@ -91,7 +107,9 @@ const CandidateTable = ({
       style: { width: "120px", minWidth: "120px" },
       accessor: (c) => (
         <StatusBadge
-          status={c.pass_fail === null ? "pending" : c.pass_fail ? "pass" : "fail"}
+          status={
+            c.pass_fail === null ? "pending" : c.pass_fail ? "pass" : "fail"
+          }
           mapping={{
             pass: "success",
             fail: "danger",
@@ -113,7 +131,9 @@ const CandidateTable = ({
             </Badge>
           );
         }
-        return <StatusBadge status={status === "failed" ? "failed" : "completed"} />;
+        return (
+          <StatusBadge status={status === "failed" ? "failed" : "completed"} />
+        );
       },
     },
     {
@@ -123,7 +143,7 @@ const CandidateTable = ({
     {
       header: "Actions",
       className: "text-end text-nowrap",
-      style: { width: showEvaluateAction ? "250px" : "150px" },
+      style: { width: "350px" },
       accessor: (c) => (
         <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
           <Button
@@ -134,24 +154,42 @@ const CandidateTable = ({
           >
             {showEvaluateAction ? "Show More" : "View Details"}
           </Button>
-          {showEvaluateAction && jobId && c.pass_fail !== false && (
+          {onDelete && (
+            <Button
+              variant="outline-danger"
+              size="sm"
+              className="flex-shrink-0"
+              onClick={() => onDelete(c)}
+            >
+              Delete
+            </Button>
+          )}
+          {/* {showEvaluateAction && jobId && c.pass_fail !== false && c.processing_status !== "failed" && (
             <Button
               variant="primary"
               size="sm"
               className="flex-shrink-0"
-              onClick={() => navigate(`/admin/jobs/${jobId}/candidates/${c.id}/evaluation`)}
-              disabled={c.processing_status === "processing" || c.processing_status === "queued"}
+              onClick={() =>
+                navigate(`/admin/jobs/${jobId}/candidates/${c.id}/evaluation`)
+              }
+              disabled={
+                c.processing_status === "processing" ||
+                c.processing_status === "queued"
+              }
             >
               Evaluate
             </Button>
-          )}
+          )} */}
         </div>
       ),
     },
   ];
 
   const paginationProps =
-    total !== undefined && page !== undefined && pageSize !== undefined && onPageChange
+    total !== undefined &&
+      page !== undefined &&
+      pageSize !== undefined &&
+      onPageChange
       ? { total, page, pageSize, onPageChange }
       : {};
 

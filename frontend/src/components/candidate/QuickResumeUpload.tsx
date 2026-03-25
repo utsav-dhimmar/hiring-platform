@@ -96,7 +96,7 @@ const QuickResumeUpload: React.FC<QuickResumeUploadProps> = ({
   };
 
   return (
-    <div className={`quick-resume-upload d-inline-block ${className}`}>
+    <div className={`quick-resume-upload d-inline-flex ${className}`}>
       <Form.Control
         type="file"
         ref={fileInputRef}

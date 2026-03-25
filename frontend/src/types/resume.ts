@@ -136,6 +136,8 @@ export interface CandidateResponse {
   processing_status: string | null;
   /** Error message if processing failed */
   processing_error: string | null;
+  /** ID of the associated resume record */
+  resume_id?: string | null;
 }
 
 /**

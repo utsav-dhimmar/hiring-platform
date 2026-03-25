@@ -13,7 +13,9 @@ class StageTemplateBase(BaseModel):
     """Base schema for Stage Template data."""
 
     name: str = Field(..., description="Name of the stage template")
-    description: str | None = Field(None, description="Detailed description of the stage")
+    description: str | None = Field(
+        None, description="Detailed description of the stage"
+    )
     default_config: dict[str, Any] | None = Field(
         None, description="Default configuration JSON for this stage type"
     )
@@ -45,11 +47,15 @@ class StageTemplateRead(StageTemplateBase):
 class JobStageConfigBase(BaseModel):
     """Base schema for Job Stage Configuration data."""
 
-    stage_order: int = Field(..., ge=1, description="Sequence order of this stage")
+    stage_order: int = Field(
+        ..., ge=1, description="Sequence order of this stage"
+    )
     config: dict[str, Any] | None = Field(
         None, description="Job-specific configuration for this stage"
     )
-    is_mandatory: bool = Field(True, description="Whether this stage is required")
+    is_mandatory: bool = Field(
+        True, description="Whether this stage is required"
+    )
 
 
 class JobStageConfigCreate(JobStageConfigBase):

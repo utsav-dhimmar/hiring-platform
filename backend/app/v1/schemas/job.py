@@ -5,11 +5,10 @@ Pydantic schemas for Job-related data transfer.
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
-
 from app.v1.schemas.department import DepartmentRead
 from app.v1.schemas.job_stage import JobStageConfigRead
 from app.v1.schemas.skill import SkillRead
+from pydantic import BaseModel, ConfigDict
 
 
 class JobBase(BaseModel):

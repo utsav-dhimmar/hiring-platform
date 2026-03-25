@@ -44,3 +44,22 @@
   padding: 0.75rem 1.5rem;
   font-size: 1.125rem;
 }
+
+.btn-header-action {
+  min-width: 150px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem !important;
+}
+
+.btn-table-action {
+  min-width: 130px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem !important;
+  font-size: 0.875rem;
+}

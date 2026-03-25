@@ -1,1 +1,0 @@
-{"files": ["id", "owner_id", "candidate_id", "size", "created_at", "source_url", "file_name", "file_type"], "resumes": ["id", "resume_embedding", "candidate_id", "file_id", "uploaded_at", "parsed", "parse_summary", "resume_score", "pass_fail", "pass_threshold", "text_hash"]}
