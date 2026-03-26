@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 interface PaginationProps {
   page: number;
   pageSize: number;
@@ -14,54 +16,54 @@ const Pagination = ({ page, pageSize, total, onPageChange, dataLength }: Paginat
   const current = page || 1;
 
   return (
-    <div className="d-flex justify-content-between align-items-center mt-3 border-top pt-3 px-2">
-      <div className="text-muted small">
+    <div className="flex items-center justify-between border-t px-2 pt-3 mt-3">
+      <div className="text-sm text-muted-foreground">
         Showing {dataLength > 0 ? (current - 1) * pageSize + 1 : 0} to{" "}
         {Math.min(current * pageSize, total)} of {total} entries
       </div>
-      <ul className="pagination pagination-sm mb-0">
-        <li className={`page-item ${current === 1 ? "disabled" : ""}`}>
-          <button
-            className="page-link"
-            onClick={() => onPageChange(current - 1)}
-            disabled={current === 1}
-          >
-            Previous
-          </button>
-        </li>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(current - 1)}
+          disabled={current === 1}
+        >
+          Previous
+        </Button>
 
         {[...Array(totalPages)].map((_, i) => {
           const p = i + 1;
-          // Only show a few pages around current to prevent huge lists
           if (p === 1 || p === totalPages || (p >= current - 1 && p <= current + 1)) {
             return (
-              <li key={p} className={`page-item ${current === p ? "active" : ""}`}>
-                <button className="page-link" onClick={() => onPageChange(p)}>
-                  {p}
-                </button>
-              </li>
+              <Button
+                key={p}
+                variant={current === p ? "default" : "outline"}
+                size="sm"
+                onClick={() => onPageChange(p)}
+              >
+                {p}
+              </Button>
             );
           }
           if (p === current - 2 || p === current + 2) {
             return (
-              <li key={p} className="page-item disabled">
-                <span className="page-link">...</span>
-              </li>
+              <span key={p} className="px-2 text-muted-foreground">
+                ...
+              </span>
             );
           }
           return null;
         })}
 
-        <li className={`page-item ${current === totalPages ? "disabled" : ""}`}>
-          <button
-            className="page-link"
-            onClick={() => onPageChange(current + 1)}
-            disabled={current === totalPages}
-          >
-            Next
-          </button>
-        </li>
-      </ul>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(current + 1)}
+          disabled={current === totalPages}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 };

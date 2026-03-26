@@ -6,10 +6,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { useState } from "react";
-import { Alert, Form, Modal } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { adminPermissionService } from "@/apis/admin/service";
 import { Button, Input } from "@/components/shared";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { permissionCreateSchema, type PermissionCreateFormValues } from "@/schemas/admin";
 
 /**
@@ -26,14 +32,6 @@ interface CreatePermissionModalProps {
 
 /**
  * Modal dialog for creating a new permission.
- * @example
- * ```tsx
- * <CreatePermissionModal
- *   show={showModal}
- *   handleClose={() => setShowModal(false)}
- *   onPermissionCreated={refreshPermissions}
- * />
- * ```
  */
 const CreatePermissionModal = ({
   show,
@@ -84,24 +82,23 @@ const CreatePermissionModal = ({
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered scrollable>
-      <Modal.Header closeButton>
-        <Modal.Title>Create New Permission</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Dialog open={show} onOpenChange={(open) => !open && onHide()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New Permission</DialogTitle>
+        </DialogHeader>
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError(null)}>
-            {error}
-          </Alert>
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
         )}
 
-        <Form id="create-permission-form" onSubmit={handleSubmit(onSubmit)}>
+        <form id="create-permission-form" onSubmit={handleSubmit(onSubmit)}>
           <Input
             label="Permission Name"
             placeholder="e.g. users:write"
             {...register("name")}
             error={errors.name?.message}
-            className="mb-3"
           />
 
           <Input
@@ -109,19 +106,19 @@ const CreatePermissionModal = ({
             placeholder="Describe what this permission allows"
             {...register("description")}
             error={errors.description?.message}
-            className="mb-3"
+            className="mt-3"
           />
-        </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={onHide} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="primary" form="create-permission-form" isLoading={isLoading}>
-          Create Permission
-        </Button>
-      </Modal.Footer>
-    </Modal>
+        </form>
+        <DialogFooter>
+          <Button variant="outline" onClick={onHide} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button type="submit" form="create-permission-form" isLoading={isLoading}>
+            Create Permission
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

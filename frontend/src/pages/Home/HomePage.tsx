@@ -4,20 +4,18 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import jobService from "@/apis/job";
 import { resumeService } from "@/apis/resume";
 import type { Job } from "@/types/job";
 import {
-  Button,
   Card,
-  CardBody,
-  CardHeader,
   JobSearch,
   TableRowSkeleton,
   useToast,
 } from "@/components/shared";
+import { Button } from "@/components/index"
 import { extractErrorMessage } from "@/utils/error";
 import { useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -114,156 +112,145 @@ const HomePage = () => {
   };
 
   return (
-    <Container className="py-2 animate-fade-in">
-      <Row className="mb-4 align-items-center">
-        <Col>
-          <h2 className="fw-bold mb-0">Active Job Openings</h2>
-        </Col>
-        <Col xs="auto" className="d-flex gap-2">
-          <Button
-            variant="outline-primary"
-            onClick={goToAdmin}
-            className="btn-header-action"
-          >
+    <div className="container mx-auto py-2">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="font-bold mb-0">Active Job Openings</h2>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={goToAdmin}>
             Panel
           </Button>
-          <Button
-            variant="outline-danger"
-            onClick={handleLogout}
-            className="btn-header-action"
-          >
+          <Button onClick={handleLogout} variant="outline">
             Logout
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
-      <Row>
-        <Col>
-          <Card className="border-0 shadow-sm overflow-hidden">
-            <CardHeader className="bg-white border-0 pt-4 px-4">
-              <div className="d-flex justify-content-between align-items-center">
-                <h4 className="mb-0 fw-bold">Job Postings</h4>
-                <div className="text-muted small">
-                  {loading ? "Counting..." : `${jobs.length} Positions`}
-                </div>
+      <Card className="border-0 shadow-sm overflow-hidden">
+        <div className="bg-white border-0 pt-4 px-4">
+          <div className="flex justify-between items-center">
+            <h4 className="mb-0 font-bold">Job Postings</h4>
+            <div className="text-muted-foreground text-sm">
+              {loading ? "Counting..." : `${jobs.length} Positions`}
+            </div>
+          </div>
+        </div>
+        <div className="p-4">
+          <div className="mb-4 relative">
+            <JobSearch
+              onResultsFound={handleJobsFound}
+              onClear={handleClearSearch}
+              onError={handleSearchError}
+              onSearching={setSearchingJobs}
+            />
+            {searchingJobs && (
+              <div className="absolute right-5 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
-            </CardHeader>
-            <CardBody className="p-4">
-              <div className="mb-4 position-relative">
-                <JobSearch
-                  onResultsFound={handleJobsFound}
-                  onClear={handleClearSearch}
-                  onError={handleSearchError}
-                  onSearching={setSearchingJobs}
-                />
-                {searchingJobs && (
-                  <div className="position-absolute end-0 top-50 translate-middle-y me-5 pe-2">
-                    <Spinner animation="border" size="sm" variant="primary" />
-                  </div>
-                )}
-              </div>
+            )}
+          </div>
 
-              <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0">
-                  <thead className="bg-light text-muted small text-uppercase fw-bold">
-                    <tr>
-                      <th className="px-4 py-3 border-0">Job Title</th>
-                      <th className="px-4 py-3 border-0">Department</th>
-                      <th className="px-4 py-3 border-0">Status</th>
-                      <th className="px-4 py-3 border-0 text-end">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="border-0">
-                    {loading ? (
-                      [...Array(5)].map((_, i) => (
-                        <TableRowSkeleton key={i} columns={4} />
-                      ))
-                    ) : jobs.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="text-center py-5">
-                          <div className="py-4">
-                            <h5 className="text-dark fw-bold">No jobs found</h5>
-                            <p className="text-muted">
-                              Try adjusting your search or check back later.
-                            </p>
-                            <Button
-                              variant="outline-primary"
-                              size="sm"
-                              onClick={handleClearSearch}
-                            >
-                              Clear Search
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      jobs.map((job) => (
-                        <tr key={job.id} className="border-bottom border-light">
-                          <td className="px-4 py-3 border-0">
-                            <div className="fw-semibold text-dark">
-                              {job.title}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted text-muted-foreground text-sm uppercase font-bold">
+                <tr>
+                  <th className="px-4 py-3 text-left">Job Title</th>
+                  <th className="px-4 py-3 text-left">Department</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRowSkeleton key={i} columns={4} />
+                  ))
+                ) : jobs.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-5">
+                      <div className="py-4">
+                        <h5 className="font-bold">No jobs found</h5>
+                        <p className="text-muted-foreground">
+                          Try adjusting your search or check back later.
+                        </p>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleClearSearch}
+                        >
+                          Clear Search
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  jobs.map((job) => (
+                    <tr key={job.id} className="border-b border-border">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold">
+                          {job.title}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {job.department?.name ??
+                          job.department_name ??
+                          "General"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            job.is_active 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {job.is_active ? "Active" : "Closed"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          {uploading[job.id] ? (
+                            <div className="flex items-center gap-2 text-primary text-sm font-medium px-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Uploading...</span>
                             </div>
-                          </td>
-                          <td className="px-4 py-3 border-0 text-muted">
-                            {job.department?.name ??
-                              job.department_name ??
-                              "General"}
-                          </td>
-                          <td className="px-4 py-3 border-0">
-                            <span
-                              className={`badge px-3 py-2 rounded-pill bg-${job.is_active ? "success" : "secondary"}-subtle text-${job.is_active ? "success" : "secondary"}`}
-                            >
-                              {job.is_active ? "Active" : "Closed"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 border-0 text-end">
-                            <div className="d-inline-flex align-items-center gap-2">
-                              {uploading[job.id] ? (
-                                <div className="d-flex align-items-center gap-2 text-primary small fw-medium px-2">
-                                  <Spinner animation="border" size="sm" />
-                                  <span>Uploading...</span>
-                                </div>
-                              ) : (
-                                <Form.Group className="mb-0">
-                                  <Form.Control
-                                    type="file"
-                                    size="sm"
-                                    className="d-none"
-                                    id={`file-input-${job.id}`}
-                                    onChange={(
-                                      e: React.ChangeEvent<HTMLInputElement>,
-                                    ) => handleFileUpload(job.id, e)}
-                                    accept=".pdf,.doc,.docx"
-                                  />
-                                  <label
-                                    htmlFor={`file-input-${job.id}`}
-                                    className="btn btn-outline-primary btn-table-action mb-0"
-                                    style={{ cursor: "pointer" }}
-                                  >
-                                    Upload Resume
-                                  </label>
-                                </Form.Group>
-                              )}
+                          ) : (
+                            <>
+                              <input
+                                type="file"
+                                className="hidden"
+                                id={`file-input-${job.id}`}
+                                onChange={(
+                                  e: React.ChangeEvent<HTMLInputElement>,
+                                ) => handleFileUpload(job.id, e)}
+                                accept=".pdf,.doc,.docx"
+                              />
+                              <label
+                                htmlFor={`file-input-${job.id}`}
+                                className="px-3 py-1.5 text-sm border border-primary text-primary rounded hover:bg-primary/10 cursor-pointer"
+                              >
+                                Upload Resume
+                              </label>
                               <Button
-                                variant="primary"
                                 onClick={() => viewCandidates(job.id)}
-                                className="btn-table-action"
+                                size="sm"
                               >
                                 Candidates
                               </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 };
 

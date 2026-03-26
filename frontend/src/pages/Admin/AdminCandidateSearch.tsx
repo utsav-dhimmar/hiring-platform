@@ -160,15 +160,15 @@ const AdminCandidateSearch = () => {
 
   return (
     <div className="admin-dashboard">
-      <div className="bg-white p-1 mb-1 rounded-4 shadow-sm border border-light">
+      <div className="bg-white p-1 mb-1 rounded-xl shadow-sm border border-border">
         <PageHeader
           title={jobId ? `Candidates for ${job?.title || "Job"}` : "Global Candidate Search"}
           className="mb-0 border-0 p-0"
           actions={
             jobId && (
-              <div className="d-flex gap-2 align-items-center">
-                <QuickResumeUpload jobId={jobId} onSuccess={fetchCandidates} variant="primary" />
-                <Button variant="outline-secondary" onClick={() => navigate("/admin/jobs")}>
+              <div className="flex gap-2 items-center">
+                <QuickResumeUpload jobId={jobId} onSuccess={fetchCandidates} variant="default" />
+                <Button variant="secondary" onClick={() => navigate("/admin/jobs")}>
                   Back to Jobs
                 </Button>
               </div>

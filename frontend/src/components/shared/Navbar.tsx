@@ -3,12 +3,19 @@
  * Provides navigation, user profile, and responsive layout.
  */
 
-import { Container, Nav, Navbar, NavDropdown, Badge } from "react-bootstrap";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout, selectCurrentUser } from "@/store/slices/authSlice";
 import { authService } from "@/apis/auth";
-import "@/components/shared/Navbar.css";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 const AppNavbar = () => {
   const dispatch = useAppDispatch();
@@ -36,81 +43,83 @@ const AppNavbar = () => {
   if (!user) return null;
 
   return (
-    <Navbar bg="white" expand="lg" sticky="top" className="main-navbar py-3 shadow-sm">
-      <Container>
-        <Navbar.Brand as={Link} to="/" className="fw-bold text-primary brand-logo">
-          <span className="logo-icon me-2">🚀</span>
+    <header className="sticky top-0 z-50 w-full border-b bg-white py-3 shadow-sm">
+      <div className="container mx-auto flex items-center justify-between px-4">
+        <Link to="/" className="flex items-center gap-2 font-bold text-primary">
+          <span className="text-xl">🚀</span>
           Hiring Platform
-        </Navbar.Brand>
+        </Link>
 
-        <Navbar.Toggle aria-controls="main-nav" border-0 />
+        <nav className="hidden items-center gap-4 lg:flex">
+          <Link
+            to="/"
+            className={`px-3 py-2 text-sm font-medium transition-colors ${
+              location.pathname === "/"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Browse Jobs
+          </Link>
+          <Link
+            to="/about"
+            className={`px-3 py-2 text-sm font-medium transition-colors ${
+              location.pathname === "/about"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            About Us
+          </Link>
+        </nav>
 
-        <Navbar.Collapse id="main-nav">
-          <Nav className="me-auto ms-lg-4 mt-2 mt-lg-0">
-            <Nav.Link as={Link} to="/" active={location.pathname === "/"} className="px-3">
-              Browse Jobs
-            </Nav.Link>
-            <Nav.Link
-              as={Link}
-              to="/about"
-              active={location.pathname === "/about"}
-              className="px-3"
+        <div className="flex items-center gap-3">
+          {isAuthorized && (
+            <Link
+              to="/admin"
+              className="rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20"
             >
-              About Us
-            </Nav.Link>
-          </Nav>
+              Panel
+            </Link>
+          )}
 
-          <Nav className="mt-3 mt-lg-0 align-items-center">
-            {isAuthorized && (
-              <Nav.Link
-                as={Link}
-                to="/admin"
-                className="admin-link me-lg-3 py-2 px-3 rounded-pill bg-primary-subtle text-primary fw-semibold mb-3 mb-lg-0"
-              >
-                Panel
-              </Nav.Link>
-            )}
-
-            <NavDropdown
-              title={
-                <div className="d-inline-flex align-items-center">
-                  <div className="avatar me-2 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold">
-                    {user.full_name
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase() || user.email[0].toUpperCase()}
-                  </div>
-                  <span className="d-none d-md-inline">{user.full_name || user.email}</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                  {user.full_name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || user.email[0].toUpperCase()}
                 </div>
-              }
-              id="user-dropdown"
-              align="end"
-              className="user-nav-dropdown mt-2 mt-lg-0"
-            >
-              <NavDropdown.Header className="px-3 py-2">
-                <div className="fw-bold">{user.full_name || "User"}</div>
-                <div className="small text-muted">{user.email}</div>
-                <Badge bg="info" className="mt-1">
+                <span className="hidden md:inline">{user.full_name || user.email}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-3 py-2">
+                <div className="font-semibold">{user.full_name || "User"}</div>
+                <div className="text-sm text-muted-foreground">{user.email}</div>
+                <Badge variant="secondary" className="mt-1">
                   {user.role_name}
                 </Badge>
-              </NavDropdown.Header>
-              <NavDropdown.Divider />
-              <NavDropdown.Item as={Link} to="/profile">
-                My Profile
-              </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/applications">
-                My Applications
-              </NavDropdown.Item>
-              <NavDropdown.Divider />
-              <NavDropdown.Item onClick={handleLogout} className="text-danger">
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <Link to="/profile" className="w-full">My Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Link to="/applications" className="w-full">My Applications</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-500">
                 Logout
-              </NavDropdown.Item>
-            </NavDropdown>
-          </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
   );
 };
 

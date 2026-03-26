@@ -83,9 +83,9 @@ const AdminUsers = () => {
       className: "text-end text-nowrap",
       style: { width: "200px", minWidth: "200px" },
       accessor: (user) => (
-        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
+        <div className="flex gap-2 justify-end items-center flex-nowrap">
           <Button
-            variant="outline-primary"
+            variant="outline"
             size="sm"
             className="flex-shrink-0"
             onClick={() => handleEditClick(user)}
@@ -94,7 +94,7 @@ const AdminUsers = () => {
           </Button>
           {user.full_name !== "System Admin" && (
             <Button
-              variant="outline-danger"
+              variant="destructive"
               size="sm"
               className="flex-shrink-0"
               onClick={() => handleDeleteClick(user)}
@@ -112,7 +112,7 @@ const AdminUsers = () => {
       <PageHeader
         title="User Management"
         actions={
-          <Button variant="primary" onClick={handleCreateClick}>
+          <Button onClick={handleCreateClick}>
             Create User
           </Button>
         }

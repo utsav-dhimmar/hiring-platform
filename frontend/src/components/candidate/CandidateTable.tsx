@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
-import { Badge, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import {
   AdminDataTable,
   type Column,
@@ -8,6 +8,7 @@ import {
   Button,
   DateDisplay,
 } from "@/components/shared";
+import { Badge } from "@/components/ui/badge";
 import type { CandidateResponse } from "@/types/resume";
 
 /**
@@ -69,9 +70,9 @@ const CandidateTable = ({
 }: CandidateTableProps): ReactElement => {
   const navigate = useNavigate();
 
-  // Silence unused variable warnings for jobId if it's not used in this specific view but kept for API consistency
   void jobId;
   void navigate;
+  void onShowScreeningDetails;
 
   const columns: Column<CandidateResponse>[] = [
     {
@@ -81,7 +82,7 @@ const CandidateTable = ({
           {c.is_parsed ? (
             `${c.first_name || ""} ${c.last_name || ""}`.trim() || "N/A"
           ) : (
-            <span className="text-muted fst-italic">Processing...</span>
+            <span className="text-muted-foreground italic">Processing...</span>
           )}
         </strong>
       ),
@@ -91,15 +92,11 @@ const CandidateTable = ({
       header: "Score",
       accessor: (c) =>
         c.resume_score !== null ? (
-          <Badge
-            bg={c.resume_score >= 65 ? "success" : "warning"}
-            className={`px-3 py-2 rounded-pill bg-${c.resume_score >= 65 ? "success" : "warning"}-subtle text-${c.resume_score >= 65 ? "success" : "warning"
-              }`}
-          >
+          <Badge variant={c.resume_score >= 65 ? "default" : "secondary"} className="px-3 py-1">
             {c.resume_score.toFixed(1)}%
           </Badge>
         ) : (
-          <span className="text-muted">N/A</span>
+          <span className="text-muted-foreground">N/A</span>
         ),
     },
     {
@@ -111,8 +108,8 @@ const CandidateTable = ({
             c.pass_fail === null ? "pending" : c.pass_fail ? "pass" : "fail"
           }
           mapping={{
-            pass: "success",
-            fail: "danger",
+            pass: "default",
+            fail: "destructive",
             pending: "secondary",
           }}
         />
@@ -125,8 +122,8 @@ const CandidateTable = ({
         const status = c.processing_status;
         if (status === "processing" || status === "queued") {
           return (
-            <Badge bg="info" className="d-inline-flex align-items-center gap-1">
-              <Spinner animation="border" size="sm" />
+            <Badge variant="secondary" className="inline-flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
               Processing
             </Badge>
           );
@@ -142,12 +139,12 @@ const CandidateTable = ({
     },
     {
       header: "Actions",
-      className: "text-end text-nowrap",
+      className: "text-end whitespace-nowrap",
       style: { width: "350px" },
       accessor: (c) => (
-        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
+        <div className="flex gap-2 justify-end items-center">
           <Button
-            variant="outline-primary"
+            variant="outline"
             size="sm"
             className="flex-shrink-0"
             onClick={() => onShowMore(c)}
@@ -156,30 +153,14 @@ const CandidateTable = ({
           </Button>
           {onDelete && (
             <Button
-              variant="outline-danger"
+              variant="outline"
               size="sm"
-              className="flex-shrink-0"
+              className="flex-shrink-0 text-red-500 hover:text-red-600"
               onClick={() => onDelete(c)}
             >
               Delete
             </Button>
           )}
-          {/* {showEvaluateAction && jobId && c.pass_fail !== false && c.processing_status !== "failed" && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="flex-shrink-0"
-              onClick={() =>
-                navigate(`/admin/jobs/${jobId}/candidates/${c.id}/evaluation`)
-              }
-              disabled={
-                c.processing_status === "processing" ||
-                c.processing_status === "queued"
-              }
-            >
-              Evaluate
-            </Button>
-          )} */}
         </div>
       ),
     },

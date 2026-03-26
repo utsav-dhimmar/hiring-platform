@@ -23,4 +23,5 @@ export interface Job {
   created_by: string;
   /** Timestamp when the job was created */
   created_at: string;
+  skills: { name: string; description: string | null }[];
 }

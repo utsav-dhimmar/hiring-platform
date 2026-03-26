@@ -1,17 +1,15 @@
 /**
  * Custom Card component with hover and click states.
- * Wraps React Bootstrap Card with additional styling options.
+ * Uses Tailwind CSS for styling.
  */
 
 import React from "react";
-import { Card as BSCard } from "react-bootstrap";
-import type { CardProps } from "react-bootstrap";
-import "@/css/card.css";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for the Card component.
  */
-interface CustomCardProps extends CardProps {
+interface CustomCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Adds hover effect styling */
   hoverable?: boolean;
   /** Makes the card clickable with cursor pointer */
@@ -22,13 +20,6 @@ interface CustomCardProps extends CardProps {
 
 /**
  * Card container component with optional hover and click states.
- * @example
- * ```tsx
- * <Card hoverable onCardClick={handleClick}>
- *   <CardHeader>Title</CardHeader>
- *   <CardBody>Content here</CardBody>
- * </Card>
- * ```
  */
 export function Card({
   children,
@@ -39,13 +30,18 @@ export function Card({
   ...props
 }: CustomCardProps) {
   return (
-    <BSCard
-      className={`custom-card ${hoverable ? "custom-card--hoverable" : ""} ${clickable ? "custom-card--clickable" : ""} shadow-sm border-0 ${className}`}
+    <div
+      className={cn(
+        "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+        hoverable && "transition-colors hover:bg-muted/50",
+        clickable && "cursor-pointer",
+        className
+      )}
       onClick={clickable ? onCardClick : undefined}
       {...props}
     >
       {children}
-    </BSCard>
+    </div>
   );
 }
 
@@ -58,9 +54,9 @@ export function CardHeader({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <BSCard.Header className={`custom-card__header ${className}`} {...props}>
+    <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props}>
       {children}
-    </BSCard.Header>
+    </div>
   );
 }
 
@@ -73,9 +69,9 @@ export function CardBody({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <BSCard.Body className={`custom-card__body ${className}`} {...props}>
+    <div className={cn("p-6 pt-0", className)} {...props}>
       {children}
-    </BSCard.Body>
+    </div>
   );
 }
 
@@ -88,9 +84,9 @@ export function CardFooter({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <BSCard.Footer className={`custom-card__footer ${className}`} {...props}>
+    <div className={cn("flex items-center p-6 pt-0", className)} {...props}>
       {children}
-    </BSCard.Footer>
+    </div>
   );
 }
 

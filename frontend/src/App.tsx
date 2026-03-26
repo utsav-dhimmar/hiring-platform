@@ -6,13 +6,16 @@
 import { BrowserRouter as Router } from "react-router-dom";
 import AppRoutes from "@/routes/AppRoutes";
 import { ToastProvider } from "@/components/shared";
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 function App() {
   return (
     <Router>
-      <ToastProvider>
-        <AppRoutes />
-      </ToastProvider>
+      <TooltipProvider>
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
+      </TooltipProvider>
     </Router>
   );
 }

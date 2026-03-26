@@ -3,9 +3,16 @@
  * Shows contact info, screening overview, and AI-powered resume analysis.
  */
 
-import { Badge, Modal } from "react-bootstrap";
 import type { CandidateResponse, MissingSkill } from "@/types/resume";
 import { Button } from "@/components/shared";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface CandidateDetailModalProps {
   /** Controls visibility of the modal */
@@ -22,18 +29,18 @@ const formatMissingSkill = (skill: MissingSkill | string) =>
 const CandidateDetailModal = ({ show, onHide, candidate }: CandidateDetailModalProps) => {
   console.log(candidate);
   return (
-    <Modal show={show} onHide={onHide} size="lg" className="modal-dialog-scrollable">
-      <Modal.Header closeButton>
-        <Modal.Title>
-          Candidate Profile: {candidate?.first_name} {candidate?.last_name}
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Dialog open={show} onOpenChange={(open) => !open && onHide()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            Candidate Profile: {candidate?.first_name} {candidate?.last_name}
+          </DialogTitle>
+        </DialogHeader>
         {candidate && (
           <div className="p-3">
-            <div className="row mb-4">
-              <div className="col-md-6">
-                <h5 className="border-bottom pb-2">Contact Information</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <h5 className="border-b pb-2">Contact Information</h5>
                 <p className="mb-1">
                   <strong>Email:</strong> {candidate.email}
                 </p>
@@ -44,12 +51,12 @@ const CandidateDetailModal = ({ show, onHide, candidate }: CandidateDetailModalP
                   <strong>Current Status:</strong> {candidate.current_status || "Applied"}
                 </p>
               </div>
-              <div className="col-md-6">
-                <h5 className="border-bottom pb-2">Screening Overview</h5>
+              <div>
+                <h5 className="border-b pb-2">Screening Overview</h5>
                 <p className="mb-1">
                   <strong>Score:</strong>{" "}
                   {candidate.resume_score !== null ? (
-                    <Badge bg={candidate.resume_score >= 65 ? "success" : "warning"}>
+                    <Badge variant={candidate.resume_score >= 65 ? "default" : "secondary"}>
                       {candidate.resume_score.toFixed(1)}%
                     </Badge>
                   ) : (
@@ -59,7 +66,7 @@ const CandidateDetailModal = ({ show, onHide, candidate }: CandidateDetailModalP
                 <p className="mb-1">
                   <strong>Pass/Fail:</strong>{" "}
                   {candidate.pass_fail !== null ? (
-                    <Badge bg={candidate.pass_fail ? "success" : "danger"}>
+                    <Badge variant={candidate.pass_fail ? "default" : "destructive"}>
                       {candidate.pass_fail ? "PASS" : "FAIL"}
                     </Badge>
                   ) : (
@@ -71,13 +78,13 @@ const CandidateDetailModal = ({ show, onHide, candidate }: CandidateDetailModalP
                   {candidate.is_parsed ? (
                     "Success"
                   ) : candidate.processing_status === "failed" ? (
-                    <span className="text-danger">Failed</span>
+                    <span className="text-red-500">Failed</span>
                   ) : (
                     "Pending"
                   )}
                 </p>
                 {candidate.processing_status === "failed" && candidate.processing_error && (
-                  <p className="mb-1 text-danger small">
+                  <p className="mb-1 text-red-500 text-sm">
                     <strong>Error:</strong> {candidate.processing_error}
                   </p>
                 )}
@@ -87,62 +94,62 @@ const CandidateDetailModal = ({ show, onHide, candidate }: CandidateDetailModalP
             {candidate.resume_analysis ? (
               <>
                 <div className="mb-4">
-                  <h5 className="border-bottom pb-2">Strength Summary</h5>
-                  <p className="text-muted">{candidate.resume_analysis.strength_summary}</p>
+                  <h5 className="border-b pb-2">Strength Summary</h5>
+                  <p className="text-muted-foreground">{candidate.resume_analysis.strength_summary}</p>
                 </div>
 
                 <div className="mb-4">
-                  <h5 className="border-bottom pb-2">Experience Alignment</h5>
-                  <p className="text-muted">{candidate.resume_analysis.experience_alignment}</p>
+                  <h5 className="border-b pb-2">Experience Alignment</h5>
+                  <p className="text-muted-foreground">{candidate.resume_analysis.experience_alignment}</p>
                 </div>
 
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <h5 className="border-bottom pb-2">Missing Skills</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="mb-3">
+                    <h5 className="border-b pb-2">Missing Skills</h5>
                     {candidate.resume_analysis.missing_skills?.length > 0 ? (
-                      <div className="d-flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1">
                         {candidate.resume_analysis.missing_skills.map((skill, idx) => (
-                          <Badge key={idx} bg="danger" pill className="fw-normal">
+                          <Badge key={idx} variant="destructive" className="font-normal">
                             {formatMissingSkill(skill)}
                           </Badge>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-success small">No major missing skills identified.</p>
+                      <p className="text-green-500 text-sm">No major missing skills identified.</p>
                     )}
                   </div>
-                  <div className="col-md-6">
-                    <h5 className="border-bottom pb-2">Extraordinary Points</h5>
+                  <div>
+                    <h5 className="border-b pb-2">Extraordinary Points</h5>
                     {candidate.resume_analysis.extraordinary_points?.length > 0 ? (
-                      <ul className="ps-3 mb-0 small">
+                      <ul className="list-disc pl-3 mb-0 text-sm">
                         {candidate.resume_analysis.extraordinary_points.map((point, idx) => (
-                          <li key={idx} className="text-success mb-1">
+                          <li key={idx} className="text-green-500 mb-1">
                             {point}
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-muted small">None identified.</p>
+                      <p className="text-muted-foreground text-sm">None identified.</p>
                     )}
                   </div>
                 </div>
               </>
             ) : (
-              <div className="text-center py-4 bg-light rounded">
-                <p className="text-muted mb-0">
+              <div className="text-center py-4 bg-muted rounded">
+                <p className="text-muted-foreground mb-0">
                   No detailed AI analysis available for this candidate.
                 </p>
               </div>
             )}
           </div>
         )}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
-          Close
-        </Button>
-      </Modal.Footer>
-    </Modal>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onHide}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

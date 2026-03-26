@@ -12,8 +12,12 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import RoleRoute from "@/components/auth/RoleRoute";
 import PublicRoute from "@/components/auth/PublicRoute";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import DashboardLayout from "@/pages/dashboard/DashboardLayout";
+import JobBoard from "@/pages/dashboard/JobBoard";
 
 // Lazy-loaded route components
+const CreateJob = lazy(() => import("@/pages/dashboard/CreateJob"));
+const JobCandidates = lazy(() => import("@/pages/dashboard/JobCandidates"));
 const JobCandidatesPage = lazy(
   () => import("@/pages/JobCandidates/JobCandidatesPage"),
 );
@@ -47,6 +51,21 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="jobs" replace />} />
+          <Route path="jobs" element={<JobBoard />} />
+          <Route path="jobs/new" element={<CreateJob />} />
+          <Route path="jobs/:jobSlug/edit" element={<CreateJob />} />
+          <Route path="jobs/:jobSlug/candidates" element={<JobCandidates />} />
+          {/* <Route path="candidates" element={<div>Candidates View (Coming Soon)</div>} /> */}
+        </Route>
         <Route
           path="/jobs/:jobId"
           element={

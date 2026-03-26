@@ -4,7 +4,6 @@
  */
 
 import React from "react";
-import { Form, Row, Col } from "react-bootstrap";
 import { Input, Button } from "@/components/shared";
 
 /**
@@ -27,15 +26,6 @@ interface SearchBarProps {
 
 /**
  * Search bar with input field and submit button.
- * @example
- * ```tsx
- * <SearchBar
- *   value={searchQuery}
- *   onChange={setSearchQuery}
- *   onSearch={handleSearch}
- *   placeholder="Search users..."
- * />
- * ```
  */
 const SearchBar = ({
   placeholder = "Search...",
@@ -46,22 +36,19 @@ const SearchBar = ({
   className = "",
 }: SearchBarProps) => {
   return (
-    <Form onSubmit={onSearch} className={className}>
-      <Row className="g-2">
-        <Col>
-          <Input
-            placeholder={placeholder}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </Col>
-        <Col xs="auto">
-          <Button variant="primary" type="submit" isLoading={isLoading}>
-            Search
-          </Button>
-        </Col>
-      </Row>
-    </Form>
+    <form onSubmit={onSearch} className={className}>
+      <div className="flex gap-2">
+        <Input
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1"
+        />
+        <Button type="submit" isLoading={isLoading}>
+          Search
+        </Button>
+      </div>
+    </form>
   );
 };
 

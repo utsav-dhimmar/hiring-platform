@@ -2,7 +2,9 @@
  * Error display component with optional retry button.
  * Shows an alert message with error details and recovery options.
  */
-import { Alert, Button, Container } from "react-bootstrap";
+
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/shared";
 
 /**
  * Props for the ErrorDisplay component.
@@ -18,37 +20,31 @@ interface ErrorDisplayProps {
 
 /**
  * Error alert with optional retry button.
- * @example
- * ```tsx
- * <ErrorDisplay message="Failed to load data" onRetry={refetch} />
- * <ErrorDisplay message="Error occurred" fullPage />
- * ```
  */
 const ErrorDisplay = ({ message, onRetry, fullPage = false }: ErrorDisplayProps) => {
   const content = (
     <div className="py-4">
-      <Alert variant="danger" className="text-center shadow-sm">
-        <Alert.Heading>Error Occurred</Alert.Heading>
-        <p>{message}</p>
+      <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-center shadow-sm">
+        <AlertTriangle className="h-8 w-8 mx-auto text-destructive mb-2" />
+        <h4 className="font-semibold text-destructive">Error Occurred</h4>
+        <p className="text-muted-foreground">{message}</p>
         {onRetry && (
           <div className="mt-3">
-            <Button variant="outline-danger" onClick={onRetry}>
+            <Button variant="outline" className="text-red-500 hover:text-red-600" onClick={onRetry}>
+              <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
             </Button>
           </div>
         )}
-      </Alert>
+      </div>
     </div>
   );
 
   if (fullPage) {
     return (
-      <Container
-        className="d-flex align-items-center justify-content-center"
-        style={{ minHeight: "80vh" }}
-      >
+      <div className="flex min-h-[80vh] items-center justify-center">
         {content}
-      </Container>
+      </div>
     );
   }
 

@@ -23,5 +23,7 @@ export { default as StatCard } from "@/components/shared/StatCard";
 export { default as JobSummaryCard } from "@/components/shared/JobSummaryCard";
 export { default as CandidateSearchForm } from "@/components/shared/CandidateSearchForm";
 export { default as AppNavbar } from "@/components/shared/Navbar";
+export { default as Logo } from "@/components/shared/Logo";
 export { Skeleton, TextSkeleton, TableRowSkeleton, CardSkeleton } from "@/components/shared/Skeleton";
+export { DataTable } from "@/components/shared/DataTable";
 export { ToastProvider, useToast } from "@/components/shared/ToastProvider";

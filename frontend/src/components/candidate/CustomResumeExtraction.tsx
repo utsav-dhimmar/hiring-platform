@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Form, Row, Col, Table, Badge } from "react-bootstrap";
-import { Card, CardBody, Button } from "@/components/shared";
+import { Card, Button, Input } from "@/components/shared";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { resumeService } from "@/apis/resume";
 import type { CustomFieldRequest, CustomFieldResponse } from "@/types/resume";
 import { useToast } from "@/components/shared";
 import { extractErrorMessage } from "@/utils/error";
+import { Plus, Trash2, FileText } from "lucide-react";
 
 interface CustomResumeExtractionProps {
   jobId: string;
@@ -35,7 +37,6 @@ const CustomResumeExtraction = ({ jobId, resumeId }: CustomResumeExtractionProps
   };
 
   const handleExtract = async () => {
-    // Validate fields
     const validFields = fields.filter((f) => f.title.trim() && f.description.trim());
     if (validFields.length === 0) {
       toast.error("Please provide at least one field with a title and description.");
@@ -59,76 +60,73 @@ const CustomResumeExtraction = ({ jobId, resumeId }: CustomResumeExtractionProps
   };
 
   return (
-    <div className="custom-resume-extraction animate-fade-in">
+    <div className="custom-resume-extraction">
       <Card className="mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
-        <div className="bg-white px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
-          <h5 className="mb-0 fw-bold">Custom Resume Extraction</h5>
-          <Badge bg="info" className="rounded-pill px-3 py-2">
+        <div className="bg-white px-4 py-3 border-b flex justify-between items-center">
+          <h5 className="mb-0 font-bold">Custom Resume Extraction</h5>
+          <Badge variant="secondary" className="rounded-full px-3 py-1">
             AI Powered
           </Badge>
         </div>
-        <CardBody className="p-4">
-          <p className="text-muted mb-4">
+        <div className="p-4">
+          <p className="text-muted-foreground mb-4">
             Define specific information you want to extract from this resume. The AI will analyze
             the content based on your descriptions.
           </p>
 
           <div className="fields-container mb-4">
             {fields.map((field, index) => (
-              <Row key={index} className="g-3 mb-3 align-items-end">
-                <Col md={4}>
-                  <Form.Group controlId={`field-title-${index}`}>
-                    <Form.Label className="small fw-bold text-muted text-uppercase">
-                      Field Name
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="e.g. Notice Period"
-                      value={field.title}
-                      onChange={(e) => handleFieldChange(index, "title", e.target.value)}
-                      className="rounded-3"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={7}>
-                  <Form.Group controlId={`field-desc-${index}`}>
-                    <Form.Label className="small fw-bold text-muted text-uppercase">
-                      Extraction Instructions
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="e.g. Find the notice period mentioned or 'Not Mentioned'"
-                      value={field.description}
-                      onChange={(e) => handleFieldChange(index, "description", e.target.value)}
-                      className="rounded-3"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={1} className="text-end">
+              <div key={index} className="grid grid-cols-12 gap-3 mb-3 items-end">
+                <div className="md:col-span-4">
+                  <label className="text-sm font-bold text-muted-foreground uppercase">
+                    Field Name
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. Notice Period"
+                    value={field.title}
+                    onChange={(e) => handleFieldChange(index, "title", e.target.value)}
+                    className="rounded-lg"
+                  />
+                </div>
+                <div className="md:col-span-7">
+                  <label className="text-sm font-bold text-muted-foreground uppercase">
+                    Extraction Instructions
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. Find the notice period mentioned or 'Not Mentioned'"
+                    value={field.description}
+                    onChange={(e) => handleFieldChange(index, "description", e.target.value)}
+                    className="rounded-lg"
+                  />
+                </div>
+                <div className="md:col-span-1 text-end">
                   <Button
                     variant="ghost"
-                    className="text-danger p-0 mb-1"
+                    className="text-red-500 p-0 mb-1"
                     onClick={() => handleRemoveField(index)}
                     disabled={isExtracting}
+                    size="sm"
                   >
-                    <i className="bi bi-trash fs-5"></i>
+                    <Trash2 className="h-5 w-5" />
                   </Button>
-                </Col>
-              </Row>
+                </div>
+              </div>
             ))}
           </div>
 
-          <div className="d-flex gap-2">
+          <div className="flex gap-2">
             <Button
-              variant="outline-primary"
+              variant="outline"
               size="sm"
               onClick={handleAddField}
               disabled={isExtracting}
             >
-              <i className="bi bi-plus-lg me-1"></i> Add Another Field
+              <Plus className="h-4 w-4 mr-1" /> Add Another Field
             </Button>
             <Button
-              variant="primary"
+              variant="default"
               size="sm"
               onClick={handleExtract}
               isLoading={isExtracting}
@@ -139,38 +137,36 @@ const CustomResumeExtraction = ({ jobId, resumeId }: CustomResumeExtractionProps
           </div>
 
           {results.length > 0 && (
-            <div className="results-container mt-5 animate-slide-up">
-              <h6 className="text-uppercase small fw-bold text-muted mb-3 letter-spacing-wide d-flex align-items-center">
-                <i className="bi bi-clipboard-data me-2 text-primary"></i>
+            <div className="results-container mt-5">
+              <h6 className="text-sm font-bold uppercase text-muted-foreground mb-3 tracking-wide flex items-center">
+                <FileText className="h-4 w-4 mr-2 text-primary" />
                 Extraction Results
               </h6>
-              <div className="table-responsive">
-                <Table hover className="align-middle border rounded-3 overflow-hidden">
-                  <thead className="bg-light">
-                    <tr>
-                      <th className="border-0 px-4 py-3" style={{ width: "30%" }}>
-                        Field
-                      </th>
-                      <th className="border-0 px-4 py-3">Extracted Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <div className="overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead style={{ width: "30%" }}>Field</TableHead>
+                      <TableHead>Extracted Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {results.map((result, idx) => (
-                      <tr key={idx}>
-                        <td className="px-4 py-3 fw-medium text-dark">{result.title}</td>
-                        <td className="px-4 py-3">
-                          <span className="bg-light p-2 rounded-2 d-inline-block w-100 border-0">
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{result.title}</TableCell>
+                        <TableCell>
+                          <span className="bg-muted p-2 rounded block w-full">
                             {result.value}
                           </span>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
+                  </TableBody>
                 </Table>
               </div>
             </div>
           )}
-        </CardBody>
+        </div>
       </Card>
     </div>
   );

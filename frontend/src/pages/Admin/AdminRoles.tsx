@@ -85,7 +85,7 @@ const AdminRoles = () => {
       accessor: (role) => (
         <>
           <Button
-            variant="outline-primary"
+            variant="outline"
             size="sm"
             className="me-2"
             onClick={() => handleEditRole(role.id)}
@@ -93,7 +93,7 @@ const AdminRoles = () => {
             Edit
           </Button>
           <Button
-            variant="outline-danger"
+            variant="destructive"
             size="sm"
             onClick={() => roleDelete.handleDeleteClick(role)}
           >
@@ -118,7 +118,7 @@ const AdminRoles = () => {
       header: "Actions",
       accessor: (perm) => (
         <Button
-          variant="outline-danger"
+          variant="destructive"
           size="sm"
           onClick={() => permissionDelete.handleDeleteClick(perm)}
         >
@@ -134,10 +134,10 @@ const AdminRoles = () => {
         title="Role & Permission Management"
         actions={
           <>
-            <Button variant="outline-primary" onClick={() => setShowPermissionModal(true)}>
+            <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
               Create Permission
             </Button>
-            <Button variant="primary" onClick={handleCreateRole}>
+            <Button onClick={handleCreateRole}>
               Create Role
             </Button>
           </>

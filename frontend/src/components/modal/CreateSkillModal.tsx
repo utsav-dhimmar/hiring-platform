@@ -4,11 +4,16 @@
  */
 
 import { useCallback } from "react";
-import { Modal } from "react-bootstrap";
 import { adminSkillService } from "@/apis/admin/service";
 import type { SkillRead } from "@/types/admin";
 import { Button, Input } from "@/components/shared";
-import "@/css/adminDashboard.css";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useFormModal } from "@/hooks";
 import { skillCreateSchema, type SkillCreateFormValues } from "@/schemas/admin";
 
@@ -64,13 +69,17 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
   });
 
   return (
-    <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
-      <Modal.Header closeButton>
-        <Modal.Title>{isEditMode ? "Edit Skill" : "Create New Skill"}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditMode ? "Edit Skill" : "Create New Skill"}</DialogTitle>
+        </DialogHeader>
         <form id="create-skill-form" onSubmit={handleSubmit}>
-          {submitError && <div className="alert alert-danger">{submitError}</div>}
+          {submitError && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-3">
+              <p className="text-sm text-destructive">{submitError}</p>
+            </div>
+          )}
 
           <Input
             label="Skill Name"
@@ -80,29 +89,29 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
             required
           />
 
-          <div className="form-group mb-3">
-            <label className="form-label">Description</label>
+          <div className="space-y-2 mb-3">
+            <label className="text-sm font-medium">Description</label>
             <textarea
-              className={`form-control ${errors.description ? "is-invalid" : ""}`}
+              className={`w-full rounded-md border border-input bg-background px-3 py-2 min-h-[80px] ${errors.description ? "border-destructive" : ""}`}
               rows={3}
               {...register("description")}
               placeholder="Briefly describe the skill..."
             />
             {errors.description && (
-              <div className="invalid-feedback">{errors.description.message}</div>
+              <p className="text-sm text-destructive">{errors.description.message}</p>
             )}
           </div>
         </form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={handleClose} type="button">
-          Cancel
-        </Button>
-        <Button variant="primary" type="submit" form="create-skill-form" isLoading={isSubmitting}>
-          {isEditMode ? "Update Skill" : "Create Skill"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} type="button">
+            Cancel
+          </Button>
+          <Button type="submit" form="create-skill-form" isLoading={isSubmitting}>
+            {isEditMode ? "Update Skill" : "Create Skill"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

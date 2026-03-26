@@ -1,18 +1,16 @@
 /**
  * Custom input component with label, error handling, and icon support.
- * Wraps React Bootstrap Form.Control with enhanced styling.
+ * Uses shadcn Input component with custom styling.
  */
 
 import React, { useId, forwardRef } from "react";
-import { Form } from "react-bootstrap";
-import type { FormControlProps } from "react-bootstrap";
-import "@/css/input.css";
+import { Input as ShadcnInput } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for the Input component.
- * Extends React Bootstrap FormControlProps with custom options.
  */
-interface InputProps extends Omit<FormControlProps, "size"> {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   /** Label text displayed above the input */
   label?: string;
   /** Error message to display below the input */
@@ -29,15 +27,6 @@ interface InputProps extends Omit<FormControlProps, "size"> {
 
 /**
  * Input component with label, validation states, and icon support.
- * @example
- * ```tsx
- * <Input
- *   label="Email"
- *   type="email"
- *   placeholder="Enter your email"
- *   error={errors.email?.message}
- * />
- * ```
  */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
@@ -57,32 +46,45 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const generatedId = useId();
     const inputId = id || generatedId;
 
+    const sizeClasses = {
+      sm: "h-8 px-2 text-sm",
+      lg: "h-12 px-4 text-lg",
+      undefined: "h-10 px-3",
+    };
+
     return (
-      <div className={`custom-input ${error ? "custom-input--error" : ""} ${className}`}>
+      <div className={cn("space-y-2", error && "text-destructive", className)}>
         {label && (
-          <label htmlFor={inputId} className="custom-input__label">
+          <label htmlFor={inputId} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             {label}
           </label>
         )}
-        <div className="custom-input__wrapper">
+        <div className="relative">
           {leftElement && (
-            <span className="custom-input__element custom-input__element--left">{leftElement}</span>
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              {leftElement}
+            </div>
           )}
-          <Form.Control
+          <ShadcnInput
             id={inputId}
-            size={inputSize}
-            className={`custom-input__field py-2 px-3 ${leftElement ? "custom-input__field--with-left" : ""} ${rightElement ? "custom-input__field--with-right" : ""}`}
+            className={cn(
+              "w-full",
+              leftElement && "pl-10",
+              rightElement && "pr-10",
+              sizeClasses[inputSize || "undefined"],
+              error && "border-destructive focus-visible:ring-destructive"
+            )}
             ref={ref}
             {...props}
           />
           {rightElement && (
-            <span className="custom-input__element custom-input__element--right">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
               {rightElement}
-            </span>
+            </div>
           )}
         </div>
-        {error && <span className="custom-input__error">{error}</span>}
-        {helperText && !error && <span className="custom-input__helper">{helperText}</span>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {helperText && !error && <p className="text-sm text-muted-foreground">{helperText}</p>}
       </div>
     );
   },

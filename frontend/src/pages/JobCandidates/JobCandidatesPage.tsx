@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Container } from "react-bootstrap";
 import { ErrorDisplay } from "@/components/shared";
 import { CandidateDetailModal, JobDetailsModal } from "@/components/modal";
 import {
@@ -14,7 +13,6 @@ import { useAdminData } from "@/hooks";
 import { extractErrorMessage } from "@/utils/error";
 
 
-// Extracted Components
 import JobCandidatesHeader from "@/pages/JobCandidates/components/JobCandidatesHeader";
 import ResumeScreeningView from "@/pages/JobCandidates/components/ResumeScreeningView";
 
@@ -24,18 +22,12 @@ const JobCandidatesPage = () => {
   const [job, setJob] = useState<Job | null>(null);
   const activeStage = "resume-screening";
 
-  // Search State
-
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
-  // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
   const [showJobInfo, setShowJobInfo] = useState(false);
-  const [showScreeningDetails, setShowScreeningDetails] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateResponse | null>(null);
-  const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
-
 
   const fetchJobAndCandidates = useCallback(async () => {
     if (!jobId) return [];
@@ -61,11 +53,7 @@ const JobCandidatesPage = () => {
     fetchOnMount: !!jobId,
   });
 
-
-
-  // Polling for in-progress resumes
   useEffect(() => {
-    // Only poll if not searching and we have resumes and on resume screening stage
     if (activeStage !== "resume-screening" || searchQuery !== "" || candidates.length === 0) return;
 
     const hasInProgress = candidates.some(
@@ -74,7 +62,7 @@ const JobCandidatesPage = () => {
 
     if (hasInProgress) {
       const interval = setInterval(() => {
-        fetchData(); // This might be noisy, but it's consistent with existing logic
+        fetchData();
       }, 5000);
       return () => clearInterval(interval);
     }
@@ -109,22 +97,16 @@ const JobCandidatesPage = () => {
     setShowDetail(true);
   };
 
-  const handleShowScreeningDetails = (candidate: CandidateResponse) => {
-    setSelectedResumeId(candidate.resume_id || null);
-    setShowScreeningDetails(true);
-  };
-
-
   if (!loading && (error || !job)) {
     return (
-      <Container className="py-5">
+      <div className="container mx-auto py-5">
         <ErrorDisplay message={error || "Job not found."} onRetry={() => navigate("/")} fullPage />
-      </Container>
+      </div>
     );
   }
 
   return (
-    <Container className="py-5">
+    <div className="container mx-auto py-5">
       <JobCandidatesHeader
         jobId={jobId}
         job={job}
@@ -142,7 +124,6 @@ const JobCandidatesPage = () => {
         error={error}
         fetchData={fetchData}
         onShowMore={handleShowMore}
-        onShowScreeningDetails={handleShowScreeningDetails}
         jobId={jobId}
       />
 
@@ -153,10 +134,8 @@ const JobCandidatesPage = () => {
         onHide={() => setShowDetail(false)}
         candidate={selectedCandidate}
       />
-
-    </Container>
+    </div>
   );
-
 };
 
 export default JobCandidatesPage;

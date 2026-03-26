@@ -4,18 +4,16 @@
  */
 
 import { useState } from "react";
-import { Container, Row, Col, Alert } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
+import { CheckCircle } from "lucide-react";
 import { registerSchema, type RegisterFormValues } from "@/schemas/auth";
 import { authService } from "@/apis/auth";
 import { extractErrorMessage } from "@/utils/error";
 import {
   Button,
   Card,
-  CardBody,
-  CardHeader,
   Input,
 } from "@/components/shared";
 
@@ -39,7 +37,6 @@ const RegisterPage = () => {
     try {
       await authService.register(data);
       setIsSuccess(true);
-      // Automatically redirect to login after 3 seconds
       setTimeout(() => {
         navigate("/login");
       }, 3000);
@@ -56,113 +53,99 @@ const RegisterPage = () => {
 
   if (isSuccess) {
     return (
-      <Container className="py-5 min-vh-100 d-flex align-items-center justify-content-center">
-        <Row className="justify-content-center w-100">
-          <Col md={8} lg={5} xl={4}>
-            <Card className="shadow-lg border-0 rounded-4 overflow-hidden text-center p-4">
-              <CardBody className="py-5">
-                <div className="mb-4">
-                  <div
-                    className="bg-success-subtle text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
-                    style={{ width: "80px", height: "80px" }}
-                  >
-                    <i className="bi bi-check-lg display-4 font-weight-bold"></i>
-                  </div>
-                  <h2 className="fw-bold mb-3">Registration Successful</h2>
-                </div>
-                <Alert
-                  variant="success"
-                  className="rounded-3 border-0 shadow-sm mb-4"
+      <div className="py-5 min-h-screen flex items-center justify-center">
+        <div className="flex justify-center w-full max-w-md">
+          <Card className="shadow-lg border-0 rounded-4 overflow-hidden text-center p-4">
+            <div className="py-5">
+              <div className="mb-4">
+                <div
+                  className="bg-green-100 text-green-600 rounded-full inline-flex items-center justify-center mb-3"
+                  style={{ width: "80px", height: "80px" }}
                 >
-                  Your account has been created successfully! Redirecting you to
-                  the login page...
-                </Alert>
-                <Link to="/login">
-                  <Button
-                    variant="primary"
-                    className="w-100 py-3 fw-bold rounded-3"
-                  >
-                    Go to Login Now
-                  </Button>
-                </Link>
-              </CardBody>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
+                  <CheckCircle className="h-10 w-10" />
+                </div>
+                <h2 className="font-bold mb-3">Registration Successful</h2>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-green-800">
+                Your account has been created successfully! Redirecting you to
+                the login page...
+              </div>
+              <Link to="/login">
+                <Button className="w-full py-3 font-bold rounded-lg">
+                  Go to Login Now
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container className="py-5 min-vh-100 d-flex align-items-center justify-content-center">
-      <Row className="justify-content-center w-100">
-        <Col md={8} lg={6} xl={5}>
-          <Card className="shadow-lg border-0 rounded-4 overflow-hidden">
-            <CardHeader className="bg-white border-0 pt-5 pb-2">
-              <h2 className="text-center fw-bold mb-0">Create Account</h2>
-              <p className="text-center text-muted mt-2">
-                Join our platform and start hiring
-              </p>
-            </CardHeader>
-            <CardBody className="px-4 pb-5">
-              {error && (
-                <Alert
-                  variant="danger"
-                  className="rounded-3 border-0 shadow-sm mb-4"
-                >
-                  {error}
-                </Alert>
-              )}
-              <form onSubmit={handleSubmit(onSubmit)}>
-                <Input
-                  label="Full Name"
-                  type="text"
-                  placeholder="John Doe"
-                  {...register("full_name")}
-                  error={errors.full_name?.message}
-                  className="mb-3"
-                />
-                <Input
-                  label="Email Address"
-                  type="email"
-                  placeholder="name@example.com"
-                  {...register("email")}
-                  error={errors.email?.message}
-                  className="mb-3"
-                />
-                <Input
-                  label="Password"
-                  type="password"
-                  placeholder="Create a strong password"
-                  {...register("password")}
-                  error={errors.password?.message}
-                  className="mb-4"
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="w-100 py-3 fw-bold rounded-3"
-                  isLoading={isLoading}
-                >
-                  Register
-                </Button>
-              </form>
-              <div className="text-center mt-4">
-                <p className="text-muted small">
-                  Already have an account?{" "}
-                  <Link
-                    to="/login"
-                    className="text-primary fw-semibold text-decoration-none"
-                  >
-                    Sign In
-                  </Link>
-                </p>
+    <div className="py-5 min-h-screen flex items-center justify-center">
+      <div className="flex justify-center w-full max-w-lg">
+        <Card className="shadow-lg border-0 rounded-4 overflow-hidden w-full">
+          <div className="bg-white border-0 pt-5 pb-2 px-4">
+            <h2 className="text-center font-bold mb-0">Create Account</h2>
+            <p className="text-center text-muted-foreground mt-2">
+              Join our platform and start hiring
+            </p>
+          </div>
+          <div className="px-4 pb-5">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-800">
+                {error}
               </div>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+            )}
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <Input
+                label="Full Name"
+                type="text"
+                placeholder="John Doe"
+                {...register("full_name")}
+                error={errors.full_name?.message}
+                className="mb-3"
+              />
+              <Input
+                label="Email Address"
+                type="email"
+                placeholder="name@example.com"
+                {...register("email")}
+                error={errors.email?.message}
+                className="mb-3"
+              />
+              <Input
+                label="Password"
+                type="password"
+                placeholder="Create a strong password"
+                {...register("password")}
+                error={errors.password?.message}
+                className="mb-4"
+              />
+              <Button
+                type="submit"
+                className="w-full py-3 font-bold rounded-lg"
+                isLoading={isLoading}
+              >
+                Register
+              </Button>
+            </form>
+            <div className="text-center mt-4">
+              <p className="text-muted-foreground text-sm">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="text-primary font-semibold"
+                >
+                  Sign In
+                </Link>
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 };
 

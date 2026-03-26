@@ -1,10 +1,9 @@
 /**
  * Modal for creating or updating a job posting.
- * Uses Zod for form validation and renders a Bootstrap select for department.
+ * Uses Zod for form validation and renders a shadcn Select for department.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Form, Modal } from "react-bootstrap";
 import {
   adminDepartmentService,
   adminJobService,
@@ -12,7 +11,13 @@ import {
 } from "@/apis/admin/service";
 import type { DepartmentRead, JobRead, SkillRead } from "@/types/admin";
 import { Button, ErrorDisplay, Input } from "@/components/shared";
-import "@/css/adminDashboard.css";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useFormModal } from "@/hooks";
 import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
 import CreateSkillModal from "./CreateSkillModal";
@@ -57,7 +62,6 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
 
   const onSubmit = useCallback(
     async (data: JobCreateFormValues) => {
-      // Convert empty string department_id to undefined before sending
       const payload = {
         ...data,
         department_id: data.department_id || undefined,
@@ -145,11 +149,11 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
 
   return (
     <>
-      <Modal show={show} onHide={handleClose} size="lg" centered scrollable>
-        <Modal.Header closeButton>
-          <Modal.Title>{isEditMode ? "Edit Job" : "Create New Job"}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
+      <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? "Edit Job" : "Create New Job"}</DialogTitle>
+          </DialogHeader>
           <form id="create-job-form" onSubmit={handleSubmit}>
             {submitError && <ErrorDisplay message={submitError} />}
 
@@ -161,11 +165,11 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
               required
             />
 
-            <div className="form-group mb-3">
-              <label className="form-label">Department</label>
-              <Form.Select
+            <div className="space-y-2 mb-3">
+              <label className="text-sm font-medium">Department</label>
+              <select
+                className={`w-full h-10 rounded-md border border-input bg-background px-3 py-2 ${errors.department_id ? "border-destructive" : ""}`}
                 {...register("department_id")}
-                isInvalid={!!errors.department_id}
                 disabled={deptLoading}
               >
                 <option value="">
@@ -176,23 +180,21 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
                     {dept.name}
                   </option>
                 ))}
-              </Form.Select>
+              </select>
               {errors.department_id && (
-                <Form.Control.Feedback type="invalid">
-                  {errors.department_id.message}
-                </Form.Control.Feedback>
+                <p className="text-sm text-destructive">{errors.department_id.message}</p>
               )}
             </div>
 
-            <div className="form-group mb-3">
-              <label className="form-label">Job Description</label>
+            <div className="space-y-2 mb-3">
+              <label className="text-sm font-medium">Job Description</label>
               <textarea
-                className={`form-control ${errors.jd_text ? "is-invalid" : ""}`}
+                className={`w-full rounded-md border border-input bg-background px-3 py-2 min-h-[150px] ${errors.jd_text ? "border-destructive" : ""}`}
                 rows={6}
                 {...register("jd_text")}
                 placeholder="Paste the job description here..."
               />
-              {errors.jd_text && <div className="invalid-feedback">{errors.jd_text.message}</div>}
+              {errors.jd_text && <p className="text-sm text-destructive">{errors.jd_text.message}</p>}
             </div>
 
             <JobSkillSelector
@@ -205,28 +207,28 @@ const CreateJobModal = ({ show, handleClose, onJobSaved, job }: CreateJobModalPr
               errorMessage={errors.skill_ids?.message}
             />
 
-            <div className="form-check mt-3">
+            <div className="flex items-center gap-2 mt-3">
               <input
                 type="checkbox"
-                className="form-check-input"
                 id="is_active"
                 {...register("is_active")}
+                className="h-4 w-4 rounded border-gray-300"
               />
-              <label className="form-check-label" htmlFor="is_active">
+              <label htmlFor="is_active" className="text-sm">
                 Active (Accepting applications)
               </label>
             </div>
           </form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="outline-secondary" onClick={handleClose} type="button">
-            Cancel
-          </Button>
-          <Button variant="primary" type="submit" form="create-job-form" isLoading={isSubmitting}>
-            {isEditMode ? "Update Job" : "Create Job"}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose} type="button">
+              Cancel
+            </Button>
+            <Button type="submit" form="create-job-form" isLoading={isSubmitting}>
+              {isEditMode ? "Update Job" : "Create Job"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <CreateSkillModal
         show={showSkillModal}

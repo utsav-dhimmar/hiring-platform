@@ -1,5 +1,3 @@
-import { Nav } from "react-bootstrap";
-
 type Stage = "resume-screening";
 
 interface StageTabsProps {
@@ -10,20 +8,18 @@ interface StageTabsProps {
 const StageTabs = ({ activeStage, onStageChange }: StageTabsProps) => {
   return (
     <div className="mb-4">
-      <Nav
-        variant="pills"
-        className="bg-white p-2 rounded-3 shadow-sm border border-light"
-      >
-        <Nav.Item>
-          <Nav.Link
-            active={activeStage === "resume-screening"}
-            onClick={() => onStageChange("resume-screening")}
-            className="rounded-2 px-4 py-2"
-          >
-            Resume Screening
-          </Nav.Link>
-        </Nav.Item>
-      </Nav>
+      <div className="bg-white p-2 rounded-lg shadow-sm border border-border flex gap-2">
+        <button
+          onClick={() => onStageChange("resume-screening")}
+          className={`px-4 py-2 rounded-md transition-colors ${
+            activeStage === "resume-screening"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Resume Screening
+        </button>
+      </div>
     </div>
   );
 };

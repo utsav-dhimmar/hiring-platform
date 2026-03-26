@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
-import { Badge } from "react-bootstrap";
-import { Card, CardBody } from "@/components/shared";
+import { Card } from "@/components/shared";
+import { Badge } from "@/components/ui/badge";
 import type { CandidateResponse } from "@/types/resume";
 
 /**
@@ -18,30 +18,30 @@ interface CandidateInfoSidebarProps {
 const CandidateInfoSidebar = ({ candidate }: CandidateInfoSidebarProps): ReactElement => {
   return (
     <Card className="border-0 shadow-sm rounded-4">
-      <CardBody className="p-4">
-        <h6 className="text-muted small text-uppercase fw-bold mb-3 letter-spacing-wide">
+      <div className="p-4">
+        <h6 className="text-sm font-bold uppercase text-muted-foreground mb-3 tracking-wide">
           Candidate Info
         </h6>
-        <div className="mb-3 pb-3 border-bottom border-light">
-          <small className="text-muted d-block mb-1">Email Address</small>
-          <p className="mb-0 fw-medium">{candidate.email}</p>
+        <div className="mb-3 pb-3 border-b border-border">
+          <small className="text-muted-foreground block mb-1">Email Address</small>
+          <p className="mb-0 font-medium">{candidate.email}</p>
         </div>
-        <div className="mb-3 pb-3 border-bottom border-light">
-          <small className="text-muted d-block mb-1">Resume Score</small>
-          <div className="d-flex align-items-center">
-            <h4 className="mb-0 fw-bold">{candidate.resume_score?.toFixed(1)}%</h4>
-            <Badge bg="primary" className="ms-2 rounded-pill bg-primary-subtle text-primary">
+        <div className="mb-3 pb-3 border-b border-border">
+          <small className="text-muted-foreground block mb-1">Resume Score</small>
+          <div className="flex items-center">
+            <h4 className="mb-0 font-bold">{candidate.resume_score?.toFixed(1)}%</h4>
+            <Badge variant="secondary" className="ml-2 rounded-full bg-primary/10 text-primary">
               Top 10%
             </Badge>
           </div>
         </div>
         <div>
-          <small className="text-muted d-block mb-1">Current Status</small>
-          <Badge bg="info" className="rounded-pill bg-info-subtle text-info px-3 py-2">
+          <small className="text-muted-foreground block mb-1">Current Status</small>
+          <Badge variant="secondary" className="rounded-full px-3 py-1">
             {candidate.current_status || "In Process"}
           </Badge>
         </div>
-      </CardBody>
+      </div>
     </Card>
   );
 };

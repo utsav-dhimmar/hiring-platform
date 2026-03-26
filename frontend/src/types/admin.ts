@@ -405,23 +405,43 @@ export interface JobStageReorder {
 /**
  * Job returned from read operations.
  */
-export interface JobRead extends Job {
+export interface JobRead extends Omit<Job, 'skills'> {
   skills?: SkillRead[];
   stages?: JobStageConfig[];
+}
+
+/**
+ * Detailed AI analysis of a resume.
+ */
+export interface ResumeAnalysis {
+  match_percentage: number;
+  skill_gap_analysis: string;
+  experience_alignment: string;
+  strength_summary: string;
+  missing_skills?: { name: string; score: number }[];
+  extraordinary_points?: string[];
+  custom_extractions?: any;
 }
 
 /**
  * Result of a resume screening for a single candidate.
  */
 export interface ResumeScreeningResult {
-  candidate_id: string;
+  id: string;
   first_name?: string;
   last_name?: string;
   email?: string;
+  phone?: string;
+  current_status?: string;
   resume_score?: number;
   pass_fail?: boolean;
-  analysis?: any;
-  applied_at: string;
+  resume_analysis?: ResumeAnalysis | null;
+  created_at: string;
+  is_parsed?: boolean;
+  processing_status?: string;
+  processing_error?: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
 }
 
 /**
@@ -429,5 +449,5 @@ export interface ResumeScreeningResult {
  */
 export interface ResumeScreeningResultsResponse {
   job_id: string;
-  results: ResumeScreeningResult[];
+  candidates: ResumeScreeningResult[];
 }

@@ -22,48 +22,49 @@ const JobSkillSelector = ({
 }: JobSkillSelectorProps) => {
   return (
     <div className="job-skills-section">
-      <div className="job-skills-header d-flex justify-content-between align-items-center mb-2">
+      <div className="flex justify-between items-center mb-2">
         <div>
-          <label className="form-label mb-0">Required Skills</label>
-          <p className="job-skills-help text-muted small mb-0">
+          <label className="text-sm font-medium mb-0 block">Required Skills</label>
+          <p className="text-muted text-sm mb-0">
             Select the skills that should be linked to this job.
           </p>
         </div>
-        <Button variant="outline-primary" size="sm" type="button" onClick={onAddSkill}>
+        <Button variant="outline" size="sm" type="button" onClick={onAddSkill}>
           Add Skill
         </Button>
       </div>
 
       {error && <ErrorDisplay message={error} />}
 
-      <div className="job-skills-panel border rounded p-3 bg-light">
+      <div className="border rounded p-3 bg-muted">
         {loading ? (
-          <p className="job-skills-empty text-center py-3">Loading skills...</p>
+          <p className="text-center py-3">Loading skills...</p>
         ) : skills.length === 0 ? (
-          <p className="job-skills-empty text-center py-3">
+          <p className="text-center py-3 text-muted-foreground">
             No skills found yet. Add a skill to start linking jobs.
           </p>
         ) : (
-          <div className="job-skills-grid d-flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {skills.map((skill) => (
               <label
                 key={skill.id}
-                className={`job-skill-option d-flex flex-column p-2 border rounded cursor-pointer ${selectedSkillIds.includes(skill.id)
-                    ? "border-primary bg-primary bg-opacity-10"
-                    : "bg-white"
-                  }`}
+                className={`flex flex-col p-2 border rounded cursor-pointer ${
+                  selectedSkillIds.includes(skill.id)
+                    ? "border-primary bg-primary/10"
+                    : "bg-background"
+                }`}
                 style={{ width: "calc(33.33% - 0.75rem)", minWidth: "150px" }}
               >
-                <div className="d-flex align-items-center gap-2">
+                <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    className="form-check-input"
+                    className="h-4 w-4 rounded border-gray-300"
                     checked={selectedSkillIds.includes(skill.id)}
                     onChange={() => onToggleSkill(skill.id)}
                   />
-                  <span className="fw-bold">{skill.name}</span>
+                  <span className="font-semibold">{skill.name}</span>
                 </div>
-                <small className="text-muted text-truncate">
+                <small className="text-muted-foreground truncate">
                   {skill.description || "No description"}
                 </small>
               </label>
@@ -72,7 +73,7 @@ const JobSkillSelector = ({
         )}
       </div>
 
-      {errorMessage && <div className="invalid-feedback d-block">{errorMessage}</div>}
+      {errorMessage && <div className="text-destructive text-sm block mt-2">{errorMessage}</div>}
     </div>
   );
 };

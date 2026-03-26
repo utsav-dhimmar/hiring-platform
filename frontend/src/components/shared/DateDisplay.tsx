@@ -3,8 +3,8 @@
  * Supports various input formats, custom formatters, and fallback text.
  */
 
-import "@/css/dateDisplay.css";
-
+import { Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 
 /**
@@ -23,6 +23,8 @@ interface DateDisplayProps {
   formatOptions?: Intl.DateTimeFormatOptions;
   /** Custom formatter function to convert Date to string */
   formatter?: (date: Date) => string;
+  /** Whether to show a calendar icon (default: false) */
+  showIcon?: boolean;
 }
 
 /**
@@ -31,21 +33,29 @@ interface DateDisplayProps {
  */
 const DateDisplayContent = ({
   date,
-  showTime = true,
   className = "",
   fallback = "N/A",
   formatOptions,
   formatter,
+  showIcon = false,
 }: DateDisplayProps) => {
   if (!date) {
-    return <span className={`date-display fallback ${className}`}>{fallback}</span>;
+    return (
+      <span className={cn("text-muted-foreground italic text-sm", className)}>
+        {fallback}
+      </span>
+    );
   }
 
   const dateObj = new Date(date);
 
   // Check if date is valid
   if (isNaN(dateObj.getTime())) {
-    return <span className={`date-display invalid ${className}`}>{fallback}</span>;
+    return (
+      <span className={cn("text-muted-foreground italic text-sm", className)}>
+        {fallback}
+      </span>
+    );
   }
 
   let formattedDate = "";
@@ -54,11 +64,26 @@ const DateDisplayContent = ({
   } else if (formatOptions) {
     formattedDate = dateObj.toLocaleString(undefined, formatOptions);
   } else {
-    formattedDate = showTime ? dateObj.toLocaleString() : dateObj.toLocaleDateString("en-GB");
+    // Default formatting: DD/MM/YYYY or locale string with time
+    formattedDate = dateObj.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
   }
 
   return (
-    <span className={`date-display ${className}`} title={dateObj.toString()}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 text-sm text-foreground",
+        className
+      )}
+      title={dateObj.toString()}
+    >
+      {showIcon && <Calendar className="h-3.5 w-3.5 text-muted-foreground" />}
       {formattedDate}
     </span>
   );
@@ -76,7 +101,11 @@ const DateDisplayContent = ({
 export const DateDisplay = (props: DateDisplayProps) => {
   const { className = "", fallback = "N/A" } = props;
 
-  const errorFallback = <span className={`date-display error ${className}`}>{fallback}</span>;
+  const errorFallback = (
+    <span className={cn("text-destructive font-medium text-sm", className)}>
+      {fallback}
+    </span>
+  );
 
   return (
     <ErrorBoundary fallback={errorFallback}>

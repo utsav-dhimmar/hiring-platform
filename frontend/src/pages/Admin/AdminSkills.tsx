@@ -71,12 +71,12 @@ const AdminSkills = () => {
     {
       header: "Actions",
       className: "text-end",
-      accessor: (skill) => (
-        <div className="d-flex gap-2 justify-content-end">
-          <Button variant="outline-secondary" size="sm" onClick={() => handleEditClick(skill)}>
+          accessor: (skill) => (
+        <div className="flex gap-2 justify-end">
+          <Button variant="secondary" size="sm" onClick={() => handleEditClick(skill)}>
             Edit
           </Button>
-          <Button variant="outline-danger" size="sm" onClick={() => handleDeleteClick(skill)}>
+          <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(skill)}>
             Delete
           </Button>
         </div>
@@ -89,7 +89,7 @@ const AdminSkills = () => {
       <PageHeader
         title="Skill Management"
         actions={
-          <Button variant="primary" onClick={handleCreateClick}>
+          <Button onClick={handleCreateClick}>
             Create Skill
           </Button>
         }

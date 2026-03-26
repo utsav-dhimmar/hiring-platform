@@ -4,10 +4,16 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Col, Form, Modal, Row } from "react-bootstrap";
 import { adminRoleService, adminUserService } from "@/apis/admin/service";
 import type { RoleRead, UserAdminRead } from "@/types/admin";
 import { Button, ErrorDisplay, Input } from "@/components/shared";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useFormModal } from "@/hooks";
 import { userCreateSchema, type UserCreateFormValues } from "@/schemas/admin";
 
@@ -47,7 +53,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
       email: u.email,
       is_active: u.is_active,
       role_id: u.role_id,
-      password: "", // Password is not returned from API
+      password: "",
     }),
     [],
   );
@@ -109,102 +115,96 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
   }, [show, setSubmitError]);
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered scrollable>
-      <Modal.Header closeButton>
-        <Modal.Title>{isEditMode ? "Edit User" : "Create New User"}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditMode ? "Edit User" : "Create New User"}</DialogTitle>
+        </DialogHeader>
         {submitError && <ErrorDisplay message={submitError} />}
 
-        <Form onSubmit={handleSubmit} id="create-user-form">
-          <Row>
-            <Col md={6}>
-              <Input
-                label="Full Name"
-                placeholder="Enter full name"
-                {...register("full_name")}
-                error={errors.full_name?.message}
-                className="mb-3"
-              />
-            </Col>
-            <Col md={6}>
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="Enter email"
-                {...register("email")}
-                error={errors.email?.message}
-                className="mb-3"
-                disabled={isEditMode}
-              />
-            </Col>
-          </Row>
+        <form id="create-user-form" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Full Name"
+              placeholder="Enter full name"
+              {...register("full_name")}
+              error={errors.full_name?.message}
+            />
+            <Input
+              label="Email Address"
+              type="email"
+              placeholder="Enter email"
+              {...register("email")}
+              error={errors.email?.message}
+              disabled={isEditMode}
+            />
+          </div>
 
-          <Row>
-            <Col md={6}>
-              {!isEditMode && (
-                <Input
-                  label="Password (Optional)"
-                  type="password"
-                  placeholder="Enter password"
-                  {...register("password")}
-                  error={errors.password?.message}
-                  className="mb-3"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {!isEditMode && (
+              <Input
+                label="Password (Optional)"
+                type="password"
+                placeholder="Enter password"
+                {...register("password")}
+                error={errors.password?.message}
+              />
+            )}
+            {isEditMode && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Password</label>
+                <input
+                  type="text"
+                  className="w-full h-10 rounded-md border border-input bg-muted px-3 py-2"
+                  placeholder="Password cannot be changed here"
+                  disabled
+                  readOnly
                 />
+                <small className="text-muted-foreground">
+                  Passwords must be reset via forgot password or a separate dedicated endpoint.
+                </small>
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Role</label>
+              <select
+                className={`w-full h-10 rounded-md border border-input bg-background px-3 py-2 ${errors.role_id ? "border-destructive" : ""}`}
+                {...register("role_id")}
+                disabled={fetchingRoles}
+              >
+                <option value="">Select a role</option>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </select>
+              {errors.role_id && (
+                <p className="text-sm text-destructive">{errors.role_id.message}</p>
               )}
-              {isEditMode && (
-                <div className="mb-3">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Password cannot be changed here"
-                    disabled
-                    readOnly
-                  />
-                  <small className="text-muted">
-                    Passwords must be reset via forgot password or a separate dedicated endpoint.
-                  </small>
-                </div>
-              )}
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Role</Form.Label>
-                <Form.Select
-                  {...register("role_id")}
-                  isInvalid={!!errors.role_id}
-                  disabled={fetchingRoles}
-                >
-                  <option value="">Select a role</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </Form.Select>
-                {errors.role_id && (
-                  <Form.Control.Feedback type="invalid">
-                    {errors.role_id.message}
-                  </Form.Control.Feedback>
-                )}
-              </Form.Group>
-            </Col>
-          </Row>
+            </div>
+          </div>
 
-          <Form.Group className="mb-3">
-            <Form.Check type="checkbox" label="Active User" {...register("is_active")} />
-          </Form.Group>
-        </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={handleClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="primary" form="create-user-form" isLoading={isSubmitting}>
-          {isEditMode ? "Update User" : "Create User"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+          <div className="flex items-center gap-2 mt-4">
+            <input
+              type="checkbox"
+              id="is_active"
+              {...register("is_active")}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <label htmlFor="is_active" className="text-sm">Active User</label>
+          </div>
+        </form>
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="create-user-form" isLoading={isSubmitting}>
+            {isEditMode ? "Update User" : "Create User"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

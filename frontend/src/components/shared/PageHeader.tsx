@@ -21,23 +21,15 @@ interface PageHeaderProps {
 
 /**
  * Page header with title, subtitle, and optional actions.
- * @example
- * ```tsx
- * <PageHeader
- *   title="User Management"
- *   subtitle="Manage system users and permissions"
- *   actions={<Button>Add User</Button>}
- * />
- * ```
  */
 const PageHeader = ({ title, subtitle, actions, className = "" }: PageHeaderProps) => {
   return (
-    <div className={`d-flex justify-content-between align-items-center mb-4 ${className}`}>
+    <div className={`flex justify-between items-center mb-4 ${className}`}>
       <div>
-        <h1 className="h2 mb-1">{title}</h1>
-        {subtitle && <p className="text-muted mb-0">{subtitle}</p>}
+        <h1 className="text-2xl font-semibold mb-1">{title}</h1>
+        {subtitle && <p className="text-muted-foreground mb-0">{subtitle}</p>}
       </div>
-      {actions && <div className="d-flex gap-2">{actions}</div>}
+      {actions && <div className="flex gap-2">{actions}</div>}
     </div>
   );
 };

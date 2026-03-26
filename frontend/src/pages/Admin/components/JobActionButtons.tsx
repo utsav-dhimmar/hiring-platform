@@ -5,7 +5,6 @@ import type { JobRead } from "@/types/admin";
 interface JobActionButtonsProps {
   job: JobRead;
   onViewCandidates: (jobId: string) => void;
-  // onManageStages: (job: JobRead) => void;
   onEdit: (job: JobRead) => void;
   onDelete: (job: JobRead) => void;
 }
@@ -13,31 +12,22 @@ interface JobActionButtonsProps {
 const JobActionButtons = ({
   job,
   onViewCandidates,
-  // onManageStages,
   onEdit,
   onDelete,
 }: JobActionButtonsProps) => {
   return (
-    <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
-      <QuickResumeUpload jobId={job.id} variant="outline-primary" size="sm" />
+    <div className="flex gap-2 justify-end items-center flex-nowrap">
+      <QuickResumeUpload jobId={job.id} size="sm" />
       <Button
-        variant="outline-primary"
+        variant="outline"
         size="sm"
         className="flex-shrink-0"
         onClick={() => onViewCandidates(job.id)}
       >
         Candidates
       </Button>
-      {/* <Button
-        variant="outline-secondary"
-        size="sm"
-        className="flex-shrink-0"
-        onClick={() => onManageStages(job)}
-      >
-        Stages
-      </Button> */}
       <Button
-        variant="outline-secondary"
+        variant="secondary"
         size="sm"
         className="flex-shrink-0"
         onClick={() => onEdit(job)}
@@ -45,7 +35,7 @@ const JobActionButtons = ({
         Edit
       </Button>
       <Button
-        variant="outline-danger"
+        variant="destructive"
         size="sm"
         className="flex-shrink-0"
         onClick={() => onDelete(job)}

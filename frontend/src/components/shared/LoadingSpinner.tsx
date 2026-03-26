@@ -3,7 +3,7 @@
  * Displays a centered loading indicator during async operations.
  */
 
-import { Spinner, Container } from "react-bootstrap";
+import { Loader2 } from "lucide-react";
 
 /**
  * Props for the LoadingSpinner component.
@@ -17,30 +17,20 @@ interface LoadingSpinnerProps {
 
 /**
  * Loading spinner with optional message.
- * @example
- * ```tsx
- * <LoadingSpinner message="Loading users..." />
- * <LoadingSpinner fullPage />
- * ```
  */
 const LoadingSpinner = ({ message = "Loading...", fullPage = false }: LoadingSpinnerProps) => {
   const content = (
-    <div className="text-center py-5">
-      <Spinner animation="border" variant="primary" role="status">
-        <span className="visually-hidden">Loading...</span>
-      </Spinner>
-      {message && <p className="mt-3 text-muted">{message}</p>}
+    <div className="flex flex-col items-center justify-center py-5">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      {message && <p className="mt-3 text-muted-foreground">{message}</p>}
     </div>
   );
 
   if (fullPage) {
     return (
-      <Container
-        className="d-flex align-items-center justify-content-center"
-        style={{ minHeight: "80vh" }}
-      >
+      <div className="flex min-h-[80vh] items-center justify-center">
         {content}
-      </Container>
+      </div>
     );
   }
 

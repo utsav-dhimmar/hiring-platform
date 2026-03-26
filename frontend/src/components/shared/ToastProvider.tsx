@@ -1,20 +1,13 @@
 /**
  * Global Toast provider for displaying non-intrusive notifications.
- * Provides a useToast hook to trigger alerts from anywhere.
+ * Uses sonner for toast notifications.
  */
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
-import { Toast, ToastContainer } from "react-bootstrap";
+import { toast as sonnerToast, Toaster } from "sonner";
 
-type ToastType = "success" | "danger" | "warning" | "info";
-
-interface ToastMessage {
-  id: number;
-  type: ToastType;
-  title?: string;
-  message: string;
-}
+type ToastType = "success" | "error" | "warning" | "info";
 
 interface ToastContextType {
   showToast: (message: string, type?: ToastType, title?: string) => void;
@@ -27,43 +20,31 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const showToast = (message: string, type: ToastType = "info", title?: string) => {
+    switch (type) {
+      case "success":
+        sonnerToast.success(message, { description: title });
+        break;
+      case "error":
+        sonnerToast.error(message, { description: title });
+        break;
+      case "warning":
+        sonnerToast.warning(message, { description: title });
+        break;
+      default:
+        sonnerToast(message, { description: title });
+    }
+  };
 
-  const showToast = useCallback((message: string, type: ToastType = "info", title?: string) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, type, title, message }]);
-  }, []);
-
-  const removeToast = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  const success = useCallback((msg: string) => showToast(msg, "success", "Success"), [showToast]);
-  const error = useCallback((msg: string) => showToast(msg, "danger", "Error"), [showToast]);
-  const warn = useCallback((msg: string) => showToast(msg, "warning", "Warning"), [showToast]);
-  const info = useCallback((msg: string) => showToast(msg, "info", "Information"), [showToast]);
+  const success = (msg: string) => sonnerToast.success(msg);
+  const error = (msg: string) => sonnerToast.error(msg);
+  const warn = (msg: string) => sonnerToast.warning(msg);
+  const info = (msg: string) => sonnerToast(msg);
 
   return (
     <ToastContext.Provider value={{ showToast, success, error, warn, info }}>
       {children}
-      <ToastContainer position="bottom-end" className="p-3" style={{ zIndex: 9999 }}>
-        {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            onClose={() => removeToast(toast.id)}
-            show={true}
-            delay={5000}
-            autohide
-            bg={toast.type}
-            className="text-white border-0 shadow-lg"
-          >
-            <Toast.Header closeButton={false} className="bg-transparent border-0 text-white">
-              <strong className="me-auto">{toast.title || "Notification"}</strong>
-            </Toast.Header>
-            <Toast.Body>{toast.message}</Toast.Body>
-          </Toast>
-        ))}
-      </ToastContainer>
+      <Toaster position="bottom-right" />
     </ToastContext.Provider>
   );
 };

@@ -142,7 +142,7 @@ const AdminJobs = () => {
       <PageHeader
         title="Job Management"
         actions={
-          <Button variant="primary" onClick={handleCreateClick}>
+          <Button onClick={handleCreateClick}>
             Create Job
           </Button>
         }

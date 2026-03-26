@@ -4,10 +4,16 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Col, Form, Modal, Row } from "react-bootstrap";
 import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
 import type { PermissionRead } from "@/types/admin";
 import { Button, ErrorDisplay, Input } from "@/components/shared";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useFormModal } from "@/hooks";
 import { roleCreateSchema, type RoleCreateFormValues } from "@/schemas/admin";
 
@@ -75,11 +81,9 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
       setFetchingData(true);
       setSubmitError(null);
       try {
-        // Fetch all permissions for the checklist
         const permsData = await adminPermissionService.getAllPermissions();
         setPermissions(permsData);
 
-        // If in edit mode, fetch role details
         if (editRoleId) {
           const roleData = await adminRoleService.getRoleById(editRoleId);
           setValue("name", roleData.name);
@@ -110,11 +114,11 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered size="lg" scrollable>
-      <Modal.Header closeButton>
-        <Modal.Title>{isEditMode ? "Edit Role" : "Create New Role"}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Dialog open={show} onOpenChange={(open) => !open && onHide()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditMode ? "Edit Role" : "Create New Role"}</DialogTitle>
+        </DialogHeader>
         {submitError && <ErrorDisplay message={submitError} />}
 
         {fetchingData ? (
@@ -122,7 +126,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
             <p>Loading data...</p>
           </div>
         ) : (
-          <Form id="role-form" onSubmit={handleSubmit}>
+          <form id="role-form" onSubmit={handleSubmit}>
             <Input
               label="Role Name"
               placeholder="e.g. Moderator"
@@ -132,40 +136,39 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
             />
 
             <h5 className="mb-3">Assign Permissions</h5>
-            <Row>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {permissions.map((permission) => (
-                <Col md={6} key={permission.id} className="mb-2">
-                  <Form.Check
+                <div key={permission.id} className="flex items-start gap-2">
+                  <input
                     type="checkbox"
                     id={`perm-${permission.id}`}
-                    label={
-                      <div>
-                        <strong>{permission.name}</strong>
-                        <br />
-                        <small className="text-muted">{permission.description}</small>
-                      </div>
-                    }
                     value={permission.id}
                     {...register("permission_ids")}
+                    className="mt-1 h-4 w-4 rounded border-gray-300"
                   />
-                </Col>
+                  <label htmlFor={`perm-${permission.id}`} className="text-sm">
+                    <strong>{permission.name}</strong>
+                    <br />
+                    <span className="text-muted-foreground">{permission.description}</span>
+                  </label>
+                </div>
               ))}
-            </Row>
+            </div>
             {errors.permission_ids && (
-              <div className="text-danger small mt-2">{errors.permission_ids.message}</div>
+              <div className="text-red-500 text-sm mt-2">{errors.permission_ids.message}</div>
             )}
-          </Form>
+          </form>
         )}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={onHide} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="primary" form="role-form" isLoading={isSubmitting}>
-          {isEditMode ? "Update Role" : "Create Role"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+        <DialogFooter>
+          <Button variant="outline" onClick={onHide} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="role-form" isLoading={isSubmitting}>
+            {isEditMode ? "Update Role" : "Create Role"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

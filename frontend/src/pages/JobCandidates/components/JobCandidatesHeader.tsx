@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Breadcrumb } from "react-bootstrap";
 import { PageHeader, Button } from "@/components/shared";
 import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
 import type { Job } from "@/types/job";
@@ -22,28 +21,33 @@ const JobCandidatesHeader = ({
   return (
     <>
       <div className="mb-4">
-        <Breadcrumb className="bg-transparent p-0 mb-2">
-          <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>
-            Jobs
-          </Breadcrumb.Item>
-          <Breadcrumb.Item active className="text-muted fw-medium">
-            {job?.title}
-          </Breadcrumb.Item>
-        </Breadcrumb>
+        <nav className="flex" aria-label="Breadcrumb">
+          <ol className="flex items-center gap-2">
+            <li>
+              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
+                Jobs
+              </Link>
+            </li>
+            <li className="text-muted-foreground">/</li>
+            <li className="text-sm font-medium">
+              {job?.title}
+            </li>
+          </ol>
+        </nav>
       </div>
 
-      <div className="bg-white p-4 rounded-4 shadow-sm border border-light mb-4">
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-border mb-4">
         <PageHeader
           title={`Results for ${job?.title}`}
           subtitle={`${job?.department?.name} | ${job?.is_active ? "Active" : "Inactive"}`}
           className="mb-0 border-0 p-0 shadow-none"
           actions={
-            <div className="d-flex gap-2 align-items-center">
-              {jobId && <QuickResumeUpload jobId={jobId} onSuccess={onRefresh} variant="primary" className="btn-header-action" />}
-              <Button variant="outline-primary" onClick={onShowJobInfo} className="btn-header-action">
+            <div className="flex gap-2 items-center">
+              {jobId && <QuickResumeUpload jobId={jobId} onSuccess={onRefresh} className="btn-header-action" />}
+              <Button variant="outline" onClick={onShowJobInfo} className="btn-header-action">
                 Job Details
               </Button>
-              <Button variant="outline-secondary" onClick={() => navigate("/")} className="btn-header-action">
+              <Button variant="outline" onClick={() => navigate("/")} className="btn-header-action">
                 Back to Jobs
               </Button>
             </div>

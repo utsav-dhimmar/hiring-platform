@@ -4,8 +4,10 @@
  */
 
 import { useEffect, useState } from "react";
-import { Button, Offcanvas } from "react-bootstrap";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { authService } from "@/apis/auth";
 import "@/css/adminLayout.css";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -21,7 +23,6 @@ const AdminLayout = () => {
 
   const isAdmin = user?.role_name?.toLowerCase() === "admin";
 
-  // Close mobile sidebar on route change
   useEffect(() => {
     setShowMobileSidebar(false);
   }, [location.pathname]);
@@ -58,7 +59,7 @@ const AdminLayout = () => {
     <>
       <div className="sidebar-header">
         <div
-          className="d-flex align-items-center mb-0"
+          className="flex items-center mb-0"
           onClick={goToHome}
           style={{ cursor: "pointer" }}
         >
@@ -101,25 +102,32 @@ const AdminLayout = () => {
         <SidebarContent />
       </aside>
 
-      {/* Mobile Sidebar (Offcanvas) */}
-      <Offcanvas
-        show={showMobileSidebar}
-        onHide={() => setShowMobileSidebar(false)}
-        className="admin-offcanvas d-lg-none"
-      >
-        <Offcanvas.Header closeButton>
-          <Offcanvas.Title>Hiring Panel</Offcanvas.Title>
-        </Offcanvas.Header>
-        <Offcanvas.Body className="p-0">
+      {/* Mobile Sidebar (Sheet) */}
+      <Sheet open={showMobileSidebar} onOpenChange={setShowMobileSidebar}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            className="lg:hidden"
+            onClick={() => setShowMobileSidebar(true)}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="p-0 w-72">
+          <div className="flex justify-end p-2">
+            <Button variant="ghost" size="icon" onClick={() => setShowMobileSidebar(false)}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
           <SidebarContent />
-        </Offcanvas.Body>
-      </Offcanvas>
+        </SheetContent>
+      </Sheet>
 
       <div className="admin-main">
-        <header className="admin-header d-flex align-items-center">
+        <header className="admin-header flex items-center">
           <Button
-            variant="link"
-            className="sidebar-toggle-btn me-3"
+            variant="ghost"
+            className="sidebar-toggle-btn mr-3"
             onClick={() => {
               if (window.innerWidth < 992) {
                 setShowMobileSidebar(true);
@@ -132,7 +140,7 @@ const AdminLayout = () => {
             <span className="hamburger-line"></span>
             <span className="hamburger-line"></span>
           </Button>
-          <div className="header-breadcrumbs d-none d-sm-block">
+          <div className="header-breadcrumbs hidden sm:block">
             {location.pathname === "/admin" ? "Dashboard" : "Panel"}
           </div>
         </header>
