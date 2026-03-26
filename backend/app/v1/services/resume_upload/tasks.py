@@ -47,7 +47,7 @@ def process_resume_task(self, job_id_str: str, resume_id_str: str, file_path: st
         raise self.retry(exc=exc, countdown=60)
 
 @celery_app.task(name="mass_refresh_task", bind=True, max_retries=3)
-def mass_refresh_task(self, job_id_str: str):
+def mass_refresh_task(self, job_id_str: str, full_refresh: bool = False):
     """Celery task to mass refresh custom extractions for all resumes of a job."""
     job_id = uuid.UUID(job_id_str)
     
@@ -62,7 +62,7 @@ def mass_refresh_task(self, job_id_str: str):
         
     try:
         loop.run_until_complete(
-            bg_processor.mass_refresh_in_background(job_id=job_id)
+            bg_processor.mass_refresh_in_background(job_id=job_id, full_refresh=full_refresh)
         )
     except Exception as exc:
         _log.exception("Celery mass refresh task failed for job_id=%s", job_id)

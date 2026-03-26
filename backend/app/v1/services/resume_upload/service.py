@@ -338,6 +338,38 @@ class ResumeUploadService:
             pass_fail = None
             processing_status = None
             processing_error = None
+            linkedin_url = None
+            github_url = None
+
+            # Robust search for social links across candidate profile and latest resume
+            search_sources = []
+            if candidate.info and isinstance(candidate.info, dict):
+                search_sources.append(candidate.info)
+            if latest_resume and latest_resume.parse_summary:
+                search_sources.append(latest_resume.parse_summary)
+                if "extracted_data" in latest_resume.parse_summary:
+                    ext_data = latest_resume.parse_summary["extracted_data"]
+                    if isinstance(ext_data, dict):
+                        search_sources.append(ext_data)
+
+            for source in search_sources:
+                if not isinstance(source, dict):
+                    continue
+                links = source.get("links") or source.get("social_links")
+                if isinstance(links, list):
+                    for link_item in links:
+                        url = ""
+                        if isinstance(link_item, dict):
+                            url = link_item.get("text") or link_item.get("url") or ""
+                        elif isinstance(link_item, str):
+                            url = link_item
+                        
+                        if not url: continue
+                        url_lower = url.lower()
+                        if "linkedin.com" in url_lower and not linkedin_url:
+                            linkedin_url = url
+                        elif "github.com" in url_lower and not github_url:
+                            github_url = url
 
             if latest_resume:
                 is_parsed = bool(latest_resume.parsed)
@@ -363,6 +395,8 @@ class ResumeUploadService:
                     last_name=candidate.last_name,
                     email=candidate.email,
                     phone=candidate.phone,
+                    linkedin_url=linkedin_url,
+                    github_url=github_url,
                     current_status=candidate.current_status,
                     created_at=candidate.created_at,
                     resume_analysis=analysis,
@@ -464,5 +498,44 @@ class ResumeUploadService:
         )
         return success
 
+    async def update_resume_status(
+        self,
+        *,
+        db: AsyncSession,
+        resume_id: uuid.UUID,
+        job_id: uuid.UUID,
+        pass_fail: str | None,
+    ) -> bool:
+        """Manually update the HR decision/status for a resume.
+
+        Args:
+            db: Async database session.
+            resume_id: ID of the resume.
+            job_id: ID of the associated job.
+            pass_fail: New status string (e.g. 'pass', 'fail', 'maybe', pending).
+
+        Returns:
+            True if successful, False if resume not found for the given job.
+        """
+        from sqlalchemy import select
+        from app.v1.db.models.resumes import Resume
+        from app.v1.db.models.candidates import Candidate
+        
+        # Verify the resume exists and belongs to the given job
+        result = await db.execute(
+            select(Resume)
+            .join(Candidate, Resume.candidate_id == Candidate.id)
+            .where(
+                Resume.id == resume_id,
+                Candidate.applied_job_id == job_id
+            )
+        )
+        resume = result.scalar_one_or_none()
+        if not resume:
+            return False
+            
+        resume.pass_fail = pass_fail
+        await db.commit()
+        return True
 
 resume_upload_service = ResumeUploadService()

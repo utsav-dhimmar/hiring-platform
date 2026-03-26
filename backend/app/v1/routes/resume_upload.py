@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission, get_current_user
+from app.v1.schemas.upload import ResumeStatusUpdateRequest
 from app.v1.schemas.upload import (
     JobCandidatesResponse,
     ResumeStatusResponse,
@@ -138,3 +139,29 @@ async def delete_resume(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Resume not found for this job.",
         )
+
+
+@router.patch(
+    "/jobs/{job_id}/resumes/{resume_id}/status",
+    status_code=status.HTTP_200_OK,
+)
+async def update_resume_status(
+    job_id: uuid.UUID,
+    resume_id: uuid.UUID,
+    update_data: ResumeStatusUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+) -> dict[str, str]:
+    """Manually update the HR decision (pass/fail/maybe) for a specific resume."""
+    success = await resume_upload_service.update_resume_status(
+        db=db,
+        resume_id=resume_id,
+        job_id=job_id,
+        pass_fail=update_data.pass_fail,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume not found for this job.",
+        )
+    return {"message": "Resume status updated successfully."}

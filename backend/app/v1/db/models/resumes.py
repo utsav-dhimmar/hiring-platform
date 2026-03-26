@@ -86,8 +86,8 @@ class Resume(Base):
         nullable=True,
     )
 
-    pass_fail: Mapped[bool | None] = mapped_column(
-        Boolean(),
+    pass_fail: Mapped[str | None] = mapped_column(
+        Text,
         nullable=True,
     )
 

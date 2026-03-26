@@ -9,6 +9,7 @@ from ..db.models.interviews import Interview
 from ..db.models.job_skills import job_skills
 from ..db.models.job_stage_configs import JobStageConfig
 from ..db.models.jobs import Job
+from ..db.models.job_versions import JobVersion
 from ..db.models.permissions import Permission
 from ..db.models.recordings import Recording  # NOT USED
 from ..db.models.resume_chunks import ResumeChunk
@@ -27,6 +28,7 @@ __all__ = [
     "Permission",
     "role_permission",
     "Job",
+    "JobVersion",
     "Skill",
     "job_skills",
     "Candidate",

@@ -94,8 +94,13 @@ class JobResumeInfoResponse(BaseModel):
     processing: ResumeProcessingInfo
     analysis: ResumeMatchAnalysis | None = None
     resume_score: float | None = None
-    pass_fail: bool | None = None
+    pass_fail: str | None = None
 
+
+class ResumeStatusUpdateRequest(BaseModel):
+    """Request to update the manual review decision for a resume."""
+
+    pass_fail: str | None = None
 
 class JobResumesResponse(BaseModel):
     """Response containing a list of all resumes for a specific job."""
@@ -113,11 +118,13 @@ class CandidateResponse(BaseModel):
     last_name: str | None = None
     email: str | None = None
     phone: str | None = None
+    linkedin_url: str | None = None
+    github_url: str | None = None
     current_status: str | None = None
     created_at: datetime
     resume_analysis: ResumeMatchAnalysis | None = None
     resume_score: float | None = None
-    pass_fail: bool | None = None
+    pass_fail: str | None = None
     is_parsed: bool = False
     processing_status: str | None = None
     processing_error: str | None = None

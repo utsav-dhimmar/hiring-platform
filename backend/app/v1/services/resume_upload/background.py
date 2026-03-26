@@ -91,18 +91,19 @@ class BackgroundProcessor:
             mark_failed_cb=self._mark_resume_failed,
         )
 
-    def schedule_mass_refresh(self, job_id: uuid.UUID) -> None:
-        """Schedule a background task to refresh custom extractions for all resumes of a job."""
+    def schedule_mass_refresh(self, job_id: uuid.UUID, full_refresh: bool = False) -> None:
+        """Schedule a background task to refresh extractions for all resumes of a job."""
         from .tasks import mass_refresh_task
-        mass_refresh_task.delay(job_id_str=str(job_id))
-        logger.info("Celery task scheduled for mass refresh job_id=%s", job_id)
+        mass_refresh_task.delay(job_id_str=str(job_id), full_refresh=full_refresh)
+        logger.info("Celery task scheduled for mass refresh job_id=%s, full_refresh=%s", job_id, full_refresh)
 
     async def mass_refresh_in_background(
         self,
         *,
         job_id: uuid.UUID,
+        full_refresh: bool = False,
     ) -> None:
-        """Re-run custom extraction for all uploaded resumes of a job."""
+        """Re-run extraction/analysis for all uploaded resumes of a job."""
         from sqlalchemy import select
         from sqlalchemy.orm.attributes import flag_modified
 
@@ -112,15 +113,25 @@ class BackgroundProcessor:
         from app.v1.repository.resume_upload_repository import resume_upload_repository
         from app.v1.services.resume_upload.custom_extractor import custom_extractor_service
 
-        logger.info("Starting mass refresh in background for job_id=%s", job_id)
+        logger.info("Starting mass refresh in background for job_id=%s (full_refresh=%s)", job_id, full_refresh)
         async with async_session_maker() as db:
             job = await job_repository.get(db, job_id)
-            if not job or not job.custom_extraction_fields:
-                logger.warning("Job %s has no custom fields for mass refresh", job_id)
+            if not job:
+                logger.warning("Job %s not found for mass refresh", job_id)
                 return
 
             resumes = await resume_upload_repository.get_resumes_for_job(db, job_id=job_id)
             updated = 0
+
+            # Pre-load skills if doing full refresh
+            job_skills = []
+            if full_refresh:
+                from sqlalchemy.orm import selectinload
+                from app.v1.db.models.jobs import Job
+                job_stmt = select(Job).options(selectinload(Job.skills)).where(Job.id == job_id)
+                job_with_skills = await db.scalar(job_stmt)
+                if job_with_skills:
+                    job_skills = job_with_skills.skills
 
             for resume in resumes:
                 chunk = await db.scalar(
@@ -129,32 +140,66 @@ class BackgroundProcessor:
                 if not chunk or not chunk.raw_text:
                     continue
 
-                custom_extractions = await custom_extractor_service.extract_background_custom_fields(
-                    raw_text=chunk.raw_text,
-                    fields_list=job.custom_extraction_fields,
-                )
-
-                if custom_extractions:
-                    # Update resume.parse_summary
+                if full_refresh:
+                    # Perform full re-analysis (Semantic score + LLM insights)
+                    insights = await self.processor.generate_resume_insights(
+                        raw_text=chunk.raw_text,
+                        parsed_summary=resume.parse_summary.get("extracted_data", {}) if resume.parse_summary else {},
+                        job=job,
+                        job_skills=job_skills,
+                        candidate_skills=resume.parse_summary.get("extracted_data", {}).get("skills", []) if resume.parse_summary else [],
+                    )
+                    
+                    # Update columns AND parse_summary
+                    match_percentage = insights["analysis"]["match_percentage"]
+                    resume.resume_score = match_percentage
+                    resume.pass_fail = resume.pass_fail or "pending"
+                    
+                    # Update candidate's applied version (if candidate relation is available)
+                    if hasattr(resume, 'candidate') and resume.candidate:
+                        resume.candidate.applied_version_number = job.version
+                    
                     if resume.parse_summary and isinstance(resume.parse_summary, dict):
                         new_summary = dict(resume.parse_summary)
-                        if "analysis" in new_summary and isinstance(new_summary["analysis"], dict):
-                            new_summary["analysis"] = dict(new_summary["analysis"])
-                            new_summary["analysis"]["custom_extractions"] = custom_extractions
+                        new_summary["analysis"] = insights["analysis"]
                         resume.parse_summary = new_summary
                         flag_modified(resume, "parse_summary")
-
-                    # Update chunk.parsed_json
+                    
                     if chunk.parsed_json and isinstance(chunk.parsed_json, dict):
                         new_parsed = dict(chunk.parsed_json)
-                        if "analysis" in new_parsed and isinstance(new_parsed["analysis"], dict):
-                            new_parsed["analysis"] = dict(new_parsed["analysis"])
-                            new_parsed["analysis"]["custom_extractions"] = custom_extractions
+                        new_parsed["analysis"] = insights["analysis"]
                         chunk.parsed_json = new_parsed
                         flag_modified(chunk, "parsed_json")
+                        
+                elif job.custom_extraction_fields:
+                    # Perform ONLY custom field extraction
+                    custom_extractions = await custom_extractor_service.extract_background_custom_fields(
+                        raw_text=chunk.raw_text,
+                        fields_list=job.custom_extraction_fields,
+                    )
 
-                    updated += 1
+                    if custom_extractions:
+                        # Update resume.parse_summary
+                        if resume.parse_summary and isinstance(resume.parse_summary, dict):
+                            new_summary = dict(resume.parse_summary)
+                            if "analysis" in new_summary and isinstance(new_summary["analysis"], dict):
+                                new_summary["analysis"] = dict(new_summary["analysis"])
+                                new_summary["analysis"]["custom_extractions"] = custom_extractions
+                            resume.parse_summary = new_summary
+                            flag_modified(resume, "parse_summary")
+
+                        # Update chunk.parsed_json
+                        if chunk.parsed_json and isinstance(chunk.parsed_json, dict):
+                            new_parsed = dict(chunk.parsed_json)
+                            if "analysis" in new_parsed and isinstance(new_parsed["analysis"], dict):
+                                new_parsed["analysis"] = dict(new_parsed["analysis"])
+                                new_parsed["analysis"]["custom_extractions"] = custom_extractions
+                            chunk.parsed_json = new_parsed
+                            flag_modified(chunk, "parsed_json")
+
+                updated += 1
+                if updated % 5 == 0:
+                    await resume_upload_repository.commit(db)
 
             await resume_upload_repository.commit(db)
             logger.info("Completed mass refresh for job_id=%s, %d resumes updated", job_id, updated)
-

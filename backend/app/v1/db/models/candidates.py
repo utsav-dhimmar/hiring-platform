@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, ForeignKey, Numeric, Text
+from sqlalchemy import DateTime, ForeignKey, Numeric, Text, Integer
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -72,6 +72,11 @@ class Candidate(Base):
         UUID(as_uuid=True),
         ForeignKey("jobs.id"),
         nullable=False,
+    )
+
+    applied_version_number: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
     )
 
     # RESUME / AI FIELDS

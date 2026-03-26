@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.v1.db.models.job_stage_configs import JobStageConfig
     from app.v1.db.models.skills import Skill
     from app.v1.db.models.user import User
+    from app.v1.db.models.job_versions import JobVersion
 
 from app.v1.db.models.job_skills import job_skills
 from app.v1.utils.uuid import UUIDHelper
@@ -104,12 +105,24 @@ class Job(Base):
         nullable=True,
     )
 
+    version: Mapped[int] = mapped_column(
+        Integer,
+        default=1,
+        nullable=False,
+    )
+
     # RELATIONSHIPS
     creator: Mapped["User"] = relationship(
         "User", back_populates="jobs", foreign_keys=[created_by]
     )
     candidates: Mapped[list["Candidate"]] = relationship(
         "Candidate", back_populates="applied_job"
+    )
+    versions: Mapped[list["JobVersion"]] = relationship(
+        "JobVersion",
+        back_populates="job",
+        order_by="JobVersion.version_number",
+        cascade="all, delete-orphan",
     )
     skills: Mapped[list["Skill"]] = relationship(
         "Skill",

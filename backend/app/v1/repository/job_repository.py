@@ -76,6 +76,19 @@ class JobRepository:
         await db.flush()
 
         await self._sync_skills(db=db, job_id=job.id, skill_ids=skill_ids)
+        
+        from app.v1.db.models.job_versions import JobVersion
+        job_version = JobVersion(
+            job_id=job.id,
+            version_number=1,
+            title=job.title,
+            jd_text=job.jd_text,
+            jd_json=job.jd_json,
+            jd_embedding=job.jd_embedding,
+            custom_extraction_fields=job.custom_extraction_fields,
+        )
+        db.add(job_version)
+        
         await db.commit()
 
         created_job = await self.get(db=db, id=job.id)
@@ -99,6 +112,21 @@ class JobRepository:
 
         if skill_ids is not None:
             await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
+            
+        # Increment version to record an update
+        job.version = (job.version or 1) + 1
+        
+        from app.v1.db.models.job_versions import JobVersion
+        job_version = JobVersion(
+            job_id=job.id,
+            version_number=job.version,
+            title=job.title,
+            jd_text=job.jd_text,
+            jd_json=job.jd_json,
+            jd_embedding=job.jd_embedding,
+            custom_extraction_fields=job.custom_extraction_fields,
+        )
+        db.add(job_version)
 
         await db.commit()
 
