@@ -165,3 +165,24 @@ async def update_resume_status(
             detail="Resume not found for this job.",
         )
     return {"message": "Resume status updated successfully."}
+
+@router.post(
+    "/jobs/{job_id}/candidates/{candidate_id}/reanalyze",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def reanalyze_candidate(
+    job_id: uuid.UUID,
+    candidate_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+) -> dict[str, str]:
+    """Manually trigger background re-analysis for a single candidate against the latest JD version."""
+    await resume_upload_service.trigger_candidate_reanalyze(
+        db=db,
+        job_id=job_id,
+        candidate_id=candidate_id,
+        background_tasks=background_tasks,
+    )
+    return {"message": f"Background re-analysis started for candidate {candidate_id}."}
+

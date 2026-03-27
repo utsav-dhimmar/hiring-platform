@@ -146,3 +146,16 @@ class Job(Base):
     def department_name(self) -> str | None:
         """Return the department name for convenience (used in serialisation)."""
         return self.department.name if self.department else None
+
+    @property
+    def total_versions(self) -> int:
+        """Return the total number of versions for this job."""
+        return len(self.versions)
+
+    @property
+    def job_versions(self) -> list[dict]:
+        """Return a list of version objects with version_num and id."""
+        return [
+            {"version_num": v.version_number, "id": v.id} 
+            for v in self.versions
+        ]

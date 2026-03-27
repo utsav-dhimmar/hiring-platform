@@ -399,6 +399,8 @@ class ResumeUploadService:
                     github_url=github_url,
                     current_status=candidate.current_status,
                     created_at=candidate.created_at,
+                    resume_id=latest_resume.id if latest_resume else None,
+                    applied_version_number=candidate.applied_version_number,
                     resume_analysis=analysis,
                     resume_score=resume_score,
                     pass_fail=pass_fail,
@@ -474,6 +476,30 @@ class ResumeUploadService:
         background_tasks.add_task(
             bg_processor.mass_refresh_in_background,
             job_id=job_id,
+        )
+
+    async def trigger_candidate_reanalyze(
+        self,
+        *,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+        candidate_id: uuid.UUID,
+        background_tasks,
+    ) -> None:
+        from app.v1.repository.job_repository import job_repository
+        job = await job_repository.get(db, job_id)
+        if not job:
+            from fastapi import HTTPException, status
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
+
+        from app.v1.services.resume_upload.background import BackgroundProcessor
+        from app.v1.services.resume_upload.processor import ResumeProcessor
+
+        bg_processor = BackgroundProcessor(ResumeProcessor())
+        # Hand off to Celery task so HR can track it globally and monitor in worker logs
+        bg_processor.schedule_candidate_reanalyze(
+            job_id=job_id,
+            candidate_id=candidate_id,
         )
 
     async def delete_resume(

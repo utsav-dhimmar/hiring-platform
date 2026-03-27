@@ -40,6 +40,7 @@ class JobRepository:
                 selectinload(Job.skills),
                 selectinload(Job.stages).selectinload(JobStageConfig.template),
                 selectinload(Job.department),
+                selectinload(Job.versions),
             )
             .offset(skip)
             .limit(limit)
@@ -58,6 +59,7 @@ class JobRepository:
                 selectinload(Job.skills),
                 selectinload(Job.stages).selectinload(JobStageConfig.template),
                 selectinload(Job.department),
+                selectinload(Job.versions),
             )
             .where(Job.id == id)
         )
@@ -179,6 +181,7 @@ class JobRepository:
                 selectinload(Job.skills),
                 selectinload(Job.stages).selectinload(JobStageConfig.template),
                 selectinload(Job.department),
+                selectinload(Job.versions),
             )
             .where(search_filter)
             .offset(skip)

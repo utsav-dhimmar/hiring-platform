@@ -122,6 +122,8 @@ class CandidateResponse(BaseModel):
     github_url: str | None = None
     current_status: str | None = None
     created_at: datetime
+    resume_id: uuid.UUID | None = None
+    applied_version_number: int | None = None
     resume_analysis: ResumeMatchAnalysis | None = None
     resume_score: float | None = None
     pass_fail: str | None = None

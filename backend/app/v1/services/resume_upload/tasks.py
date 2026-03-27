@@ -67,3 +67,27 @@ def mass_refresh_task(self, job_id_str: str, full_refresh: bool = False):
     except Exception as exc:
         _log.exception("Celery mass refresh task failed for job_id=%s", job_id)
         raise self.retry(exc=exc, countdown=60)
+
+@celery_app.task(name="reanalyze_candidate_task", bind=True, max_retries=3)
+def reanalyze_candidate_task(self, job_id_str: str, candidate_id_str: str):
+    """Celery task to reanalyze a single candidate based on the current Job Description."""
+    job_id = uuid.UUID(job_id_str)
+    candidate_id = uuid.UUID(candidate_id_str)
+    
+    processor = ResumeProcessor()
+    bg_processor = BackgroundProcessor(processor)
+    
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+    try:
+        loop.run_until_complete(
+            bg_processor.reanalyze_candidate_in_background(job_id=job_id, candidate_id=candidate_id)
+        )
+    except Exception as exc:
+        _log.exception("Celery candidate reanalyze task failed for candidate_id=%s", candidate_id)
+        raise self.retry(exc=exc, countdown=60)
+
