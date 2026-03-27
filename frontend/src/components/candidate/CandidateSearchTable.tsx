@@ -1,7 +1,7 @@
 import { type ReactElement } from "react";
 import { DataTable, StatusBadge, DateDisplay } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Eye, Trash2, FileText, ArrowUpDown } from "lucide-react";
+import { Loader2, ArrowUpDown } from "lucide-react";
 import type { CandidateResponse } from "@/types/resume";
 import type { ColumnDef, PaginationState, OnChangeFn } from "@tanstack/react-table";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
@@ -23,8 +23,8 @@ const CandidateSearchTable = ({
   pagination,
   onPaginationChange,
   onShowMore,
-  onShowScreeningDetails,
-  onDelete,
+  // onShowScreeningDetails,
+  // onDelete,
 }: CandidateSearchTableProps): ReactElement => {
   const columns: ColumnDef<CandidateResponse>[] = [
     {
@@ -71,30 +71,30 @@ const CandidateSearchTable = ({
         const score = row.original.resume_score;
         if (score === null) return <span className="text-muted-foreground text-sm">N/A</span>;
         return (
-          <Badge
-            variant={score >= 75 ? "default" : score >= 50 ? "secondary" : "destructive"}
-            className="px-2 py-0.5 rounded-lg font-medium"
-          >
-            {score.toFixed(1)}%
-          </Badge>
+          <div className="flex flex-col gap-1.5 items-center">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm">{score.toFixed(1)}%</span>
+              <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${score >= 75 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
+                  style={{ width: `${score}%` }}
+                />
+              </div>
+            </div>
+            <StatusBadge
+              status={
+                row.original.pass_fail === null ? "pending" : row.original.pass_fail ? "pass" : "fail"
+              }
+              className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
+              mapping={{
+                pass: "default",
+                fail: "destructive",
+                pending: "secondary",
+              }}
+            />
+          </div>
         );
       },
-    },
-    {
-      accessorKey: "pass_fail",
-      header: "Result",
-      cell: ({ row }) => (
-        <StatusBadge
-          status={
-            row.original.pass_fail === null ? "pending" : row.original.pass_fail ? "pass" : "fail"
-          }
-          mapping={{
-            pass: "default",
-            fail: "destructive",
-            pending: "secondary",
-          }}
-        />
-      ),
     },
     {
       accessorKey: "processing_status",
@@ -169,33 +169,15 @@ const CandidateSearchTable = ({
       cell: ({ row }) => {
         const c = row.original;
         return (
-          <div className="flex items-center gap-2 justify-end">
+          <div className="flex items-center gap-2 justify-end pr-2">
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary border-muted"
+              variant="secondary"
+              size="sm"
+              className="rounded-xl font-semibold h-9 px-4 bg-muted/50 hover:bg-muted text-foreground transition-all border border-muted-foreground/10"
               title="View Details"
               onClick={() => onShowMore(c)}
             >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-blue-500/10 hover:text-blue-500 border-muted"
-              title="Screening Details"
-              onClick={() => onShowScreeningDetails(c)}
-            >
-              <FileText className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive border-muted"
-              title="Delete Candidate"
-              onClick={() => onDelete(c)}
-            >
-              <Trash2 className="h-4 w-4" />
+              More Info
             </Button>
           </div>
         );

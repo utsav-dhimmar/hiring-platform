@@ -3,7 +3,7 @@
  * Provides advanced search and filtering for HR.
  */
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { adminCandidateService, adminJobService } from "@/apis/admin/service";
 import type { JobRead } from "@/types/admin";
 import type { CandidateResponse } from "@/types/resume";
@@ -17,7 +17,7 @@ import {
 } from "@/components/shared";
 import CandidateSearchTable from "@/components/candidate/CandidateSearchTable";
 import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
-import { CandidateDetailModal, ResumeScreeningDetailModal, DeleteModal } from "@/components/modal";
+import { CandidateDetailsModal, ResumeScreeningDetailModal, DeleteModal } from "@/components/modal";
 import { resumeService } from "@/apis/resume";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import type { PaginationState } from "@tanstack/react-table";
@@ -26,6 +26,8 @@ import { Button } from "@/components";
 const AdminCandidateSearch = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith("/dashboard/admin");
   const toast = useToast();
 
   const [pagination, setPagination] = useState<PaginationState>({
@@ -160,7 +162,7 @@ const AdminCandidateSearch = () => {
             jobId && (
               <div className="flex gap-2 items-center">
                 <QuickResumeUpload jobId={jobId} onSuccess={fetchCandidates} variant="default" />
-                <Button variant="secondary" onClick={() => navigate("/admin/jobs")}>
+                <Button variant="secondary" onClick={() => navigate(isAdminPath ? "/dashboard/admin/jobs" : "/dashboard/jobs")}>
                   Back to Jobs
                 </Button>
               </div>
@@ -193,9 +195,9 @@ const AdminCandidateSearch = () => {
       )}
 
       {/* Candidate Detail Modal */}
-      <CandidateDetailModal
-        show={showDetail}
-        onHide={() => setShowDetail(false)}
+      <CandidateDetailsModal
+        isOpen={showDetail}
+        onClose={() => setShowDetail(false)}
         candidate={selectedCandidate}
       />
 

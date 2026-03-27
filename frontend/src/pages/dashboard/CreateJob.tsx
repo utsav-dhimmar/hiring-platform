@@ -277,7 +277,8 @@ export default function CreateJob() {
               />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-100 overflow-y-auto p-2 pr-4 custom-scrollbar">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 max-h-100 overflow-y-auto p-2 pr-4 custom-scrollbar">
+
               {filteredSkills.length > 0 ? (
                 filteredSkills.map((skill) => {
                   const isSelected = selectedSkillIds.includes(skill.id);
@@ -287,28 +288,32 @@ export default function CreateJob() {
                       type="button"
                       onClick={() => toggleSkill(skill.id)}
                       className={cn(
-                        "flex items-center justify-between px-1 py-1 rounded-2xl border-2 transition-all duration-300 text-left group",
+                        "flex items-center justify-between px-2 py-1.5 rounded-xl border-2 transition-all duration-300 text-left group",
                         isSelected
                           ? "bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5"
                           : "bg-background/50 border-muted-foreground/10 text-muted-foreground hover:border-primary/50 hover:bg-primary/5",
                       )}
                     >
-                      <span className="font-bold text-sm md:text-md truncate mr-2">
+
+                      <span className="font-bold text-xs lg:text-sm truncate mr-2">
                         {skill.name}
                       </span>
+
                       <div
                         className={cn(
-                          "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+                          "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all duration-300",
                           isSelected
                             ? "bg-primary border-primary text-primary-foreground scale-110"
                             : "border-muted-foreground/20 group-hover:border-primary/50",
                         )}
                       >
+
                         {isSelected ? (
-                          <Check className="h-4 w-4 stroke-[3px]" />
+                          <Check className="h-3.5 w-3.5 stroke-[3px]" />
                         ) : (
-                          <Plus className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <Plus className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                         )}
+
                       </div>
                     </button>
                   );

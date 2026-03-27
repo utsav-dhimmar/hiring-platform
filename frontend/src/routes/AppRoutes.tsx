@@ -83,7 +83,7 @@ const AppRoutes = () => {
           <Route
             path="admin"
             element={
-              <RoleRoute allowedRoles={[]} requiredPermissions={["admin:access"]}>
+              <RoleRoute allowedRoles={["admin", "hr"]} requiredPermissions={["admin:access"]}>
                 <Outlet />
               </RoleRoute>
             }
@@ -155,7 +155,14 @@ const AppRoutes = () => {
               }
             />
           </Route>
-          <Route path="candidates" element={<div>Candidates View (Coming Soon)</div>} />
+          <Route
+            path="candidates"
+            element={
+              <RoleRoute allowedRoles={["admin", "hr"]} requiredPermissions={["jobs:access"]}>
+                <AdminCandidateSearch />
+              </RoleRoute>
+            }
+          />
         </Route>
 
         {/* Catch all */}

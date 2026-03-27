@@ -15,7 +15,7 @@ import {
 import { CreatePermissionModal, DeleteModal, RoleModal } from "@/components/modal";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components";
+
 const AdminRoles = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -139,35 +139,29 @@ const AdminRoles = () => {
         }
       />
 
-      <div className="row">
-        <div className="col-md-7">
-          <Card>
-            <CardHeader>Roles</CardHeader>
-            <AdminDataTable
-              columns={roleColumns}
-              data={roles}
-              loading={loading}
-              error={error}
-              onRetry={fetchData}
-              rowKey="id"
-              className="border-0 shadow-none"
-            />
-          </Card>
+      <div className="flex flex-col gap-8 mt-6">
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight">Roles</h2>
+          <AdminDataTable
+            columns={roleColumns}
+            data={roles}
+            loading={loading}
+            error={error}
+            onRetry={fetchData}
+            rowKey="id"
+          />
         </div>
 
-        <div className="col-md-5">
-          <Card>
-            <CardHeader>Permissions</CardHeader>
-            <AdminDataTable
-              columns={permissionColumns}
-              data={permissions}
-              loading={loading}
-              error={error}
-              onRetry={fetchData}
-              rowKey="id"
-              className="border-0 shadow-none"
-            />
-          </Card>
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold tracking-tight">Permissions</h2>
+          <AdminDataTable
+            columns={permissionColumns}
+            data={permissions}
+            loading={loading}
+            error={error}
+            onRetry={fetchData}
+            rowKey="id"
+          />
         </div>
       </div>
 

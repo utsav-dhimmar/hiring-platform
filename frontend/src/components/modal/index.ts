@@ -8,6 +8,7 @@ export { default as CreateSkillModal } from "@/components/modal/CreateSkillModal
 export { default as CreateUserModal } from "@/components/modal/CreateUserModal";
 export { default as DeleteModal } from "@/components/modal/DeleteModal";
 export { default as RoleModal } from "@/components/modal/RoleModal";
-export { default as CandidateDetailModal } from "@/components/modal/CandidateDetailModal";
+export { CandidateDetailsModal } from "@/components/modal/CandidateDetailsModal";
 export { default as ResumeScreeningDetailModal } from "@/components/modal/ResumeScreeningDetailModal";
 export { default as JobSkillSelector } from "@/components/modal/JobSkillSelector";
+export { JobInfoModal } from "@/components/modal/JobInfoModal";

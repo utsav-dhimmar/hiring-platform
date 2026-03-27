@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CandidateDetailsModal } from "./components/CandidateDetailsModal";
+import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import { slugify } from "@/utils/slug";
 
@@ -44,6 +44,7 @@ export default function JobCandidates() {
   const [loading, setLoading] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<ResumeScreeningResult | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -169,7 +170,7 @@ export default function JobCandidates() {
               </div>
             );
           }
-
+          console.log(score, isPassed)
           return (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
@@ -181,12 +182,13 @@ export default function JobCandidates() {
                   />
                 </div>
               </div>
-              <Badge
+              {/* <Badge
+              // BACEND RETURN ->     "pass_fail": "pending", even after the resuem has been processed 
                 variant={isPassed ? "default" : "destructive"}
                 className={`rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider ${isPassed ? "bg-green-500/10 text-green-600 border-green-200 hover:bg-green-500/20 shadow-none" : "bg-red-500/10 text-red-600 border-red-200 hover:bg-red-500/20 shadow-none"}`}
               >
                 {isPassed ? "Passed" : "Failed"}
-              </Badge>
+              </Badge> */}
             </div>
           );
         },
@@ -299,10 +301,19 @@ export default function JobCandidates() {
               </div>
             </div>
           </div>
-          <Button variant="outline" onClick={handleUploadClick} disabled={isUploading}>
-            <Upload className="mr-2 h-5 w-5" />
-            {isUploading ? "Uploading..." : "Upload Resumes"}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              className="px-6 rounded-xl font-semibold border border-muted-foreground/10"
+              onClick={() => setIsJobModalOpen(true)}
+            >
+              Info
+            </Button>
+            <Button variant="outline" onClick={handleUploadClick} disabled={isUploading}>
+              <Upload className="mr-2 h-5 w-5" />
+              {isUploading ? "Uploading..." : "Upload Resumes"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -367,6 +378,12 @@ export default function JobCandidates() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         candidate={selectedCandidate}
+      />
+
+      <JobInfoModal
+        isOpen={isJobModalOpen}
+        onClose={() => setIsJobModalOpen(false)}
+        job={job}
       />
 
       <input

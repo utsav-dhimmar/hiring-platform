@@ -143,7 +143,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
 
   return (
     <Dialog open={show} onOpenChange={(open) => !open && onHide()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto font-sans">
+      <DialogContent className="max-w-lg font-sans">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
             {isEditMode ? "Edit Role" : "Create New Role"}

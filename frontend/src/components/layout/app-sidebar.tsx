@@ -90,7 +90,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
   const user = useAppSelector(selectCurrentUser);
 
-  const isAdmin = user?.role_name?.toLowerCase() === "admin";
+  const isStaff = user?.role_name?.toLowerCase() === "admin" || user?.role_name?.toLowerCase() === "hr";
 
   const handleLogout = async () => {
     try {
@@ -132,7 +132,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         ))}
 
-        {isAdmin &&
+        {isStaff &&
           data.navAdmin.map((item) => (
             <SidebarGroup key={item.title}>
               <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
