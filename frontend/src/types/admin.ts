@@ -238,6 +238,9 @@ export interface HiringReport {
   average_resume_score?: number;
 
   pass_rate?: number;
+  llm_parsed_count: number;
+  hr_decided_count: number;
+  pending_count: number;
 }
 
 /**

@@ -4,12 +4,6 @@ import { useAdminData } from "@/hooks/useAdminData";
 import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
 import { StatCard, DataTable } from "@/components/shared";
 import {
-  Users,
-  Briefcase,
-  UserPlus,
-  FileText,
-  TrendingUp,
-  CheckCircle,
   ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -97,54 +91,69 @@ export default function AdminStats() {
       ) : (
         <>
           {/* Main Analytics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-3 m-1">
             <StatCard
               label="Total Users"
               value={analytics?.total_users ?? 0}
-              icon={<Users className="h-5 w-5" />}
+
               className="bg-primary/5 border border-primary/10"
             />
             <StatCard
               label="Active Users"
               value={analytics?.active_users ?? 0}
-              icon={<CheckCircle className="h-5 w-5" />}
+
               className="bg-green-500/5 border border-green-500/10"
             />
             <StatCard
               label="Total Jobs"
               value={analytics?.total_jobs ?? 0}
-              icon={<Briefcase className="h-5 w-5" />}
+
               className="bg-blue-500/5 border border-blue-500/10"
             />
             <StatCard
               label="Active Jobs"
               value={analytics?.active_jobs ?? 0}
-              icon={<CheckCircle className="h-5 w-5" />}
+
               className="bg-indigo-500/5 border border-indigo-500/10"
             />
             <StatCard
               label="Total Candidates"
               value={analytics?.total_candidates ?? 0}
-              icon={<UserPlus className="h-5 w-5" />}
+
               className="bg-orange-500/5 border border-orange-500/10"
             />
             <StatCard
               label="Total Resumes"
               value={analytics?.total_resumes ?? 0}
-              icon={<FileText className="h-5 w-5" />}
+
               className="bg-purple-500/5 border border-purple-500/10"
             />
             <StatCard
               label="Resumes (Last 30d)"
               value={report?.resumes_uploaded_last_30_days ?? 0}
-              icon={<TrendingUp className="h-5 w-5" />}
+
               className="bg-pink-500/5 border border-pink-500/10"
             />
             <StatCard
               label="Pass Rate"
               value={report?.pass_rate ? `${report.pass_rate.toFixed(1)}%` : "0%"}
-              icon={<TrendingUp className="h-5 w-5" />}
+
               className="bg-yellow-500/5 border border-yellow-500/10"
+            />
+            <StatCard
+              label="LLM Parsed"
+              value={report?.llm_parsed_count ?? 0}
+              className="bg-emerald-500/5 border border-emerald-500/10"
+            />
+            <StatCard
+              label="HR Decided"
+              value={report?.hr_decided_count ?? 0}
+              className="bg-cyan-500/5 border border-cyan-500/10"
+            />
+            <StatCard
+              label="No Action"
+              value={report?.pending_count ?? 0}
+              className="bg-amber-500/5 border border-amber-500/10"
             />
           </div>
 

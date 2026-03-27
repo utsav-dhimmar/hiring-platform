@@ -1,4 +1,4 @@
-import { Card } from "@/components/shared";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { CandidateResponse } from "@/types/resume";
 import { UserCheck, ThumbsUp, AlertTriangle, Info } from "lucide-react";

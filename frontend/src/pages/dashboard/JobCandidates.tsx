@@ -11,14 +11,20 @@ import { extractErrorMessage } from "@/utils/error";
 import {
   ArrowLeft,
   Upload,
+  GitBranch,
   // Trash2,
   FileText,
+  RotateCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { ColumnDef } from "@tanstack/react-table";
 import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import { slugify } from "@/utils/slug";
+
+type JobRouteState = {
+  jobId?: string;
+};
 
 const CandidateSkeleton = () => (
   <div className="border rounded-2xl p-4 bg-background/30 animate-pulse border-muted-foreground/10 mb-4">
@@ -42,17 +48,21 @@ export default function JobCandidates() {
   const [candidates, setCandidates] = useState<ResumeScreeningResult[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCandidate, setSelectedCandidate] = useState<ResumeScreeningResult | null>(null);
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<ResumeScreeningResult | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [reanalyzingCandidateIds, setReanalyzingCandidateIds] = useState<
+    string[]
+  >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
     if (!jobSlug) return;
     setLoading(true);
     try {
-      let id = (location.state as any)?.jobId;
+      let id = (location.state as JobRouteState | null)?.jobId;
 
       if (!id) {
         // Fallback: find job by slug
@@ -75,7 +85,10 @@ export default function JobCandidates() {
       setCandidates(candidatesData.candidates || []);
     } catch (error) {
       console.error("Failed to fetch job data:", error);
-      const errorMessage = extractErrorMessage(error, "Failed to load candidates.");
+      const errorMessage = extractErrorMessage(
+        error,
+        "Failed to load candidates.",
+      );
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -86,7 +99,9 @@ export default function JobCandidates() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = event.target.files;
     if (!files || files.length === 0 || !job) return;
 
@@ -111,6 +126,48 @@ export default function JobCandidates() {
     fetchData();
   }, [fetchData]);
 
+  const handleReanalyzeCandidate = useCallback(
+    async (candidateId: string) => {
+      if (!job) return;
+
+      setReanalyzingCandidateIds((current) => [...current, candidateId]);
+      try {
+        const response = await jobService.reanalyzeCandidate(
+          job.id,
+          candidateId,
+        );
+        toast.success(response.message || "Re-analysis started successfully.");
+        await fetchData();
+      } catch (error) {
+        console.error("Failed to reanalyze candidate:", error);
+        toast.error(
+          extractErrorMessage(error, "Failed to start candidate re-analysis."),
+        );
+      } finally {
+        setReanalyzingCandidateIds((current) =>
+          current.filter((id) => id !== candidateId),
+        );
+      }
+    },
+    [fetchData, job],
+  );
+
+  const handleReanalyzeAll = useCallback(async () => {
+    if (!job || candidates.length === 0) return;
+
+    toast.info(`Re-analyzing ${candidates.length} candidates...`);
+
+    for (const candidate of candidates) {
+      jobService.reanalyzeCandidate(job.id, candidate.id).catch((err) => {
+        console.error(`Failed to reanalyze ${candidate.id}:`, err);
+      });
+      // Small delay between requests to avoid overwhelming the server
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    
+    toast.success("Requests sent for all candidates.");
+  }, [candidates, job]);
+
   // polling
   useEffect(() => {
     const isAnyProcessing = candidates.some(
@@ -130,15 +187,20 @@ export default function JobCandidates() {
       {
         id: "candidate",
         header: "Candidate",
-        accessorFn: (row) => `${row.first_name || ""} ${row.last_name || ""}`.trim(),
+        accessorFn: (row) =>
+          `${row.first_name || ""} ${row.last_name || ""}`.trim(),
         cell: ({ row }) => (
           <div className="flex flex-col">
             <span className="font-bold text-base text-foreground">
               {`${row.original.first_name || ""} ${row.original.last_name || ""}`.trim() ||
                 "Unknown Candidate"}
             </span>
-            <span className="text-sm text-muted-foreground">{row.original.email}</span>
-            <span className="text-sm text-muted-foreground">{row.original.phone}</span>
+            <span className="text-sm text-muted-foreground">
+              {row.original.email}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {row.original.phone}
+            </span>
           </div>
         ),
       },
@@ -150,7 +212,8 @@ export default function JobCandidates() {
           const score = row.original.resume_score || 0;
           const isPassed = row.original.pass_fail;
           const isProcessing =
-            row.original.processing_status === "processing" || !row.original.is_parsed;
+            row.original.processing_status === "processing" ||
+            !row.original.is_parsed;
 
           if (isProcessing) {
             return (
@@ -170,7 +233,7 @@ export default function JobCandidates() {
               </div>
             );
           }
-          console.log(score, isPassed)
+          console.log(score, isPassed);
           return (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
@@ -208,7 +271,9 @@ export default function JobCandidates() {
                 onClick={() =>
                   linkedin_url &&
                   window.open(
-                    linkedin_url.startsWith("http") ? linkedin_url : `https://${linkedin_url}`,
+                    linkedin_url.startsWith("http")
+                      ? linkedin_url
+                      : `https://${linkedin_url}`,
                     "_blank",
                   )
                 }
@@ -223,7 +288,9 @@ export default function JobCandidates() {
                 onClick={() =>
                   github_url &&
                   window.open(
-                    github_url.startsWith("http") ? github_url : `https://${github_url}`,
+                    github_url.startsWith("http")
+                      ? github_url
+                      : `https://${github_url}`,
                     "_blank",
                   )
                 }
@@ -239,6 +306,16 @@ export default function JobCandidates() {
         header: () => <div className="text-right pr-4">Actions</div>,
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-2 pr-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="border border-amber-300 hover:bg-yellow-500"
+              onClick={() => handleReanalyzeCandidate(row.original.id)}
+              isLoading={reanalyzingCandidateIds.includes(row.original.id)}
+              disabled={reanalyzingCandidateIds.includes(row.original.id)}
+            >
+              Reanalyze
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -261,7 +338,7 @@ export default function JobCandidates() {
         ),
       },
     ],
-    [],
+    [handleReanalyzeCandidate, reanalyzingCandidateIds],
   );
 
   return (
@@ -309,7 +386,24 @@ export default function JobCandidates() {
             >
               Info
             </Button>
-            <Button variant="outline" onClick={handleUploadClick} disabled={isUploading}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!job) return;
+                navigate(`/dashboard/jobs/${slugify(job.title)}/versions`, {
+                  state: { jobId: job.id },
+                });
+              }}
+              disabled={!job}
+            >
+              <GitBranch className="mr-2 h-5 w-5" />
+              Versions
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleUploadClick}
+              disabled={isUploading}
+            >
               <Upload className="mr-2 h-5 w-5" />
               {isUploading ? "Uploading..." : "Upload Resumes"}
             </Button>
@@ -321,7 +415,9 @@ export default function JobCandidates() {
       {!loading && candidates?.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="group p-6 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-card/50 transition-all duration-300 border-muted-foreground/10">
-            <span className="text-4xl font-black text-foreground">{candidates?.length || 0}</span>
+            <span className="text-4xl font-black text-foreground">
+              {candidates?.length || 0}
+            </span>
             <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest group-hover:text-foreground transition-colors">
               Resumes
             </span>
@@ -346,7 +442,7 @@ export default function JobCandidates() {
       )}
 
       {/* Content Container */}
-      <div className="rounded-[2.5rem] border p-4 bg-card/30 backdrop-blur-md shadow-lg border-muted-foreground/10 min-h-[500px]">
+      <div className="rounded-[2.5rem] border p-4 bg-card/30 backdrop-blur-md shadow-lg border-muted-foreground/10 min-h-125">
         {loading ? (
           <div className="flex flex-col gap-4">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -359,7 +455,9 @@ export default function JobCandidates() {
               <FileText className="h-16 w-16 text-muted-foreground/30" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-2xl font-bold text-foreground">No applicants found</h3>
+              <h3 className="text-2xl font-bold text-foreground">
+                No applicants found
+              </h3>
             </div>
           </div>
         ) : (
@@ -369,6 +467,18 @@ export default function JobCandidates() {
               data={candidates || []}
               searchKey="candidate"
               searchPlaceholder="Search by name..."
+              headerActions={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-amber-300 hover:bg-amber-500/10 text-amber-600 hover:text-amber-700 font-semibold transition-all flex items-center gap-2 h-10 rounded-xl"
+                  onClick={handleReanalyzeAll}
+                  disabled={candidates.length === 0}
+                >
+                  <RotateCw className="h-4 w-4" />
+                  Reanalyze All
+                </Button>
+              }
             />
           </div>
         )}

@@ -24,8 +24,7 @@ import { Button } from "@/components";
 const AdminJobs = () => {
   const navigate = useNavigate();
   const toast = useToast();
-  const [showModal, setShowModal] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<JobRead | null>(null);
+
 
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -62,38 +61,10 @@ const AdminJobs = () => {
     itemTitle: (job) => `job "${job.title}"`,
   });
 
-  const handleCreateClick = () => {
-    setSelectedJob(null);
-    setShowModal(true);
-  };
-
-  const handleEditClick = (job: JobRead) => {
-    setSelectedJob(job);
-    setShowModal(true);
-  };
-
-  /*
-  const handleManageStages = (job: JobRead) => {
-    setSelectedJob(job);
-    setShowStagesModal(true);
-  };
-  */
 
   const handleViewCandidates = (jobId: string) => {
     navigate(`/admin/jobs/${jobId}/candidates`);
   };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedJob(null);
-  };
-
-  /*
-  const handleCloseStagesModal = () => {
-    setShowStagesModal(false);
-    setSelectedJob(null);
-  };
-  */
 
   const columns: ColumnDef<JobRead>[] = [
     {
@@ -157,7 +128,11 @@ const AdminJobs = () => {
               size="icon"
               className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
               title="Edit Job"
-              onClick={() => handleEditClick(job)}
+              onClick={() => navigate(`/dashboard/jobs/${job.id}/edit`, {
+                state: {
+                  jobId: job.id
+                }
+              })}
             >
               <Edit2 className="h-4 w-4" />
               <span className="sr-only">Edit Job</span>
@@ -192,7 +167,7 @@ const AdminJobs = () => {
     <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 pt-0 pb-8">
       <PageHeader
         title="Job Management"
-        actions={<Button onClick={handleCreateClick}>Create Job</Button>}
+
       />
 
       {loading ? (
@@ -218,15 +193,6 @@ const AdminJobs = () => {
           onPaginationChange={setPagination}
         />
       )}
-
-
-
-      {/* <ManageJobStagesModal
-        show={showStagesModal}
-        handleClose={handleCloseStagesModal}
-        job={selectedJob}
-        onStagesUpdated={fetchJobs}
-      /> */}
 
       <DeleteModal
         show={showDeleteModal}

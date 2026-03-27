@@ -65,7 +65,7 @@ const CreatePermissionModal = ({
     onSubmit,
   });
 
-  const { handleSubmit, isSubmitting, submitError, control } = formModal;
+  const { handleFormSubmit, isSubmitting, submitError, control } = formModal;
 
   return (
     <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
@@ -77,7 +77,7 @@ const CreatePermissionModal = ({
         {submitError && <ErrorDisplay message={submitError} />}
 
         <Form {...formModal}>
-          <form id="create-permission-form" onSubmit={handleSubmit} className="space-y-4">
+          <form id="create-permission-form" onSubmit={handleFormSubmit} className="space-y-4">
             <FormField
               control={control}
               name="name"

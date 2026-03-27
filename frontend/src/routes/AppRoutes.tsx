@@ -18,6 +18,7 @@ import RegisterPage from "@/pages/Auth/RegisterPage";
 // Lazy-loaded route components
 const CreateJob = lazy(() => import("@/pages/dashboard/CreateJob"));
 const JobCandidates = lazy(() => import("@/pages/dashboard/JobCandidates"));
+const JobVersionUpdates = lazy(() => import("@/pages/dashboard/JobVersionUpdates"));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("@/pages/Admin/AdminDashboard"));
@@ -79,6 +80,7 @@ const AppRoutes = () => {
           <Route path="jobs/new" element={<CreateJob />} />
           <Route path="jobs/:jobSlug/edit" element={<CreateJob />} />
           <Route path="jobs/:jobSlug/candidates" element={<JobCandidates />} />
+          <Route path="jobs/:jobSlug/versions" element={<JobVersionUpdates />} />
           {/* Admin Routes */}
           <Route
             path="admin"

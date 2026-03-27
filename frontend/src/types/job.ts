@@ -1,6 +1,27 @@
+import type { JobStageConfig } from "@/types/stage";
+
+/**
+ * Minimal job version metadata returned by the backend.
+ */
+export interface JobVersionMinimal {
+  id: string;
+  version_num: number;
+}
+
+export interface JobVersionDetail {
+  id: string;
+  job_id: string;
+  version_number: number;
+  title: string;
+  jd_text: string | null;
+  jd_json: Record<string, unknown> | null;
+  custom_extraction_fields: string[] | null;
+  created_at: string;
+}
+
 /**
  * Represents a job posting in the hiring platform.
- * Contains job details, description, and status information.
+ * Contains job details, description, status information, and workflow metadata.
  */
 export interface Job {
   /** Unique identifier for the job */
@@ -19,9 +40,20 @@ export interface Job {
   jd_json: Record<string, unknown> | null;
   /** Whether the job is currently accepting applications */
   is_active: boolean;
+  /** Optional custom extraction fields used during resume parsing */
+  custom_extraction_fields?: string[] | null;
+  /** Current active version number */
+  version?: number;
+  /** Total number of saved versions */
+  total_versions?: number;
+  /** Version history metadata */
+  job_versions?: JobVersionMinimal[];
+  /** Configured interview stages */
+  stages?: JobStageConfig[];
   /** ID of the user who created the job posting */
   created_by: string;
   /** Timestamp when the job was created */
   created_at: string;
-  skills: { name: string; description: string | null }[];
+  /** Skills linked to the job */
+  skills: { id: string; name: string; description: string | null }[];
 }

@@ -79,7 +79,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
   });
 
   const {
-    handleSubmit,
+    handleFormSubmit,
     isSubmitting,
     submitError,
     setSubmitError,
@@ -158,7 +158,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
           </div>
         ) : (
           <Form {...formModal}>
-            <form id="role-form" onSubmit={handleSubmit} className="space-y-6">
+            <form id="role-form" onSubmit={handleFormSubmit} className="space-y-6">
               <FormField
                 control={control}
                 name="name"

@@ -73,7 +73,7 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
     onSubmit,
   });
 
-  const { handleSubmit, isSubmitting, submitError, control } = formModal;
+  const { handleFormSubmit, isSubmitting, submitError, control } = formModal;
 
   return (
     <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
@@ -85,7 +85,7 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
         {submitError && <ErrorDisplay message={submitError} />}
 
         <Form {...formModal}>
-          <form id="create-skill-form" onSubmit={handleSubmit} className="space-y-4">
+          <form id="create-skill-form" onSubmit={handleFormSubmit} className="space-y-4">
             <FormField
               control={control}
               name="name"

@@ -28,18 +28,18 @@ interface StatCardProps {
  */
 const StatCard = ({ label, value, icon, trend, className = "" }: StatCardProps) => {
   return (
-    <Card className={`border-0 shadow-sm rounded-4 ${className}`}>
-      <CardContent className="p-4 text-start">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-bold uppercase text-muted-foreground tracking-wide">
+    <Card className={`border-0 shadow-md rounded-2xl aspect-square flex flex-col justify-center transition-all hover:shadow-lg hover:-translate-y-1 h-30 ${className}`}>
+      <CardContent className="p-6 text-center flex flex-col items-center justify-center gap-2">
+        <div className="flex flex-col items-center mb-1">
+          {icon && <span className="text-primary text-2xl mb-2">{icon}</span>}
+          <span className="text-xs font-bold uppercase text-muted-foreground tracking-widest px-2">
             {label}
           </span>
-          {icon && <span className="text-primary">{icon}</span>}
         </div>
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-3xl font-bold mb-0 text-foreground">{value}</h2>
+        <div className="flex flex-col items-center gap-1">
+          <h2 className="text-4xl font-extrabold text-foreground tracking-tight">{value}</h2>
           {trend && (
-            <Badge variant={trend.isUp ? "default" : "destructive"} className="ml-2">
+            <Badge variant={trend.isUp ? "default" : "destructive"} className="mt-1 font-medium">
               {trend.isUp ? "↑" : "↓"} {trend.value}%
             </Badge>
           )}

@@ -1,4 +1,4 @@
-import { Button } from "@/components/shared";
+import { Button } from "@/components/ui/button";
 import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
 import type { JobRead } from "@/types/admin";
 

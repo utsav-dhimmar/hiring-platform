@@ -107,7 +107,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
   });
 
   const {
-    handleSubmit,
+    handleFormSubmit,
     isSubmitting,
     submitError,
     setSubmitError,
@@ -142,7 +142,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
         {submitError && <ErrorDisplay message={submitError} />}
 
         <Form {...formModal}>
-          <form id="create-user-form" onSubmit={handleSubmit} className="space-y-4">
+          <form id="create-user-form" onSubmit={handleFormSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={control}

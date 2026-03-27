@@ -1,6 +1,8 @@
 import client from "@/apis/client";
-import type { Job } from "@/types/job";
+import type { Job, JobVersionDetail } from "@/types/job";
 import type { ResumeScreeningResultsResponse } from "@/types/admin";
+
+type JobPayload = Record<string, unknown>;
 
 /**
  * Job service for managing job postings.
@@ -43,7 +45,7 @@ const jobService = {
    * @param data - The job data to create
    * @returns Promise resolving to the created job
    */
-  createJob: async (data: any): Promise<Job> => {
+  createJob: async (data: JobPayload): Promise<Job> => {
     const response = await client.post<Job>("/jobs/", data);
     return response.data;
   },
@@ -59,12 +61,23 @@ const jobService = {
   },
 
   /**
+   * Retrieves a specific job version snapshot by version UUID.
+   * Note: this depends on backend support for a version-details endpoint.
+   * @param versionId - The UUID of the job version snapshot
+   * @returns Promise resolving to the version snapshot
+   */
+  getJobVersion: async (versionId: string): Promise<JobVersionDetail> => {
+    const response = await client.get<JobVersionDetail>(`/jobs/versions/${versionId}`);
+    return response.data;
+  },
+
+  /**
    * Updates an existing job posting.
    * @param jobId - The UUID of the job to update
    * @param data - The updated job data
    * @returns Promise resolving to the updated job
    */
-  updateJob: async (jobId: string, data: any): Promise<Job> => {
+  updateJob: async (jobId: string, data: JobPayload): Promise<Job> => {
     const response = await client.patch<Job>(`/jobs/${jobId}`, data);
     return response.data;
   },
@@ -80,12 +93,28 @@ const jobService = {
   },
 
   /**
+   * Triggers re-analysis for a specific candidate against the latest job changes.
+   * @param jobId - The UUID of the job
+   * @param candidateId - The UUID of the candidate
+   * @returns Promise resolving to the API acknowledgement message
+   */
+  reanalyzeCandidate: async (
+    jobId: string,
+    candidateId: string,
+  ): Promise<{ message: string }> => {
+    const response = await client.post<{ message: string }>(
+      `/jobs/${jobId}/candidates/${candidateId}/reanalyze`,
+    );
+    return response.data;
+  },
+
+  /**
    * Uploads a resume for a specific job.
    * @param jobId - The UUID of the job
    * @param file - The resume file to upload
    * @returns Promise resolving to the upload response
    */
-  uploadResume: async (jobId: string, file: File): Promise<any> => {
+  uploadResume: async (jobId: string, file: File): Promise<unknown> => {
     const formData = new FormData();
     formData.append("resume", file);
     const response = await client.post(`/jobs/${jobId}/resume`, formData, {

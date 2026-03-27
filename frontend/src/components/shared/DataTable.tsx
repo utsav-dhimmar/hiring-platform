@@ -40,6 +40,7 @@ interface DataTableProps<TData, TValue> {
   pageCount?: number;
   onPaginationChange?: OnChangeFn<PaginationState>;
   isServerSide?: boolean;
+  headerActions?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -53,6 +54,7 @@ export function DataTable<TData, TValue>({
   pageCount,
   onPaginationChange,
   isServerSide = false,
+  headerActions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -89,16 +91,21 @@ export function DataTable<TData, TValue>({
   return (
     <div className="w-full space-y-4">
       {searchKey && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
               value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
               onChange={(event) => table.getColumn(searchKey)?.setFilterValue(event.target.value)}
-              className="pl-9 h-10 rounded-xl"
+              className="pl-9 h-10 rounded-xl transition-all focus:ring-2 focus:ring-primary/20"
             />
           </div>
+          {headerActions && (
+            <div className="flex items-center gap-2">
+              {headerActions}
+            </div>
+          )}
         </div>
       )}
       <div className="rounded-2xl border bg-background/50 backdrop-blur-sm overflow-hidden">
