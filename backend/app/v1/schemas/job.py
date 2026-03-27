@@ -46,12 +46,25 @@ class JobUpdate(BaseModel):
     custom_extraction_fields: list[str] | None = None
 
 
+class JobVersionMinimal(BaseModel):
+    """
+    Minimal schema for a Job version, showing only version number and its unique ID.
+    """
+
+    version_num: int
+    id: uuid.UUID
+    model_config = ConfigDict(from_attributes=True)
+
+
 class JobRead(JobBase):
     """
     Schema for reading Job data, including database-generated fields.
     """
 
     id: uuid.UUID
+    version: int = 1
+    total_versions: int = 0
+    job_versions: list[JobVersionMinimal] = []
     created_by: uuid.UUID
     created_at: datetime
     department_name: str | None = None

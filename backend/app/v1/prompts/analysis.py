@@ -22,6 +22,15 @@ RESUME_JD_ANALYSIS_PROMPT = textwrap.dedent("""
       "extraordinary_points": [string]
     }}
 
+    Definition for "extraordinary_points":
+    Only include truly rare, high-impact achievements. Do NOT include standard project work or common developer skills.
+    Look specifically for:
+    - High-stakes achievements: "Saved $50k/year in infrastructure costs", "Reduced database latency by 40%".
+    - National or International recognition: "Winner of National level Hackathon", "Published in Top-tier Research journal".
+    - Exceptional Impact: "Developed a core system that serves 1M+ users", "Authored a widely used Open Source library".
+    - Leadership/Articles: "Authored technical articles with 50k+ views", "Lead developer for a startup's entire MVP".
+    If no such extraordinary items are found, return an empty list.
+
     For each missing skill:
     - "name": the skill name
     - "score": importance score from 0 to 100 (100 = absolutely required for the role, 0 = merely a nice-to-have)

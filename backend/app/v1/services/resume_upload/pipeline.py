@@ -235,6 +235,7 @@ async def run_resume_processing_pipeline(
                 info=parsed_summary,
                 info_embedding=insights["candidate_embedding"],
             )
+            candidate.applied_version_number = job.version
             log_stage(
                 stage="persist_candidate_profile",
                 started_at=stage_started_at,
