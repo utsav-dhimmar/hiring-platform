@@ -4,7 +4,8 @@
  */
 
 import React from "react";
-import { Input, Button } from "@/components/shared";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
 
 /**
  * Props for the SearchBar component.

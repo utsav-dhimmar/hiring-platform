@@ -4,7 +4,7 @@
  */
 
 import { AlertTriangle, RefreshCw } from "lucide-react";
-import { Button } from "@/components/shared";
+import { Button } from "@/components/ui/button";
 
 /**
  * Props for the ErrorDisplay component.
@@ -41,11 +41,7 @@ const ErrorDisplay = ({ message, onRetry, fullPage = false }: ErrorDisplayProps)
   );
 
   if (fullPage) {
-    return (
-      <div className="flex min-h-[80vh] items-center justify-center">
-        {content}
-      </div>
-    );
+    return <div className="flex min-h-[80vh] items-center justify-center">{content}</div>;
   }
 
   return content;

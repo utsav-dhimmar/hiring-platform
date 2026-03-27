@@ -29,7 +29,7 @@ export interface PermissionRead extends PermissionBase {
 /**
  * Payload for creating a new permission.
  */
-export interface PermissionCreate extends PermissionBase { }
+export interface PermissionCreate extends PermissionBase {}
 
 /**
  * Base fields for a role.
@@ -291,7 +291,7 @@ export interface SkillBase {
 /**
  * Payload for creating a new skill.
  */
-export interface SkillCreate extends SkillBase { }
+export interface SkillCreate extends SkillBase {}
 
 /**
  * Payload for updating an existing skill.
@@ -325,7 +325,7 @@ export interface DepartmentBase {
 /**
  * Payload for creating a new department.
  */
-export interface DepartmentCreate extends DepartmentBase { }
+export interface DepartmentCreate extends DepartmentBase {}
 
 /**
  * Payload for updating an existing department.
@@ -405,7 +405,7 @@ export interface JobStageReorder {
 /**
  * Job returned from read operations.
  */
-export interface JobRead extends Omit<Job, 'skills'> {
+export interface JobRead extends Omit<Job, "skills"> {
   skills?: SkillRead[];
   stages?: JobStageConfig[];
 }

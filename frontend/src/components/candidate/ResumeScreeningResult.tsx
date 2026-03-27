@@ -31,7 +31,12 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
       <Card className="mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
         <div className="bg-white px-4 py-3 border-b flex justify-between items-center">
           <h5 className="mb-0 font-bold">Stage 0: Resume Screening Results</h5>
-          <Badge variant={candidate.resume_score && candidate.resume_score >= 70 ? "default" : "secondary"} className="rounded-full px-3 py-1">
+          <Badge
+            variant={
+              candidate.resume_score && candidate.resume_score >= 70 ? "default" : "secondary"
+            }
+            className="rounded-full px-3 py-1"
+          >
             Match Score: {candidate.resume_score?.toFixed(1)}%
           </Badge>
         </div>
@@ -102,14 +107,19 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm italic">No extraordinary points noted.</p>
+                <p className="text-muted-foreground text-sm italic">
+                  No extraordinary points noted.
+                </p>
               )}
             </div>
           </div>
 
           <div className="mt-5 p-4 bg-primary/10 rounded-lg border-0">
             <div className="flex items-center mb-2">
-              <div className="bg-primary text-primary-foreground rounded-full p-1.5 mr-3 flex items-center justify-center" style={{ width: "32px", height: "32px" }}>
+              <div
+                className="bg-primary text-primary-foreground rounded-full p-1.5 mr-3 flex items-center justify-center"
+                style={{ width: "32px", height: "32px" }}
+              >
                 <Info className="h-4 w-4" />
               </div>
               <h6 className="text-primary font-bold mb-0">Status Note</h6>

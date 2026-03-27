@@ -27,11 +27,7 @@ const LoadingSpinner = ({ message = "Loading...", fullPage = false }: LoadingSpi
   );
 
   if (fullPage) {
-    return (
-      <div className="flex min-h-[80vh] items-center justify-center">
-        {content}
-      </div>
-    );
+    return <div className="flex min-h-[80vh] items-center justify-center">{content}</div>;
   }
 
   return content;

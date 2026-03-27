@@ -2,36 +2,37 @@
  * Admin page for managing skills.
  * Displays all skills with ability to create, edit, and delete.
  */
-
 import { useState, useEffect } from "react";
 import { adminSkillService } from "@/apis/admin/service";
 import type { SkillRead } from "@/types/admin";
-import { AdminDataTable, Button, PageHeader, useToast, type Column } from "@/components/shared";
+import { PageHeader, useToast, DataTable, ErrorDisplay } from "@/components/shared";
 import { CreateSkillModal, DeleteModal } from "@/components/modal";
-import "@/css/adminDashboard.css";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
+import { Edit2, Trash2Icon, ArrowUpDown } from "lucide-react";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { Button } from "@/components";
 
 const AdminSkills = () => {
   const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<SkillRead | null>(null);
 
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const skip = (page - 1) * pageSize;
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   const {
     data: skills,
     total,
-    loading,
     error,
     fetchData: fetchSkills,
-  } = useAdminData<SkillRead>(() => adminSkillService.getAllSkills(skip, pageSize));
+  } = useAdminData<SkillRead>(() => adminSkillService.getAllSkills(pageIndex * pageSize, pageSize));
 
-  // Refetch when page changes
+  // Refetch when pagination changes
   useEffect(() => {
     fetchSkills();
-  }, [page, fetchSkills]);
+  }, [pageIndex, pageSize, fetchSkills]);
 
   const {
     showModal: showDeleteModal,
@@ -65,19 +66,44 @@ const AdminSkills = () => {
     setSelectedSkill(null);
   };
 
-  const columns: Column<SkillRead>[] = [
-    { header: "Name", accessor: "name" },
-    { header: "Description", accessor: (skill) => skill.description || "N/A" },
+  const columns: ColumnDef<SkillRead>[] = [
     {
-      header: "Actions",
-      className: "text-end",
-          accessor: (skill) => (
+      accessorKey: "name",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => row.original.description || "No description provided",
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => (
         <div className="flex gap-2 justify-end">
-          <Button variant="secondary" size="sm" onClick={() => handleEditClick(skill)}>
-            Edit
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleEditClick(row.original)}
+            className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
+          >
+            <Edit2 className="h-4 w-4" />
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(skill)}>
-            Delete
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDeleteClick(row.original)}
+            className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors"
+          >
+            <Trash2Icon className="h-4 w-4" />
           </Button>
         </div>
       ),
@@ -85,29 +111,32 @@ const AdminSkills = () => {
   ];
 
   return (
-    <div className="admin-dashboard">
+    <div className="p-6 space-y-6">
       <PageHeader
         title="Skill Management"
         actions={
-          <Button onClick={handleCreateClick}>
+          <Button onClick={handleCreateClick} className="rounded-xl px-6">
             Create Skill
           </Button>
         }
       />
 
-      <AdminDataTable
-        columns={columns}
-        data={skills}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={setPage}
-        loading={loading}
-        error={error}
-        onRetry={fetchSkills}
-        rowKey="id"
-        emptyMessage="No skills found. Create one to get started."
-      />
+      {error && !skills.length ? (
+        <ErrorDisplay message={error} onRetry={fetchSkills} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={skills}
+          searchKey="name"
+          searchPlaceholder="Filter skills by name..."
+          initialSorting={[{ id: "name", desc: false }]}
+          isServerSide={true}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          pageCount={Math.ceil(total / pageSize)}
+          onPaginationChange={setPagination}
+        />
+      )}
 
       <CreateSkillModal
         show={showModal}

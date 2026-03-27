@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
-import { Card, CardBody } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "../ui/card";
 
 /**
  * Props for the StatCard component.
@@ -29,7 +29,7 @@ interface StatCardProps {
 const StatCard = ({ label, value, icon, trend, className = "" }: StatCardProps) => {
   return (
     <Card className={`border-0 shadow-sm rounded-4 ${className}`}>
-      <CardBody className="p-4 text-start">
+      <CardContent className="p-4 text-start">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-bold uppercase text-muted-foreground tracking-wide">
             {label}
@@ -44,7 +44,7 @@ const StatCard = ({ label, value, icon, trend, className = "" }: StatCardProps) 
             </Badge>
           )}
         </div>
-      </CardBody>
+      </CardContent>
     </Card>
   );
 };

@@ -41,9 +41,7 @@ const DateDisplayContent = ({
 }: DateDisplayProps) => {
   if (!date) {
     return (
-      <span className={cn("text-muted-foreground italic text-sm", className)}>
-        {fallback}
-      </span>
+      <span className={cn("text-muted-foreground italic text-sm", className)}>{fallback}</span>
     );
   }
 
@@ -52,9 +50,7 @@ const DateDisplayContent = ({
   // Check if date is valid
   if (isNaN(dateObj.getTime())) {
     return (
-      <span className={cn("text-muted-foreground italic text-sm", className)}>
-        {fallback}
-      </span>
+      <span className={cn("text-muted-foreground italic text-sm", className)}>{fallback}</span>
     );
   }
 
@@ -77,10 +73,7 @@ const DateDisplayContent = ({
 
   return (
     <span
-      className={cn(
-        "inline-flex items-center gap-1.5 text-sm text-foreground",
-        className
-      )}
+      className={cn("inline-flex items-center gap-1.5 text-sm text-foreground", className)}
       title={dateObj.toString()}
     >
       {showIcon && <Calendar className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -102,9 +95,7 @@ export const DateDisplay = (props: DateDisplayProps) => {
   const { className = "", fallback = "N/A" } = props;
 
   const errorFallback = (
-    <span className={cn("text-destructive font-medium text-sm", className)}>
-      {fallback}
-    </span>
+    <span className={cn("text-destructive font-medium text-sm", className)}>{fallback}</span>
   );
 
   return (

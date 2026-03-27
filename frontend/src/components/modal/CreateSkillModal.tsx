@@ -1,12 +1,22 @@
 /**
  * Modal for creating or updating a skill.
- * Uses Zod for form validation.
+ * Uses Zod for form validation and shadcn components.
  */
 
 import { useCallback } from "react";
 import { adminSkillService } from "@/apis/admin/service";
 import type { SkillRead } from "@/types/admin";
-import { Button, Input } from "@/components/shared";
+import {
+  Button,
+  Input,
+  Textarea,
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { useFormModal } from "@/hooks";
 import { skillCreateSchema, type SkillCreateFormValues } from "@/schemas/admin";
+import { ErrorDisplay } from "@/components/shared";
 
 interface CreateSkillModalProps {
   show: boolean;
@@ -53,13 +64,7 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
     [isEditMode, skill, onSkillSaved, handleClose],
   );
 
-  const {
-    register,
-    handleSubmit,
-    isSubmitting,
-    submitError,
-    formState: { errors },
-  } = useFormModal<SkillCreateFormValues, SkillRead>({
+  const formModal = useFormModal<SkillCreateFormValues, SkillRead>({
     schema: skillCreateSchema,
     defaultValues: DEFAULT_SKILL_VALUES,
     item: skill,
@@ -68,42 +73,51 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
     onSubmit,
   });
 
+  const { handleSubmit, isSubmitting, submitError, control } = formModal;
+
   return (
     <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit Skill" : "Create New Skill"}</DialogTitle>
         </DialogHeader>
-        <form id="create-skill-form" onSubmit={handleSubmit}>
-          {submitError && (
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-3">
-              <p className="text-sm text-destructive">{submitError}</p>
-            </div>
-          )}
 
-          <Input
-            label="Skill Name"
-            {...register("name")}
-            error={errors.name?.message}
-            placeholder="e.g. React.js"
-            required
-          />
+        {submitError && <ErrorDisplay message={submitError} />}
 
-          <div className="space-y-2 mb-3">
-            <label className="text-sm font-medium">Description</label>
-            <textarea
-              className={`w-full rounded-md border border-input bg-background px-3 py-2 min-h-[80px] ${errors.description ? "border-destructive" : ""}`}
-              rows={3}
-              {...register("description")}
-              placeholder="Briefly describe the skill..."
+        <Form {...formModal}>
+          <form id="create-skill-form" onSubmit={handleSubmit} className="space-y-4">
+            <FormField
+              control={control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Skill Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. React.js" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {errors.description && (
-              <p className="text-sm text-destructive">{errors.description.message}</p>
-            )}
-          </div>
-        </form>
+
+            <FormField
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Briefly describe the skill..." rows={4} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} type="button">
+          <Button variant="outline" onClick={handleClose} type="button" disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="submit" form="create-skill-form" isLoading={isSubmitting}>

@@ -4,10 +4,18 @@
  */
 
 import React, { type ReactNode } from "react";
-import { Card, CardBody, ErrorDisplay, Pagination } from "@/components/shared";
+import { ErrorDisplay, Pagination } from "@/components/shared";
 
 import { TableRowSkeleton } from "@/components/shared";
-
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 /**
  * Column definition for AdminDataTable.
@@ -59,18 +67,7 @@ interface AdminDataTableProps<T> {
 
 /**
  * Admin data table with sorting, loading, error, and empty states.
- * @example
- * ```tsx
- * <AdminDataTable
- *   columns={[
- *     { header: 'Name', accessor: 'name' },
- *     { header: 'Email', accessor: user => user.email }
- *   ]}
- *   data={users}
- *   rowKey="id"
- *   loading={isLoading}
- * />
- * ```
+ * Updated to use standard shadcn/ui Table components.
  */
 function AdminDataTable<T>({
   columns,
@@ -81,7 +78,6 @@ function AdminDataTable<T>({
   emptyMessage = "No items found.",
   rowKey,
   className = "",
-  tableClassName = "table w-100 admin-table",
   page,
   pageSize = 10,
   total,
@@ -101,66 +97,66 @@ function AdminDataTable<T>({
 
   return (
     <Card className={`${className}`}>
-      <CardBody>
+      <CardContent className="pt-0 px-0">
         {/* If error and data exists, show a smaller alert above the table */}
         {error && data.length > 0 && (
-          <div className="mb-3">
+          <div className="mb-3 px-6 pt-6">
             <ErrorDisplay message={error} onRetry={onRetry} />
           </div>
         )}
-        <div className="table-responsive">
-          <table className={tableClassName}>
-            <thead>
-              <tr>
-                {columns.map((column, index) => (
-                  <th key={index} className={column.className} style={column.style}>
-                    {column.header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                // Use skeletons if loading
-                [...Array(pageSize)].map((_, i) => (
-                  <TableRowSkeleton key={i} columns={columns.length} />
-                ))
-              ) : data.length === 0 ? (
-                <tr>
-                  <td colSpan={columns.length} className="text-center py-5">
-                    <div className="py-4 text-muted">
-                      <h5 className="fw-bold">{emptyMessage}</h5>
-                      {/* <p>Try different filters or add new entries.</p> */}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                data.map((item) => (
-                  <tr key={getRowKey(item)}>
-                    {columns.map((column, index) => (
-                      <td key={index} className={column.className} style={column.style}>
-                        {typeof column.accessor === "function"
-                          ? column.accessor(item)
-                          : (item[column.accessor] as ReactNode)}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((column, index) => (
+                <TableHead key={index} className={column.className} style={column.style}>
+                  {column.header}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              // Use skeletons if loading
+              [...Array(pageSize)].map((_, i) => (
+                <TableRowSkeleton key={i} columns={columns.length} />
+              ))
+            ) : data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <div className="py-4 text-muted">
+                    <h5 className="fw-bold">{emptyMessage}</h5>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              data.map((item) => (
+                <TableRow key={getRowKey(item)}>
+                  {columns.map((column, index) => (
+                    <TableCell key={index} className={column.className} style={column.style}>
+                      {typeof column.accessor === "function"
+                        ? column.accessor(item)
+                        : (item[column.accessor] as ReactNode)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
         {total !== undefined && onPageChange && (
-          <Pagination
-            page={page || 1}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={onPageChange}
-            dataLength={data.length}
-          />
+          <div className="px-6 py-4 border-t">
+            <Pagination
+              page={page || 1}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={onPageChange}
+              dataLength={data.length}
+            />
+          </div>
         )}
-      </CardBody>
+      </CardContent>
     </Card>
   );
 }

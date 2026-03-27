@@ -4,7 +4,7 @@
  */
 
 import type { CandidateResponse, MissingSkill } from "@/types/resume";
-import { Button } from "@/components/shared";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -95,12 +95,16 @@ const CandidateDetailModal = ({ show, onHide, candidate }: CandidateDetailModalP
               <>
                 <div className="mb-4">
                   <h5 className="border-b pb-2">Strength Summary</h5>
-                  <p className="text-muted-foreground">{candidate.resume_analysis.strength_summary}</p>
+                  <p className="text-muted-foreground">
+                    {candidate.resume_analysis.strength_summary}
+                  </p>
                 </div>
 
                 <div className="mb-4">
                   <h5 className="border-b pb-2">Experience Alignment</h5>
-                  <p className="text-muted-foreground">{candidate.resume_analysis.experience_alignment}</p>
+                  <p className="text-muted-foreground">
+                    {candidate.resume_analysis.experience_alignment}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

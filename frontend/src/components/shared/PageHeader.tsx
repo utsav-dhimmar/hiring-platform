@@ -24,10 +24,10 @@ interface PageHeaderProps {
  */
 const PageHeader = ({ title, subtitle, actions, className = "" }: PageHeaderProps) => {
   return (
-    <div className={`flex justify-between items-center mb-4 ${className}`}>
+    <div className={`flex justify-between items-center mb-2 ${className}`}>
       <div>
-        <h1 className="text-2xl font-semibold mb-1">{title}</h1>
-        {subtitle && <p className="text-muted-foreground mb-0">{subtitle}</p>}
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
       </div>
       {actions && <div className="flex gap-2">{actions}</div>}
     </div>

@@ -1,10 +1,5 @@
 import apiClient from "@/apis/client";
-import type {
-  AnalyticsSummary,
-  AuditLogRead,
-  HiringReport,
-  RecentUploadRead,
-} from "@/types/admin";
+import type { AnalyticsSummary, AuditLogRead, HiringReport, RecentUploadRead } from "@/types/admin";
 
 const ADMIN_PATH = "/admin";
 

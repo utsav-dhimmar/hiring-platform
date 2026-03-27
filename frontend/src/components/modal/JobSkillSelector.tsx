@@ -1,5 +1,6 @@
-import { Button, ErrorDisplay } from "@/components/shared";
+import { ErrorDisplay } from "@/components/shared";
 import type { SkillRead } from "@/types/admin";
+import { Button } from "../ui/button";
 
 interface JobSkillSelectorProps {
   skills: SkillRead[];
@@ -48,11 +49,10 @@ const JobSkillSelector = ({
             {skills.map((skill) => (
               <label
                 key={skill.id}
-                className={`flex flex-col p-2 border rounded cursor-pointer ${
-                  selectedSkillIds.includes(skill.id)
+                className={`flex flex-col p-2 border rounded cursor-pointer ${selectedSkillIds.includes(skill.id)
                     ? "border-primary bg-primary/10"
                     : "bg-background"
-                }`}
+                  }`}
                 style={{ width: "calc(33.33% - 0.75rem)", minWidth: "150px" }}
               >
                 <div className="flex items-center gap-2">

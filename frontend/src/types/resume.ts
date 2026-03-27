@@ -120,6 +120,10 @@ export interface CandidateResponse {
   email: string | null;
   /** Candidate's phone number */
   phone: string | null;
+  /** Candidate's LinkedIn profile URL */
+  linkedin_url: string | null;
+  /** Candidate's GitHub profile URL */
+  github_url: string | null;
   /** Current screening status */
   current_status: string | null;
   /** Timestamp when the candidate was added */
@@ -136,6 +140,8 @@ export interface CandidateResponse {
   processing_status: string | null;
   /** Error message if processing failed */
   processing_error: string | null;
+  /** ID of the job the candidate applied for */
+  applied_job_id?: string | null;
   /** ID of the associated resume record */
   resume_id?: string | null;
 }

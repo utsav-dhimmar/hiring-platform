@@ -6,7 +6,6 @@
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
 import { AdminDataTable, PageHeader, StatCard, type Column } from "@/components/shared";
-import "@/css/adminDashboard.css";
 import { useAdminData } from "@/hooks";
 
 const AdminDashboard = () => {

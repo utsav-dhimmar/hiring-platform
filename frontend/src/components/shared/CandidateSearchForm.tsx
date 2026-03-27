@@ -1,5 +1,5 @@
 import type { ReactElement, SyntheticEvent } from "react";
-import { Card } from "@/components/shared";
+import { Card } from "@/components/ui/card";
 import SearchBar from "@/components/shared/SearchBar";
 
 interface CandidateSearchFormProps {

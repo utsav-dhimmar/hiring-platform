@@ -1,10 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { SkillRead } from "@/types/admin";
 
@@ -37,9 +32,7 @@ const SkillsBadgeList = ({
 }: SkillsBadgeListProps) => {
   if (!skills || skills.length === 0) {
     return (
-      <span className={cn("text-muted-foreground text-xs italic", className)}>
-        {emptyLabel}
-      </span>
+      <span className={cn("text-muted-foreground text-xs italic", className)}>{emptyLabel}</span>
     );
   }
 
@@ -51,7 +44,7 @@ const SkillsBadgeList = ({
       <div className={cn("flex flex-wrap gap-1.5 items-center", className)}>
         {visibleSkills.map((skill, index) => (
           <Badge
-            key={'id' in skill ? skill.id : `${skill.name}-${index}`}
+            key={"id" in skill ? skill.id : `${skill.name}-${index}`}
             variant="secondary"
             className="font-medium text-[10px] px-2 py-0.5 rounded-md border-muted-foreground/10 bg-muted/50 text-muted-foreground hover:bg-muted/80 transition-colors"
             title={skill.description || undefined}
@@ -72,12 +65,17 @@ const SkillsBadgeList = ({
                 </Badge>
               )}
             />
-            <TooltipContent side="top" className="flex flex-col gap-1 p-2 bg-popover text-popover-foreground border shadow-md">
-              <div className="text-[11px] font-semibold border-b pb-1 mb-1 border-border/50">Additional Skills</div>
+            <TooltipContent
+              side="top"
+              className="flex flex-col gap-1 p-2 bg-popover text-popover-foreground border shadow-md"
+            >
+              <div className="text-[11px] font-semibold border-b pb-1 mb-1 border-border/50">
+                Additional Skills
+              </div>
               <div className="flex flex-wrap gap-1 max-w-[200px]">
                 {remainingSkills.map((skill, index) => (
                   <span
-                    key={'id' in skill ? skill.id : `${skill.name}-${index}`}
+                    key={"id" in skill ? skill.id : `${skill.name}-${index}`}
                     className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium"
                   >
                     {skill.name}

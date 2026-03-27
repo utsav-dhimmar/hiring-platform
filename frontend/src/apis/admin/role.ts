@@ -1,10 +1,5 @@
 import apiClient from "@/apis/client";
-import type {
-  RoleCreate,
-  RoleRead,
-  RoleUpdate,
-  RoleWithPermissions,
-} from "@/types/admin";
+import type { RoleCreate, RoleRead, RoleUpdate, RoleWithPermissions } from "@/types/admin";
 
 const ADMIN_PATH = "/admin";
 

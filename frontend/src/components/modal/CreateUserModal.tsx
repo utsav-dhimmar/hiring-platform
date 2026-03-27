@@ -1,12 +1,13 @@
 /**
  * Modal component for creating new users in the admin panel.
  * Provides a form with role selection to create user accounts.
+ * Uses Zod for form validation and shadcn components.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { adminRoleService, adminUserService } from "@/apis/admin/service";
 import type { RoleRead, UserAdminRead } from "@/types/admin";
-import { Button, ErrorDisplay, Input } from "@/components/shared";
+import { ErrorDisplay } from "@/components/shared";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Button,
+  Input,
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  Checkbox,
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components";
 import { useFormModal } from "@/hooks";
 import { userCreateSchema, type UserCreateFormValues } from "@/schemas/admin";
 
@@ -80,14 +97,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
     [isEditMode, user, onUserSaved, handleClose],
   );
 
-  const {
-    register,
-    handleSubmit,
-    isSubmitting,
-    submitError,
-    formState: { errors },
-    setSubmitError,
-  } = useFormModal<UserCreateFormValues, UserAdminRead>({
+  const formModal = useFormModal<UserCreateFormValues, UserAdminRead>({
     schema: userCreateSchema,
     defaultValues: DEFAULT_USER_VALUES,
     item: user || null,
@@ -95,6 +105,14 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
     mapItemToValues,
     onSubmit,
   });
+
+  const {
+    handleSubmit,
+    isSubmitting,
+    submitError,
+    setSubmitError,
+    control,
+  } = formModal;
 
   useEffect(() => {
     if (show) {
@@ -120,81 +138,119 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit User" : "Create New User"}</DialogTitle>
         </DialogHeader>
+
         {submitError && <ErrorDisplay message={submitError} />}
 
-        <form id="create-user-form" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Full Name"
-              placeholder="Enter full name"
-              {...register("full_name")}
-              error={errors.full_name?.message}
-            />
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="Enter email"
-              {...register("email")}
-              error={errors.email?.message}
-              disabled={isEditMode}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {!isEditMode && (
-              <Input
-                label="Password (Optional)"
-                type="password"
-                placeholder="Enter password"
-                {...register("password")}
-                error={errors.password?.message}
+        <Form {...formModal}>
+          <form id="create-user-form" onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={control}
+                name="full_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter full name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            )}
-            {isEditMode && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Password</label>
-                <input
-                  type="text"
-                  className="w-full h-10 rounded-md border border-input bg-muted px-3 py-2"
-                  placeholder="Password cannot be changed here"
-                  disabled
-                  readOnly
-                />
-                <small className="text-muted-foreground">
-                  Passwords must be reset via forgot password or a separate dedicated endpoint.
-                </small>
-              </div>
-            )}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Role</label>
-              <select
-                className={`w-full h-10 rounded-md border border-input bg-background px-3 py-2 ${errors.role_id ? "border-destructive" : ""}`}
-                {...register("role_id")}
-                disabled={fetchingRoles}
-              >
-                <option value="">Select a role</option>
-                {roles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-              {errors.role_id && (
-                <p className="text-sm text-destructive">{errors.role_id.message}</p>
-              )}
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2 mt-4">
-            <input
-              type="checkbox"
-              id="is_active"
-              {...register("is_active")}
-              className="h-4 w-4 rounded border-gray-300"
+              <FormField
+                control={control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="Enter email"
+                        disabled={isEditMode}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {!isEditMode ? (
+                <FormField
+                  control={control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password (Optional)</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Enter password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Password cannot be changed here" disabled className="bg-muted" />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Passwords must be reset via forgot password or a dedicated endpoint.
+                  </p>
+                </FormItem>
+              )}
+
+              <FormField
+                control={control}
+                name="role_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={fetchingRoles}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 space-y-0 pt-2">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer select-none">Active User Account</FormLabel>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <label htmlFor="is_active" className="text-sm">Active User</label>
-          </div>
-        </form>
+          </form>
+        </Form>
+
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Cancel

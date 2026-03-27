@@ -19,11 +19,12 @@ import {
   CardContent,
   Button,
   Input,
-  Field,
-  FieldLabel,
-  FieldContent,
-  FieldError,
-  FieldSet,
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
   Logo,
 } from "@/components";
 import { loginSchema, type LoginFormValues } from "@/schemas/auth";
@@ -36,12 +37,12 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormValues>({
+  const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
 
   const onSubmit = async (data: LoginFormValues) => {
@@ -78,7 +79,9 @@ const LoginPage = () => {
           <div className="w-full max-w-md space-y-8 mt-16">
             <Card className="shadow-xl border-border/50 rounded-2xl overflow-hidden bg-card">
               <CardHeader className="space-y-2 pt-5 pb-6 text-center">
-                <CardTitle className="text-3xl font-extrabold tracking-tight">Welcome Back</CardTitle>
+                <CardTitle className="text-3xl font-extrabold tracking-tight">
+                  Welcome Back
+                </CardTitle>
                 <CardDescription className="text-muted-foreground text-base">
                   Sign in to manage your hiring
                 </CardDescription>
@@ -92,57 +95,74 @@ const LoginPage = () => {
                     {error}
                   </div>
                 )}
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  <FieldSet className="space-y-4">
-                    <Field>
-                      <FieldLabel className="text-sm font-semibold">Email Address</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="email"
-                          placeholder="name@example.com"
-                          autoComplete="email"
-                          className="h-11 rounded-xl"
-                          {...register("email")}
-                        />
-                        <FieldError errors={[{ message: errors.email?.message }]} />
-                      </FieldContent>
-                    </Field>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-semibold">Email Address</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="email"
+                                placeholder="name@example.com"
+                                autoComplete="email"
+                                className="h-11 rounded-xl"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <Field>
-                      <FieldLabel className="text-sm font-semibold">Password</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="password"
-                          placeholder="Enter your password"
-                          autoComplete="current-password"
-                          className="h-11 rounded-xl"
-                          {...register("password")}
-                        />
-                        <FieldError errors={[{ message: errors.password?.message }]} />
-                      </FieldContent>
-                    </Field>
-                  </FieldSet>
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-semibold">Password</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="password"
+                                placeholder="Enter your password"
+                                autoComplete="current-password"
+                                className="h-11 rounded-xl"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-                  <Button
-                    type="submit"
-                    className="w-full h-12 text-base font-bold rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <span>Signing In...</span>
-                      </div>
-                    ) : (
-                      "Sign In"
-                    )}
-                  </Button>
-                </form>
+                    <Button
+                      type="submit"
+                      className="w-full h-12 text-base font-bold rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          <span>Signing In...</span>
+                        </div>
+                      ) : (
+                        "Sign In"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
 
                 <div className="mt-4 text-center">
                   <p className="text-sm text-muted-foreground">
                     Don't have an account?{" "}
-                    <Link to="/register" className="text-primary font-bold hover:underline underline-offset-4">
+                    <Link
+                      to="/register"
+                      className="text-primary font-bold hover:underline underline-offset-4"
+                    >
                       Create one
                     </Link>
                   </p>

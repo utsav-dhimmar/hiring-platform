@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { resumeService } from "@/apis/resume";
-import { Button } from "@/components/shared";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/shared";
 import { extractErrorMessage } from "@/utils/error";
 

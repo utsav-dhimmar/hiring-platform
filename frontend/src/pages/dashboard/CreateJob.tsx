@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { DashboardBreadcrumbs } from "@/components/dashboard-breadcrumbs";
+import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,30 +7,30 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { X, Plus, Check, Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
+  Button,
+  Input,
+  Textarea,
+  Badge,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import {
-  Field,
-  FieldLabel,
-  FieldError,
-  FieldGroup,
-} from "@/components/ui/field";
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components";
 
 import jobService from "@/apis/job";
 import { adminDepartmentService } from "@/apis/admin/department";
 import { adminSkillService } from "@/apis/admin/skill";
 import type { DepartmentRead, SkillRead } from "@/types/admin";
 import { cn } from "@/lib/utils";
-
+import { slugify } from "@/utils/slug";
 
 const jobSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -53,14 +53,7 @@ export default function CreateJob() {
   const [jobId, setJobId] = useState<string | null>(null);
   const isEditMode = !!jobSlug;
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors },
-  } = useForm<JobFormValues>({
+  const form = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
       title: "",
@@ -70,7 +63,7 @@ export default function CreateJob() {
     },
   });
 
-  const selectedSkillIds = watch("skill_ids");
+  const selectedSkillIds = form.watch("skill_ids");
 
   const fetchFormData = useCallback(async () => {
     try {
@@ -102,9 +95,7 @@ export default function CreateJob() {
           } else {
             // Fallback: fetch all jobs and find by slug
             const allJobs = await jobService.getJobs();
-            jobData = allJobs.find(j =>
-              j.title.toLowerCase().trim().replace(/ /g, "-") === jobSlug
-            );
+            jobData = allJobs.find((j) => slugify(j.title) === jobSlug);
 
             // If still not found, try a more lenient match or just error out
             if (!jobData) {
@@ -117,7 +108,7 @@ export default function CreateJob() {
 
           if (jobData) {
             setJobId(id);
-            reset({
+            form.reset({
               title: jobData.title,
               department_id: jobData.department_id || "",
               jd_text: jobData.jd_text || "",
@@ -132,7 +123,7 @@ export default function CreateJob() {
       }
     };
     init();
-  }, [isEditMode, jobSlug, location.state, reset, navigate, fetchFormData]);
+  }, [isEditMode, jobSlug, location.state, form, navigate, fetchFormData]);
 
   const onSubmit = async (values: JobFormValues) => {
     setIsSubmitting(true);
@@ -161,15 +152,13 @@ export default function CreateJob() {
     } else {
       current.push(skillId);
     }
-    setValue("skill_ids", current, { shouldValidate: true });
+    form.setValue("skill_ids", current, { shouldValidate: true });
   };
 
-  const selectedSkills = availableSkills.filter((s) =>
-    selectedSkillIds.includes(s.id)
-  );
+  const selectedSkills = availableSkills.filter((s) => selectedSkillIds.includes(s.id));
 
   const filteredSkills = availableSkills.filter((skill) =>
-    skill.name.toLowerCase().includes(skillSearch.toLowerCase())
+    skill.name.toLowerCase().includes(skillSearch.toLowerCase()),
   );
 
   return (
@@ -193,168 +182,196 @@ export default function CreateJob() {
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <FieldGroup className="grid gap-1">
-          {/* Job Title */}
-          <Field>
-            <FieldLabel htmlFor="title" className="text-md font-semibold">Title</FieldLabel>
-            <Input
-              id="title"
-              placeholder="e.g. Senior Frontend Developer"
-              className="h-10 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-              {...register("title")}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid gap-6">
+            {/* Job Title */}
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-md font-semibold text-foreground">Title</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. Senior Frontend Developer"
+                      className="h-10 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <FieldError errors={[errors.title]} />
-          </Field>
 
-          {/* Department */}
-          <Field>
-            <FieldLabel htmlFor="department_id" className="text-md font-semibold">Department</FieldLabel>
-            <Select
-              onValueChange={(value) => setValue("department_id", value ?? "", { shouldValidate: true })}
-              value={watch("department_id")}
-            >
-              <SelectTrigger id="department_id" className="h-12 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium">
-                <SelectValue placeholder="Select department">
-                  {departments.find(d => d.id === watch("department_id"))?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
-                {departments.map((dept) => (
-                  <SelectItem key={dept.id} value={dept.id} className="py-3 text-md font-medium">
-                    {dept.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError errors={[errors.department_id]} />
-          </Field>
-
-          {/* Job Description */}
-          <Field>
-            <FieldLabel htmlFor="jd_text" className="text-md font-semibold">Job Description</FieldLabel>
-            <Textarea
-              id="jd_text"
-              placeholder="Detailed job description..."
-              className="min-h-[250px] text-md rounded-2xl p-5 border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all resize-none font-medium"
-              {...register("jd_text")}
+            {/* Department */}
+            <FormField
+              control={form.control}
+              name="department_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-md font-semibold text-foreground">Department</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-12 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
+                      {departments.map((dept) => (
+                        <SelectItem
+                          key={dept.id}
+                          value={dept.id}
+                          className="py-3 text-md font-medium"
+                        >
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <FieldError errors={[errors.jd_text]} />
-          </Field>
-        </FieldGroup>
 
-        {/* Required Skills Section */}
-        <div className="border rounded-3xl p-4 bg-card/30 backdrop-blur-md border-muted-foreground/10 shadow-sm space-y-8">
-          <div className="space-y-1">
-            <h2 className="text-md font-bold tracking-tight">Required Skills</h2>
-            <p className="text-muted-foreground text-md font-medium">
-              Select the skills that should be linked to this job. Click a skill to toggle selection.
-            </p>
+            {/* Job Description */}
+            <FormField
+              control={form.control}
+              name="jd_text"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-md font-semibold text-foreground">
+                    Job Description
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Detailed job description..."
+                      className="min-h-[250px] text-md rounded-2xl p-5 border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all resize-none font-medium"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
-          {/* Skill Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search skills by name..."
-              value={skillSearch}
-              onChange={(e) => setSkillSearch(e.target.value)}
-              className="pl-10 h-10 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-100 overflow-y-auto p-2 pr-4 custom-scrollbar">
-            {filteredSkills.length > 0 ? (
-              filteredSkills.map((skill) => {
-                const isSelected = selectedSkillIds.includes(skill.id);
-                return (
-                  <button
-                    key={skill.id}
-                    type="button"
-                    onClick={() => toggleSkill(skill.id)}
-                    className={cn(
-                      "flex items-center justify-between px-1 py-1 rounded-2xl border-2 transition-all duration-300 text-left group",
-                      isSelected
-                        ? "bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5"
-                        : "bg-background/50 border-muted-foreground/10 text-muted-foreground hover:border-primary/50 hover:bg-primary/5"
-                    )}
-                  >
-                    <span className="font-bold text-sm md:text-md truncate mr-2">
-                      {skill.name}
-                    </span>
-                    <div
-                      className={cn(
-                        "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                        isSelected
-                          ? "bg-primary border-primary text-primary-foreground scale-110"
-                          : "border-muted-foreground/20 group-hover:border-primary/50"
-                      )}
-                    >
-                      {isSelected ? (
-                        <Check className="h-4 w-4 stroke-[3px]" />
-                      ) : (
-                        <Plus className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })
-            ) : (
-              <div className="col-span-full py-10 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-muted-foreground/10">
-                <p className="text-muted-foreground font-medium italic">
-                  {availableSkills.length === 0 ? "No skills found in database." : "No skills match your search."}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {selectedSkillIds.length > 0 && (
-            <div className="pt-6 border-t border-muted-foreground/10">
-              <p className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">
-                Selected ({selectedSkillIds.length})
+          {/* Required Skills Section */}
+          <div className="border rounded-3xl p-4 bg-card/30 backdrop-blur-md border-muted-foreground/10 shadow-sm space-y-8">
+            <div className="space-y-1">
+              <h2 className="text-md font-bold tracking-tight">Required Skills</h2>
+              <p className="text-muted-foreground text-md font-medium">
+                Select the skills that should be linked to this job. Click a skill to toggle
+                selection.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {selectedSkills.map((skill) => (
-                  <Badge
-                    key={skill.id}
-                    variant="secondary"
-                    className="pl-2 pr-1 py-1 text-sm rounded-xl bg-primary/20 text-primary border-none font-bold animate-in zoom-in duration-300"
-                  >
-                    {skill.name}
+            </div>
+
+            {/* Skill Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search skills by name..."
+                value={skillSearch}
+                onChange={(e) => setSkillSearch(e.target.value)}
+                className="pl-10 h-10 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-100 overflow-y-auto p-2 pr-4 custom-scrollbar">
+              {filteredSkills.length > 0 ? (
+                filteredSkills.map((skill) => {
+                  const isSelected = selectedSkillIds.includes(skill.id);
+                  return (
                     <button
+                      key={skill.id}
                       type="button"
                       onClick={() => toggleSkill(skill.id)}
-                      className="ml-2 hover:bg-primary/20 rounded-full p-1 transition-colors"
+                      className={cn(
+                        "flex items-center justify-between px-1 py-1 rounded-2xl border-2 transition-all duration-300 text-left group",
+                        isSelected
+                          ? "bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5"
+                          : "bg-background/50 border-muted-foreground/10 text-muted-foreground hover:border-primary/50 hover:bg-primary/5",
+                      )}
                     >
-                      <X className="h-3 w-3" />
+                      <span className="font-bold text-sm md:text-md truncate mr-2">
+                        {skill.name}
+                      </span>
+                      <div
+                        className={cn(
+                          "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+                          isSelected
+                            ? "bg-primary border-primary text-primary-foreground scale-110"
+                            : "border-muted-foreground/20 group-hover:border-primary/50",
+                        )}
+                      >
+                        {isSelected ? (
+                          <Check className="h-4 w-4 stroke-[3px]" />
+                        ) : (
+                          <Plus className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        )}
+                      </div>
                     </button>
-                  </Badge>
-                ))}
-              </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-full py-10 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-muted-foreground/10">
+                  <p className="text-muted-foreground font-medium italic">
+                    {availableSkills.length === 0
+                      ? "No skills found in database."
+                      : "No skills match your search."}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
 
-          <FieldError errors={[errors.skill_ids]} />
-        </div>
+            {selectedSkillIds.length > 0 && (
+              <div className="pt-6 border-t border-muted-foreground/10">
+                <p className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">
+                  Selected ({selectedSkillIds.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedSkills.map((skill) => (
+                    <Badge
+                      key={skill.id}
+                      variant="secondary"
+                      className="pl-2 pr-1 py-1 text-sm rounded-xl bg-primary/20 text-primary border-none font-bold animate-in zoom-in duration-300"
+                    >
+                      {skill.name}
+                      <button
+                        type="button"
+                        onClick={() => toggleSkill(skill.id)}
+                        className="ml-2 hover:bg-primary/20 rounded-full p-1 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* Form Actions */}
-        <div className="flex gap-4 pt-10 border-t items-center justify-center">
-          <Button
-            variant="default"
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update" : "Create")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("/dashboard/jobs")}
-          >
-            Cancel
-          </Button>
-        </div>
-      </form>
+            <FormField
+              control={form.control}
+              name="skill_ids"
+              render={() => (
+                <FormItem>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex gap-4 pt-10 border-t items-center justify-center">
+            <Button variant="default" type="submit" isLoading={isSubmitting}>
+              {isEditMode ? "Update" : "Create"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate("/dashboard/jobs")}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }

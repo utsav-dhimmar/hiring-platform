@@ -64,4 +64,3 @@ export interface StageEvaluation {
   /** Timestamp when the evaluation was completed */
   completed_at?: string | null;
 }
-

@@ -7,15 +7,27 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { registerSchema, type RegisterFormValues } from "@/schemas/auth";
 import { authService } from "@/apis/auth";
 import { extractErrorMessage } from "@/utils/error";
 import {
-  Button,
   Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Button,
   Input,
-} from "@/components/shared";
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  Logo,
+} from "@/components";
+import { INFO } from "@/constants";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -23,12 +35,13 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormValues>({
+  const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      full_name: "",
+      email: "",
+      password: "",
+    },
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -41,10 +54,7 @@ const RegisterPage = () => {
         navigate("/login");
       }, 3000);
     } catch (err: unknown) {
-      const errorMsg = extractErrorMessage(
-        err,
-        "Registration failed. Please try again.",
-      );
+      const errorMsg = extractErrorMessage(err, "Registration failed. Please try again.");
       setError(errorMsg);
     } finally {
       setIsLoading(false);
@@ -53,100 +63,169 @@ const RegisterPage = () => {
 
   if (isSuccess) {
     return (
-      <div className="py-5 min-h-screen flex items-center justify-center">
-        <div className="flex justify-center w-full max-w-md">
-          <Card className="shadow-lg border-0 rounded-4 overflow-hidden text-center p-4">
-            <div className="py-5">
-              <div className="mb-4">
-                <div
-                  className="bg-green-100 text-green-600 rounded-full inline-flex items-center justify-center mb-3"
-                  style={{ width: "80px", height: "80px" }}
-                >
-                  <CheckCircle className="h-10 w-10" />
+      <div className="flex flex-col min-h-screen bg-muted/30">
+        <header className="w-full py-6 px-8 flex items-center justify-center absolute top-0 left-0 bg-transparent z-10">
+          <Link to="/" className="transition-opacity hover:opacity-80">
+            <Logo variant="dark" className="h-10" />
+          </Link>
+        </header>
+
+        <div className="flex-1 flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8">
+          <div className="w-full max-w-md space-y-8 mt-16">
+            <Card className="shadow-xl border-border/50 rounded-2xl overflow-hidden bg-card text-center p-4">
+              <CardContent className="py-8">
+                <div className="mb-6 flex justify-center">
+                  <div
+                    className="bg-green-100 text-green-600 rounded-full inline-flex items-center justify-center animate-in zoom-in duration-300"
+                    style={{ width: "80px", height: "80px" }}
+                  >
+                    <CheckCircle className="h-10 w-10" />
+                  </div>
                 </div>
-                <h2 className="font-bold mb-3">Registration Successful</h2>
-              </div>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-green-800">
-                Your account has been created successfully! Redirecting you to
-                the login page...
-              </div>
-              <Link to="/login">
-                <Button className="w-full py-3 font-bold rounded-lg">
-                  Go to Login Now
-                </Button>
-              </Link>
-            </div>
-          </Card>
+                <CardTitle className="text-2xl font-bold mb-3">Registration Successful</CardTitle>
+                <CardDescription className="text-base mb-6">
+                  Your account has been created successfully! Redirecting you to the login page...
+                </CardDescription>
+                <Link to="/login">
+                  <Button className="w-full h-12 text-base font-bold rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]">
+                    Go to Login Now
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+        <footer className="w-full py-6 px-8 flex items-center justify-center bg-transparent z-10">
+          <p className="text-sm text-muted-foreground">{INFO.copyright}</p>
+        </footer>
       </div>
     );
   }
 
   return (
-    <div className="py-5 min-h-screen flex items-center justify-center">
-      <div className="flex justify-center w-full max-w-lg">
-        <Card className="shadow-lg border-0 rounded-4 overflow-hidden w-full">
-          <div className="bg-white border-0 pt-5 pb-2 px-4">
-            <h2 className="text-center font-bold mb-0">Create Account</h2>
-            <p className="text-center text-muted-foreground mt-2">
-              Join our platform and start hiring
-            </p>
-          </div>
-          <div className="px-4 pb-5">
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-800">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <Input
-                label="Full Name"
-                type="text"
-                placeholder="John Doe"
-                {...register("full_name")}
-                error={errors.full_name?.message}
-                className="mb-3"
-              />
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="name@example.com"
-                {...register("email")}
-                error={errors.email?.message}
-                className="mb-3"
-              />
-              <Input
-                label="Password"
-                type="password"
-                placeholder="Create a strong password"
-                {...register("password")}
-                error={errors.password?.message}
-                className="mb-4"
-              />
-              <Button
-                type="submit"
-                className="w-full py-3 font-bold rounded-lg"
-                isLoading={isLoading}
-              >
-                Register
-              </Button>
-            </form>
-            <div className="text-center mt-4">
-              <p className="text-muted-foreground text-sm">
-                Already have an account?{" "}
-                <Link
-                  to="/login"
-                  className="text-primary font-semibold"
+    <div className="flex flex-col min-h-screen bg-muted/30">
+      <header className="w-full py-6 px-8 flex items-center justify-center absolute top-0 left-0 bg-transparent z-10">
+        <Link to="/" className="transition-opacity hover:opacity-80">
+          <Logo variant="dark" className="h-10" />
+        </Link>
+      </header>
+
+      <div className="flex-1 flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md space-y-8 mt-16">
+          <Card className="shadow-xl border-border/50 rounded-2xl overflow-hidden bg-card">
+            <CardHeader className="space-y-2 pt-5 pb-6 text-center">
+              <CardTitle className="text-3xl font-extrabold tracking-tight">
+                Create Account
+              </CardTitle>
+              <CardDescription className="text-muted-foreground text-base">
+                Join our platform and start hiring
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-8 pb-5">
+              {error && (
+                <div
+                  role="alert"
+                  className="bg-destructive/10 text-destructive text-sm p-4 rounded-xl border border-destructive/20 mb-6 animate-in fade-in slide-in-from-top-1"
                 >
-                  Sign In
-                </Link>
-              </p>
-            </div>
-          </div>
-        </Card>
+                  {error}
+                </div>
+              )}
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="full_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold">Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" className="h-11 rounded-xl" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold">Email Address</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="name@example.com"
+                              autoComplete="email"
+                              className="h-11 rounded-xl"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold">Password</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="password"
+                              placeholder="Create a strong password"
+                              autoComplete="new-password"
+                              className="h-11 rounded-xl"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full h-12 text-base font-bold rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99]"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Creating Account...</span>
+                      </div>
+                    ) : (
+                      "Register"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+
+              <div className="mt-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link
+                    to="/login"
+                    className="text-primary font-bold hover:underline underline-offset-4"
+                  >
+                    Sign In
+                  </Link>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+      <footer className="w-full py-6 px-8 flex items-center justify-center bg-transparent z-10">
+        <p className="text-sm text-muted-foreground">{INFO.copyright}</p>
+      </footer>
     </div>
   );
 };
 
 export default RegisterPage;
+

@@ -20,11 +20,14 @@ export const adminJobService = {
    * @param limit - Maximum number of records to return
    * @returns Promise resolving to the list of jobs
    */
-  getAllJobs: async (skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
+  getAllJobs: async (
+    skip: number = 0,
+    limit: number = 100,
+  ): Promise<{ data: JobRead[]; total: number }> => {
     const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs", {
       params: { skip, limit },
     });
-    return response.data.data;
+    return response.data;
   },
 
   /**

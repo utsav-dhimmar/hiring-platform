@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
-import { Button, ErrorDisplay, Card } from "@/components/shared";
+import { ErrorDisplay } from "@/components/shared";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -60,8 +63,7 @@ const ResumeScreeningDetailModal = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="border-0 pb-0">
           <DialogTitle className="font-bold">
-            Detailed Screening: {data?.candidate_first_name}{" "}
-            {data?.candidate_last_name}
+            Detailed Screening: {data?.candidate_first_name} {data?.candidate_last_name}
           </DialogTitle>
         </DialogHeader>
         <div className="pt-3">
@@ -100,9 +102,7 @@ const ResumeScreeningDetailModal = ({
                   <div
                     className={`text-2xl font-bold ${data.resume_score && data.resume_score >= 65 ? "text-green-500" : "text-yellow-500"}`}
                   >
-                    {data.resume_score !== null
-                      ? `${data.resume_score.toFixed(1)}%`
-                      : "N/A"}
+                    {data.resume_score !== null ? `${data.resume_score.toFixed(1)}%` : "N/A"}
                   </div>
                 </div>
               </div>
@@ -110,9 +110,7 @@ const ResumeScreeningDetailModal = ({
               {data.analysis && (
                 <section className="mb-4">
                   <h5 className="font-bold mb-3 flex items-center gap-2">
-                    <span className="bg-primary/10 p-1 rounded text-primary">
-                      🤖
-                    </span>
+                    <span className="bg-primary/10 p-1 rounded text-primary">🤖</span>
                     AI Match Analysis
                   </h5>
                   <Card className="border-0 shadow-sm mb-3">
@@ -140,26 +138,19 @@ const ResumeScreeningDetailModal = ({
 
               <section className="mb-4">
                 <h5 className="font-bold mb-3 flex items-center gap-2">
-                  <span className="bg-secondary/20 p-1 rounded text-secondary">
-                    📋
-                  </span>
+                  <span className="bg-secondary/20 p-1 rounded text-secondary">📋</span>
                   Resume Metadata
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <Card className="h-100 border-0 shadow-sm p-3">
                     <div className="text-sm text-muted-foreground mb-1">File Name</div>
-                    <div
-                      className="font-medium truncate"
-                      title={data.file_name}
-                    >
+                    <div className="font-medium truncate" title={data.file_name}>
                       {data.file_name}
                     </div>
                   </Card>
                   <Card className="h-100 border-0 shadow-sm p-3">
                     <div className="text-sm text-muted-foreground mb-1">Uploaded At</div>
-                    <div className="font-medium">
-                      {new Date(data.uploaded_at).toLocaleString()}
-                    </div>
+                    <div className="font-medium">{new Date(data.uploaded_at).toLocaleString()}</div>
                   </Card>
                 </div>
               </section>

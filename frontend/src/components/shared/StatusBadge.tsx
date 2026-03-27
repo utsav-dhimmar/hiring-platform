@@ -46,7 +46,7 @@ const StatusBadge = ({
     variant = status ? trueVariant : falseVariant;
   } else {
     label = status;
-    
+
     if (mapping) {
       variant = mapping[status.toLowerCase()] || "secondary";
     } else {
@@ -63,11 +63,7 @@ const StatusBadge = ({
     }
   }
 
-  return (
-    <span className={cn(badgeVariants({ variant }), className)}>
-      {label}
-    </span>
-  );
+  return <span className={cn(badgeVariants({ variant }), className)}>{label}</span>;
 };
 
 export default StatusBadge;

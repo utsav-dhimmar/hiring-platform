@@ -9,12 +9,7 @@ interface JobActionButtonsProps {
   onDelete: (job: JobRead) => void;
 }
 
-const JobActionButtons = ({
-  job,
-  onViewCandidates,
-  onEdit,
-  onDelete,
-}: JobActionButtonsProps) => {
+const JobActionButtons = ({ job, onViewCandidates, onEdit, onDelete }: JobActionButtonsProps) => {
   return (
     <div className="flex gap-2 justify-end items-center flex-nowrap">
       <QuickResumeUpload jobId={job.id} size="sm" />
@@ -26,12 +21,7 @@ const JobActionButtons = ({
       >
         Candidates
       </Button>
-      <Button
-        variant="secondary"
-        size="sm"
-        className="flex-shrink-0"
-        onClick={() => onEdit(job)}
-      >
+      <Button variant="secondary" size="sm" className="flex-shrink-0" onClick={() => onEdit(job)}>
         Edit
       </Button>
       <Button

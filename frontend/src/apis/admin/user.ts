@@ -10,10 +10,16 @@ export const adminUserService = {
   /**
    * Get all users (admin only).
    */
-  getAllUsers: async (skip: number = 0, limit: number = 100): Promise<UserAdminRead[]> => {
-    const response = await apiClient.get<UserAdminRead[]>(`${ADMIN_PATH}/users`, {
-      params: { skip, limit },
-    });
+  getAllUsers: async (
+    skip: number = 0,
+    limit: number = 100,
+  ): Promise<{ data: UserAdminRead[]; total: number }> => {
+    const response = await apiClient.get<{ data: UserAdminRead[]; total: number }>(
+      `${ADMIN_PATH}/users`,
+      {
+        params: { skip, limit },
+      },
+    );
     return response.data;
   },
 

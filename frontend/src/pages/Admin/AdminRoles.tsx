@@ -8,17 +8,14 @@ import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
 import type { PermissionRead, RoleRead } from "@/types/admin";
 import {
   AdminDataTable,
-  Button,
-  Card,
-  CardHeader,
   DateDisplay,
   PageHeader,
   type Column,
 } from "@/components/shared";
 import { CreatePermissionModal, DeleteModal, RoleModal } from "@/components/modal";
-import "@/css/adminDashboard.css";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
-
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader } from "@/components";
 const AdminRoles = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -137,9 +134,7 @@ const AdminRoles = () => {
             <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
               Create Permission
             </Button>
-            <Button onClick={handleCreateRole}>
-              Create Role
-            </Button>
+            <Button onClick={handleCreateRole}>Create Role</Button>
           </>
         }
       />
