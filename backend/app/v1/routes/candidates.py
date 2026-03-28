@@ -18,7 +18,7 @@ router = APIRouter()
 
 @router.get("/search", response_model=PaginatedData[CandidateResponse])
 async def search_candidates(
-    query: str = Query(..., min_length=1),
+    query: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
     skip: int = Query(0, ge=0),
@@ -49,7 +49,7 @@ async def get_job_candidates(
 )
 async def search_job_candidates(
     job_id: uuid.UUID,
-    query: str = Query(..., min_length=1),
+    query: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
     skip: int = Query(0, ge=0),

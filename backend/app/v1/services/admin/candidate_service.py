@@ -50,33 +50,31 @@ class CandidateAdminService:
         self,
         db: AsyncSession,
         job_id: uuid.UUID,
-        query: str,
+        query: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> dict[str, Any]:
         """Search candidates for a specific job."""
 
-        search_filter = or_(
-            Candidate.first_name.ilike(f"%{query}%"),
-            Candidate.last_name.ilike(f"%{query}%"),
-            Candidate.email.ilike(f"%{query}%"),
-        )
         job_filter = Candidate.applied_job_id == job_id
 
-        total_stmt = (
-            select(func.count())
-            .select_from(Candidate)
-            .where(search_filter, job_filter)
+        stmt = (
+            select(Candidate).where(job_filter).options(selectinload(Candidate.resumes))
         )
+        total_stmt = select(func.count()).select_from(Candidate).where(job_filter)
+
+        if query:
+            search_filter = or_(
+                Candidate.first_name.ilike(f"%{query}%"),
+                Candidate.last_name.ilike(f"%{query}%"),
+                Candidate.email.ilike(f"%{query}%"),
+            )
+            stmt = stmt.where(search_filter)
+            total_stmt = total_stmt.where(search_filter)
+
         total = await db.scalar(total_stmt)
 
-        stmt = (
-            select(Candidate)
-            .where(search_filter, job_filter)
-            .options(selectinload(Candidate.resumes))
-            .offset(skip)
-            .limit(limit)
-        )
+        stmt = stmt.offset(skip).limit(limit)
         result = await db.execute(stmt)
         candidates = list(result.scalars().all())
 
@@ -88,47 +86,40 @@ class CandidateAdminService:
     async def search_candidates(
         self,
         db: AsyncSession,
-        query: str,
+        query: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> dict[str, Any]:
         """Search candidates across all jobs."""
 
-        search_filter = or_(
-            Candidate.first_name.ilike(f"%{query}%"),
-            Candidate.last_name.ilike(f"%{query}%"),
-            Candidate.email.ilike(f"%{query}%"),
-        )
+        stmt = select(Candidate).options(selectinload(Candidate.resumes))
+        total_stmt = select(func.count()).select_from(Candidate)
 
-        total_stmt = (
-            select(func.count()).select_from(Candidate).where(search_filter)
-        )
+        if query:
+            search_filter = or_(
+                Candidate.first_name.ilike(f"%{query}%"),
+                Candidate.last_name.ilike(f"%{query}%"),
+                Candidate.email.ilike(f"%{query}%"),
+            )
+            stmt = stmt.where(search_filter)
+            total_stmt = total_stmt.where(search_filter)
+
         total = await db.scalar(total_stmt)
 
-        stmt = (
-            select(Candidate)
-            .where(search_filter)
-            .options(selectinload(Candidate.resumes))
-            .offset(skip)
-            .limit(limit)
-        )
-
+        stmt = stmt.offset(skip).limit(limit)
         result = await db.execute(stmt)
         candidates = list(result.scalars().all())
+
         return {
             "data": [self._map_candidate_to_response(c) for c in candidates],
             "total": total or 0,
         }
 
-    def _map_candidate_to_response(
-        self, candidate: Candidate
-    ) -> CandidateResponse:
+    def _map_candidate_to_response(self, candidate: Candidate) -> CandidateResponse:
         """Helper to map Candidate model to CandidateResponse schema."""
         resumes = getattr(candidate, "resumes", [])
         latest_resume = (
-            max(resumes, key=lambda resume: resume.uploaded_at)
-            if resumes
-            else None
+            max(resumes, key=lambda resume: resume.uploaded_at) if resumes else None
         )
 
         analysis = None
@@ -160,6 +151,7 @@ class CandidateAdminService:
             email=candidate.email,
             phone=candidate.phone,
             current_status=candidate.current_status,
+            applied_job_id=candidate.applied_job_id,
             created_at=candidate.created_at,
             resume_analysis=analysis,
             resume_score=resume_score,

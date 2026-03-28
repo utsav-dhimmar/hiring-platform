@@ -233,6 +233,16 @@ async def swagger_login_user(
     return login_response
 
 
+@router.get("/me", response_model=UserRead)
+async def read_user_me(
+    current_user: UserRead = Depends(get_current_user),
+) -> Any:
+    """
+    Get current user.
+    """
+    return current_user
+
+
 @router.get("/{userid}", response_model=UserRead)
 async def read_user(
     userid: uuid.UUID,

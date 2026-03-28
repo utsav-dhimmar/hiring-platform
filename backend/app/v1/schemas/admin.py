@@ -187,3 +187,6 @@ class HiringReport(BaseModel):
     resumes_uploaded_last_30_days: int
     average_resume_score: float | None
     pass_rate: float | None
+    llm_parsed_count: int
+    hr_decided_count: int
+    pending_count: int

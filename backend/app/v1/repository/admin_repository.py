@@ -16,6 +16,7 @@ from app.v1.db.models.audit_logs import AuditLog
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.files import File
 from app.v1.db.models.jobs import Job
+from app.v1.db.models.resume_screening_decisions import ResumeScreeningDecision
 from app.v1.db.models.permissions import Permission
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.roles import Role
@@ -394,20 +395,32 @@ class AdminRepository:
             select(func.avg(Resume.resume_score)).where(Resume.resume_score.isnot(None))
         )
 
-        total_passed = (
-            await db.scalar(select(func.count(Resume.id)).where(Resume.pass_fail)) or 0
+        total_parsed = (
+            await db.scalar(select(func.count(Resume.id)).where(Resume.parsed))
+            or 0
         )
         total_resumes_count = (
             await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail.isnot(None))
+                select(func.count(Resume.id)).where(
+                    Resume.pass_fail.in_(["pass", "fail"])
+                )
             )
             or 0
         )
         pass_rate = (
-            (total_passed / total_resumes_count * 100)
+            (total_parsed / total_resumes_count * 100)
             if total_resumes_count > 0
             else None
         )
+
+        # HR Decisions and Pending stats (using the new specialized table)
+        hr_decided_count = (
+            await db.scalar(
+                select(func.count(func.distinct(ResumeScreeningDecision.candidate_id)))
+            )
+            or 0
+        )
+        pending_count = max(0, total_candidates - hr_decided_count)
 
         jobs_result = await db.execute(
             select(Job).order_by(Job.created_at.desc()).limit(20)
@@ -441,6 +454,9 @@ class AdminRepository:
             "resumes_uploaded_last_30_days": resumes_last_30_days,
             "average_resume_score": float(avg_score) if avg_score else None,
             "pass_rate": float(pass_rate) if pass_rate else None,
+            "llm_parsed_count": total_parsed,
+            "hr_decided_count": hr_decided_count,
+            "pending_count": pending_count,
         }
 
 

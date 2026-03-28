@@ -18,6 +18,7 @@ from ..db.models.roleAndPermission import role_permission
 from ..db.models.roles import Role
 from ..db.models.skills import Skill
 from ..db.models.stage_templates import StageTemplate
+from ..db.models.resume_screening_decisions import ResumeScreeningDecision
 from ..db.models.transcripts import Transcript
 from ..db.models.user import User
 
@@ -43,5 +44,6 @@ __all__ = [
     "Interview",
     "Recording",  # NOT USED
     "Transcript",
+    "ResumeScreeningDecision",
     "AuditLog",
 ]

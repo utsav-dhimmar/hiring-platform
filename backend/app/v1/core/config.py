@@ -5,6 +5,8 @@ This module defines the application settings using Pydantic BaseSettings.
 Settings are loaded from environment variables and .env files.
 """
 
+from pathlib import Path
+
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -51,8 +53,11 @@ class Settings(BaseSettings):
         CACHE_TTL_SECONDS: Time-to-live for cached items in seconds.
     """
 
+    # Resolve .env relative to this file: backend/app/v1/core/config.py → root/.env
+    _env_file: Path = Path(__file__).resolve().parents[4] / ".env"
+
     model_config = SettingsConfigDict(
-        env_file="../.env",
+        env_file=str(Path(__file__).resolve().parents[4] / ".env"),
         env_ignore_empty=True,
         extra="ignore",
     )
