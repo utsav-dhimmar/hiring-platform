@@ -53,16 +53,16 @@ const AdminDashboard = () => {
             label="Resumes (Last 30 Days)"
             value={report?.resumes_uploaded_last_30_days ?? 0}
           />
-          <StatCard
+          {/* <StatCard
             label="Avg Resume Score"
             value={
-              report?.average_resume_score ? report?.average_resume_score.toFixed(2) + "%" : "N/A"
+              report?.average_resume_score ? report?.average_resume_score.toFixed(2) : "N/A"
             }
-          />
-          <StatCard
+          /> */}
+          {/* <StatCard
             label="Pass Rate"
             value={report?.pass_rate ? report?.pass_rate.toFixed(2) + "%" : "N/A"}
-          />
+          /> */}
           <StatCard
             label="LLM Parsed"
             value={report?.llm_parsed_count ?? 0}

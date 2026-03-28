@@ -35,6 +35,10 @@ const data = {
           title: "Candidates",
           url: "/dashboard/candidates",
         },
+        {
+          title: "Profile",
+          url: "/dashboard/profile",
+        },
       ],
     },
   ],
@@ -46,10 +50,6 @@ const data = {
         {
           title: "Dashboard",
           url: "/dashboard/admin",
-        },
-        {
-          title: "Platform Stats",
-          url: "/dashboard/admin/stats",
         },
         {
           title: "Users",
@@ -90,7 +90,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
   const user = useAppSelector(selectCurrentUser);
 
-  const isStaff = user?.role_name?.toLowerCase() === "admin" || user?.role_name?.toLowerCase() === "hr";
+  const isStaff =
+    user?.role_name?.toLowerCase() === "admin" ||
+    user?.role_name?.toLowerCase() === "hr";
 
   const handleLogout = async () => {
     try {

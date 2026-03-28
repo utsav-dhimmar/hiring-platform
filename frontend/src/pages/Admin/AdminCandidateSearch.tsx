@@ -8,7 +8,6 @@ import { adminCandidateService, adminJobService } from "@/apis/admin/service";
 import type { JobRead } from "@/types/admin";
 import type { CandidateResponse } from "@/types/resume";
 import {
-
   ErrorDisplay,
   PageHeader,
   CandidateSearchForm,
@@ -17,7 +16,11 @@ import {
 } from "@/components/shared";
 import CandidateSearchTable from "@/components/candidate/CandidateSearchTable";
 import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
-import { CandidateDetailsModal, ResumeScreeningDetailModal, DeleteModal } from "@/components/modal";
+import {
+  CandidateDetailsModal,
+  ResumeScreeningDetailModal,
+  DeleteModal,
+} from "@/components/modal";
 import { resumeService } from "@/apis/resume";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import type { PaginationState } from "@tanstack/react-table";
@@ -42,27 +45,41 @@ const AdminCandidateSearch = () => {
   // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
   const [showScreeningDetails, setShowScreeningDetails] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateResponse | null>(null);
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<CandidateResponse | null>(null);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
 
   const fetchCandidatesFn = useCallback(async () => {
     const skip = pagination.pageIndex * pagination.pageSize;
     const limit = pagination.pageSize;
 
-    let result: { data: CandidateResponse[]; total: number } = { data: [], total: 0 };
+    let result: { data: CandidateResponse[]; total: number } = {
+      data: [],
+      total: 0,
+    };
 
     if (jobId) {
       if (activeSearch.trim()) {
-        result = await adminCandidateService.searchJobCandidates(jobId, activeSearch, skip, limit);
+        result = await adminCandidateService.searchJobCandidates(
+          jobId,
+          activeSearch,
+          skip,
+          limit,
+        );
       } else {
-        result = await adminCandidateService.getCandidatesForJob(jobId, skip, limit);
+        result = await adminCandidateService.getCandidatesForJob(
+          jobId,
+          skip,
+          limit,
+        );
       }
 
-      // Link resume_id if available by fetching job resumes
       try {
         const resumesData = await resumeService.getJobResumes(jobId);
         result.data = result.data.map((candidate) => {
-          const resume = resumesData.resumes.find((r) => r.candidate_id === candidate.id);
+          const resume = resumesData.resumes.find(
+            (r) => r.candidate_id === candidate.id,
+          );
           return {
             ...candidate,
             resume_id: resume?.resume_id || candidate.resume_id,
@@ -72,15 +89,12 @@ const AdminCandidateSearch = () => {
         console.error("Failed to fetch resume IDs for candidates:", err);
       }
     } else {
-      // Global search requires a query string in the current backend
-      if (activeSearch.trim()) {
-        result = await adminCandidateService.searchCandidates(activeSearch, skip, limit);
-      } else {
-        // If no search query and no jobId, we might want to return an empty list or a default list
-        // For now, let's keep it empty or decide based on UX.
-        // The backend /candidates/search requires query.
-        result = { data: [], total: 0 };
-      }
+      // Global search - now supports optional query to show all candidates by default
+      result = await adminCandidateService.searchCandidates(
+        activeSearch.trim() || undefined,
+        skip,
+        limit,
+      );
     }
     return result;
   }, [jobId, activeSearch, pagination.pageIndex, pagination.pageSize]);
@@ -111,7 +125,12 @@ const AdminCandidateSearch = () => {
 
   useEffect(() => {
     fetchCandidates();
-  }, [fetchCandidates, pagination.pageIndex, pagination.pageSize, activeSearch]);
+  }, [
+    fetchCandidates,
+    pagination.pageIndex,
+    pagination.pageSize,
+    activeSearch,
+  ]);
 
   const handleSearch = (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -156,13 +175,26 @@ const AdminCandidateSearch = () => {
     <div className="admin-dashboard max-w-7xl mx-auto px-2 py-0 flex flex-col gap-3">
       <div className="mb-0 rounded-2xl shadow-sm border border-border">
         <PageHeader
-          title={jobId ? `Candidates for ${job?.title || "Job"}` : "Candidate Search"}
+          title={
+            jobId ? `Candidates for ${job?.title || "Job"}` : "Candidate Search"
+          }
           className="mb-0 border-0 p-2"
           actions={
             jobId && (
               <div className="flex gap-2 items-center">
-                <QuickResumeUpload jobId={jobId} onSuccess={fetchCandidates} variant="default" />
-                <Button variant="secondary" onClick={() => navigate(isAdminPath ? "/dashboard/admin/jobs" : "/dashboard/jobs")}>
+                <QuickResumeUpload
+                  jobId={jobId}
+                  onSuccess={fetchCandidates}
+                  variant="default"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    navigate(
+                      isAdminPath ? "/dashboard/admin/jobs" : "/dashboard/jobs",
+                    )
+                  }
+                >
                   Back to Jobs
                 </Button>
               </div>

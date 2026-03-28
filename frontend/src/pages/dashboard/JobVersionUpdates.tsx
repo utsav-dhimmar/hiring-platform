@@ -27,8 +27,11 @@ export default function JobVersionUpdates() {
 
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
-  const [selectedVersion, setSelectedVersion] = useState<JobVersionDetail | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
+    null,
+  );
+  const [selectedVersion, setSelectedVersion] =
+    useState<JobVersionDetail | null>(null);
   const [versionLoading, setVersionLoading] = useState(false);
   const [versionError, setVersionError] = useState<string | null>(null);
 
@@ -41,7 +44,9 @@ export default function JobVersionUpdates() {
 
       if (!id) {
         const allJobs = await jobService.getJobs();
-        const foundJob = allJobs.find((item) => slugify(item.title) === jobSlug);
+        const foundJob = allJobs.find(
+          (item) => slugify(item.title) === jobSlug,
+        );
 
         if (!foundJob) {
           toast.error("Job not found.");
@@ -56,7 +61,9 @@ export default function JobVersionUpdates() {
       setJob(jobData);
 
       const latestVersion =
-        [...(jobData.job_versions ?? [])].sort((a, b) => b.version_num - a.version_num)[0] ?? null;
+        [...(jobData.job_versions ?? [])].sort(
+          (a, b) => b.version_num - a.version_num,
+        )[0] ?? null;
 
       if (latestVersion) {
         setSelectedVersionId(latestVersion.id);
@@ -74,7 +81,9 @@ export default function JobVersionUpdates() {
   }, [fetchJob]);
 
   const sortedVersions = useMemo(() => {
-    return [...(job?.job_versions ?? [])].sort((a, b) => b.version_num - a.version_num);
+    return [...(job?.job_versions ?? [])].sort(
+      (a, b) => b.version_num - a.version_num,
+    );
   }, [job]);
 
   useEffect(() => {
@@ -85,7 +94,8 @@ export default function JobVersionUpdates() {
       }
 
       const latestVersionId = sortedVersions[0]?.id;
-      const latestVersionNum = sortedVersions[0]?.version_num ?? job.version ?? 1;
+      const latestVersionNum =
+        sortedVersions[0]?.version_num ?? job.version ?? 1;
 
       if (selectedVersionId === latestVersionId) {
         setSelectedVersion({
@@ -180,7 +190,9 @@ export default function JobVersionUpdates() {
                 {sortedVersions.map(renderVersionButton)}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No versions found.</p>
+              <p className="text-sm text-muted-foreground">
+                No versions found.
+              </p>
             )}
           </div>
 
@@ -188,9 +200,13 @@ export default function JobVersionUpdates() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold">
-                  {selectedVersion ? `Version ${selectedVersion.version_number}` : "Version Detail"}
+                  {selectedVersion
+                    ? `Version ${selectedVersion.version_number}`
+                    : "Version Detail"}
                 </h2>
-                {selectedVersion && <Badge variant="outline">{selectedVersion.title}</Badge>}
+                {selectedVersion && (
+                  <Badge variant="outline">{selectedVersion.title}</Badge>
+                )}
               </div>
 
               {selectedVersion && (
@@ -211,25 +227,9 @@ export default function JobVersionUpdates() {
                 <div className="rounded-2xl border p-4 space-y-2">
                   <h3 className="font-semibold">Job Description</h3>
                   <div className="whitespace-pre-wrap text-sm text-foreground leading-6">
-                    {selectedVersion.jd_text || "No JD text found for this version."}
+                    {selectedVersion.jd_text ||
+                      "No JD text found for this version."}
                   </div>
-                </div>
-
-                <div className="rounded-2xl border p-4 space-y-2">
-                  <h3 className="font-semibold">Custom Extraction Fields</h3>
-                  {selectedVersion.custom_extraction_fields?.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedVersion.custom_extraction_fields.map((field) => (
-                        <Badge key={field} variant="outline">
-                          {field}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No custom extraction fields for this version.
-                    </p>
-                  )}
                 </div>
               </>
             ) : (

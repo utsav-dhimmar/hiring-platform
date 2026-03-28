@@ -7,7 +7,9 @@ import type { CandidateResponse } from "@/types/resume";
 import type { ResumeScreeningResult } from "@/types/admin";
 import { CheckCircle2, XCircle, AlertCircle, User, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { resumeScreeningApi } from "@/apis/resumeScreening";
+import type { ResumeScreeningDecision } from "@/apis/resumeScreening";
 
 /**
  * Props for CandidateDetailsModal.
@@ -22,8 +24,18 @@ interface CandidateDetailsModalProps {
 export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateDetailsModalProps) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [feedbackType, setFeedbackType] = useState<"approve" | "reject" | null>(null);
+  const [feedbackType, setFeedbackType] = useState<"approve" | "reject" | "maybe" | null>(null);
   const [reason, setReason] = useState("");
+  const [screeningDecision, setScreeningDecision] = useState<ResumeScreeningDecision | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && candidate?.id) {
+      resumeScreeningApi.getDecision(candidate.id).then((data) => {
+        setScreeningDecision(data);
+      });
+    }
+  }, [isOpen, candidate?.id]);
 
   if (!candidate) return null;
 
@@ -31,16 +43,30 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
   const analysis = candidate.resume_analysis;
   const isPassed = candidate.pass_fail;
 
-  const handleAction = (type: "approve" | "reject") => {
+  const handleAction = (type: "approve" | "reject" | "maybe") => {
     setFeedbackType(type);
     setReason("");
     setShowFeedbackModal(true);
   };
 
-  const submitFeedback = () => {
-    toast.info("Backend implementation is pending");
-    setShowFeedbackModal(false);
-    onClose();
+  const submitFeedback = async () => {
+    if (!candidate?.id || !feedbackType) return;
+    
+    setIsSubmitting(true);
+    try {
+      const result = await resumeScreeningApi.submitDecision({
+        candidate_id: candidate.id,
+        decision: feedbackType,
+        note: reason,
+      });
+      setScreeningDecision(result);
+      toast.success("Decision submitted successfully");
+      setShowFeedbackModal(false);
+    } catch (error) {
+      toast.error("Failed to submit decision");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -133,6 +159,40 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
               </section>
             </div>
 
+            {/* Screening Decision Section */}
+            {screeningDecision && (
+              <section className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    HR Screening Decision
+                  </h3>
+                  <Badge
+                    variant={
+                      screeningDecision.decision === "approve"
+                        ? "default"
+                        : screeningDecision.decision === "reject"
+                        ? "destructive"
+                        : "secondary"
+                    }
+                    className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase"
+                  >
+                    {screeningDecision.decision}
+                  </Badge>
+                </div>
+                {screeningDecision.note ? (
+                  <p className="text-sm text-muted-foreground italic leading-relaxed">
+                    &ldquo;{screeningDecision.note}&rdquo;
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">No note provided.</p>
+                )}
+                <div className="text-[10px] text-muted-foreground/60 font-medium">
+                  Decided on {new Date(screeningDecision.created_at).toLocaleDateString()}
+                </div>
+              </section>
+            )}
+
             {/* Skills & Extraordinary Points */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
               <section className="space-y-4">
@@ -205,7 +265,7 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
           <Button onClick={() => handleAction("approve")} variant="default">
             Approve
           </Button>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="outline" onClick={() => handleAction("maybe")}>
             May Be
           </Button>
           <Button variant="destructive" onClick={() => handleAction("reject")}>
@@ -219,20 +279,42 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-xl">
               <div
-                className={`h-10 w-10 rounded-full flex items-center justify-center ${feedbackType === "approve" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
+                className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                  feedbackType === "approve" 
+                    ? "bg-green-500/10 text-green-600" 
+                    : feedbackType === "reject"
+                    ? "bg-red-500/10 text-red-600"
+                    : "bg-amber-500/10 text-amber-600"
+                }`}
               >
                 <MessageSquare className="h-5 w-5" />
               </div>
-              {feedbackType === "approve" ? "Approve Candidate" : "Reject Candidate"}
+              {feedbackType === "approve" 
+                ? "Approve Candidate" 
+                : feedbackType === "reject"
+                ? "Reject Candidate"
+                : "Mark as 'Maybe'"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                Reason for {feedbackType === "approve" ? "Approval" : "Rejection"}
+                Reason for {
+                  feedbackType === "approve" 
+                    ? "Approval" 
+                    : feedbackType === "reject"
+                    ? "Rejection"
+                    : "Decision"
+                }
               </label>
               <Textarea
-                placeholder={`Enter reason for ${feedbackType === "approve" ? "approving" : "rejecting"} ${candidate.first_name}...`}
+                placeholder={`Enter reason for ${
+                  feedbackType === "approve" 
+                    ? "approving" 
+                    : feedbackType === "reject"
+                    ? "rejecting"
+                    : "marking as maybe"
+                } ${candidate.first_name}...`}
                 className="min-h-[120px] rounded-2xl resize-none border-muted-foreground/20 focus:border-primary/30 transition-colors"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -244,11 +326,24 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
               Cancel
             </Button>
             <Button
-              variant={feedbackType === "approve" ? "default" : "destructive"}
+              variant={
+                feedbackType === "approve" 
+                  ? "default" 
+                  : feedbackType === "reject"
+                  ? "destructive"
+                  : "secondary"
+              }
               className="rounded-xl px-8"
               onClick={submitFeedback}
+              disabled={isSubmitting}
             >
-              Confirm {feedbackType === "approve" ? "Approval" : "Rejection"}
+              {isSubmitting ? "Submitting..." : `Confirm ${
+                feedbackType === "approve" 
+                  ? "Approval" 
+                  : feedbackType === "reject"
+                  ? "Rejection"
+                  : "Decision"
+              }`}
             </Button>
           </DialogFooter>
         </DialogContent>

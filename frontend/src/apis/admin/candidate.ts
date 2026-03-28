@@ -37,7 +37,7 @@ export const adminCandidateService = {
    */
   searchJobCandidates: async (
     jobId: string,
-    query: string,
+    query?: string,
     skip: number = 0,
     limit: number = 100,
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
@@ -58,7 +58,7 @@ export const adminCandidateService = {
    * @returns Promise resolving to matching candidates
    */
   searchCandidates: async (
-    query: string,
+    query?: string,
     skip: number = 0,
     limit: number = 100,
   ): Promise<{ data: CandidateResponse[]; total: number }> => {

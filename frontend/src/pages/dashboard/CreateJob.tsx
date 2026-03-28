@@ -214,7 +214,9 @@ export default function CreateJob() {
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-12 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium">
-                        <SelectValue placeholder="Select department" />
+                        <SelectValue placeholder="Select department">
+                          {departments.find((dept) => dept.id === field.value)?.name}
+                        </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
