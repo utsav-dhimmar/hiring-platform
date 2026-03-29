@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { authService } from "@/apis/auth";
 import { logout, selectCurrentUser } from "@/store/slices/authSlice";
@@ -35,10 +35,7 @@ const data = {
           title: "Candidates",
           url: "/dashboard/candidates",
         },
-        {
-          title: "Profile",
-          url: "/dashboard/profile",
-        },
+
       ],
     },
   ],
@@ -157,6 +154,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              variant="outline"
+              onClick={() => navigate('/dashboard/profile')}
+              isActive={location.pathname === '/dashboard/profile'}
+              className="text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
+            >
+              <User className="h-4 w-4" />
+              <span>Profile</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               variant="outline"
