@@ -57,12 +57,13 @@ export default function JobCandidates() {
     string[]
   >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentJobId = useRef<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isPolling = false) => {
     if (!jobSlug) return;
-    setLoading(true);
+    if (!isPolling) setLoading(true);
     try {
-      let id = (location.state as JobRouteState | null)?.jobId;
+      let id = (location.state as JobRouteState | null)?.jobId || currentJobId.current;
 
       if (!id) {
         // Fallback: find job by slug
@@ -71,27 +72,36 @@ export default function JobCandidates() {
 
         if (!foundJob) {
           toast.error("Job not found.");
-          navigate("/dashboard/jobs");
+          if (!isPolling) navigate("/dashboard/jobs");
           return;
         }
         id = foundJob.id;
       }
 
-      const [jobData, candidatesData] = await Promise.all([
-        jobService.getJob(id),
-        jobService.getJobCandidates(id),
-      ]);
-      setJob(jobData);
-      setCandidates(candidatesData.candidates || []);
+      currentJobId.current = id;
+
+      if (isPolling) {
+        const candidatesData = await jobService.getJobCandidates(id);
+        setCandidates(candidatesData.candidates || []);
+      } else {
+        const [jobData, candidatesData] = await Promise.all([
+          jobService.getJob(id),
+          jobService.getJobCandidates(id),
+        ]);
+        setJob(jobData);
+        setCandidates(candidatesData.candidates || []);
+      }
     } catch (error) {
       console.error("Failed to fetch job data:", error);
-      const errorMessage = extractErrorMessage(
-        error,
-        "Failed to load candidates.",
-      );
-      toast.error(errorMessage);
+      if (!isPolling) {
+        const errorMessage = extractErrorMessage(
+          error,
+          "Failed to load candidates.",
+        );
+        toast.error(errorMessage);
+      }
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   }, [jobSlug, location.state, navigate]);
 
@@ -118,7 +128,7 @@ export default function JobCandidates() {
 
     await Promise.all(uploadPromises);
     setIsUploading(false);
-    fetchData(); // Refresh candidates list
+    fetchData(true);
     if (fileInputRef.current) fileInputRef.current.value = ""; // Reset input
   };
 
@@ -137,7 +147,7 @@ export default function JobCandidates() {
           candidateId,
         );
         toast.success(response.message || "Re-analysis started successfully.");
-        await fetchData();
+        await fetchData(true);
       } catch (error) {
         console.error("Failed to reanalyze candidate:", error);
         toast.error(
@@ -164,7 +174,7 @@ export default function JobCandidates() {
       // Small delay between requests to avoid overwhelming the server
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
-    
+
     toast.success("Requests sent for all candidates.");
   }, [candidates, job]);
 
@@ -176,8 +186,8 @@ export default function JobCandidates() {
 
     if (isAnyProcessing) {
       const interval = setInterval(() => {
-        fetchData();
-      }, 3000);
+        fetchData(true);
+      }, 5000);
       return () => clearInterval(interval);
     }
   }, [candidates, fetchData]);
