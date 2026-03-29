@@ -1,4 +1,4 @@
-
+print("[V2-LOADED] docx_pdf_extractor_v2.py")
 """
 Resume extraction services.
 

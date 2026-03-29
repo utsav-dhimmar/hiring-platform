@@ -8,7 +8,7 @@ from app.v1.core.exceptions import (
     UnauthorizedException,
     ValidationException,
 )
-from app.v1.core.extractor import DocumentParser, ResumeLLMExtractor
+from app.v1.core.docx_pdf_extractor_v2 import DocumentParser, ResumeLLMExtractor
 from app.v1.core.logging import get_logger, setup_logging
 from app.v1.core.middleware import GlobalErrorHandlerMiddleware
 from app.v1.core.resume_executor import (
