@@ -1,4 +1,4 @@
-
+print("[V2-LOADED] docx_pdf_extractor_v2.py")
 """
 Resume extraction services.
 
@@ -6,7 +6,7 @@ This module provides services for parsing document files (PDF, DOCX) and
 extracting structured information from resume text using LLMs.
 """
 
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import docx2txt
 import pymupdf
@@ -22,7 +22,6 @@ from tenacity import (
 )
 
 from app.v1.core.config import settings
-from app.v1.core.storage import resolve_storage_path
 from app.v1.prompts import (
     RESUME_EXTRACTION_EXAMPLES,
     RESUME_EXTRACTION_PROMPT,
@@ -49,7 +48,8 @@ class DocumentParser:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file format is unsupported.
         """
-        path = resolve_storage_path(file_path)
+        # Robust path resolution for Windows/Unix compatibility
+        path = Path(file_path).resolve()
         print(f"[V2] Checking file existence: {path}")
 
         if not path.is_file():

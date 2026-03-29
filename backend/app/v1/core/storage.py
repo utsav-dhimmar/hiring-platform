@@ -1,3 +1,4 @@
+
 """Shared helpers for resolving storage paths."""
 
 from __future__ import annotations

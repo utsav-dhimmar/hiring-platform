@@ -9,9 +9,11 @@ import uuid
 from typing import Any
 
 from app.v1.core.analyzer import ResumeJdAnalyzer
+from app.v1.core.heuristic_analyzer import heuristic_analyzer
 from app.v1.core.cache import cache
 from app.v1.core.embeddings import embedding_service
-from app.v1.core.extractor import (
+from app.v1.core.config import settings
+from app.v1.core.docx_pdf_extractor_v2 import (
     DocumentParser,
     ResumeLLMExtractor,
 )
@@ -183,15 +185,26 @@ class ResumeProcessor:
         )
 
         stage_started_at = time.perf_counter()
-        analysis = self.analyzer.analyze(
-            candidate_info=parsed_summary,
-            job_title=getattr(job, "title", "Unknown Job"),
-            job_skills=[skill.name for skill in job_skills],
-            candidate_skills=candidate_skills,
-            semantic_score=semantic_score,
-        )
+        if settings.USE_LLM_FOR_ANALYSIS:
+            analysis = self.analyzer.analyze(
+                candidate_info=parsed_summary,
+                job_title=getattr(job, "title", "Unknown Job"),
+                job_skills=[skill.name for skill in job_skills],
+                candidate_skills=candidate_skills,
+                semantic_score=semantic_score,
+            )
+            stage_name = "llm_resume_analysis"
+        else:
+            analysis = heuristic_analyzer.analyze(
+                resume_text=candidate_text,
+                job_text=job_text,
+                job_skills=[skill.name for skill in job_skills],
+                candidate_skills=candidate_skills,
+                semantic_score=semantic_score,
+            )
+            stage_name = "heuristic_resume_analysis"
         log_stage(
-            stage="llm_resume_analysis",
+            stage=stage_name,
             started_at=stage_started_at,
             candidate_skills=len(candidate_skills),
             job_skills=len(job_skills),
