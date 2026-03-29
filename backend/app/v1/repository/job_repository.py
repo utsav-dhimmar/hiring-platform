@@ -74,6 +74,12 @@ class JobRepository:
         skill_ids = payload.pop("skill_ids", [])
 
         job = Job(**payload, created_by=created_by)
+        
+        # Ensure fresh embeddings apply immediately
+        from app.v1.core.embeddings import embedding_service
+        from app.v1.utils.text import build_job_text
+        job.jd_embedding = embedding_service.encode_jd(build_job_text(job))
+        
         db.add(job)
         await db.flush()
 
@@ -108,9 +114,16 @@ class JobRepository:
 
         payload = object.model_dump(exclude_unset=True)
         skill_ids = payload.pop("skill_ids", None)
+        
+        core_fields_changed = any(k in payload for k in ["title", "department_id", "jd_text", "jd_json"])
 
         for key, value in payload.items():
             setattr(job, key, value)
+            
+        if core_fields_changed:
+            from app.v1.core.embeddings import embedding_service
+            from app.v1.utils.text import build_job_text
+            job.jd_embedding = embedding_service.encode_jd(build_job_text(job))
 
         if skill_ids is not None:
             await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)

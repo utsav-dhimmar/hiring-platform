@@ -112,7 +112,7 @@ def build_candidate_text(
             if formatted:
                 parts.append(f"{key.title()}: " + "; ".join(formatted))
 
-    if raw_text.strip():
-        parts.append(f"Resume Text:\n{raw_text.strip()}")
+    # We intentionally exclude raw_text here to make the embedding dense
+    # and to fit perfectly within the SentenceTransformer 512 token limit.
 
     return "\n\n".join(parts).strip()

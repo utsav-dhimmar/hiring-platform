@@ -338,6 +338,7 @@ class ResumeUploadService:
             pass_fail = None
             processing_status = None
             processing_error = None
+            location = None
             linkedin_url = None
             github_url = None
 
@@ -355,6 +356,22 @@ class ResumeUploadService:
             for source in search_sources:
                 if not isinstance(source, dict):
                     continue
+                
+                if not location:
+                    loc_val = source.get("location")
+                    if isinstance(loc_val, str) and loc_val.strip() != "Not mentioned":
+                        location = loc_val
+                    elif isinstance(loc_val, list) and loc_val:
+                        first_loc = loc_val[0]
+                        if isinstance(first_loc, dict):
+                            loc_text = first_loc.get("text", "")
+                        elif isinstance(first_loc, str):
+                            loc_text = first_loc
+                        else:
+                            loc_text = ""
+                        if loc_text and loc_text.strip() != "Not mentioned":
+                            location = loc_text
+
                 links = source.get("links") or source.get("social_links")
                 if isinstance(links, list):
                     for link_item in links:
@@ -395,6 +412,7 @@ class ResumeUploadService:
                     last_name=candidate.last_name,
                     email=candidate.email,
                     phone=candidate.phone,
+                    location=location,
                     linkedin_url=linkedin_url,
                     github_url=github_url,
                     current_status=candidate.current_status,

@@ -52,7 +52,7 @@ class EmbeddingService:
     def _fit_vector_dim(self, vector: list[float]) -> list[float]:
         """Ensure the vector matches the configured target dimension.
 
-        Truncates or pads the vector with zeros as needed.
+        Truncates or pads the vector with zeros as needed, then L2 normalizes.
 
         Args:
             vector: The input embedding vector.
@@ -60,11 +60,16 @@ class EmbeddingService:
         Returns:
             The adjusted vector matching the target dimension.
         """
-        if len(vector) == self.target_dim:
-            return vector
         if len(vector) > self.target_dim:
-            return vector[: self.target_dim]
-        return vector + ([0.0] * (self.target_dim - len(vector)))
+            vector = vector[: self.target_dim]
+        elif len(vector) < self.target_dim:
+            vector = vector + ([0.0] * (self.target_dim - len(vector)))
+            
+        arr = np.array(vector)
+        norm = np.linalg.norm(arr)
+        if norm > 0:
+            arr = arr / norm
+        return arr.tolist()
 
     def _encode_text(self, text: str, instruction: str) -> list[float]:
         """Internal helper to encode text into a vector using an optional instruction.
@@ -76,7 +81,7 @@ class EmbeddingService:
         Returns:
             A list of floats representing the embedding vector.
         """
-        normalized_text = text.strip()
+        normalized_text = text.strip().lower()
         if not normalized_text:
             return []
         payload = (
@@ -137,7 +142,7 @@ class EmbeddingService:
         
         payloads = []
         for text in texts:
-            normalized_text = text.strip()
+            normalized_text = text.strip().lower()
             if self.use_instructions:
                 payloads.append(instruction + normalized_text)
             else:

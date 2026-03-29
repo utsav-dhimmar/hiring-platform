@@ -118,6 +118,7 @@ class CandidateResponse(BaseModel):
     last_name: str | None = None
     email: str | None = None
     phone: str | None = None
+    location: str | None = None
     linkedin_url: str | None = None
     github_url: str | None = None
     current_status: str | None = None
