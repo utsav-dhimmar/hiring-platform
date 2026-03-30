@@ -29,7 +29,7 @@ export interface PermissionRead extends PermissionBase {
 /**
  * Payload for creating a new permission.
  */
-export interface PermissionCreate extends PermissionBase {}
+export interface PermissionCreate extends PermissionBase { }
 
 /**
  * Base fields for a role.
@@ -294,7 +294,7 @@ export interface SkillBase {
 /**
  * Payload for creating a new skill.
  */
-export interface SkillCreate extends SkillBase {}
+export interface SkillCreate extends SkillBase { }
 
 /**
  * Payload for updating an existing skill.
@@ -328,7 +328,7 @@ export interface DepartmentBase {
 /**
  * Payload for creating a new department.
  */
-export interface DepartmentCreate extends DepartmentBase {}
+export interface DepartmentCreate extends DepartmentBase { }
 
 /**
  * Payload for updating an existing department.
@@ -445,6 +445,22 @@ export interface ResumeScreeningResult {
   processing_error?: string | null;
   linkedin_url?: string | null;
   github_url?: string | null;
+  /**
+   * Candidate's location (city, country, etc.).
+   * May be null/undefined if not extracted — render as "N/A".
+   */
+  location?: string | null;
+  /**
+   * Timestamp when the HR uploaded the candidate's resume.
+   * Falls back to created_at when not provided — render as "N/A" if both are absent.
+   */
+  applied_at?: string | null;
+  /**
+   * The JD version number at which this candidate's resume was last analyzed.
+   * Compare against job.version to determine if reanalysis is needed.
+   * null/undefined means it has never been successfully analyzed.
+   */
+  applied_version_number?: number | null;
 }
 
 /**

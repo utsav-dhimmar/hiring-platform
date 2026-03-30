@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import jobService from "@/apis/job";
-import { Button, Badge } from "@/components/";
-import { DataTable } from "@/components/shared";
+import { Button, Badge, Input } from "@/components/";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ResumeScreeningResult } from "@/types/admin";
 import type { Job } from "@/types/job";
@@ -12,15 +11,13 @@ import {
   ArrowLeft,
   Upload,
   GitBranch,
-  // Trash2,
   FileText,
   RotateCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { ColumnDef } from "@tanstack/react-table";
 import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
-import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import { slugify } from "@/utils/slug";
+import CandidateTable from "@/components/candidate/CandidateTable";
 
 type JobRouteState = {
   jobId?: string;
@@ -53,9 +50,7 @@ export default function JobCandidates() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [reanalyzingCandidateIds, setReanalyzingCandidateIds] = useState<
-    string[]
-  >([]);
+  const [reanalyzingCandidateIds, setReanalyzingCandidateIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentJobId = useRef<string | null>(null);
 
@@ -66,7 +61,6 @@ export default function JobCandidates() {
       let id = (location.state as JobRouteState | null)?.jobId || currentJobId.current;
 
       if (!id) {
-        // Fallback: find job by slug
         const allJobs = await jobService.getJobs();
         const foundJob = allJobs.find((j) => slugify(j.title) === jobSlug);
 
@@ -94,10 +88,7 @@ export default function JobCandidates() {
     } catch (error) {
       console.error("Failed to fetch job data:", error);
       if (!isPolling) {
-        const errorMessage = extractErrorMessage(
-          error,
-          "Failed to load candidates.",
-        );
+        const errorMessage = extractErrorMessage(error, "Failed to load candidates.");
         toast.error(errorMessage);
       }
     } finally {
@@ -109,9 +100,7 @@ export default function JobCandidates() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0 || !job) return;
 
@@ -129,7 +118,7 @@ export default function JobCandidates() {
     await Promise.all(uploadPromises);
     setIsUploading(false);
     fetchData(true);
-    if (fileInputRef.current) fileInputRef.current.value = ""; // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   useEffect(() => {
@@ -139,51 +128,68 @@ export default function JobCandidates() {
   const handleReanalyzeCandidate = useCallback(
     async (candidateId: string) => {
       if (!job) return;
-
       setReanalyzingCandidateIds((current) => [...current, candidateId]);
       try {
-        const response = await jobService.reanalyzeCandidate(
-          job.id,
-          candidateId,
-        );
+        const response = await jobService.reanalyzeCandidate(job.id, candidateId);
         toast.success(response.message || "Re-analysis started successfully.");
         await fetchData(true);
       } catch (error) {
         console.error("Failed to reanalyze candidate:", error);
-        toast.error(
-          extractErrorMessage(error, "Failed to start candidate re-analysis."),
-        );
+        toast.error(extractErrorMessage(error, "Failed to start candidate re-analysis."));
       } finally {
-        setReanalyzingCandidateIds((current) =>
-          current.filter((id) => id !== candidateId),
-        );
+        setReanalyzingCandidateIds((current) => current.filter((id) => id !== candidateId));
       }
     },
     [fetchData, job],
   );
 
+  /**
+   * Returns true when a candidate's resume needs (re)analysis:
+   *  1. Never successfully analyzed (applied_version_number is null/undefined)
+   *  2. JD was updated after the last analysis (applied_version_number < job.version)
+   *  3. Last analysis failed (processing_status === "failed")
+   * Returns false when the candidate is currently in-flight or already up-to-date.
+   */
+  const needsReanalysis = useCallback(
+    (candidate: ResumeScreeningResult): boolean => {
+      // Don't allow re-triggering while already in-flight
+      if (
+        candidate.processing_status === "processing" ||
+        candidate.processing_status === "queued" ||
+        reanalyzingCandidateIds.includes(candidate.id)
+      ) {
+        return false;
+      }
+      // Last analysis failed → allow retry
+      if (candidate.processing_status === "failed") return true;
+      // Never analyzed
+      if (candidate.applied_version_number == null) return true;
+      // JD version advanced since last analysis
+      if (job?.version != null && candidate.applied_version_number < job.version) return true;
+      return false;
+    },
+    [job, reanalyzingCandidateIds],
+  );
+
   const handleReanalyzeAll = useCallback(async () => {
     if (!job || candidates.length === 0) return;
-
-    toast.info(`Re-analyzing ${candidates.length} candidates...`);
-
-    for (const candidate of candidates) {
+    const toReanalyze = candidates.filter(needsReanalysis);
+    if (toReanalyze.length === 0) return;
+    toast.info(`Re-analyzing ${toReanalyze.length} candidate(s)...`);
+    for (const candidate of toReanalyze) {
       jobService.reanalyzeCandidate(job.id, candidate.id).catch((err) => {
         console.error(`Failed to reanalyze ${candidate.id}:`, err);
       });
-      // Small delay between requests to avoid overwhelming the server
       await new Promise((resolve) => setTimeout(resolve, 300));
     }
+    toast.success("Requests sent for all candidates that need reanalysis.");
+  }, [candidates, job, needsReanalysis]);
 
-    toast.success("Requests sent for all candidates.");
-  }, [candidates, job]);
-
-  // polling
+  // Polling
   useEffect(() => {
     const isAnyProcessing = candidates.some(
       (c) => c.processing_status === "processing" || !c.is_parsed,
     );
-
     if (isAnyProcessing) {
       const interval = setInterval(() => {
         fetchData(true);
@@ -191,165 +197,6 @@ export default function JobCandidates() {
       return () => clearInterval(interval);
     }
   }, [candidates, fetchData]);
-
-  const columns: ColumnDef<ResumeScreeningResult>[] = useMemo(
-    () => [
-      {
-        id: "candidate",
-        header: "Candidate",
-        accessorFn: (row) =>
-          `${row.first_name || ""} ${row.last_name || ""}`.trim(),
-        cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="font-bold text-base text-foreground">
-              {`${row.original.first_name || ""} ${row.original.last_name || ""}`.trim() ||
-                "Unknown Candidate"}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {row.original.email}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {row.original.phone}
-            </span>
-          </div>
-        ),
-      },
-      {
-        id: "assessment",
-        header: "Assessment",
-        accessorKey: "resume_score",
-        cell: ({ row }) => {
-          const score = row.original.resume_score || 0;
-          const isPassed = row.original.pass_fail;
-          const isProcessing =
-            row.original.processing_status === "processing" ||
-            !row.original.is_parsed;
-
-          if (isProcessing) {
-            return (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm font-medium text-muted-foreground italic">
-                    Analyzing...
-                  </span>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider bg-blue-500/5 text-blue-500 border-blue-200/50 animate-pulse"
-                >
-                  Processing
-                </Badge>
-              </div>
-            );
-          }
-          console.log(score, isPassed);
-          return (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-base">{score}%</span>
-                <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${score >= 70 ? "bg-green-500" : score >= 40 ? "bg-yellow-500" : "bg-red-500"}`}
-                    style={{ width: `${score}%` }}
-                  />
-                </div>
-              </div>
-              {/* <Badge
-              // BACEND RETURN ->     "pass_fail": "pending", even after the resuem has been processed 
-                variant={isPassed ? "default" : "destructive"}
-                className={`rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider ${isPassed ? "bg-green-500/10 text-green-600 border-green-200 hover:bg-green-500/20 shadow-none" : "bg-red-500/10 text-red-600 border-red-200 hover:bg-red-500/20 shadow-none"}`}
-              >
-                {isPassed ? "Passed" : "Failed"}
-              </Badge> */}
-            </div>
-          );
-        },
-      },
-      {
-        id: "socials",
-        header: "Socials",
-        cell: ({ row }) => {
-          const { linkedin_url, github_url } = row.original;
-          return (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-blue-500/10 hover:text-blue-500 border-muted-foreground/20 disabled:opacity-30"
-                disabled={!linkedin_url}
-                onClick={() =>
-                  linkedin_url &&
-                  window.open(
-                    linkedin_url.startsWith("http")
-                      ? linkedin_url
-                      : `https://${linkedin_url}`,
-                    "_blank",
-                  )
-                }
-              >
-                <LinkedinLogo className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-full hover:bg-blue-500/10 hover:text-blue-500 border-muted-foreground/20 disabled:opacity-30"
-                disabled={!github_url}
-                onClick={() =>
-                  github_url &&
-                  window.open(
-                    github_url.startsWith("http")
-                      ? github_url
-                      : `https://${github_url}`,
-                    "_blank",
-                  )
-                }
-              >
-                <GithubLogo className="h-4 w-4" />
-              </Button>
-            </div>
-          );
-        },
-      },
-      {
-        id: "actions",
-        header: () => <div className="text-right pr-4">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-2 pr-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="border border-amber-300 hover:bg-yellow-500"
-              onClick={() => handleReanalyzeCandidate(row.original.id)}
-              isLoading={reanalyzingCandidateIds.includes(row.original.id)}
-              disabled={reanalyzingCandidateIds.includes(row.original.id)}
-            >
-              Reanalyze
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="rounded-xl font-semibold h-9 px-4 bg-muted/50 hover:bg-muted text-foreground transition-all border border-muted-foreground/10"
-              onClick={() => {
-                setSelectedCandidate(row.original);
-                setIsModalOpen(true);
-              }}
-            >
-              More Info
-            </Button>
-            {/* <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-all"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button> */}
-          </div>
-        ),
-      },
-    ],
-    [handleReanalyzeCandidate, reanalyzingCandidateIds],
-  );
 
   return (
     <div className="flex flex-col gap-4 max-w-7xl mx-auto px-4 pt-0 pb-4 animate-in fade-in duration-500">
@@ -434,7 +281,7 @@ export default function JobCandidates() {
           </div>
           <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-green-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-green-500/20">
             <span className="text-4xl font-black text-green-600">
-              {candidates.filter((c) => c.pass_fail).length}
+              {candidates.filter((c) => (c.resume_score ?? 0) >= 65 && c.pass_fail).length}
             </span>
             <span className="text-sm font-bold text-green-600/70 uppercase tracking-widest group-hover:text-green-600 transition-colors">
               Passed
@@ -442,7 +289,7 @@ export default function JobCandidates() {
           </div>
           <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-red-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-red-500/20">
             <span className="text-4xl font-black text-red-500/80">
-              {candidates.filter((c) => !c.pass_fail).length}
+              {candidates.filter((c) => (c.resume_score ?? 0) < 65 || !c.pass_fail).length}
             </span>
             <span className="text-sm font-bold text-red-500/50 uppercase tracking-widest group-hover:text-red-500/80 transition-colors">
               Failed
@@ -465,30 +312,63 @@ export default function JobCandidates() {
               <FileText className="h-16 w-16 text-muted-foreground/30" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-2xl font-bold text-foreground">
-                No applicants found
-              </h3>
+              <h3 className="text-2xl font-bold text-foreground">No applicants found</h3>
             </div>
           </div>
         ) : (
           <div className="animate-in slide-in-from-bottom-5 duration-700">
-            <DataTable
-              columns={columns}
-              data={candidates || []}
-              searchKey="candidate"
-              searchPlaceholder="Search by name..."
+            <CandidateTable
+              candidates={candidates}
               headerActions={
                 <Button
                   variant="outline"
                   size="sm"
                   className="border-amber-300 hover:bg-amber-500/10 text-amber-600 hover:text-amber-700 font-semibold transition-all flex items-center gap-2 h-10 rounded-xl"
                   onClick={handleReanalyzeAll}
-                  disabled={candidates.length === 0}
+                  disabled={candidates.filter(needsReanalysis).length === 0}
+                  title={
+                    candidates.filter(needsReanalysis).length === 0
+                      ? "All candidates are analyzed with the latest JD version"
+                      : `Re-analyze ${candidates.filter(needsReanalysis).length} candidate(s) that need it`
+                  }
                 >
                   <RotateCw className="h-4 w-4" />
                   Reanalyze All
                 </Button>
               }
+              renderActions={(candidate) => (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="border border-amber-300 hover:bg-yellow-500"
+                    onClick={() => handleReanalyzeCandidate(candidate.id)}
+                    isLoading={reanalyzingCandidateIds.includes(candidate.id)}
+                    disabled={
+                      !needsReanalysis(candidate) ||
+                      reanalyzingCandidateIds.includes(candidate.id)
+                    }
+                    title={
+                      !needsReanalysis(candidate)
+                        ? "Already analyzed with the latest JD version"
+                        : "Re-analyze with the latest JD version"
+                    }
+                  >
+                    Reanalyze
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-xl font-semibold h-9 px-4 bg-muted/50 hover:bg-muted text-foreground transition-all border border-muted-foreground/10"
+                    onClick={() => {
+                      setSelectedCandidate(candidate);
+                      setIsModalOpen(true);
+                    }}
+                  >
+                    More Info
+                  </Button>
+                </>
+              )}
             />
           </div>
         )}
@@ -498,6 +378,7 @@ export default function JobCandidates() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         candidate={selectedCandidate}
+        jobId={job?.id}
       />
 
       <JobInfoModal
@@ -506,7 +387,7 @@ export default function JobCandidates() {
         job={job}
       />
 
-      <input
+      <Input
         type="file"
         ref={fileInputRef}
         className="hidden"

@@ -83,16 +83,16 @@ const ResumeScreeningDetailModal = ({
                   <div className="text-muted-foreground text-sm mb-1">Status</div>
                   <Badge
                     variant={
-                      data.pass_fail
+                      data.pass_fail && (data.resume_score ?? 0) >= 65
                         ? "default"
-                        : data.pass_fail === false
+                        : data.pass_fail === false || (data.resume_score ?? 0) < 65
                           ? "destructive"
                           : "secondary"
                     }
                   >
-                    {data.pass_fail === true
+                    {data.pass_fail === true && (data.resume_score ?? 0) >= 65
                       ? "PASS"
-                      : data.pass_fail === false
+                      : data.pass_fail === false || (data.resume_score ?? 0) < 65
                         ? "FAIL"
                         : "PENDING"}
                   </Badge>
@@ -100,7 +100,7 @@ const ResumeScreeningDetailModal = ({
                 <div className="text-end">
                   <div className="text-muted-foreground text-sm mb-1">Score</div>
                   <div
-                    className={`text-2xl font-bold ${data.resume_score && data.resume_score >= 65 ? "text-green-500" : "text-yellow-500"}`}
+                    className={`text-2xl font-bold ${data.resume_score && data.resume_score >= 80 ? "text-green-500" : data.resume_score && data.resume_score >= 65 ? "text-yellow-500" : "text-red-500"}`}
                   >
                     {data.resume_score !== null ? `${data.resume_score.toFixed(1)}%` : "N/A"}
                   </div>

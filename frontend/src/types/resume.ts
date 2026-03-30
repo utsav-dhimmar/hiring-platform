@@ -144,6 +144,16 @@ export interface CandidateResponse {
   applied_job_id?: string | null;
   /** ID of the associated resume record */
   resume_id?: string | null;
+  /**
+   * Candidate's location (city, country, etc.).
+   * May be null/undefined if not extracted — render as "N/A".
+   */
+  location?: string | null;
+  /**
+   * Timestamp when the candidate applied / resume was uploaded.
+   * Falls back to created_at when not provided — render as "N/A" if both are absent.
+   */
+  applied_at?: string | null;
 }
 
 /**

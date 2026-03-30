@@ -10,6 +10,10 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { resumeScreeningApi } from "@/apis/resumeScreening";
 import type { ResumeScreeningDecision } from "@/apis/resumeScreening";
+import { Card } from "../ui/card";
+import jobService from "@/apis/job";
+import type { JobVersionMinimal, JobVersionDetail } from "@/types/job";
+import { History, ChevronDown, ChevronUp } from "lucide-react";
 
 /**
  * Props for CandidateDetailsModal.
@@ -19,15 +23,23 @@ interface CandidateDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   candidate: CandidateResponse | ResumeScreeningResult | null;
+  jobId?: string;
 }
 
-export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateDetailsModalProps) {
+export function CandidateDetailsModal({ isOpen, onClose, candidate, jobId }: CandidateDetailsModalProps) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState<"approve" | "reject" | "maybe" | null>(null);
   const [reason, setReason] = useState("");
   const [screeningDecision, setScreeningDecision] = useState<ResumeScreeningDecision | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // JD Versions State
+  const [versions, setVersions] = useState<JobVersionMinimal[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<JobVersionDetail | null>(null);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && candidate?.id) {
@@ -37,11 +49,66 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
     }
   }, [isOpen, candidate?.id]);
 
+  const effectiveJobId = jobId || (candidate as CandidateResponse)?.applied_job_id;
+
+  useEffect(() => {
+    if (isOpen && effectiveJobId) {
+      setIsLoadingVersions(true);
+      jobService.getJob(effectiveJobId)
+        .then((jobData) => {
+          const sorted = [...(jobData.job_versions || [])].sort((a, b) => b.version_num - a.version_num);
+          setVersions(sorted);
+          
+          // Default to latest version
+          if (sorted.length > 0) {
+            setSelectedVersionId(sorted[0].id);
+          } else {
+            // If no versions, use the job's current data as "current version"
+            setSelectedVersion({
+              id: "current",
+              job_id: jobData.id,
+              version_number: jobData.version || 1,
+              title: jobData.title,
+              jd_text: jobData.jd_text,
+              jd_json: jobData.jd_json,
+              custom_extraction_fields: jobData.custom_extraction_fields || null,
+              created_at: jobData.created_at,
+            });
+          }
+        })
+        .finally(() => setIsLoadingVersions(false));
+    } else {
+      setVersions([]);
+      setSelectedVersion(null);
+      setSelectedVersionId(null);
+      setShowVersions(false);
+    }
+  }, [isOpen, effectiveJobId]);
+
+  useEffect(() => {
+    if (selectedVersionId && effectiveJobId) {
+      if (selectedVersionId === "current") return;
+      
+      // Check if it's the latest version (which is effectively the current job data)
+      const latestVersion = versions[0];
+      if (latestVersion && selectedVersionId === latestVersion.id) {
+         // Optimization: we could just use job data, but let's fetch for completeness if needed
+         // or handle it like JobVersionUpdates.tsx does
+      }
+
+      jobService.getJobVersion(selectedVersionId)
+        .then((data) => setSelectedVersion(data))
+        .catch(() => {
+          // Fallback or error handling
+        });
+    }
+  }, [selectedVersionId, effectiveJobId, versions]);
+
   if (!candidate) return null;
 
   // The analysis structure is very similar between both types
   const analysis = candidate.resume_analysis;
-  const isPassed = candidate.pass_fail;
+  const isPassed = candidate.pass_fail && (candidate.resume_score ?? 0) >= 65;
 
   const handleAction = (type: "approve" | "reject" | "maybe") => {
     setFeedbackType(type);
@@ -51,7 +118,7 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
 
   const submitFeedback = async () => {
     if (!candidate?.id || !feedbackType) return;
-    
+
     setIsSubmitting(true);
     try {
       const result = await resumeScreeningApi.submitDecision({
@@ -72,7 +139,7 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[90%] lg:max-w-[1000px] max-h-[100vh] p-0 overflow-hidden rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl">
-        <DialogHeader className="">
+        <DialogHeader className="pt-8 px-6 pb-4">
           <DialogTitle className="flex items-center gap-4">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
               <User className="h-6 w-6" />
@@ -91,46 +158,43 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
 
         <div className="px-6 py-3 border-y border-muted-foreground/10 bg-muted/20 flex flex-wrap gap-4 items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Match Percentage
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-black text-blue-500">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 whitespace-nowrap">
+                  Match Percentage
+                </span>
+                <span className="text-xl font-black text-blue-600 leading-none">
                   {analysis?.match_percentage || 0}%
                 </span>
               </div>
+
+              <div className="w-px h-4 bg-muted-foreground/10" />
+
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 whitespace-nowrap">
+                  Pass / Fail
+                </span>
+                <Badge
+                  variant={isPassed ? "default" : "destructive"}
+                  className={`rounded-full px-3 py-1 flex items-center gap-2 w-fit border-0 shadow-none ${isPassed ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}
+                >
+                  {isPassed ? (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span className="font-extrabold text-[10px] tracking-wider">PASSED</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-3.5 w-3.5" />
+                      <span className="font-extrabold text-[10px] tracking-wider">FAILED</span>
+                    </>
+                  )}
+                </Badge>
+              </div>
             </div>
             <Separator orientation="vertical" className="h-10 bg-muted-foreground/10" />
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Pass / Fail
-              </span>
-              <Badge
-                variant={isPassed ? "default" : "destructive"}
-                className={`rounded-full px-4 py-1 flex items-center gap-2 w-fit ${isPassed ? "bg-green-500/10 text-green-600 border-green-200 shadow-none" : "bg-red-500/10 text-red-600 border-red-200 shadow-none"}`}
-              >
-                {isPassed ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <span className="font-bold">PASSED</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4" />
-                    <span className="font-bold">FAILED</span>
-                  </>
-                )}
-              </Badge>
-            </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-1">
-              Status
-            </span>
-            <span className="text-sm font-semibold text-foreground uppercase tracking-wider">
-              {candidate.current_status || "Applied"}
-            </span>
           </div>
         </div>
 
@@ -139,25 +203,109 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
             {/* Summary Sections */}
             <div className="grid grid-cols-1 gap-3">
               <section className="space-y-2">
-                <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
-                  <div className="h-1 w-6 bg-primary rounded-full" />
-                  Strength Summary
-                </h3>
-                <p className="text-muted-foreground text-base leading-relaxed indent-4">
+                <Card className="text-muted-foreground text-base leading-relaxed px-2">
+                  <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
+                    {/* <div className="h-1 w-6 bg-primary rounded-full" /> */}
+                    Strength Summary
+                  </h3>
                   {analysis?.strength_summary || "No summary available."}
-                </p>
+                </Card>
               </section>
 
               <section className="space-y-2">
-                <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
-                  <div className="h-1 w-6 bg-blue-500 rounded-full" />
-                  Experience Alignment
-                </h3>
-                <p className="text-muted-foreground text-base leading-relaxed indent-4">
+                <Card className="text-muted-foreground text-base leading-relaxed px-2">
+                  <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
+                    {/* <div className="h-1 w-6 bg-blue-500 rounded-full" /> */}
+                    Experience Alignment
+                  </h3>
                   {analysis?.experience_alignment || "No alignment details available."}
-                </p>
+                </Card>
               </section>
             </div>
+            
+              <section className="space-y-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowVersions(!showVersions)}
+                  className="w-full flex items-center justify-between p-3 h-auto hover:bg-primary/5 rounded-2xl border border-muted-foreground/10"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      {isLoadingVersions ? (
+                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <History className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-black uppercase tracking-widest text-foreground">
+                        Job Description Versions
+                      </span>
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        {isLoadingVersions ? "Loading history..." : "Compare against different JD updates"}
+                      </span>
+                    </div>
+                  </div>
+                  {showVersions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+
+                {showVersions && (
+                  <div className="p-4 rounded-2xl bg-card border border-muted-foreground/10 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                    {isLoadingVersions ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="h-8 w-full bg-muted/40 rounded-full animate-pulse" />
+                        <div className="h-32 w-full bg-muted/20 rounded-xl animate-pulse" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          {versions.length > 0 ? (
+                            versions.map((v) => (
+                              <Button
+                                key={v.id}
+                                variant={selectedVersionId === v.id ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setSelectedVersionId(v.id)}
+                                className={`rounded-full h-8 px-4 text-[10px] font-black uppercase tracking-tighter transition-all duration-300 ${
+                                  selectedVersionId === v.id
+                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                                    : v.version_num === Math.max(...versions.map((iv) => iv.version_num))
+                                      ? "border-primary/50 text-primary hover:bg-primary/5"
+                                      : ""
+                                }`}
+                              >
+                                Version {v.version_num}
+                                {v.version_num === Math.max(...versions.map((iv) => iv.version_num)) && (
+                                  <span className="ml-1 opacity-60">(Latest)</span>
+                                )}
+                              </Button>
+                            ))
+                          ) : (
+                            <Badge variant="outline" className="rounded-full px-3 py-1 bg-primary/5 text-primary border-primary/20">
+                              Current Version (No history)
+                            </Badge>
+                          )}
+                        </div>
+
+                        {selectedVersion && (
+                          <div className="space-y-2 animate-in fade-in duration-500">
+                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-1">
+                              <span className="flex items-center gap-1.5">
+                                <div className="h-1 w-1 rounded-full bg-primary" />
+                                {selectedVersion.title}
+                              </span>
+                              <span>{new Date(selectedVersion.created_at).toLocaleDateString()}</span>
+                            </div>
+                            <div className="p-4 rounded-xl bg-muted/30 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap max-h-[300px] overflow-y-auto border border-muted-foreground/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] custom-scrollbar">
+                              {selectedVersion.jd_text || "No description available for this version."}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </section>
 
             {/* Screening Decision Section */}
             {screeningDecision && (
@@ -172,8 +320,8 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
                       screeningDecision.decision === "approve"
                         ? "default"
                         : screeningDecision.decision === "reject"
-                        ? "destructive"
-                        : "secondary"
+                          ? "destructive"
+                          : "secondary"
                     }
                     className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase"
                   >
@@ -261,17 +409,19 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
           </div>
         </div>
 
-        <div className="p-4 border-t border-muted-foreground/10 flex flex-wrap gap-4 items-center justify-center bg-muted/10">
-          <Button onClick={() => handleAction("approve")} variant="default">
-            Approve
-          </Button>
-          <Button variant="outline" onClick={() => handleAction("maybe")}>
-            May Be
-          </Button>
-          <Button variant="destructive" onClick={() => handleAction("reject")}>
-            Reject
-          </Button>
-        </div>
+        {!screeningDecision && (
+          <div className="p-4 border-t border-muted-foreground/10 flex flex-wrap gap-4 items-center justify-center bg-muted/10">
+            <Button onClick={() => handleAction("approve")} variant="default" className="rounded-xl px-8 shadow-md">
+              Approve
+            </Button>
+            <Button variant="outline" onClick={() => handleAction("maybe")} className="rounded-xl px-8 shadow-sm">
+              May Be
+            </Button>
+            <Button variant="destructive" onClick={() => handleAction("reject")} className="rounded-xl px-8 shadow-md">
+              Reject
+            </Button>
+          </div>
+        )}
       </DialogContent>
 
       <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
@@ -279,42 +429,40 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-xl">
               <div
-                className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                  feedbackType === "approve" 
-                    ? "bg-green-500/10 text-green-600" 
-                    : feedbackType === "reject"
+                className={`h-10 w-10 rounded-full flex items-center justify-center ${feedbackType === "approve"
+                  ? "bg-green-500/10 text-green-600"
+                  : feedbackType === "reject"
                     ? "bg-red-500/10 text-red-600"
                     : "bg-amber-500/10 text-amber-600"
-                }`}
+                  }`}
               >
                 <MessageSquare className="h-5 w-5" />
               </div>
-              {feedbackType === "approve" 
-                ? "Approve Candidate" 
+              {feedbackType === "approve"
+                ? "Approve Candidate"
                 : feedbackType === "reject"
-                ? "Reject Candidate"
-                : "Mark as 'Maybe'"}
+                  ? "Reject Candidate"
+                  : "Mark as 'Maybe'"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
                 Reason for {
-                  feedbackType === "approve" 
-                    ? "Approval" 
+                  feedbackType === "approve"
+                    ? "Approval"
                     : feedbackType === "reject"
-                    ? "Rejection"
-                    : "Decision"
+                      ? "Rejection"
+                      : "Decision"
                 }
               </label>
               <Textarea
-                placeholder={`Enter reason for ${
-                  feedbackType === "approve" 
-                    ? "approving" 
-                    : feedbackType === "reject"
+                placeholder={`Enter reason for ${feedbackType === "approve"
+                  ? "approving"
+                  : feedbackType === "reject"
                     ? "rejecting"
                     : "marking as maybe"
-                } ${candidate.first_name}...`}
+                  } ${candidate.first_name}...`}
                 className="min-h-[120px] rounded-2xl resize-none border-muted-foreground/20 focus:border-primary/30 transition-colors"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -327,23 +475,22 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateD
             </Button>
             <Button
               variant={
-                feedbackType === "approve" 
-                  ? "default" 
+                feedbackType === "approve"
+                  ? "default"
                   : feedbackType === "reject"
-                  ? "destructive"
-                  : "secondary"
+                    ? "destructive"
+                    : "secondary"
               }
               className="rounded-xl px-8"
               onClick={submitFeedback}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Submitting..." : `Confirm ${
-                feedbackType === "approve" 
-                  ? "Approval" 
-                  : feedbackType === "reject"
+              {isSubmitting ? "Submitting..." : `Confirm ${feedbackType === "approve"
+                ? "Approval"
+                : feedbackType === "reject"
                   ? "Rejection"
                   : "Decision"
-              }`}
+                }`}
             </Button>
           </DialogFooter>
         </DialogContent>

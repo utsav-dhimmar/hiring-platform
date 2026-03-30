@@ -117,7 +117,14 @@ export default function JobBoard() {
         },
         cell: ({ row }) => (
           <div className="flex flex-col">
-            <span className="font-bold text-lg">{row.getValue("title")}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-lg">{row.getValue("title")}</span>
+              {row.original.version && (
+                <Badge variant="secondary" className="text-xs font-normal h-5 px-1.5 rounded-md">
+                  v{row.original.version}
+                </Badge>
+              )}
+            </div>
             <span className="text-sm text-muted-foreground">{row.original.department?.name}</span>
           </div>
         ),
