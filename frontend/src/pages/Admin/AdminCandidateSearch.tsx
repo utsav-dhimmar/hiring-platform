@@ -231,7 +231,6 @@ const AdminCandidateSearch = () => {
         isOpen={showDetail}
         onClose={() => setShowDetail(false)}
         candidate={selectedCandidate}
-        jobId={jobId}
       />
 
       <ResumeScreeningDetailModal

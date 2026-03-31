@@ -16,9 +16,10 @@ import { Loader2 } from "lucide-react";
 import { DataTable } from "@/components/shared/DataTable";
 import { DateDisplay, StatusBadge } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
+import { cn } from "@/lib/utils";
 
 // ─── Canonical candidate shape ────────────────────────────────────────────────
 // Both ResumeScreeningResult and CandidateResponse satisfy this interface.
@@ -76,6 +77,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   onPaginationChange,
   pageCount,
 }: CandidateTableProps<T>) {
+  console.log(candidates);
   // ── Filter state ──────────────────────────────────────────────────────────
   const [nameFilter, setNameFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -288,32 +290,43 @@ export function CandidateTable<T extends UnifiedCandidate>({
         cell: ({ row }) => {
           const { linkedin_url, github_url } = row.original;
           return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               {linkedin_url ? (
                 <a
                   href={linkedin_url.startsWith("http") ? linkedin_url : `https://${linkedin_url}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 transition-colors"
                   title="LinkedIn Profile"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                    "text-blue-600 hover:text-blue-800 transition-colors"
+                  )}
                 >
                   <LinkedinLogo className="h-4 w-4" />
                 </a>
               ) : (
-                <LinkedinLogo className="h-4 w-4 text-muted-foreground/30" />
+                <Button variant="ghost" size="icon-sm" disabled className="px-0">
+                  <LinkedinLogo className="h-4 w-4" />
+                </Button>
               )}
+
               {github_url ? (
                 <a
                   href={github_url.startsWith("http") ? github_url : `https://${github_url}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white transition-colors"
                   title="GitHub Profile"
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                    "text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white transition-colors"
+                  )}
                 >
                   <GithubLogo className="h-4 w-4" />
                 </a>
               ) : (
-                <GithubLogo className="h-4 w-4 text-muted-foreground/30" />
+                <Button variant="ghost" size="icon-sm" disabled className="px-0">
+                  <GithubLogo className="h-4 w-4" />
+                </Button>
               )}
             </div>
           );

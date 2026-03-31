@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -14,6 +15,15 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 import { LogOut, User } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -86,7 +96,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector(selectCurrentUser);
-
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const isStaff =
     user?.role_name?.toLowerCase() === "admin" ||
     user?.role_name?.toLowerCase() === "hr";
@@ -162,13 +172,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
             >
               <User className="h-4 w-4" />
-              <span>Profile</span>
+              <span>{user?.full_name}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               variant="outline"
-              onClick={handleLogout}
+              onClick={() => setIsLogoutDialogOpen(true)}
               className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
             >
               <LogOut className="h-4 w-4" />
@@ -178,6 +188,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
+      <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl p-6">
+          <DialogHeader className="gap-2">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <LogOut className="h-5 w-5 text-red-500" />
+              Confirm Logout
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to log out? You will need to log in again to access your account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setIsLogoutDialogOpen(false)}
+              className="rounded-xl font-semibold"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleLogout}
+              className="rounded-xl font-semibold"
+            >
+              Logout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }

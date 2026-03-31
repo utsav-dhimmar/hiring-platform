@@ -11,9 +11,6 @@ import { useState, useEffect } from "react";
 import { resumeScreeningApi } from "@/apis/resumeScreening";
 import type { ResumeScreeningDecision } from "@/apis/resumeScreening";
 import { Card } from "../ui/card";
-import jobService from "@/apis/job";
-import type { JobVersionMinimal, JobVersionDetail } from "@/types/job";
-import { History, ChevronDown, ChevronUp } from "lucide-react";
 
 /**
  * Props for CandidateDetailsModal.
@@ -23,23 +20,15 @@ interface CandidateDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   candidate: CandidateResponse | ResumeScreeningResult | null;
-  jobId?: string;
 }
 
-export function CandidateDetailsModal({ isOpen, onClose, candidate, jobId }: CandidateDetailsModalProps) {
+export function CandidateDetailsModal({ isOpen, onClose, candidate }: CandidateDetailsModalProps) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState<"approve" | "reject" | "maybe" | null>(null);
   const [reason, setReason] = useState("");
   const [screeningDecision, setScreeningDecision] = useState<ResumeScreeningDecision | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // JD Versions State
-  const [versions, setVersions] = useState<JobVersionMinimal[]>([]);
-  const [selectedVersion, setSelectedVersion] = useState<JobVersionDetail | null>(null);
-  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
-  const [showVersions, setShowVersions] = useState(false);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && candidate?.id) {
@@ -48,61 +37,6 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate, jobId }: Can
       });
     }
   }, [isOpen, candidate?.id]);
-
-  const effectiveJobId = jobId || (candidate as CandidateResponse)?.applied_job_id;
-
-  useEffect(() => {
-    if (isOpen && effectiveJobId) {
-      setIsLoadingVersions(true);
-      jobService.getJob(effectiveJobId)
-        .then((jobData) => {
-          const sorted = [...(jobData.job_versions || [])].sort((a, b) => b.version_num - a.version_num);
-          setVersions(sorted);
-          
-          // Default to latest version
-          if (sorted.length > 0) {
-            setSelectedVersionId(sorted[0].id);
-          } else {
-            // If no versions, use the job's current data as "current version"
-            setSelectedVersion({
-              id: "current",
-              job_id: jobData.id,
-              version_number: jobData.version || 1,
-              title: jobData.title,
-              jd_text: jobData.jd_text,
-              jd_json: jobData.jd_json,
-              custom_extraction_fields: jobData.custom_extraction_fields || null,
-              created_at: jobData.created_at,
-            });
-          }
-        })
-        .finally(() => setIsLoadingVersions(false));
-    } else {
-      setVersions([]);
-      setSelectedVersion(null);
-      setSelectedVersionId(null);
-      setShowVersions(false);
-    }
-  }, [isOpen, effectiveJobId]);
-
-  useEffect(() => {
-    if (selectedVersionId && effectiveJobId) {
-      if (selectedVersionId === "current") return;
-      
-      // Check if it's the latest version (which is effectively the current job data)
-      const latestVersion = versions[0];
-      if (latestVersion && selectedVersionId === latestVersion.id) {
-         // Optimization: we could just use job data, but let's fetch for completeness if needed
-         // or handle it like JobVersionUpdates.tsx does
-      }
-
-      jobService.getJobVersion(selectedVersionId)
-        .then((data) => setSelectedVersion(data))
-        .catch(() => {
-          // Fallback or error handling
-        });
-    }
-  }, [selectedVersionId, effectiveJobId, versions]);
 
   if (!candidate) return null;
 
@@ -222,91 +156,6 @@ export function CandidateDetailsModal({ isOpen, onClose, candidate, jobId }: Can
                 </Card>
               </section>
             </div>
-            
-              <section className="space-y-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowVersions(!showVersions)}
-                  className="w-full flex items-center justify-between p-3 h-auto hover:bg-primary/5 rounded-2xl border border-muted-foreground/10"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      {isLoadingVersions ? (
-                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <History className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-black uppercase tracking-widest text-foreground">
-                        Job Description Versions
-                      </span>
-                      <span className="text-[10px] font-bold text-muted-foreground">
-                        {isLoadingVersions ? "Loading history..." : "Compare against different JD updates"}
-                      </span>
-                    </div>
-                  </div>
-                  {showVersions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-
-                {showVersions && (
-                  <div className="p-4 rounded-2xl bg-card border border-muted-foreground/10 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                    {isLoadingVersions ? (
-                      <div className="flex flex-col gap-2">
-                        <div className="h-8 w-full bg-muted/40 rounded-full animate-pulse" />
-                        <div className="h-32 w-full bg-muted/20 rounded-xl animate-pulse" />
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex flex-wrap gap-2">
-                          {versions.length > 0 ? (
-                            versions.map((v) => (
-                              <Button
-                                key={v.id}
-                                variant={selectedVersionId === v.id ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setSelectedVersionId(v.id)}
-                                className={`rounded-full h-8 px-4 text-[10px] font-black uppercase tracking-tighter transition-all duration-300 ${
-                                  selectedVersionId === v.id
-                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
-                                    : v.version_num === Math.max(...versions.map((iv) => iv.version_num))
-                                      ? "border-primary/50 text-primary hover:bg-primary/5"
-                                      : ""
-                                }`}
-                              >
-                                Version {v.version_num}
-                                {v.version_num === Math.max(...versions.map((iv) => iv.version_num)) && (
-                                  <span className="ml-1 opacity-60">(Latest)</span>
-                                )}
-                              </Button>
-                            ))
-                          ) : (
-                            <Badge variant="outline" className="rounded-full px-3 py-1 bg-primary/5 text-primary border-primary/20">
-                              Current Version (No history)
-                            </Badge>
-                          )}
-                        </div>
-
-                        {selectedVersion && (
-                          <div className="space-y-2 animate-in fade-in duration-500">
-                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-1">
-                              <span className="flex items-center gap-1.5">
-                                <div className="h-1 w-1 rounded-full bg-primary" />
-                                {selectedVersion.title}
-                              </span>
-                              <span>{new Date(selectedVersion.created_at).toLocaleDateString()}</span>
-                            </div>
-                            <div className="p-4 rounded-xl bg-muted/30 text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap max-h-[300px] overflow-y-auto border border-muted-foreground/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] custom-scrollbar">
-                              {selectedVersion.jd_text || "No description available for this version."}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </section>
-
             {/* Screening Decision Section */}
             {screeningDecision && (
               <section className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-3">

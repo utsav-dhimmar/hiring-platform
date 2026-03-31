@@ -276,7 +276,7 @@ export default function JobCandidates() {
               {candidates?.length || 0}
             </span>
             <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest group-hover:text-foreground transition-colors">
-              Resumes
+              Candidates
             </span>
           </div>
           <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-green-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-green-500/20">
@@ -378,7 +378,6 @@ export default function JobCandidates() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         candidate={selectedCandidate}
-        jobId={job?.id}
       />
 
       <JobInfoModal
