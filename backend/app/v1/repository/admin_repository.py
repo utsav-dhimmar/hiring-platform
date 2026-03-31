@@ -367,6 +367,13 @@ class AdminRepository:
             or 0
         )
 
+        total_pending = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail == "pending")
+            )
+            or 0
+        )
+
         return {
             "total_users": total_users or 0,
             "total_roles": total_roles or 0,
@@ -376,6 +383,7 @@ class AdminRepository:
             "total_resumes": total_resumes or 0,
             "total_passed": total_passed,
             "total_failed": total_failed,
+            "total_pending": total_pending,
             "active_jobs": active_jobs or 0,
             "active_users": active_users or 0,
         }
@@ -417,6 +425,12 @@ class AdminRepository:
         total_failed = (
             await db.scalar(
                 select(func.count(Resume.id)).where(Resume.pass_fail.in_(["fail", "failed"]))
+            )
+            or 0
+        )
+        total_pending = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail == "pending")
             )
             or 0
         )
@@ -462,6 +476,7 @@ class AdminRepository:
             "total_candidates": total_candidates,
             "total_passed": total_passed,
             "total_failed": total_failed,
+            "total_pending": total_pending,
             "candidates_by_job": candidates_by_job,
             "resumes_uploaded_last_30_days": resumes_last_30_days,
             "average_resume_score": float(avg_score) if avg_score else None,
