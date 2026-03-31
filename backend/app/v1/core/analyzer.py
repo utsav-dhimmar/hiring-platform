@@ -51,8 +51,8 @@ class ResumeJdAnalyzer:
     def analyze(
         self,
         *,
-        resume_text: str,
-        job_text: str,
+        candidate_info: dict[str, Any],
+        job_title: str,
         job_skills: list[str],
         candidate_skills: list[str],
         semantic_score: float,
@@ -60,8 +60,8 @@ class ResumeJdAnalyzer:
         """Perform a detailed LLM analysis of a resume's suitability for a job.
 
         Args:
-            resume_text: The constructed resume text.
-            job_text: The constructed job description text.
+            candidate_info: The extracted candidate information from langextract.
+            job_title: The title of the job.
             job_skills: List of skills required for the job.
             candidate_skills: List of skills found in the resume.
             semantic_score: The pre-calculated semantic similarity score.
@@ -74,10 +74,10 @@ class ResumeJdAnalyzer:
         """
         prompt = RESUME_JD_ANALYSIS_PROMPT.format(
             semantic_score=semantic_score,
+            job_title=job_title,
             job_skills=json.dumps(job_skills, ensure_ascii=True),
             candidate_skills=json.dumps(candidate_skills, ensure_ascii=True),
-            job_text=job_text,
-            resume_text=resume_text,
+            candidate_info=json.dumps(candidate_info, ensure_ascii=True),
         )
 
         outputs = list(self.model.infer([prompt]))

@@ -218,7 +218,7 @@ class ResumeUploadRepository:
         parse_summary: dict[str, object],
         parsed: bool = True,
         resume_score: float | None = None,
-        pass_fail: bool | None = None,
+        pass_fail: str | None = None,
     ) -> Resume:
         """Create a new resume record with parsing summary.
 

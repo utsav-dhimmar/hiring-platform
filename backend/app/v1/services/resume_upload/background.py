@@ -103,6 +103,15 @@ class BackgroundProcessor:
         reanalyze_candidate_task.delay(job_id_str=str(job_id), candidate_id_str=str(candidate_id))
         logger.info("Celery task scheduled for candidate reanalysis. job_id=%s, candidate_id=%s", job_id, candidate_id)
 
+    def schedule_cross_match(self, resume_id: uuid.UUID, original_job_id: uuid.UUID) -> None:
+        """Schedule a background task to run cross-job matching for a resume."""
+        from .tasks import cross_match_resume_task
+        cross_match_resume_task.delay(
+            resume_id_str=str(resume_id), 
+            original_job_id_str=str(original_job_id)
+        )
+        logger.info("Celery task scheduled for cross-job matching. resume_id=%s", resume_id)
+
 
     async def mass_refresh_in_background(
         self,

@@ -12,6 +12,7 @@ from ..db.models.jobs import Job
 from ..db.models.job_versions import JobVersion
 from ..db.models.permissions import Permission
 from ..db.models.recordings import Recording  # NOT USED
+from ..db.models.job_chunks import JobChunk
 from ..db.models.resume_chunks import ResumeChunk
 from ..db.models.resumes import Resume
 from ..db.models.roleAndPermission import role_permission
@@ -40,10 +41,12 @@ __all__ = [
     "Resume",
     "CoverLetter",
     "ResumeChunk",
+    "JobChunk",
     "HrDecision",
     "Interview",
     "Recording",  # NOT USED
     "Transcript",
     "ResumeScreeningDecision",
     "AuditLog",
+    "CrossJobMatch",
 ]

@@ -39,65 +39,29 @@ RESUME_EXTRACTION_EXAMPLES = [
         text="""
         John Doe
         john.doe@email.com | +1 (555) 012-3456 | San Francisco, CA
-        linkedin.com/in/johndoe | github.com/johndoe
+        github.com/johndoe
 
         SKILLS
-        Python, JavaScript, React, AWS, Docker, Kubernetes, Machine Learning, Agile/Scrum
+        Python, JavaScript, React, Machine Learning
 
         EXPERIENCE
-
         Senior Software Engineer | TechCorp Inc. | Jan 2023 - Present
         - Led development of microservices architecture serving 1M+ users
-        - Managed team of 5 engineers and implemented CI/CD pipelines
         - Reduced deployment time by 60% through automation
 
-        Software Developer | StartupXYZ | Jun 2022 - Dec 2023
-        - Built RESTful APIs using Node.js and MongoDB
-        - Collaborated with product team to deliver features on tight deadlines
-
         EDUCATION
-
         Master of Science in Computer Science
         Stanford University | 2020 - 2022
-        GPA: 3.8/4.0
-
-        Bachelor of Science in Software Engineering
-        MIT | 2016 - 2020
-
-        CERTIFICATIONS
-
-        AWS Certified Solutions Architect - Professional | Amazon Web Services | 2021
-        Certified Scrum Master (CSM) | Scrum Alliance | 2019
         """,
         extractions=[
-            Extraction(
-                extraction_class="name",
-                extraction_text="John Doe",
-                attributes={},
-            ),
-            Extraction(
-                extraction_class="email",
-                extraction_text="john.doe@email.com",
-                attributes={},
-            ),
-            Extraction(
-                extraction_class="phone",
-                extraction_text="+1 (555) 012-3456",
-                attributes={},
-            ),
-            Extraction(
-                extraction_class="location",
-                extraction_text="San Francisco, CA",
-                attributes={"city": "San Francisco", "state": "CA"},
-            ),
-            Extraction(
-                extraction_class="skill",
-                extraction_text="Python, JavaScript, React, AWS, Docker, Kubernetes, Machine Learning, Agile/Scrum",
-                attributes={"category": "technical"},
-            ),
+            Extraction(extraction_class="name", extraction_text="John Doe", attributes={}),
+            Extraction(extraction_class="email", extraction_text="john.doe@email.com", attributes={}),
+            Extraction(extraction_class="phone", extraction_text="+1 (555) 012-3456", attributes={}),
+            Extraction(extraction_class="location", extraction_text="San Francisco, CA", attributes={"city": "San Francisco", "state": "CA"}),
+            Extraction(extraction_class="skill", extraction_text="Python, JavaScript, React, Machine Learning", attributes={"category": "technical"}),
             Extraction(
                 extraction_class="experience",
-                extraction_text="Senior Software Engineer | TechCorp Inc. | Jan 2023 - Present\n- Led development of microservices architecture serving 1M+ users\n- Managed team of 5 engineers and implemented CI/CD pipelines\n- Reduced deployment time by 60% through automation",
+                extraction_text="Senior Software Engineer | TechCorp Inc. | Jan 2023 - Present\n- Led development of microservices architecture serving 1M+ users\n- Reduced deployment time by 60% through automation",
                 attributes={
                     "title": "Senior Software Engineer",
                     "company": "TechCorp Inc.",
@@ -108,70 +72,17 @@ RESUME_EXTRACTION_EXAMPLES = [
                 },
             ),
             Extraction(
-                extraction_class="experience",
-                extraction_text="Software Developer | StartupXYZ | Jun2022 - Dec 2023 \n- Built RESTful APIs using Node.js and MongoDB\n- Collaborated with product team to deliver features on tight deadlines",
-                attributes={
-                    "title": "Software Developer",
-                    "company": "StartupXYZ",
-                    "start_date": "Jun 2022",
-                    "end_date": "Dec 2023",
-                    "duration": "1.5 years",
-                    "is_current": "false",
-                },
-            ),
-            Extraction(
                 extraction_class="education",
-                extraction_text="Master of Science in Computer Science\nStanford University | 2020 - 2022\nGPA: 3.8/4.0",
+                extraction_text="Master of Science in Computer Science\nStanford University | 2020 - 2022",
                 attributes={
                     "degree": "Master of Science in Computer Science",
                     "institution": "Stanford University",
                     "start_date": "2020",
                     "end_date": "2022",
-                    "gpa": "3.8/4.0",
                     "level": "graduate",
                 },
             ),
-            Extraction(
-                extraction_class="education",
-                extraction_text="Bachelor of Science in Software Engineering\nMIT | 2016 - 2020",
-                attributes={
-                    "degree": "Bachelor of Science in Software Engineering",
-                    "institution": "MIT",
-                    "start_date": "2016",
-                    "end_date": "2020",
-                    "level": "undergraduate",
-                },
-            ),
-            Extraction(
-                extraction_class="certification",
-                extraction_text="AWS Certified Solutions Architect - Professional | Amazon Web Services | 2023",
-                attributes={
-                    "name": "AWS Certified Solutions Architect - Professional",
-                    "issuer": "Amazon Web Services",
-                    "date": "2023",
-                    "type": "cloud",
-                },
-            ),
-            Extraction(
-                extraction_class="certification",
-                extraction_text="Certified Scrum Master (CSM) | Scrum Alliance | 2021",
-                attributes={
-                    "name": "Certified Scrum Master (CSM)",
-                    "issuer": "Scrum Alliance",
-                    "date": "2021",
-                    "type": "methodology",
-                },
-            ),
-            Extraction(
-                extraction_class="link",
-                extraction_text="linkedin.com/in/johndoe",
-                attributes={"type": "linkedin", "platform": "LinkedIn"},
-            ),
-            Extraction(
-                extraction_class="link",
-                extraction_text="github.com/johndoe",
-                attributes={"type": "github", "platform": "GitHub"},
-            ),
+            Extraction(extraction_class="link", extraction_text="github.com/johndoe", attributes={"type": "github", "platform": "GitHub"}),
         ],
     )
 ]

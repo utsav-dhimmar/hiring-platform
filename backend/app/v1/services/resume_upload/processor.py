@@ -9,12 +9,11 @@ import uuid
 from typing import Any
 
 from app.v1.core.analyzer import ResumeJdAnalyzer
+from app.v1.core.heuristic_analyzer import heuristic_analyzer
 from app.v1.core.cache import cache
 from app.v1.core.embeddings import embedding_service
-from app.v1.core.extractor import (
-    DocumentParser,
-    ResumeLLMExtractor,
-)
+from app.v1.core.config import settings
+from app.v1.core.extractor import DocumentParser, ResumeLLMExtractor
 from app.v1.utils.resume_upload import (
     normalize_extractions,
 )
@@ -22,6 +21,7 @@ from app.v1.utils.text import (
     build_candidate_text,
     build_job_text,
     build_skill_text,
+    split_into_chunks,
 )
 
 from .logging import log_stage, log_event
@@ -121,6 +121,25 @@ class ResumeProcessor:
             )
             if job_id and job_embedding:
                 await cache.set(f"job_embedding:{job_id}", job_embedding)
+        elif len(job_embedding) != embedding_service.target_dim:
+            # Handle dimension mismatch from cache (e.g. model changed from 1024 to 384)
+            log_event(
+                event="job_embedding_dim_mismatch",
+                job_id=job_id,
+                cache_dim=len(job_embedding),
+                target_dim=embedding_service.target_dim,
+            )
+            stage_started_at = time.perf_counter()
+            job_embedding = (
+                embedding_service.encode_jd(job_text) if job_text else None
+            )
+            log_stage(
+                stage="job_embedding_refreshed_dim_mismatch",
+                started_at=stage_started_at,
+                job_chars=len(job_text) if job_text else 0,
+            )
+            if job_id and job_embedding:
+                await cache.set(f"job_embedding:{job_id}", job_embedding)
         # ---------------------------------------
 
         stage_started_at = time.perf_counter()
@@ -136,14 +155,18 @@ class ResumeProcessor:
         )
 
         stage_started_at = time.perf_counter()
-        chunk_embedding = (
-            embedding_service.encode_resume(raw_text)
-            if raw_text.strip()
-            else candidate_embedding
-        )
+        raw_chunks = split_into_chunks(raw_text) or [candidate_text]
+        chunk_embeddings = []
+        for chunk_txt in raw_chunks:
+            chunk_embeddings.append({
+                "text": chunk_txt,
+                "embedding": embedding_service.encode_resume(chunk_txt)
+            })
+            
         log_stage(
-            stage="chunk_embedding",
+            stage="multi_chunk_embedding",
             started_at=stage_started_at,
+            chunks=len(chunk_embeddings),
             raw_chars=len(raw_text),
         )
 
@@ -183,7 +206,7 @@ class ResumeProcessor:
         )
 
         stage_started_at = time.perf_counter()
-        analysis = self.analyzer.analyze(
+        analysis = heuristic_analyzer.analyze(
             resume_text=candidate_text,
             job_text=job_text,
             job_skills=[skill.name for skill in job_skills],
@@ -191,7 +214,7 @@ class ResumeProcessor:
             semantic_score=semantic_score,
         )
         log_stage(
-            stage="llm_resume_analysis",
+            stage="heuristic_resume_analysis",
             started_at=stage_started_at,
             candidate_skills=len(candidate_skills),
             job_skills=len(job_skills),
@@ -200,7 +223,7 @@ class ResumeProcessor:
         return {
             "job_embedding": job_embedding,
             "candidate_embedding": candidate_embedding,
-            "chunk_embedding": chunk_embedding,
+            "chunk_embeddings": chunk_embeddings,
             "skill_embeddings": skill_embeddings,
             "analysis": analysis,
         }

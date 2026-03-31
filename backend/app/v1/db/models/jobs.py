@@ -14,7 +14,9 @@ from app.v1.db.base import Base
 if TYPE_CHECKING:
     from app.v1.db.models.candidates import Candidate
     from app.v1.db.models.departments import Department
+    from app.v1.db.models.job_chunks import JobChunk
     from app.v1.db.models.job_stage_configs import JobStageConfig
+    from app.v1.db.models.job_versions import JobVersion
     from app.v1.db.models.skills import Skill
     from app.v1.db.models.user import User
     from app.v1.db.models.job_versions import JobVersion
@@ -133,6 +135,11 @@ class Job(Base):
         "JobStageConfig",
         back_populates="job",
         order_by="JobStageConfig.stage_order",
+        cascade="all, delete-orphan",
+    )
+    chunks: Mapped[list["JobChunk"]] = relationship(
+        "JobChunk",
+        back_populates="job",
         cascade="all, delete-orphan",
     )
     department: Mapped[Optional["Department"]] = relationship(

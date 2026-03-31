@@ -52,7 +52,7 @@ class EmbeddingService:
     def _fit_vector_dim(self, vector: list[float]) -> list[float]:
         """Ensure the vector matches the configured target dimension.
 
-        Truncates or pads the vector with zeros as needed.
+        Truncates or pads the vector with zeros as needed, then L2 normalizes.
 
         Args:
             vector: The input embedding vector.
@@ -60,11 +60,22 @@ class EmbeddingService:
         Returns:
             The adjusted vector matching the target dimension.
         """
-        if len(vector) == self.target_dim:
-            return vector
+        if not vector:
+            return [0.0] * self.target_dim
+
         if len(vector) > self.target_dim:
-            return vector[: self.target_dim]
-        return vector + ([0.0] * (self.target_dim - len(vector)))
+            vector = vector[: self.target_dim]
+        elif len(vector) < self.target_dim:
+            vector = vector + ([0.0] * (self.target_dim - len(vector)))
+            
+        arr = np.array(vector)
+        norm = np.linalg.norm(arr)
+        if norm > 1e-9:
+            arr = arr / norm
+        else:
+            # Avoid division by zero, return zero vector of correct size
+            return [0.0] * self.target_dim
+        return arr.tolist()
 
     def _encode_text(self, text: str, instruction: str) -> list[float]:
         """Internal helper to encode text into a vector using an optional instruction.
@@ -76,7 +87,7 @@ class EmbeddingService:
         Returns:
             A list of floats representing the embedding vector.
         """
-        normalized_text = text.strip()
+        normalized_text = text.strip().lower()
         if not normalized_text:
             return []
         payload = (
@@ -137,7 +148,7 @@ class EmbeddingService:
         
         payloads = []
         for text in texts:
-            normalized_text = text.strip()
+            normalized_text = text.strip().lower()
             if self.use_instructions:
                 payloads.append(instruction + normalized_text)
             else:
@@ -198,13 +209,27 @@ class EmbeddingService:
         Returns:
             A score between 0.0 and 100.0.
         """
-        if not resume_embedding or not jd_embedding:
+        if resume_embedding is None or jd_embedding is None:
             return 0.0
 
         vec1 = np.array(resume_embedding)
         vec2 = np.array(jd_embedding)
         if vec1.size == 0 or vec2.size == 0:
             return 0.0
+        
+        if vec1.shape != vec2.shape:
+            # This happens when the model dimension configuration changes (e.g. 384 vs 1024)
+            # We log a warning and return 0.0 to prevent a crash.
+            # The caller (Processor) is responsible for detecting and refreshing stale embeddings.
+            from app.v1.core.logging import get_logger
+            logger = get_logger(__name__)
+            logger.warning(
+                "Embedding dimension mismatch: resume_embedding=%s, jd_embedding=%s. Returning 0.0 score.",
+                vec1.shape,
+                vec2.shape
+            )
+            return 0.0
+            
         score = float(np.dot(vec1, vec2))
         return round(max(0.0, score) * 100.0, 2)
 

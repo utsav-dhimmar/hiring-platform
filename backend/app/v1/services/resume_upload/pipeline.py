@@ -198,7 +198,20 @@ async def run_resume_processing_pipeline(
             )
 
             stage_started_at = time.perf_counter()
-            if insights["job_embedding"] and job.jd_embedding is None:
+            stage_started_at = time.perf_counter()
+            needs_job_embedding_update = False
+            if insights["job_embedding"]:
+                current_dim = len(insights["job_embedding"])
+                if job.jd_embedding is None:
+                    needs_job_embedding_update = True
+                elif len(job.jd_embedding) != current_dim:
+                    logger.info(
+                        "Updating job %s embedding due to dimension mismatch (old=%d, new=%d)",
+                        job_id, len(job.jd_embedding), current_dim
+                    )
+                    needs_job_embedding_update = True
+
+            if needs_job_embedding_update:
                 await resume_upload_repository.update_job_embedding(
                     db,
                     job=job,
@@ -235,6 +248,7 @@ async def run_resume_processing_pipeline(
                 info=parsed_summary,
                 info_embedding=insights["candidate_embedding"],
             )
+            resume_record.resume_embedding = insights["candidate_embedding"]
             candidate.applied_version_number = job.version
             log_stage(
                 stage="persist_candidate_profile",
@@ -271,18 +285,20 @@ async def run_resume_processing_pipeline(
             resume_record.text_hash = text_hash
 
             stage_started_at = time.perf_counter()
-            await resume_upload_repository.create_resume_chunk(
-                db,
-                resume_id=resume_id,
-                parsed_json=parse_summary_with_analysis,
-                raw_text=raw_text,
-                chunk_embedding=insights["chunk_embedding"],
-            )
+            for chunk_data in insights["chunk_embeddings"]:
+                await resume_upload_repository.create_resume_chunk(
+                    db,
+                    resume_id=resume_id,
+                    parsed_json=parse_summary_with_analysis,
+                    raw_text=chunk_data["text"],
+                    chunk_embedding=chunk_data["embedding"],
+                )
             log_stage(
-                stage="create_resume_chunk",
+                stage="create_resume_chunks",
                 started_at=stage_started_at,
                 job_id=job_id,
                 resume_id=resume_id,
+                count=len(insights["chunk_embeddings"]),
             )
 
             stage_started_at = time.perf_counter()
@@ -339,6 +355,10 @@ async def run_resume_processing_pipeline(
                 job_id=job_id,
                 resume_id=resume_id,
             )
+
+            # Automatic cross-match trigger has been removed.
+            # It now triggers ONLY when HR marks a resume as 'fail' in ResumeUploadService.update_resume_status.
+            pass
         except Exception as exc:
             parse_summary_snapshot = getattr(
                 resume_record, "parse_summary", None

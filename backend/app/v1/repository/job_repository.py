@@ -8,10 +8,12 @@ from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.v1.db.models.job_chunks import JobChunk
 from app.v1.db.models.job_skills import job_skills
 from app.v1.db.models.job_stage_configs import JobStageConfig
 from app.v1.db.models.jobs import Job
 from app.v1.schemas.job import JobCreate, JobUpdate
+from app.v1.utils.text import build_job_text, split_into_chunks
 
 
 class JobRepository:
@@ -74,8 +76,16 @@ class JobRepository:
         skill_ids = payload.pop("skill_ids", [])
 
         job = Job(**payload, created_by=created_by)
+        
+        # Ensure fresh embeddings apply immediately
+        from app.v1.core.embeddings import embedding_service
+        from app.v1.utils.text import build_job_text
+        job.jd_embedding = embedding_service.encode_jd(build_job_text(job))
+        
         db.add(job)
         await db.flush()
+
+        await self._sync_job_chunks(db=db, job=job)
 
         await self._sync_skills(db=db, job_id=job.id, skill_ids=skill_ids)
         
@@ -108,9 +118,17 @@ class JobRepository:
 
         payload = object.model_dump(exclude_unset=True)
         skill_ids = payload.pop("skill_ids", None)
+        
+        core_fields_changed = any(k in payload for k in ["title", "department_id", "jd_text", "jd_json"])
 
         for key, value in payload.items():
             setattr(job, key, value)
+            
+        if core_fields_changed:
+            from app.v1.core.embeddings import embedding_service
+            from app.v1.utils.text import build_job_text
+            job.jd_embedding = embedding_service.encode_jd(build_job_text(job))
+            await self._sync_job_chunks(db=db, job=job)
 
         if skill_ids is not None:
             await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
@@ -210,6 +228,45 @@ class JobRepository:
                 for skill_id in skill_ids
             ],
         )
+
+    async def _sync_job_chunks(
+        self, db: AsyncSession, job: Job
+    ) -> None:
+        """Partition job description into chunks and persist with embeddings."""
+        from app.v1.core.embeddings import embedding_service
+        from app.v1.utils.text import split_into_chunks
+        
+        # Clear existing chunks
+        await db.execute(
+            delete(JobChunk).where(JobChunk.job_id == job.id)
+        )
+        
+        full_text = job.jd_text or ""
+        if not full_text.strip():
+            return
+            
+        chunks = split_into_chunks(full_text)
+        if not chunks:
+            return
+            
+        # Add Title as the first chunk for better context
+        if job.title and job.title not in chunks[0]:
+            chunks.insert(0, f"Job Title: {job.title}")
+
+        chunk_records = []
+        for text in chunks:
+            embedding = embedding_service.encode_jd(text)
+            chunk_records.append(
+                JobChunk(
+                    job_id=job.id,
+                    chunk_text=text,
+                    chunk_embedding=embedding,
+                )
+            )
+        
+        if chunk_records:
+            db.add_all(chunk_records)
+            await db.flush()
 
 
 job_repository = JobRepository()
