@@ -349,7 +349,12 @@ class AdminRepository:
         total_permissions = await db.scalar(select(func.count(Permission.id)))
         total_jobs = await db.scalar(select(func.count(Job.id)))
         total_candidates = await db.scalar(select(func.count(Candidate.id)))
-        total_resumes = await db.scalar(select(func.count(Resume.id)))
+        total_resumes = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail.isnot(None))
+            )
+            or 0
+        )
         active_jobs = await db.scalar(select(func.count(Job.id)).where(Job.is_active))
         active_users = await db.scalar(
             select(func.count(User.id)).where(User.is_active)
