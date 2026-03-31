@@ -164,6 +164,8 @@ class AnalyticsSummary(BaseModel):
     total_jobs: int
     total_candidates: int
     total_resumes: int
+    total_passed: int
+    total_failed: int
     active_jobs: int
     active_users: int
 
@@ -183,6 +185,8 @@ class HiringReport(BaseModel):
     total_jobs: int
     active_jobs: int
     total_candidates: int
+    total_passed: int
+    total_failed: int
     candidates_by_job: list[JobCandidatesStats]
     resumes_uploaded_last_30_days: int
     average_resume_score: float | None
