@@ -1,0 +1,74 @@
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
+from app.v1.db.session import get_db
+from app.v1.dependencies import get_current_user
+from app.v1.schemas.cross_job_match import CrossJobMatchResponse, CrossJobMatchRead
+from app.v1.db.models.cross_job_matches import CrossJobMatch
+from app.v1.db.models.resumes import Resume
+from app.v1.db.models.jobs import Job
+from app.v1.db.models.job_stage_configs import JobStageConfig
+from app.v1.services.cross_job_match_service import cross_job_match_service
+from app.v1.schemas.user import UserRead
+
+router = APIRouter()
+
+@router.post(
+    "/{resume_id}/trigger",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def trigger_cross_job_match(
+    resume_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+) -> dict:
+    """Trigger a cross-job match for a specific resume."""
+    # Verify resume exists
+    resume = await db.get(Resume, resume_id)
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume not found",
+        )
+    
+    from app.v1.db.models.candidates import Candidate
+    candidate = await db.get(Candidate, resume.candidate_id)
+    
+    # Offload to Celery task
+    from app.v1.services.resume_upload_service import resume_upload_service
+    resume_upload_service.background.schedule_cross_match(
+        resume_id=resume_id, 
+        original_job_id=candidate.applied_job_id
+    )
+    
+    return {"message": "Cross-job match triggered in background", "resume_id": resume_id}
+
+@router.get(
+    "/{resume_id}",
+    response_model=CrossJobMatchResponse,
+)
+async def get_cross_job_matches(
+    resume_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(get_current_user),
+) -> CrossJobMatchResponse:
+    """Retrieve existing cross-job matches for a resume."""
+    result = await db.execute(
+        select(CrossJobMatch)
+        .options(
+            selectinload(CrossJobMatch.matched_job).selectinload(Job.skills),
+            selectinload(CrossJobMatch.matched_job).selectinload(Job.stages).selectinload(JobStageConfig.template),
+            selectinload(CrossJobMatch.matched_job).selectinload(Job.versions),
+        )
+        .where(CrossJobMatch.resume_id == resume_id)
+        .order_by(CrossJobMatch.match_score.desc())
+    )
+    matches = result.scalars().all()
+    
+    return CrossJobMatchResponse(
+        resume_id=resume_id,
+        matches=[CrossJobMatchRead.model_validate(m) for m in matches]
+    )

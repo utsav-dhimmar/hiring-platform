@@ -35,7 +35,7 @@ from .converters import (
     status_response_from_resume,
     upload_response_from_records,
 )
-from .logging import log_event, log_stage
+from .logging import logger as _log, log_event, log_stage
 from .processor import ResumeProcessor
 
 
@@ -58,19 +58,6 @@ class ResumeUploadService:
 
         Validates the file, saves it, creates initial database records,
         and schedules background processing.
-
-        Args:
-            db: The async database session.
-            job_id: The target job ID.
-            resume: The uploaded file object.
-            current_user: The user performing the upload.
-            background_tasks: FastAPI background tasks.
-
-        Returns:
-            An initial upload response Schema.
-
-        Raises:
-            HTTPException: If the job is missing, inactive, file is too large, or type is unsupported.
         """
         total_started_at = time.perf_counter()
         log_event(
@@ -160,8 +147,10 @@ class ResumeUploadService:
         )
 
         upload_root = resolve_storage_path(settings.RESUME_UPLOAD_DIR)
-        target_dir = upload_root / str(job_id) / str(candidate.id)
+        target_dir = upload_root / str(job_id) / content_hash
         target_dir.mkdir(parents=True, exist_ok=True)
+
+        _log.info(f"Uploading resume: job_id={job_id}, content_hash={content_hash}")
 
         stored_file_name = f"{uuid7()}.{extension}"
         target_path = target_dir / stored_file_name
@@ -237,13 +226,6 @@ class ResumeUploadService:
             resume_id=resume_record.id,
             file_path=stored_file_path,
         )
-        log_event(
-            event="background_scheduled",
-            job_id=job_id,
-            candidate_id=candidate.id,
-            resume_id=resume_record.id,
-            file_id=file_record.id,
-        )
         log_stage(
             stage="upload_total",
             started_at=total_started_at,
@@ -267,20 +249,7 @@ class ResumeUploadService:
         resume_id: uuid.UUID,
         current_user: UserRead,
     ) -> ResumeStatusResponse:
-        """Retrieve the current status and analysis for a specific resume.
-
-        Args:
-            db: The async database session.
-            job_id: The job ID.
-            resume_id: The resume ID.
-            current_user: The user requesting status.
-
-        Returns:
-            The status and analysis schema.
-
-        Raises:
-            HTTPException: If the resume is not found.
-        """
+        """Retrieve the current status and analysis for a specific resume."""
         resume_record = await resume_upload_repository.get_resume_for_job(
             db,
             job_id=job_id,
@@ -303,15 +272,7 @@ class ResumeUploadService:
         db: AsyncSession,
         job_id: uuid.UUID,
     ) -> JobCandidatesResponse:
-        """Retrieve all candidates for a job with their resume insights.
-
-        Args:
-            db: The async database session.
-            job_id: The ID of the job to fetch candidates for.
-
-        Returns:
-            A JobCandidatesResponse containing the list of candidates.
-        """
+        """Retrieve all candidates for a job with their resume insights."""
         job = await resume_upload_repository.get_job(db, job_id)
         if not job:
             raise HTTPException(
@@ -342,16 +303,13 @@ class ResumeUploadService:
             linkedin_url = None
             github_url = None
 
-            # Robust search for social links across candidate profile and latest resume
             search_sources = []
             if candidate.info and isinstance(candidate.info, dict):
                 search_sources.append(candidate.info)
             if latest_resume and latest_resume.parse_summary:
                 search_sources.append(latest_resume.parse_summary)
                 if "extracted_data" in latest_resume.parse_summary:
-                    ext_data = latest_resume.parse_summary["extracted_data"]
-                    if isinstance(ext_data, dict):
-                        search_sources.append(ext_data)
+                    search_sources.append(latest_resume.parse_summary["extracted_data"])
 
             for source in search_sources:
                 if not isinstance(source, dict):
@@ -363,24 +321,14 @@ class ResumeUploadService:
                         location = loc_val
                     elif isinstance(loc_val, list) and loc_val:
                         first_loc = loc_val[0]
-                        if isinstance(first_loc, dict):
-                            loc_text = first_loc.get("text", "")
-                        elif isinstance(first_loc, str):
-                            loc_text = first_loc
-                        else:
-                            loc_text = ""
+                        loc_text = first_loc.get("text", "") if isinstance(first_loc, dict) else first_loc
                         if loc_text and loc_text.strip() != "Not mentioned":
                             location = loc_text
 
                 links = source.get("links") or source.get("social_links")
                 if isinstance(links, list):
                     for link_item in links:
-                        url = ""
-                        if isinstance(link_item, dict):
-                            url = link_item.get("text") or link_item.get("url") or ""
-                        elif isinstance(link_item, str):
-                            url = link_item
-                        
+                        url = link_item.get("url") or link_item if isinstance(link_item, (dict, str)) else ""
                         if not url: continue
                         url_lower = url.lower()
                         if "linkedin.com" in url_lower and not linkedin_url:
@@ -393,17 +341,13 @@ class ResumeUploadService:
                 resume_score = latest_resume.resume_score
                 pass_fail = latest_resume.pass_fail
                 parse_summary = latest_resume.parse_summary or {}
-
                 processing_info = parse_summary.get("processing", {})
                 if isinstance(processing_info, dict):
                     processing_status = processing_info.get("status")
                     processing_error = processing_info.get("error")
-
                 analysis_payload = parse_summary.get("analysis")
                 if isinstance(analysis_payload, dict):
-                    analysis = ResumeMatchAnalysis.model_validate(
-                        analysis_payload
-                    )
+                    analysis = ResumeMatchAnalysis.model_validate(analysis_payload)
 
             candidate_responses.append(
                 CandidateResponse(
@@ -428,9 +372,7 @@ class ResumeUploadService:
                 )
             )
 
-        return JobCandidatesResponse(
-            job_id=job_id, candidates=candidate_responses
-        )
+        return JobCandidatesResponse(job_id=job_id, candidates=candidate_responses)
 
     async def get_resumes_for_job(
         self,
@@ -438,39 +380,18 @@ class ResumeUploadService:
         db: AsyncSession,
         job_id: uuid.UUID,
     ) -> JobResumesResponse:
-        """Retrieve all resumes uploaded for a specific job.
-
-        Args:
-            db: The async database session.
-            job_id: The job ID.
-
-        Returns:
-            A schema containing the job info and the list of resumes.
-
-        Raises:
-            HTTPException: If the job is not found.
-        """
-        # Use job_repository to get full job with relationships (skills, stages)
+        """Retrieve all resumes uploaded for a specific job."""
         job = await job_repository.get(db, job_id)
         if not job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Job not found.",
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
 
-        resumes = await resume_upload_repository.get_resumes_for_job(
-            db,
-            job_id=job_id,
-        )
+        resumes = await resume_upload_repository.get_resumes_for_job(db, job_id=job_id)
         return JobResumesResponse(
             job_id=job_id,
             job=JobRead.model_validate(job),
             resumes=[
-                job_resume_response_from_resume(
-                    job_id=job_id,
-                    resume_record=resume_record,
-                )
-                for resume_record in resumes
+                job_resume_response_from_resume(job_id=job_id, resume_record=r)
+                for r in resumes
             ],
         )
 
@@ -481,20 +402,13 @@ class ResumeUploadService:
         job_id: uuid.UUID,
         background_tasks,
     ) -> None:
-        from app.v1.repository.job_repository import job_repository
+        """Trigger a background refresh for all resumes in a job."""
         job = await job_repository.get(db, job_id)
         if not job:
-            from fastapi import HTTPException, status
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
 
-        from app.v1.services.resume_upload.background import BackgroundProcessor
-        from app.v1.services.resume_upload.processor import ResumeProcessor
-
         bg_processor = BackgroundProcessor(ResumeProcessor())
-        background_tasks.add_task(
-            bg_processor.mass_refresh_in_background,
-            job_id=job_id,
-        )
+        background_tasks.add_task(bg_processor.mass_refresh_in_background, job_id=job_id)
 
     async def trigger_candidate_reanalyze(
         self,
@@ -504,21 +418,13 @@ class ResumeUploadService:
         candidate_id: uuid.UUID,
         background_tasks,
     ) -> None:
-        from app.v1.repository.job_repository import job_repository
+        """Trigger re-analysis for a single candidate."""
         job = await job_repository.get(db, job_id)
         if not job:
-            from fastapi import HTTPException, status
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
 
-        from app.v1.services.resume_upload.background import BackgroundProcessor
-        from app.v1.services.resume_upload.processor import ResumeProcessor
-
         bg_processor = BackgroundProcessor(ResumeProcessor())
-        # Hand off to Celery task so HR can track it globally and monitor in worker logs
-        bg_processor.schedule_candidate_reanalyze(
-            job_id=job_id,
-            candidate_id=candidate_id,
-        )
+        bg_processor.schedule_candidate_reanalyze(job_id=job_id, candidate_id=candidate_id)
 
     async def delete_resume(
         self,
@@ -527,20 +433,8 @@ class ResumeUploadService:
         resume_id: uuid.UUID,
         job_id: uuid.UUID,
     ) -> bool:
-        """Delete a resume and its associated data.
-
-        Args:
-            db: The async database session.
-            resume_id: The ID of the resume to delete.
-            job_id: The ID of the job it belongs to.
-
-        Returns:
-            True if deleted, False if not found.
-        """
-        success = await resume_upload_repository.delete_resume(
-            db, resume_id=resume_id, job_id=job_id
-        )
-        return success
+        """Delete a resume and its associated data."""
+        return await resume_upload_repository.delete_resume(db, resume_id=resume_id, job_id=job_id)
 
     async def update_resume_status(
         self,
@@ -550,36 +444,52 @@ class ResumeUploadService:
         job_id: uuid.UUID,
         pass_fail: str | None,
     ) -> bool:
-        """Manually update the HR decision/status for a resume.
-
-        Args:
-            db: Async database session.
-            resume_id: ID of the resume.
-            job_id: ID of the associated job.
-            pass_fail: New status string (e.g. 'pass', 'fail', 'maybe', pending).
-
-        Returns:
-            True if successful, False if resume not found for the given job.
-        """
+        """Manually update the HR decision/status for a resume."""
         from sqlalchemy import select
         from app.v1.db.models.resumes import Resume
         from app.v1.db.models.candidates import Candidate
-        
-        # Verify the resume exists and belongs to the given job
-        result = await db.execute(
+
+        stmt = (
             select(Resume)
-            .join(Candidate, Resume.candidate_id == Candidate.id)
+            .join(Candidate, Candidate.id == Resume.candidate_id)
             .where(
                 Resume.id == resume_id,
-                Candidate.applied_job_id == job_id
+                Candidate.applied_job_id == job_id,
             )
         )
+        result = await db.execute(stmt)
         resume = result.scalar_one_or_none()
+
         if not resume:
             return False
-            
+
+        _log.info(f"HR updated status for resume_id={resume_id} to: '{pass_fail}'")
+
+        # update the status
         resume.pass_fail = pass_fail
         await db.commit()
+
+        # Trigger cross-matching ONLY if the status is marked as 'fail' or 'failed'
+        normalized_status = (pass_fail or "").strip().lower()
+        if normalized_status in ("fail", "failed"):
+            _log.info(f"Triggering cross-match for failed resume_id={resume_id}")
+            self.background.schedule_cross_match(
+                resume_id=resume_id,
+                original_job_id=job_id
+            )
+        else:
+            # If the status is NOT fail, we should clear any PREVIOUS cross-matches
+            from sqlalchemy import delete
+            from app.v1.db.models.cross_job_matches import CrossJobMatch
+            
+            _log.info(f"Clearing old cross-matches for resume_id={resume_id} as status is now '{pass_fail}'")
+            await db.execute(
+                delete(CrossJobMatch).where(CrossJobMatch.resume_id == resume_id)
+            )
+            await db.commit()
+            _log.info(f"Skipping cross-match trigger. Status '{pass_fail}' is not a failure signal.")
+
         return True
+
 
 resume_upload_service = ResumeUploadService()

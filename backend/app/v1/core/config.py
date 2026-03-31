@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file="../.env",
+        env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
     )
@@ -209,6 +209,11 @@ class Settings(BaseSettings):
     )
     CACHE_TTL_SECONDS: int = Field(
         default=300, description="Time-to-live for cached items in seconds"
+    )
+
+    USE_CROSS_ENCODER: bool = Field(
+        default=False,
+        description="Whether to use a cross-encoder for re-ranking",
     )
 
     @computed_field

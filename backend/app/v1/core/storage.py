@@ -6,7 +6,21 @@ from __future__ import annotations
 from pathlib import Path, PureWindowsPath
 
 
-APP_ROOT = Path(__file__).resolve().parents[4]
+def _find_app_root() -> Path:
+    """Find the project root directory by looking for the 'uploads' folder upwards."""
+    # Start from the current file and traverse up to find the root containing 'uploads'
+    current = Path(__file__).resolve().parent
+    
+    for _ in range(6):
+        if (current / "uploads").is_dir():
+             return current
+        current = current.parent
+        
+    # Fallback to the absolute parents[3] if 'uploads' is not found in the traversal
+    # This typically lands on /app in Docker or the project root in local dev
+    return Path(__file__).resolve().parents[3]
+
+APP_ROOT = _find_app_root()
 UPLOADS_DIRNAME = "uploads"
 
 

@@ -116,3 +116,46 @@ def build_candidate_text(
     # and to fit perfectly within the SentenceTransformer 512 token limit.
 
     return "\n\n".join(parts).strip()
+def split_into_chunks(text: str, max_words: int = 150) -> list[str]:
+    """Split a long text into smaller chunks for granular embedding.
+
+    Chunks are split roughly by paragraph/newlines first, then by word count.
+
+    Args:
+        text: The text to split.
+        max_words: Approximately the maximum number of words per chunk.
+
+    Returns:
+        List of text chunks.
+    """
+    if not text:
+        return []
+
+    # Split by double newlines first (sections/paragraphs)
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    
+    chunks = []
+    current_chunk = []
+    current_word_count = 0
+    
+    for p in paragraphs:
+        words = p.split()
+        if not words:
+            continue
+            
+        # If a single paragraph is too long, we might need to split it further, 
+        # but for JD/Resumes, paragraphs are usually reasonable.
+        p_word_count = len(words)
+        
+        if current_word_count + p_word_count > max_words and current_chunk:
+            chunks.append(" ".join(current_chunk))
+            current_chunk = []
+            current_word_count = 0
+            
+        current_chunk.append(p)
+        current_word_count += p_word_count
+        
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+        
+    return chunks

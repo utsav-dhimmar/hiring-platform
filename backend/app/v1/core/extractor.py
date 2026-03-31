@@ -1,4 +1,3 @@
-
 """
 Resume extraction services.
 
@@ -7,7 +6,6 @@ extracting structured information from resume text using LLMs.
 """
 
 from pathlib import Path
-
 import docx2txt
 import pymupdf
 from langextract import extract
@@ -28,6 +26,7 @@ from app.v1.prompts import (
     RESUME_EXTRACTION_PROMPT,
 )
 
+print("[LOADED] extractor.py")
 
 class DocumentParser:
     """Handles text extraction from various document formats.
@@ -49,11 +48,11 @@ class DocumentParser:
             FileNotFoundError: If the file does not exist.
             ValueError: If the file format is unsupported.
         """
-        path = resolve_storage_path(file_path)
-        print(f"[V2] Checking file existence: {path}")
-
+        # Robust path resolution for Windows/Unix compatibility
+        path = resolve_storage_path(file_path).resolve()
+        
         if not path.is_file():
-            raise FileNotFoundError(f"[V2] File not found or is not a file: {path}")
+            raise FileNotFoundError(f"File not found or is not a file: {path}")
 
         ext = path.suffix.lower()
 
@@ -66,17 +65,7 @@ class DocumentParser:
 
     @staticmethod
     def _extract_from_pdf(file_path: Path) -> str:
-        """Extract text from a PDF document using PyMuPDF.
-
-        Args:
-            file_path: Path to the PDF file.
-
-        Returns:
-            Extracted text content.
-
-        Raises:
-            RuntimeError: If there is an error during PDF parsing.
-        """
+        """Extract text from a PDF document using PyMuPDF."""
         pages_text = []
         try:
             with pymupdf.open(file_path) as doc:
@@ -89,18 +78,7 @@ class DocumentParser:
 
     @staticmethod
     def _extract_from_docx(file_path: Path) -> str:
-        """Extract text from a DOCX document.
-
-        Args:
-            file_path: Path to the DOCX file.
-
-        Returns:
-            Extracted text content.
-
-        Raises:
-            RuntimeError: If there is an error during DOCX parsing.
-        """
-
+        """Extract text from a DOCX document."""
         try:
             return docx2txt.process(str(file_path))
         except Exception as e:
@@ -108,22 +86,12 @@ class DocumentParser:
 
 
 class ResumeLLMExtractor:
-    """Handles structured extraction of resume information using LLMs.
-
-    Uses Google LangExtract with Ollama and few-shot examples to map resume text
-    into structured data objects.
-    """
+    """Handles structured extraction of resume information using LLMs."""
 
     def __init__(self):
-        """Initialize the extractor with the configured Ollama model.
-
-        Model settings are retrieved from the application settings.
-        """
-
+        """Initialize the extractor with the configured LLM provider."""
         from langextract.providers.openai import OpenAILanguageModel
 
-        timeout = getattr(settings, "OLLAMA_TIMEOUT", 600)
-        
         if "/v1" in settings.OLLAMA_URL:
             self.model = OpenAILanguageModel(
                 model_id=settings.OLLAMA_MODEL,
@@ -150,37 +118,18 @@ class ResumeLLMExtractor:
     def extract_resume_info(
         self, text: str
     ) -> AnnotatedDocument | list[AnnotatedDocument]:
-        """Extract structured information from resume text using LangExtract.
-
-        Uses LLM with few-shot examples to identify and extract sections like
-        skills, experience, and education from the provided text.
-
-        Args:
-            text: Raw text content from a resume.
-
-        Returns:
-            An AnnotatedDocument or list of AnnotatedDocuments containing
-            extracted information.
-
-        Raises:
-            ValueError: If the input text is empty or missing.
-            Exception: Propagates any exception from the LLM or extraction process.
-        """
+        """Extract structured information from resume text using LangExtract."""
         if not text or not text.strip():
             raise ValueError("No text provided for extraction.")
 
         try:
-            raw_extractions = extract(
+            return extract(
                 text_or_documents=text,
                 model=self.model,
                 prompt_description=RESUME_EXTRACTION_PROMPT,
                 examples=RESUME_EXTRACTION_EXAMPLES,
                 debug=settings.DEBUG,
             )
-            print(raw_extractions)
-
-            return raw_extractions
-
         except Exception as e:
             print(f"Error during LLM extraction: {e}")
             raise e

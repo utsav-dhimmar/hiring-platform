@@ -10,10 +10,10 @@ from app.v1.db.session import async_session_maker
 from app.v1.repository.cross_job_match_repository import cross_job_match_repository
 from app.v1.core.embeddings import embedding_service
 from app.v1.utils.text import build_job_text, build_candidate_text
+from sqlalchemy import select, func
 from app.v1.db.models.resume_chunks import ResumeChunk
+from app.v1.db.models.job_chunks import JobChunk
 from app.v1.core.config import settings
-from app.v1.core.heuristic_analyzer import heuristic_analyzer
-from sqlalchemy import select
 
 _log = logging.getLogger(__name__)
 
@@ -34,8 +34,25 @@ class CrossJobMatchService:
         async with async_session_maker() as db:
             # Stage 0: Load resume and its embedding
             resume = await cross_job_match_repository.get_resume_with_embedding(db, resume_id=resume_id)
-            if not resume or resume.resume_embedding is None:
-                _log.warning("No embedding found for resume_id=%s. Skipping cross-match.", resume_id)
+            if resume is None:
+                _log.warning("Resume not found resume_id=%s. Skipping cross-match.", resume_id)
+                return
+
+            # Fetch all resume chunks for this candidate early (we need them for Deep Match anyway)
+            resume_chunk_result = await db.execute(
+                select(ResumeChunk.chunk_embedding)
+                .where(ResumeChunk.resume_id == resume_id)
+            )
+            resume_embeddings = [r for r in resume_chunk_result.scalars().all() if r is not None]
+
+            # Use the main resume_embedding or the first chunk as a bi-encoder proxy
+            base_embedding = resume.resume_embedding
+            if base_embedding is None and resume_embeddings:
+                base_embedding = resume_embeddings[0]
+                _log.info("Using first chunk as fallback embedding for bi-encoder shortlist.")
+
+            if base_embedding is None:
+                _log.warning("No embedding found for resume_id=%s in either Resume or ResumeChunk. Skipping cross-match.", resume_id)
                 return
 
             # Stage 1: Bi-encoder shortlist (fast)
@@ -49,7 +66,7 @@ class CrossJobMatchService:
             scored_shortlist = []
             for job in other_jobs:
                 bi_score = embedding_service.get_semantic_score_from_embeddings(
-                    resume.resume_embedding, job.jd_embedding
+                    base_embedding, job.jd_embedding
                 )
                 _log.info("Job %s | Bi-Score: %s", job.id, bi_score)
                 scored_shortlist.append({"job": job, "bi_score": bi_score})
@@ -66,67 +83,51 @@ class CrossJobMatchService:
                 return
 
         
-            # Need raw resume text reconstructed from ResumeChunk
-            result = await db.execute(
-                select(ResumeChunk.parsed_json, ResumeChunk.raw_text)
-                .where(ResumeChunk.resume_id == resume_id)
-                .limit(1)
-            )
-            chunk_data = result.first()
-            
-            if chunk_data:
-                resume_text = build_candidate_text(
-                    parsed_summary=chunk_data.parsed_json or {},
-                    raw_text=chunk_data.raw_text or ""
-                )
-                candidate_skills = (chunk_data.parsed_json or {}).get("skills", [])
+            # Stage 2: Reranking with Deep Match (Chunk-level embeddings)
+            if not resume_embeddings:
+                _log.warning("No ResumeChunk embeddings found for resume_id=%s. Using bi-encoder scores.", resume_id)
+                # Ensure all items have a final_score for sorting
+                for item in shortlist:
+                    item["final_score"] = item["bi_score"]
             else:
-                _log.warning("No ResumeChunk found for resume_id=%s. Falling back to bi-encoder scores.", resume_id)
-                resume_text = None
-                candidate_skills = []
-
-            final_matches = []
-            if resume_text:
-                # Use Heuristic (Local) or LLM analysis depending on settings
                 for item in shortlist:
+                    job = item["job"]
                     try:
-                        job = item["job"]
-                        from app.v1.repository.resume_upload_repository import resume_upload_repository
-                        job_skills = await resume_upload_repository.get_job_skills(db, job_id=job.id)
+                        # Fetch all job chunks for this job
+                        job_chunk_result = await db.execute(
+                            select(JobChunk.chunk_embedding)
+                            .where(JobChunk.job_id == job.id)
+                        )
+                        job_chunk_embeddings = [j for j in job_chunk_result.scalars().all() if j is not None]
                         
-                        if settings.USE_LLM_FOR_ANALYSIS: # renamed from USE_LLM_FOR_CROSS_MATCH to be consistent
-                            from app.v1.core.analyzer import ResumeJdAnalyzer
-                            analyzer = ResumeJdAnalyzer()
-                            analysis = analyzer.analyze(
-                                resume_text=resume_text,
-                                job_text=build_job_text(job),
-                                job_skills=[s.name for s in job_skills],
-                                candidate_skills=candidate_skills,
-                                semantic_score=item["bi_score"]
-                            )
+                        max_sim = 0.0
+                        if job_chunk_embeddings:
+                            # Full Deep Match: Max similarity across ALL pairs (ResumeChunk, JobChunk)
+                            for r_emb in resume_embeddings:
+                                for j_emb in job_chunk_embeddings:
+                                    sim = embedding_service.get_semantic_score_from_embeddings(r_emb, j_emb)
+                                    if sim > max_sim:
+                                        max_sim = sim
                         else:
-                            analysis = heuristic_analyzer.analyze(
-                                resume_text=resume_text,
-                                job_text=build_job_text(job),
-                                job_skills=[s.name for s in job_skills],
-                                candidate_skills=candidate_skills,
-                                semantic_score=item["bi_score"]
-                            )
+                            # Fallback: Max similarity between ResumeChunks and the aggregate JD embedding
+                            for r_emb in resume_embeddings:
+                                sim = embedding_service.get_semantic_score_from_embeddings(r_emb, job.jd_embedding)
+                                if sim > max_sim:
+                                    max_sim = sim
                         
-                        item["final_score"] = analysis["match_percentage"]
+                        # Scale is already 0-100 from embedding_service
+                        item["final_score"] = max_sim
+                        _log.info("Job %s | Deep Match Score: %s", job.id, item["final_score"])
+                        
                     except Exception:
-                        _log.exception("Reranking failed for job=%s", item["job"].id)
-                        item["final_score"] = round(item["bi_score"], 2)
-                for item in shortlist:
-                    item["final_score"] = round(item["bi_score"], 2)
-
+                        _log.exception("Deep Match reranking failed for job=%s", job.id)
+                        item["final_score"] = item["bi_score"]
             # Stage 3: Keep top-N above threshold
-            reranked = sorted(shortlist, key=lambda x: x["final_score"], reverse=True)
-            _log.info("Reranked matches: %s", [{ "id": str(i["job"].id), "score": i["final_score"] } for i in reranked])
+            reranked = sorted(shortlist, key=lambda x: x.get("final_score", x["bi_score"]), reverse=True)
+            _log.info("Reranked matches: %s", [{ "id": str(i["job"].id), "score": i.get("final_score", i["bi_score"]) } for i in reranked])
             top_matches = [
-                {"matched_job_id": item["job"].id, "match_score": item["final_score"]}
+                {"matched_job_id": item["job"].id, "match_score": item.get("final_score", item["bi_score"])}
                 for item in reranked
-                if item["final_score"] >= 0.0
             ][:_FINAL_N]
 
             # Persist results
