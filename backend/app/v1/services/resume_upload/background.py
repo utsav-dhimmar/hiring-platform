@@ -14,6 +14,7 @@ from app.v1.repository.resume_upload_repository import resume_upload_repository
 
 from .converters import merge_processing_info
 from .processor import ResumeProcessor
+from app.v1.utils.resume_upload import extract_skill_names
 
 logger = get_logger(__name__)
 
@@ -160,10 +161,10 @@ class BackgroundProcessor:
                     # Perform full re-analysis (Semantic score + LLM insights)
                     insights = await self.processor.generate_resume_insights(
                         raw_text=chunk.raw_text,
-                        parsed_summary=resume.parse_summary.get("extracted_data", {}) if resume.parse_summary else {},
+                        parsed_summary=resume.parse_summary if resume.parse_summary else {},
                         job=job,
                         job_skills=job_skills,
-                        candidate_skills=resume.parse_summary.get("extracted_data", {}).get("skills", []) if resume.parse_summary else [],
+                        candidate_skills=extract_skill_names(resume.parse_summary) if resume.parse_summary else [],
                     )
                     
                     # Update columns AND parse_summary
@@ -260,10 +261,10 @@ class BackgroundProcessor:
 
             insights = await self.processor.generate_resume_insights(
                 raw_text=chunk.raw_text,
-                parsed_summary=resume.parse_summary.get("extracted_data", {}) if resume.parse_summary else {},
+                parsed_summary=resume.parse_summary if resume.parse_summary else {},
                 job=job,
                 job_skills=job_skills,
-                candidate_skills=resume.parse_summary.get("extracted_data", {}).get("skills", []) if resume.parse_summary else [],
+                candidate_skills=extract_skill_names(resume.parse_summary) if resume.parse_summary else [],
             )
 
             custom_extractions = {}

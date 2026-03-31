@@ -8,7 +8,7 @@ import hashlib
 import time
 import uuid
 from pathlib import Path
-from uuid import uuid7
+from app.v1.utils.uuid import UUIDHelper
 
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -152,7 +152,7 @@ class ResumeUploadService:
 
         _log.info(f"Uploading resume: job_id={job_id}, content_hash={content_hash}")
 
-        stored_file_name = f"{uuid7()}.{extension}"
+        stored_file_name = f"{UUIDHelper.generate_uuid7()}.{extension}"
         target_path = target_dir / stored_file_name
         stored_file_path = to_storage_relative_path(target_path)
         stage_started_at = time.perf_counter()
