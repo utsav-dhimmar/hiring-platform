@@ -321,15 +321,26 @@ class ResumeUploadService:
                         location = loc_val
                     elif isinstance(loc_val, list) and loc_val:
                         first_loc = loc_val[0]
-                        loc_text = first_loc.get("text", "") if isinstance(first_loc, dict) else first_loc
+                        if isinstance(first_loc, dict):
+                            loc_text = first_loc.get("text") or first_loc.get("location") or ""
+                        else:
+                            loc_text = str(first_loc)
+                        
                         if loc_text and loc_text.strip() != "Not mentioned":
                             location = loc_text
 
                 links = source.get("links") or source.get("social_links")
                 if isinstance(links, list):
                     for link_item in links:
-                        url = link_item.get("url") or link_item if isinstance(link_item, (dict, str)) else ""
-                        if not url: continue
+                        url = ""
+                        if isinstance(link_item, dict):
+                            url = link_item.get("url") or link_item.get("text") or ""
+                        elif isinstance(link_item, str):
+                            url = link_item
+                        
+                        if not url or not isinstance(url, str):
+                            continue
+                        
                         url_lower = url.lower()
                         if "linkedin.com" in url_lower and not linkedin_url:
                             linkedin_url = url
