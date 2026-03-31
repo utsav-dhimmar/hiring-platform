@@ -11,8 +11,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, ConfigDict, Field
 from app.v1.schemas.job import JobRead
 
 
@@ -140,3 +139,33 @@ class JobCandidatesResponse(BaseModel):
     candidates: list[CandidateResponse]
 
 
+class CandidateRead(BaseModel):
+    """Schema for reading Candidate data."""
+    id: uuid.UUID
+    first_name: str | None = None
+    last_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    location: str | None = None
+    linkedin_url: str | None = None
+    github_url: str | None = None
+    current_status: str | None = None
+    applied_job_id: uuid.UUID
+    created_at: datetime
+    applied_version_number: int | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ResumeRead(BaseModel):
+    """Schema for reading Resume data."""
+    id: uuid.UUID
+    candidate_id: uuid.UUID
+    file_id: uuid.UUID
+    uploaded_at: datetime
+    parsed: bool
+    parse_summary: dict | None = None
+    resume_score: float | None = None
+    pass_fail: str | None = None
+    pass_threshold: float
+    text_hash: str | None = None
+    model_config = ConfigDict(from_attributes=True)
