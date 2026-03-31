@@ -9,6 +9,7 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
+from fastcrud import FastCRUD
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -22,6 +23,7 @@ from app.v1.db.models.jobs import Job
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.skills import Skill
+from app.v1.schemas.upload import ResumeRead, CandidateRead
 
 _log = logging.getLogger(__name__)
 
@@ -32,6 +34,11 @@ class ResumeUploadRepository:
     Provides methods for managing candidates, file records, and resume data
     during the resume screening process.
     """
+    
+    def __init__(self) -> None:
+        """Initialize the ResumeUploadRepository with FastCRUD instances."""
+        self.crud = FastCRUD(Resume, ResumeRead)
+        self.candidate_crud = FastCRUD(Candidate, CandidateRead)
 
     # ------------------------------------------------------------------ #
     # Job
@@ -524,6 +531,7 @@ class ResumeUploadRepository:
                         Candidate.applied_job_id == job_id,
                         Candidate.resumes.any(),
                     )
+                    .order_by(Candidate.created_at.desc())
                 )
             ).all()
         )
@@ -543,22 +551,16 @@ class ResumeUploadRepository:
         Returns:
             A list of Resume objects.
         """
-        return list(
-            (
-                await db.scalars(
-                    select(Resume)
-                    .options(
-                        selectinload(Resume.candidate),
-                        selectinload(Resume.file),
-                    )
-                    .join(Candidate, Candidate.id == Resume.candidate_id)
-                    .where(
-                        Candidate.applied_job_id == job_id,
-                        Candidate.resumes.any(),
-                    )
-                    .order_by(Resume.uploaded_at.desc())
-                )
-            ).all()
+        # Using FastCRUD to fetch joined records with descending sort
+        return await self.crud.get_joined(
+            db=db,
+            join_model=Candidate,
+            join_on=(Resume.candidate_id == Candidate.id),
+            filters={"applied_job_id": job_id},
+            sort_columns=["uploaded_at"],
+            sort_orders=["desc"],
+            schema_to_select=ResumeRead,
+            return_as_model=False,  # Return SQLAlchemy objects for compatibility
         )
 
     async def commit(self, db: AsyncSession) -> None:

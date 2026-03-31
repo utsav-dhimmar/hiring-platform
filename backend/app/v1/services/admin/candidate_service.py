@@ -36,6 +36,7 @@ class CandidateAdminService:
             select(Candidate)
             .where(Candidate.applied_job_id == job_id)
             .options(selectinload(Candidate.resumes))
+            .order_by(Candidate.created_at.desc())
             .offset(skip)
             .limit(limit)
         )
@@ -74,7 +75,14 @@ class CandidateAdminService:
 
         total = await db.scalar(total_stmt)
 
-        stmt = stmt.offset(skip).limit(limit)
+        stmt = (
+            select(Candidate)
+            .where(search_filter, job_filter)
+            .options(selectinload(Candidate.resumes))
+            .order_by(Candidate.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
         result = await db.execute(stmt)
         candidates = list(result.scalars().all())
 
@@ -106,7 +114,15 @@ class CandidateAdminService:
 
         total = await db.scalar(total_stmt)
 
-        stmt = stmt.offset(skip).limit(limit)
+        stmt = (
+            select(Candidate)
+            .where(search_filter)
+            .options(selectinload(Candidate.resumes))
+            .order_by(Candidate.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
+
         result = await db.execute(stmt)
         candidates = list(result.scalars().all())
 
