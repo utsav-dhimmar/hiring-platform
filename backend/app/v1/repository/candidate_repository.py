@@ -55,6 +55,7 @@ class CandidateRepository:
             .where(Candidate.applied_job_id == job_id)
             .where(search_filter)
             .options(selectinload(Candidate.resumes))
+            .order_by(Candidate.created_at.desc())
             .offset(skip)
             .limit(limit)
         )
