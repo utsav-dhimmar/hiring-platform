@@ -132,6 +132,7 @@ class CandidateResponse(BaseModel):
     is_parsed: bool = False
     processing_status: str | None = None
     processing_error: str | None = None
+    screening_decision: str | None = None
 
 
 class JobCandidatesResponse(BaseModel):
@@ -143,6 +144,7 @@ class JobCandidatesResponse(BaseModel):
 
 class CandidateRead(BaseModel):
     """Schema for reading Candidate data."""
+
     id: uuid.UUID
     first_name: str | None = None
     last_name: str | None = None
@@ -160,6 +162,7 @@ class CandidateRead(BaseModel):
 
 class ResumeRead(BaseModel):
     """Schema for reading Resume data."""
+
     id: uuid.UUID
     candidate_id: uuid.UUID
     file_id: uuid.UUID

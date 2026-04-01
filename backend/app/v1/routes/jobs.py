@@ -13,6 +13,7 @@ from app.v1.dependencies import check_permission
 from app.v1.schemas.job import (
     JobCreate,
     JobRead,
+    JobVersionRead,
     JobStatusUpdate,
     JobsListRead,
     JobUpdate,
@@ -85,9 +86,7 @@ async def create_job(
     job_in: JobCreate,
 ) -> Any:
     """Create a new job."""
-    return await admin_service.create_job(
-        db=db, admin_user_id=user.id, job_in=job_in
-    )
+    return await admin_service.create_job(db=db, admin_user_id=user.id, job_in=job_in)
 
 
 @router.get("/{job_id}", response_model=JobRead)
@@ -98,6 +97,16 @@ async def get_job(
 ) -> Any:
     """Get a specific job by ID."""
     return await admin_service.get_job_by_id(db=db, job_id=job_id)
+
+
+@router.get("/versions/{version_id}", response_model=JobVersionRead)
+async def get_job_version(
+    version_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:access")),
+) -> Any:
+    """Get a specific job version snapshot by its unique ID."""
+    return await admin_service.get_job_version(db=db, version_id=version_id)
 
 
 @router.get(
@@ -128,7 +137,10 @@ async def update_job(
 ) -> Any:
     """Update a job. Automatically refreshes resumes if custom_extraction_fields changed."""
     return await admin_service.update_job(
-        db=db, admin_user_id=user.id, job_id=job_id, job_update=job_update,
+        db=db,
+        admin_user_id=user.id,
+        job_id=job_id,
+        job_update=job_update,
         background_tasks=background_tasks,
     )
 
@@ -183,9 +195,7 @@ async def add_stage_to_job(
     stage_in: JobStageConfigCreate,
 ) -> Any:
     """Add a new stage to a job's interview process."""
-    return await stage_service.add_stage_to_job(
-        db=db, job_id=job_id, stage_in=stage_in
-    )
+    return await stage_service.add_stage_to_job(db=db, job_id=job_id, stage_in=stage_in)
 
 
 @router.patch("/{job_id}/stages/{config_id}", response_model=JobStageConfigRead)
@@ -205,9 +215,7 @@ async def update_job_stage(
     return config
 
 
-@router.delete(
-    "/{job_id}/stages/{config_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/{job_id}/stages/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_stage_from_job(
     job_id: uuid.UUID,
     config_id: uuid.UUID,

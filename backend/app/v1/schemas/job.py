@@ -64,6 +64,23 @@ class JobVersionMinimal(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class JobVersionRead(BaseModel):
+    """
+    Schema for reading full Job version snapshot data.
+    """
+
+    id: uuid.UUID
+    job_id: uuid.UUID
+    version_number: int
+    title: str
+    jd_text: str | None = None
+    jd_json: dict | None = None
+    custom_extraction_fields: list[str] | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class JobRead(JobBase):
     """
     Schema for reading Job data, including database-generated fields.

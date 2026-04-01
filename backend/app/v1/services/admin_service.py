@@ -99,6 +99,9 @@ class AdminService:
     async def get_job_by_id(self, *args, **kwargs) -> Job:
         return await job_admin_service.get_job_by_id(*args, **kwargs)
 
+    async def get_job_version(self, *args, **kwargs) -> Any:
+        return await job_admin_service.get_job_version(*args, **kwargs)
+
     async def create_job(self, *args, **kwargs) -> Job:
         return await job_admin_service.create_job(*args, **kwargs)
 

@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from app.v1.db.models.jobs import Job
 from app.v1.repository.job_repository import job_repository
@@ -31,6 +32,16 @@ class JobAdminService:
                 detail="Job not found.",
             )
         return job
+
+    async def get_job_version(self, db: AsyncSession, version_id: uuid.UUID) -> Any:
+        """Get a specific job version snapshot by its unique ID."""
+        version = await job_repository.get_version(db=db, id=version_id)
+        if not version:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job version not found.",
+            )
+        return version
 
     async def create_job(
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_in: JobCreate

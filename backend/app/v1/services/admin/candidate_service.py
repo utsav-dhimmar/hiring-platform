@@ -6,8 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidates import Candidate
-from app.v1.db.models.job_stage_configs import JobStageConfig
-from app.v1.schemas.job_stage import StageEvaluationRead
+
+# from app.v1.db.models.job_stage_configs import JobStageConfig
+# from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
 
 
@@ -99,7 +100,7 @@ class CandidateAdminService:
         limit: int = 100,
     ) -> dict[str, Any]:
         """Search candidates across all jobs."""
-
+        search_filter = True
         stmt = select(Candidate).options(selectinload(Candidate.resumes))
         total_stmt = select(func.count()).select_from(Candidate)
 
