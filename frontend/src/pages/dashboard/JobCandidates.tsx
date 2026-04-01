@@ -10,7 +10,6 @@ import { extractErrorMessage } from "@/utils/error";
 import {
   ArrowLeft,
   Upload,
-  GitBranch,
   FileText,
   RotateCw,
   Info,
@@ -262,19 +261,6 @@ export default function JobCandidates() {
               onClick={() => setIsJobModalOpen(true)}
             >
               Info
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (!job) return;
-                navigate(`/dashboard/jobs/${slugify(job.title)}/versions`, {
-                  state: { jobId: job.id },
-                });
-              }}
-              disabled={!job}
-            >
-              <GitBranch className="mr-2 h-5 w-5" />
-              Versions
             </Button>
             <Button
               variant="outline"
