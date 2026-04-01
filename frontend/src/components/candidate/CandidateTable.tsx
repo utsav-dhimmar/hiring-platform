@@ -10,8 +10,10 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef, PaginationState, OnChangeFn } from "@tanstack/react-table";
-import { ArrowUpDown, Filter, X, Calendar } from "lucide-react";
+import { ArrowUpDown, Filter, X, Calendar as CalendarIcon } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { format, startOfDay, endOfDay } from "date-fns";
+import type { DateRange } from "react-day-picker";
 
 import { DataTable } from "@/components/shared/DataTable";
 import { DateDisplay, StatusBadge } from "@/components/shared";
@@ -19,7 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+
 
 // ─── Canonical candidate shape ────────────────────────────────────────────────
 // Both ResumeScreeningResult and CandidateResponse satisfy this interface.
@@ -83,8 +88,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   const [nameFilter, setNameFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: undefined, to: undefined });
 
   // ── Derived filter options ────────────────────────────────────────────────
   const statusOptions = useMemo(() => {
@@ -131,25 +135,28 @@ export function CandidateTable<T extends UnifiedCandidate>({
 
       // Date range filter
       const rawDate = c.applied_at || c.created_at;
-      if (rawDate) {
+      if (rawDate && (dateRange?.from || dateRange?.to)) {
         const d = new Date(rawDate);
-        if (dateFrom && d < new Date(dateFrom)) return false;
-        if (dateTo && d > new Date(dateTo + "T23:59:59")) return false;
+        if (dateRange.from && d < startOfDay(dateRange.from)) return false;
+        if (dateRange.to && d > endOfDay(dateRange.to)) return false;
       }
 
       return true;
     });
-  }, [candidates, nameFilter, statusFilter, locationFilter, dateFrom, dateTo]);
+  }, [candidates, nameFilter, statusFilter, locationFilter, dateRange]);
 
   const hasActiveFilters =
-    nameFilter || statusFilter !== "all" || locationFilter !== "all" || dateFrom || dateTo;
+    nameFilter ||
+    statusFilter !== "all" ||
+    locationFilter !== "all" ||
+    dateRange?.from ||
+    dateRange?.to;
 
   const clearFilters = () => {
     setNameFilter("");
     setStatusFilter("all");
     setLocationFilter("all");
-    setDateFrom("");
-    setDateTo("");
+    setDateRange({ from: undefined, to: undefined });
   };
 
   // ── Column definitions ────────────────────────────────────────────────────
@@ -414,11 +421,6 @@ export function CandidateTable<T extends UnifiedCandidate>({
     [renderActions],
   );
 
-  const todayStr = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
-
   return (
     <div className="w-full space-y-3">
       {/* ── Filter Bar ── */}
@@ -464,32 +466,43 @@ export function CandidateTable<T extends UnifiedCandidate>({
           </select>
         )}
 
-        {/* Date range */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-0.5" />
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-muted-foreground font-medium">Start:</label>
-            <input
-              type="date"
-              value={dateFrom}
-              max={todayStr}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="h-9 rounded-xl border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
-              title="Applied from"
-            />
-          </div>
-          <span className="text-muted-foreground text-xs">–</span>
-          <div className="flex items-center gap-1.5">
-            <label className="text-xs text-muted-foreground font-medium">End:</label>
-            <input
-              type="date"
-              value={dateTo}
-              max={todayStr}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="h-9 rounded-xl border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
-              title="Applied to"
-            />
-          </div>
+        {/* Date range picker */}
+        <div className="flex items-center gap-1.5 px-3 h-9 rounded-xl border border-input  text-sm">
+          <Popover>
+            <PopoverTrigger>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "h-7 px-2 text-xs font-normal hover:bg-transparent",
+                  !dateRange?.from && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Applied date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-2xl border bg-popover shadow-2xl ml-2 ring-1 ring-foreground/5 overflow-hidden" align="start">
+              <Calendar
+                autoFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+                disabled={{ after: new Date() }}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Clear */}
