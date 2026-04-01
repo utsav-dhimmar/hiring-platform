@@ -13,7 +13,7 @@ from app.v1.db.models.job_skills import job_skills
 from app.v1.db.models.job_stage_configs import JobStageConfig
 from app.v1.db.models.jobs import Job
 from app.v1.schemas.job import JobCreate, JobUpdate
-from app.v1.utils.text import build_job_text, split_into_chunks
+from app.v1.db.models.job_versions import JobVersion
 
 
 class JobRepository:
@@ -21,9 +21,7 @@ class JobRepository:
     Repository class for handling Job database operations.
     """
 
-    async def get_multi(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ):
+    async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100):
         """
         Retrieve multiple job records with pagination.
 
@@ -76,20 +74,22 @@ class JobRepository:
         skill_ids = payload.pop("skill_ids", [])
 
         job = Job(**payload, created_by=created_by)
-        
+
         # Ensure fresh embeddings apply immediately
         from app.v1.core.embeddings import embedding_service
         from app.v1.utils.text import build_job_text
+
         job.jd_embedding = embedding_service.encode_jd(build_job_text(job))
-        
+
         db.add(job)
         await db.flush()
 
         await self._sync_job_chunks(db=db, job=job)
 
         await self._sync_skills(db=db, job_id=job.id, skill_ids=skill_ids)
-        
+
         from app.v1.db.models.job_versions import JobVersion
+
         job_version = JobVersion(
             job_id=job.id,
             version_number=1,
@@ -100,7 +100,7 @@ class JobRepository:
             custom_extraction_fields=job.custom_extraction_fields,
         )
         db.add(job_version)
-        
+
         await db.commit()
 
         created_job = await self.get(db=db, id=job.id)
@@ -108,9 +108,7 @@ class JobRepository:
             raise ValueError("Failed to load created job.")
         return created_job
 
-    async def update(
-        self, db: AsyncSession, id: uuid.UUID, object: JobUpdate
-    ) -> Job:
+    async def update(self, db: AsyncSession, id: uuid.UUID, object: JobUpdate) -> Job:
         """Update a job and optionally replace its skill associations."""
         job = await self.get(db=db, id=id)
         if job is None:
@@ -118,25 +116,29 @@ class JobRepository:
 
         payload = object.model_dump(exclude_unset=True)
         skill_ids = payload.pop("skill_ids", None)
-        
-        core_fields_changed = any(k in payload for k in ["title", "department_id", "jd_text", "jd_json"])
+
+        core_fields_changed = any(
+            k in payload for k in ["title", "department_id", "jd_text", "jd_json"]
+        )
 
         for key, value in payload.items():
             setattr(job, key, value)
-            
+
         if core_fields_changed:
             from app.v1.core.embeddings import embedding_service
             from app.v1.utils.text import build_job_text
+
             job.jd_embedding = embedding_service.encode_jd(build_job_text(job))
             await self._sync_job_chunks(db=db, job=job)
 
         if skill_ids is not None:
             await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
-            
+
         # Increment version to record an update
         job.version = (job.version or 1) + 1
-        
+
         from app.v1.db.models.job_versions import JobVersion
+
         job_version = JobVersion(
             job_id=job.id,
             version_number=job.version,
@@ -211,44 +213,44 @@ class JobRepository:
             "total": total or 0,
         }
 
+    async def get_version(self, db: AsyncSession, id: uuid.UUID) -> object | None:
+        """
+        Retrieve a specific JobVersion snapshot by its unique ID.
+        """
+
+        stmt = select(JobVersion).where(JobVersion.id == id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def _sync_skills(
         self, db: AsyncSession, job_id: uuid.UUID, skill_ids: list[uuid.UUID]
     ) -> None:
         """Replace a job's skill links with the provided skill ids."""
-        await db.execute(
-            delete(job_skills).where(job_skills.c.job_id == job_id)
-        )
+        await db.execute(delete(job_skills).where(job_skills.c.job_id == job_id))
         if not skill_ids:
             return
 
         await db.execute(
             insert(job_skills),
-            [
-                {"job_id": job_id, "skill_id": skill_id}
-                for skill_id in skill_ids
-            ],
+            [{"job_id": job_id, "skill_id": skill_id} for skill_id in skill_ids],
         )
 
-    async def _sync_job_chunks(
-        self, db: AsyncSession, job: Job
-    ) -> None:
+    async def _sync_job_chunks(self, db: AsyncSession, job: Job) -> None:
         """Partition job description into chunks and persist with embeddings."""
         from app.v1.core.embeddings import embedding_service
         from app.v1.utils.text import split_into_chunks
-        
+
         # Clear existing chunks
-        await db.execute(
-            delete(JobChunk).where(JobChunk.job_id == job.id)
-        )
-        
+        await db.execute(delete(JobChunk).where(JobChunk.job_id == job.id))
+
         full_text = job.jd_text or ""
         if not full_text.strip():
             return
-            
+
         chunks = split_into_chunks(full_text)
         if not chunks:
             return
-            
+
         # Add Title as the first chunk for better context
         if job.title and job.title not in chunks[0]:
             chunks.insert(0, f"Job Title: {job.title}")
@@ -263,7 +265,7 @@ class JobRepository:
                     chunk_embedding=embedding,
                 )
             )
-        
+
         if chunk_records:
             db.add_all(chunk_records)
             await db.flush()

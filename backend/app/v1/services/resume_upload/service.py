@@ -380,6 +380,11 @@ class ResumeUploadService:
                     is_parsed=is_parsed,
                     processing_status=processing_status,
                     processing_error=processing_error,
+                    screening_decision=(
+                        candidate.screening_decision.decision
+                        if candidate.screening_decision
+                        else None
+                    ),
                 )
             )
 
