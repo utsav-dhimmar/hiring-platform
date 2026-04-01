@@ -212,6 +212,7 @@ class ResumeProcessor:
             job_skills=[skill.name for skill in job_skills],
             candidate_skills=candidate_skills,
             semantic_score=semantic_score,
+            candidate_info=parsed_summary,
         )
         log_stage(
             stage="heuristic_resume_analysis",
