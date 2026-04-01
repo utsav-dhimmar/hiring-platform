@@ -34,6 +34,7 @@ class HeuristicAnalyzer:
 
     def _normalize_skills(self, skills: list[str | dict]) -> set[str]:
         """Convert a list of strings or dictionaries to a set of normalized strings."""
+        import re
         normalized = set()
         for s in skills:
             if isinstance(s, dict):
@@ -41,6 +42,12 @@ class HeuristicAnalyzer:
                 name = str(s.get("name") or s.get("skill") or list(s.values())[0])
             else:
                 name = str(s)
+            
+            # 1. Remove text in parentheses: "JavaScript (ES2022+)" -> "JavaScript "
+            name = re.sub(r'\(.*?\)', '', name)
+            # 2. Remove common trailing versioning/plus: "Java 17+" -> "Java ", "Node.js v14" -> "Node.js "
+            name = re.sub(r'(\s+|v)\d+(\.\d+)*\+?$', '', name, flags=re.IGNORECASE)
+            
             normalized.add(name.lower().strip())
         return normalized
 
@@ -64,7 +71,8 @@ class HeuristicAnalyzer:
         job_text: str,
         job_skills: list[str],
         candidate_skills: list[str],
-        semantic_score: float,  # This is the BI-ENCODER score (0-100)
+        semantic_score: float,
+        candidate_info: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Perform a local analysis without LLM calls."""
         
@@ -87,25 +95,81 @@ class HeuristicAnalyzer:
         final_match = (0.4 * skill_score) + (0.3 * semantic_score) + (0.3 * ce_score)
         final_match = min(100.0, max(0.0, final_match))
         
-        # Determine missing skills
+        # Determine missing skills using robust normalization
         j_skills_norm = self._normalize_skills(job_skills)
         c_skills_norm = self._normalize_skills(candidate_skills)
-        missing = [s for s in job_skills if str(s).lower().strip() not in c_skills_norm]
         
-        # Generate static/template-based summaries
-        strength_summary = f"Matching skills found: {', '.join(list(set(job_skills) - set(missing))[:5])}."
-        if not missing:
+        # We check each original job skill against the normalized candidate set
+        missing = []
+        for s in job_skills:
+            # Create a one-item set to use the same normalization logic
+            s_norm_set = self._normalize_skills([s])
+            if not s_norm_set or not list(s_norm_set)[0] in c_skills_norm:
+                missing.append(s)
+        
+        # 4. Extract insights from candidate_info if available
+        strength_summary = ""
+        extraordinary_points = []
+        
+        if candidate_info:
+            # Get professional summary from extraction
+            summaries = candidate_info.get("professional_summary", [])
+            if summaries:
+                txt = str(summaries[0].get("text", "")).strip()
+                if txt and txt.lower() != "not mentioned":
+                    strength_summary = txt
+            
+            # Get extraordinary highlights from extraction (using semicolon separator)
+            highlights = candidate_info.get("extraordinary_highlights", [])
+            for h in highlights:
+                txt = str(h.get("text", "")).strip()
+                if txt and txt.lower() != "not mentioned":
+                    # Switched to semicolon to avoid breaking on commas within sentences
+                    extraordinary_points.extend([x.strip() for x in txt.split(";") if x.strip() and x.lower() != "not mentioned"])
+
+        # 5. Generate Dynamic UI Feedback
+        
+        # Fallback for strength summary if LLM extraction didn't provide one
+        if not strength_summary:
+            matching_list = list(set(job_skills) - set(missing))
+            if matching_list:
+                strength_summary = f"Matching skills found: {', '.join(matching_list[:5])}."
+            else:
+                strength_summary = "No direct skill matches found in the resume."
+            
+        # Fallback for gap analysis
+        if not job_skills:
+            gap_analysis = "Analysis skipped: No mandatory skills were defined in the JD."
+        elif not missing:
             gap_analysis = "No significant skill gaps identified relative to the mandatory requirements."
         else:
             gap_analysis = f"Missing key requirements: {', '.join(missing[:5])}."
             
+        # 5. Extract Experience Summary from candidate_info
+        experience_alignment = ""
+        if candidate_info:
+            exp_summaries = candidate_info.get("experience_summary", [])
+            if exp_summaries:
+                txt = str(exp_summaries[0].get("text", "")).strip()
+                if txt and txt.lower() != "not mentioned":
+                    experience_alignment = txt
+        
+        # Fallback for experience alignment
+        if not experience_alignment:
+            if semantic_score > 75:
+                experience_alignment = "Strong alignment with the professional level and scope of the JD."
+            elif semantic_score > 50:
+                experience_alignment = "Moderate alignment found between professional history and core requirements."
+            else:
+                experience_alignment = "Limited professional background alignment detected for this specific role."
+
         return {
             "match_percentage": round(final_match, 1),
             "skill_gap_analysis": gap_analysis,
-            "experience_alignment": "Calculated via semantic alignment of professional history.",
+            "experience_alignment": experience_alignment,
             "strength_summary": strength_summary,
             "missing_skills": [{"name": s, "score": 0.0} for s in missing],
-            "extraordinary_points": [],
+            "extraordinary_points": extraordinary_points,
             "custom_extractions": {}
         }
 

@@ -50,6 +50,9 @@ def normalize_extractions(
         "education": [],
         "certifications": [],
         "links": [],
+        "extraordinary_highlights": [],
+        "professional_summary": [],
+        "experience_summary": [],
     }
 
     if hasattr(extracted, "skills") and hasattr(extracted, "experience"):
@@ -97,6 +100,12 @@ def normalize_extractions(
                 normalized["certifications"].append(item)
             elif extraction_class == "link":
                 normalized["links"].append(item)
+            elif extraction_class == "extraordinary_highlights":
+                normalized["extraordinary_highlights"].append(item)
+            elif extraction_class == "professional_summary":
+                normalized["professional_summary"].append(item)
+            elif extraction_class == "experience_summary":
+                normalized["experience_summary"].append(item)
 
     return normalized
 

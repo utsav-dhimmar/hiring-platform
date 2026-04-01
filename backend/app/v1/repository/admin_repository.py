@@ -350,10 +350,42 @@ class AdminRepository:
         total_permissions = await db.scalar(select(func.count(Permission.id)))
         total_jobs = await db.scalar(select(func.count(Job.id)))
         total_candidates = await db.scalar(select(func.count(Candidate.id)))
-        total_resumes = await db.scalar(select(func.count(Resume.id)))
+        total_resumes = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail.isnot(None))
+            )
+            or 0
+        )
         active_jobs = await db.scalar(select(func.count(Job.id)).where(Job.is_active))
         active_users = await db.scalar(
             select(func.count(User.id)).where(User.is_active)
+        )
+        total_passed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail == "pass")
+            )
+            or 0
+        )
+        total_failed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(
+                    Resume.pass_fail.in_(["fail", "failed"])
+                )
+            )
+            or 0
+        )
+
+        total_pending = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail == "pending")
+            )
+            or 0
+        )
+        total_unprocessed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail.is_(None))
+            )
+            or 0
         )
 
         return {
@@ -363,6 +395,10 @@ class AdminRepository:
             "total_jobs": total_jobs or 0,
             "total_candidates": total_candidates or 0,
             "total_resumes": total_resumes or 0,
+            "total_passed": total_passed,
+            "total_failed": total_failed,
+            "total_pending": total_pending,
+            "total_unprocessed": total_unprocessed,
             "active_jobs": active_jobs or 0,
             "active_users": active_users or 0,
         }
@@ -395,8 +431,30 @@ class AdminRepository:
             select(func.avg(Resume.resume_score)).where(Resume.resume_score.isnot(None))
         )
 
-        total_parsed = (
-            await db.scalar(select(func.count(Resume.id)).where(Resume.parsed))
+        total_passed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail == "pass")
+            )
+            or 0
+        )
+        total_failed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(
+                    Resume.pass_fail.in_(["fail", "failed"])
+                )
+            )
+            or 0
+        )
+        total_pending = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail == "pending")
+            )
+            or 0
+        )
+        total_unprocessed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail.is_(None))
+            )
             or 0
         )
         total_resumes_count = (
@@ -450,6 +508,10 @@ class AdminRepository:
             "total_jobs": total_jobs,
             "active_jobs": active_jobs,
             "total_candidates": total_candidates,
+            "total_passed": total_passed,
+            "total_failed": total_failed,
+            "total_pending": total_pending,
+            "total_unprocessed": total_unprocessed,
             "candidates_by_job": candidates_by_job,
             "resumes_uploaded_last_30_days": resumes_last_30_days,
             "average_resume_score": float(avg_score) if avg_score else None,
