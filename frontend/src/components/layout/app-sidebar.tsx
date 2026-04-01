@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -15,21 +14,20 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Mail, Shield } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { authService } from "@/apis/auth";
 import { logout, selectCurrentUser } from "@/store/slices/authSlice";
 import { Logo } from "../shared";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const data = {
   navMain: [
@@ -79,6 +77,10 @@ const data = {
           url: "/dashboard/admin/skills",
         },
         {
+          title: "Departments",
+          url: "/dashboard/admin/departments",
+        },
+        {
           title: "Audit Logs",
           url: "/dashboard/admin/audit-logs",
         },
@@ -96,7 +98,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector(selectCurrentUser);
+  const [showProfileCard, setShowProfileCard] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+
   const isStaff =
     user?.role_name?.toLowerCase() === "admin" ||
     user?.role_name?.toLowerCase() === "hr";
@@ -162,61 +166,98 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroup>
           ))}
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="relative">
+        {showProfileCard && (
+          <div className="absolute bottom-full left-2 right-2 mb-2 p-4 rounded-2xl bg-popover border border-border shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+            <div className="flex items-center gap-3 mb-4">
+              <Avatar className="h-10 w-10 border border-border">
+                <AvatarFallback className="bg-green-100 text-green-700 font-bold">
+                  {user?.full_name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="text-sm font-bold truncate">{user?.full_name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.role_name || "User"}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Mail className="h-3 w-3 shrink-0" />
+                <span className="truncate">{user?.email}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Shield className="h-3 w-3 shrink-0" />
+                <span className="truncate">{user?.role_name}</span>
+              </div>
+            </div>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full rounded-xl font-bold gap-2 text-xs"
+              onClick={() => setIsLogoutDialogOpen(true)}
+            >
+              <LogOut className="h-3 w-3" />
+              Logout
+            </Button>
+          </div>
+        )}
+
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               variant="outline"
-              onClick={() => navigate('/dashboard/profile')}
-              isActive={location.pathname === '/dashboard/profile'}
+              onClick={() => {
+                // navigate('/dashboard/profile')
+                setShowProfileCard(!showProfileCard);
+              }}
+              isActive={showProfileCard || location.pathname === '/dashboard/profile'}
               className="text-green-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
             >
               <User className="h-4 w-4" />
               <span>{user?.full_name}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              variant="outline"
-              onClick={() => setIsLogoutDialogOpen(true)}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
+
       <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-3xl p-6">
-          <DialogHeader className="gap-2">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <LogOut className="h-5 w-5 text-red-500" />
-              Confirm Logout
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Are you sure you want to log out? You will need to log in again to access your account.
-            </DialogDescription>
+        <DialogContent className="sm:max-w-[400px] rounded-[2rem] p-6 border-none ring-1 ring-border/50 shadow-2xl">
+          <DialogHeader className="gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center text-red-500 mx-auto">
+              <LogOut className="h-6 w-6" />
+            </div>
+            <div className="space-y-1 text-center">
+              <DialogTitle className="text-xl font-black tracking-tight text-foreground">
+                Confirm Logout
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground text-xs leading-relaxed">
+                Are you sure you want to sign out?
+              </DialogDescription>
+            </div>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
-            <Button
-              variant="ghost"
-              onClick={() => setIsLogoutDialogOpen(false)}
-              className="rounded-xl font-semibold"
-            >
-              Cancel
-            </Button>
+          <div className="flex flex-col gap-2 mt-6">
             <Button
               variant="destructive"
               onClick={handleLogout}
-              className="rounded-xl font-semibold"
+              className="h-10 rounded-xl font-bold text-sm"
             >
-              Logout
+              Confirm Logout
             </Button>
-          </DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setIsLogoutDialogOpen(false)}
+              className="h-10 rounded-xl font-bold text-muted-foreground text-sm"
+            >
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </Sidebar>
   );
 }
+
+

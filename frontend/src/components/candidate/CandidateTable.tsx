@@ -10,7 +10,7 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef, PaginationState, OnChangeFn } from "@tanstack/react-table";
-import { ArrowUpDown, Filter, X, MapPin, Calendar } from "lucide-react";
+import { ArrowUpDown, Filter, X, Calendar } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
 import { DataTable } from "@/components/shared/DataTable";
@@ -36,6 +36,7 @@ export interface UnifiedCandidate {
   pass_fail?: boolean | null;
   is_parsed?: boolean;
   processing_status?: string | null;
+  screening_decision?: "approve" | "reject" | "maybe" | null;
   created_at: string;
   /** Explicit apply timestamp – falls back to created_at, then "N/A" */
   applied_at?: string | null;
@@ -77,7 +78,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   onPaginationChange,
   pageCount,
 }: CandidateTableProps<T>) {
-  console.log(candidates);
+
   // ── Filter state ──────────────────────────────────────────────────────────
   const [nameFilter, setNameFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -283,6 +284,30 @@ export function CandidateTable<T extends UnifiedCandidate>({
         },
       },
 
+      {
+        id: "screening_decision",
+        accessorKey: "screening_decision",
+        header: "HR Decision",
+        cell: ({ row }) => {
+          const decision = row.original.screening_decision;
+          if (!decision) {
+            return <span className="text-muted-foreground text-sm">Pending</span>;
+          }
+
+          return (
+            <StatusBadge
+              status={decision}
+              className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
+              mapping={{
+                approve: "default",
+                reject: "destructive",
+                maybe: "secondary",
+              }}
+            />
+          );
+        },
+      },
+
       // ── 4. SOCIALS ───────────────────────────────────────────────────────
       {
         id: "socials",
@@ -362,10 +387,10 @@ export function CandidateTable<T extends UnifiedCandidate>({
         cell: ({ row }) => {
           const loc = row.original.location;
           if (!loc) return <span className="text-muted-foreground text-sm">N/A</span>;
+          const truncatedLoc = loc.length > 20 ? `${loc.slice(0, 18)}...` : loc;
           return (
-            <div className="flex items-center gap-1.5 text-sm">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span>{loc}</span>
+            <div className="flex items-center gap-1.5 text-sm" title={loc}>
+              <span>{truncatedLoc}</span>
             </div>
           );
         },
@@ -388,6 +413,11 @@ export function CandidateTable<T extends UnifiedCandidate>({
     ],
     [renderActions],
   );
+
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
 
   return (
     <div className="w-full space-y-3">
@@ -423,7 +453,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
           <select
             value={locationFilter}
             onChange={(e) => setLocationFilter(e.target.value)}
-            className="h-9 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
+            className="h-9 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer w-30"
           >
             <option value="all">All Locations</option>
             {locationOptions.map((l) => (
@@ -435,23 +465,31 @@ export function CandidateTable<T extends UnifiedCandidate>({
         )}
 
         {/* Date range */}
-        <div className="flex items-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="h-9 rounded-xl border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
-            title="Applied from"
-          />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-0.5" />
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs text-muted-foreground font-medium">Start:</label>
+            <input
+              type="date"
+              value={dateFrom}
+              max={todayStr}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 rounded-xl border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
+              title="Applied from"
+            />
+          </div>
           <span className="text-muted-foreground text-xs">–</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="h-9 rounded-xl border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
-            title="Applied to"
-          />
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs text-muted-foreground font-medium">End:</label>
+            <input
+              type="date"
+              value={dateTo}
+              max={todayStr}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 rounded-xl border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
+              title="Applied to"
+            />
+          </div>
         </div>
 
         {/* Clear */}

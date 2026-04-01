@@ -65,6 +65,17 @@ const AdminJobs = () => {
   const handleViewCandidates = (jobId: string) => {
     navigate(`/admin/jobs/${jobId}/candidates`);
   };
+  
+  const handleToggleStatus = async (job: JobRead) => {
+    try {
+      await adminJobService.updateJob(job.id, { is_active: !job.is_active });
+      toast.success(`Job ${!job.is_active ? "activated" : "deactivated"} successfully`);
+      fetchJobs();
+    } catch (error) {
+      console.error("Failed to toggle job status:", error);
+      toast.error("Failed to update job status");
+    }
+  };
 
   const columns: ColumnDef<JobRead>[] = [
     {
@@ -91,7 +102,15 @@ const AdminJobs = () => {
     {
       accessorKey: "is_active",
       header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.is_active} />,
+      cell: ({ row }) => (
+        <button
+          onClick={() => handleToggleStatus(row.original)}
+          className="hover:opacity-80 transition-opacity cursor-pointer flex"
+          title={`Click to ${row.original.is_active ? "deactivate" : "activate"}`}
+        >
+          <StatusBadge status={row.original.is_active} />
+        </button>
+      ),
     },
     {
       accessorKey: "skills",

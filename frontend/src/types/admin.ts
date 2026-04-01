@@ -443,6 +443,7 @@ export interface ResumeScreeningResult {
   is_parsed?: boolean;
   processing_status?: string;
   processing_error?: string | null;
+  screening_decision?: "approve" | "reject" | "maybe" | null;
   linkedin_url?: string | null;
   github_url?: string | null;
   /**

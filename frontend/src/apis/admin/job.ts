@@ -1,4 +1,5 @@
 import apiClient from "@/apis/client";
+import type { JobVersionDetail } from "@/types/job";
 import type {
   JobCreate,
   JobRead,
@@ -175,10 +176,27 @@ export const adminJobService = {
    * @param resumeId - Resume ID
    * @returns Promise resolving to resume details
    */
+  /**
+   * Get detailed information for a specific resume in a job.
+   * Only accessible by admin.
+   * @param jobId - Job ID
+   * @param resumeId - Resume ID
+   * @returns Promise resolving to resume details
+   */
   getJobResumeDetail: async (jobId: string, resumeId: string): Promise<JobResumeInfoResponse> => {
     const response = await apiClient.get<JobResumeInfoResponse>(
       `/job/${jobId}/resumes/${resumeId}`,
     );
+    return response.data;
+  },
+
+  /**
+   * Retrieves a specific job version snapshot by its unique record ID.
+   * @param versionId - Unique identifier of the version snapshot
+   * @returns Promise resolving to the version details
+   */
+  getJobVersion: async (versionId: string): Promise<JobVersionDetail> => {
+    const response = await apiClient.get<JobVersionDetail>(`/jobs/versions/${versionId}`);
     return response.data;
   },
 };

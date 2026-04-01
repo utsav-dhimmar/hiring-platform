@@ -13,9 +13,11 @@ import {
   GitBranch,
   FileText,
   RotateCw,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { slugify } from "@/utils/slug";
 import CandidateTable from "@/components/candidate/CandidateTable";
 
@@ -97,6 +99,7 @@ export default function JobCandidates() {
   }, [jobSlug, location.state, navigate]);
 
   const handleUploadClick = () => {
+    if (!job?.is_active) return;
     fileInputRef.current?.click();
   };
 
@@ -185,6 +188,10 @@ export default function JobCandidates() {
     toast.success("Requests sent for all candidates that need reanalysis.");
   }, [candidates, job, needsReanalysis]);
 
+  const hrApprovedCount = candidates.filter((c) => c.screening_decision === "approve").length;
+  const hrMaybeCount = candidates.filter((c) => c.screening_decision === "maybe").length;
+  const hrRejectedCount = candidates.filter((c) => c.screening_decision === "reject").length;
+
   // Polling
   useEffect(() => {
     const isAnyProcessing = candidates.some(
@@ -212,7 +219,7 @@ export default function JobCandidates() {
           Back to Jobs
         </Button>
 
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-4 border rounded-3xl bg-card/40 backdrop-blur-md shadow-sm border-muted-foreground/10">
+        <div className="flex flex-col gap-4 lg:flex-row justify-between items-start lg:items-center p-4 border rounded-3xl bg-card/40 backdrop-blur-md shadow-sm border-muted-foreground/10">
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
               {job?.title || "Loading..."}
@@ -225,17 +232,30 @@ export default function JobCandidates() {
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Status:</span>
                 {job && (
-                  <Badge
-                    variant={job.is_active ? "default" : "outline"}
-                    className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                  >
-                    {job.is_active ? "Active" : "Closed"}
-                  </Badge>
+                  <>
+                    <Badge
+                      variant={job.is_active ? "default" : "outline"}
+                      className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                    >
+                      {job.is_active ? "Active" : "Closed"}
+                    </Badge>
+                    {job.version != null && (
+                      <>
+                        <span className="text-muted-foreground ml-1">Version:</span>
+                        <Badge
+                          variant="secondary"
+                          className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                        >
+                          v{job.version}
+                        </Badge>
+                      </>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto mt-2 lg:mt-0">
             <Button
               variant="secondary"
               className="px-6 rounded-xl font-semibold border border-muted-foreground/10"
@@ -259,7 +279,8 @@ export default function JobCandidates() {
             <Button
               variant="outline"
               onClick={handleUploadClick}
-              disabled={isUploading}
+              disabled={isUploading || !job?.is_active}
+              title={!job?.is_active ? "Resume upload is disabled for inactive jobs" : undefined}
             >
               <Upload className="mr-2 h-5 w-5" />
               {isUploading ? "Uploading..." : "Upload Resumes"}
@@ -270,7 +291,7 @@ export default function JobCandidates() {
 
       {/* Stats Section */}
       {!loading && candidates?.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <div className="group p-6 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-card/50 transition-all duration-300 border-muted-foreground/10">
             <span className="text-4xl font-black text-foreground">
               {candidates?.length || 0}
@@ -293,6 +314,24 @@ export default function JobCandidates() {
             </span>
             <span className="text-sm font-bold text-red-500/50 uppercase tracking-widest group-hover:text-red-500/80 transition-colors">
               Failed
+            </span>
+          </div>
+          <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-green-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-green-500/20">
+            <span className="text-4xl font-black text-green-600">{hrApprovedCount}</span>
+            <span className="text-sm font-bold text-green-600/70 uppercase tracking-widest group-hover:text-green-600 transition-colors">
+              HR Approved
+            </span>
+          </div>
+          <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-amber-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-amber-500/20">
+            <span className="text-4xl font-black text-amber-600">{hrMaybeCount}</span>
+            <span className="text-sm font-bold text-amber-600/70 uppercase tracking-widest group-hover:text-amber-600 transition-colors">
+              HR Maybe
+            </span>
+          </div>
+          <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-red-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-red-500/20">
+            <span className="text-4xl font-black text-red-600">{hrRejectedCount}</span>
+            <span className="text-sm font-bold text-red-600/70 uppercase tracking-widest group-hover:text-red-600 transition-colors">
+              HR Rejected
             </span>
           </div>
         </div>
@@ -337,37 +376,62 @@ export default function JobCandidates() {
                 </Button>
               }
               renderActions={(candidate) => (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="border border-amber-300 hover:bg-yellow-500"
-                    onClick={() => handleReanalyzeCandidate(candidate.id)}
-                    isLoading={reanalyzingCandidateIds.includes(candidate.id)}
-                    disabled={
-                      !needsReanalysis(candidate) ||
-                      reanalyzingCandidateIds.includes(candidate.id)
-                    }
-                    title={
-                      !needsReanalysis(candidate)
-                        ? "Already analyzed with the latest JD version"
-                        : "Re-analyze with the latest JD version"
-                    }
-                  >
-                    Reanalyze
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="rounded-xl font-semibold h-9 px-4 bg-muted/50 hover:bg-muted text-foreground transition-all border border-muted-foreground/10"
-                    onClick={() => {
-                      setSelectedCandidate(candidate);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    More Info
-                  </Button>
-                </>
+                <div className="flex items-center gap-2 justify-end">
+                  <HoverCard>
+                    <HoverCardTrigger
+                      render={(props) => (
+                        <Button
+                          {...props}
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 w-9 p-0 rounded-xl border border-amber-300 hover:bg-amber-500/10 transition-all duration-300 flex items-center justify-center shrink-0"
+                          onClick={(e) => {
+                            if (props.onClick) props.onClick(e);
+                            handleReanalyzeCandidate(candidate.id);
+                          }}
+                          isLoading={reanalyzingCandidateIds.includes(candidate.id)}
+                          disabled={
+                            !needsReanalysis(candidate) ||
+                            reanalyzingCandidateIds.includes(candidate.id)
+                          }
+                          title={
+                            !needsReanalysis(candidate)
+                              ? "Already analyzed with the latest JD version"
+                              : "Re-analyze with the latest JD version"
+                          }
+                        >
+                          <RotateCw className="h-4 w-4 text-amber-600 shrink-0" />
+                        </Button>
+                      )}
+                    />
+                    <HoverCardContent side="bottom" className="w-auto p-2 min-w-0">
+                      <div className="text-sm font-semibold text-amber-700">Reanalyze</div>
+                    </HoverCardContent>
+                  </HoverCard>
+
+                  <HoverCard>
+                    <HoverCardTrigger
+                      render={(props) => (
+                        <Button
+                          {...props}
+                          variant="secondary"
+                          size="sm"
+                          className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
+                          onClick={(e) => {
+                            if (props.onClick) props.onClick(e);
+                            setSelectedCandidate(candidate);
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <Info className="h-4 w-4 shrink-0" />
+                        </Button>
+                      )}
+                    />
+                    <HoverCardContent side="bottom" className="w-auto p-2 min-w-0">
+                      <div className="text-sm font-semibold">More Info</div>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
               )}
             />
           </div>
@@ -378,6 +442,7 @@ export default function JobCandidates() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         candidate={selectedCandidate}
+        jobId={job?.id}
       />
 
       <JobInfoModal

@@ -99,6 +99,18 @@ export default function JobBoard() {
     }
   };
 
+  const handleToggleStatus = useCallback(async (job: Job) => {
+    try {
+      await jobService.updateJob(job.id, { is_active: !job.is_active });
+      toast.success(`Job ${!job.is_active ? "activated" : "deactivated"} successfully`);
+      fetchJobs();
+    } catch (error) {
+      console.error("Failed to toggle job status:", error);
+      const errorMessage = extractErrorMessage(error, "Failed to update job status");
+      toast.error(errorMessage);
+    }
+  }, [fetchJobs]);
+
   const columns: ColumnDef<Job>[] = useMemo(
     () => [
       {
@@ -133,12 +145,18 @@ export default function JobBoard() {
         accessorKey: "is_active",
         header: "Status",
         cell: ({ row }) => (
-          <Badge
-            variant={row.getValue("is_active") ? "default" : "outline"}
-            className="rounded-full px-3"
+          <button
+            onClick={() => handleToggleStatus(row.original)}
+            className="hover:opacity-80 transition-opacity cursor-pointer flex"
+            title={`Click to ${row.original.is_active ? "deactivate" : "activate"}`}
           >
-            {row.getValue("is_active") ? "Active" : "Inactive"}
-          </Badge>
+            <Badge
+              variant={row.original.is_active ? "is_active" in row.original && row.original.is_active ? "default" : "outline" : "outline"}
+              className="rounded-full px-3"
+            >
+              {row.original.is_active ? "Active" : "Inactive"}
+            </Badge>
+          </button>
         ),
       },
       {
@@ -219,7 +237,7 @@ export default function JobBoard() {
         ),
       },
     ],
-    [],
+    [navigate, handleToggleStatus],
   );
 
   return (

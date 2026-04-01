@@ -93,7 +93,7 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                 <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
                   Job Description
                 </h3>
-                
+
                 {job.job_versions && job.job_versions.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {[...(job.job_versions)].sort((a, b) => b.version_num - a.version_num).map((v) => (
@@ -102,11 +102,10 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                         variant={selectedVersionId === v.id ? "default" : "outline"}
                         size="sm"
                         onClick={() => setSelectedVersionId(v.id)}
-                        className={`rounded-full h-7 px-3 text-[10px] font-bold uppercase transition-all ${
-                          selectedVersionId === v.id 
-                            ? "bg-primary text-primary-foreground shadow-md" 
+                        className={`rounded-full h-7 px-3 text-[10px] font-bold uppercase transition-all ${selectedVersionId === v.id
+                            ? "bg-primary text-primary-foreground shadow-md"
                             : "hover:bg-primary/5"
-                        }`}
+                          }`}
                       >
                         V{v.version_num}
                       </Button>

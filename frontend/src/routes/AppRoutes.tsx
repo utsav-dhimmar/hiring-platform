@@ -30,6 +30,7 @@ const AdminRecentUploads = lazy(() => import("@/pages/Admin/AdminRecentUploads")
 const AdminJobs = lazy(() => import("@/pages/Admin/AdminJobs"));
 const AdminCandidateSearch = lazy(() => import("@/pages/Admin/AdminCandidateSearch"));
 const AdminSkills = lazy(() => import("@/pages/Admin/AdminSkills"));
+const AdminDepartments = lazy(() => import("@/pages/Admin/AdminDepartments"));
 const AdminStats = lazy(() => import("@/pages/dashboard/AdminStats"));
 
 /**
@@ -147,6 +148,14 @@ const AppRoutes = () => {
               element={
                 <RoleRoute allowedRoles={[]} requiredPermissions={["skills:access"]}>
                   <AdminSkills />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="departments"
+              element={
+                <RoleRoute allowedRoles={[]} requiredPermissions={["departments:access"]}>
+                  <AdminDepartments />
                 </RoleRoute>
               }
             />

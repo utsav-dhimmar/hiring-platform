@@ -267,3 +267,33 @@ export const jobStageConfigUpdateSchema = z.object({
  * Type inferred from jobStageConfigUpdateSchema.
  */
 export type JobStageConfigUpdateFormValues = z.infer<typeof jobStageConfigUpdateSchema>;
+
+/**
+ * Schema for creating a new department.
+ */
+export const departmentCreateSchema = z.object({
+  /** Name of the department (minimum 2 characters) */
+  name: z.string().min(2, "Department name must be at least 2 characters long"),
+  /** Optional description of the department */
+  description: z.string().optional().nullable(),
+});
+
+/**
+ * Type inferred from departmentCreateSchema.
+ */
+export type DepartmentCreateFormValues = z.infer<typeof departmentCreateSchema>;
+
+/**
+ * Schema for updating an existing department.
+ */
+export const departmentUpdateSchema = z.object({
+  /** Name of the department */
+  name: z.string().min(2, "Department name must be at least 2 characters long").optional(),
+  /** Optional description */
+  description: z.string().optional().nullable(),
+});
+
+/**
+ * Type inferred from departmentUpdateSchema.
+ */
+export type DepartmentUpdateFormValues = z.infer<typeof departmentUpdateSchema>;

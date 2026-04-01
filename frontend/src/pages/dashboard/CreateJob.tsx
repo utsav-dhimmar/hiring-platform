@@ -23,6 +23,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  Switch,
 } from "@/components";
 
 import jobService from "@/apis/job";
@@ -36,10 +37,17 @@ const jobSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   department_id: z.string().min(1, "Department is required"),
   jd_text: z.string().min(10, "Job description must be at least 10 characters"),
+  is_active: z.boolean(),
   skill_ids: z.array(z.string()).min(1, "Select at least one skill"),
 });
 
-type JobFormValues = z.infer<typeof jobSchema>;
+interface JobFormValues {
+  title: string;
+  department_id: string;
+  jd_text: string;
+  is_active: boolean;
+  skill_ids: string[];
+}
 
 export default function CreateJob() {
   const navigate = useNavigate();
@@ -54,11 +62,12 @@ export default function CreateJob() {
   const isEditMode = !!jobSlug;
 
   const form = useForm<JobFormValues>({
-    resolver: zodResolver(jobSchema),
+    resolver: zodResolver(jobSchema) as any,
     defaultValues: {
       title: "",
       department_id: "",
       jd_text: "",
+      is_active: true,
       skill_ids: [],
     },
   });
@@ -112,6 +121,7 @@ export default function CreateJob() {
               title: jobData.title,
               department_id: jobData.department_id || "",
               jd_text: jobData.jd_text || "",
+              is_active: jobData.is_active ?? true,
               skill_ids: jobData.skills?.map((s: any) => s.id) || [],
             });
           }
@@ -129,10 +139,10 @@ export default function CreateJob() {
     setIsSubmitting(true);
     try {
       if (isEditMode && jobId) {
-        await jobService.updateJob(jobId, values);
+        await jobService.updateJob(jobId, values as any);
         toast.success("Job updated successfully!");
       } else {
-        await jobService.createJob(values);
+        await jobService.createJob(values as any);
         toast.success("Job created successfully!");
       }
       navigate("/dashboard/jobs");
@@ -253,6 +263,30 @@ export default function CreateJob() {
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Is Active Status */}
+            <FormField
+              control={form.control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-2xl border border-muted-foreground/20 p-6 bg-card/10 backdrop-blur-sm hover:bg-card/20 transition-all shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-lg font-bold">
+                      Job Status
+                    </FormLabel>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Control visibility on the job board. Currently {field.value ? "Active" : "Inactive"}.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
