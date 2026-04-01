@@ -3,7 +3,6 @@ import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs"
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { toast } from "sonner";
 import { X, Plus, Check, Search } from "lucide-react";
 
@@ -32,22 +31,10 @@ import { adminSkillService } from "@/apis/admin/skill";
 import type { DepartmentRead, SkillRead } from "@/types/admin";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/utils/slug";
+import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
 
-const jobSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  department_id: z.string().min(1, "Department is required"),
-  jd_text: z.string().min(10, "Job description must be at least 10 characters"),
-  is_active: z.boolean(),
-  skill_ids: z.array(z.string()).min(1, "Select at least one skill"),
-});
 
-interface JobFormValues {
-  title: string;
-  department_id: string;
-  jd_text: string;
-  is_active: boolean;
-  skill_ids: string[];
-}
+
 
 export default function CreateJob() {
   const navigate = useNavigate();
@@ -61,8 +48,8 @@ export default function CreateJob() {
   const [jobId, setJobId] = useState<string | null>(null);
   const isEditMode = !!jobSlug;
 
-  const form = useForm<JobFormValues>({
-    resolver: zodResolver(jobSchema) as any,
+  const form = useForm<JobCreateFormValues>({
+    resolver: zodResolver(jobCreateSchema) as any,
     defaultValues: {
       title: "",
       department_id: "",
@@ -135,7 +122,7 @@ export default function CreateJob() {
     init();
   }, [isEditMode, jobSlug, location.state, form, navigate, fetchFormData]);
 
-  const onSubmit = async (values: JobFormValues) => {
+  const onSubmit = async (values: JobCreateFormValues) => {
     setIsSubmitting(true);
     try {
       if (isEditMode && jobId) {
@@ -331,13 +318,13 @@ export default function CreateJob() {
                       )}
                     >
 
-                      <span className="font-bold text-xs lg:text-sm truncate mr-2">
+                      <span className="font-bold text-xs lg:text-sm truncate mr-2 text-wrap">
                         {skill.name}
                       </span>
 
                       <div
                         className={cn(
-                          "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all duration-300",
+                          "shrink-0 w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all duration-300",
                           isSelected
                             ? "bg-primary border-primary text-primary-foreground scale-110"
                             : "border-muted-foreground/20 group-hover:border-primary/50",
