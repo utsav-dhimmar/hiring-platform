@@ -381,6 +381,18 @@ class ResumeUploadRepository:
             )
         return await db.scalar(query)
 
+    async def resume_exists(self, db: AsyncSession, resume_id: uuid.UUID) -> bool:
+        """Check if a resume record exists in the database.
+
+        Args:
+            db: The async database session.
+            resume_id: The UUID of the resume.
+
+        Returns:
+            True if it exists, False otherwise.
+        """
+        return (await db.scalar(select(func.count(Resume.id)).where(Resume.id == resume_id))) > 0
+
     async def mark_resume_failed(
         self,
         db: AsyncSession,

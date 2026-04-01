@@ -175,6 +175,9 @@ async def run_resume_processing_pipeline(
                 "education": normalized["education"],
                 "certifications": normalized["certifications"],
                 "links": normalized["links"],
+                "extraordinary_highlights": normalized["extraordinary_highlights"],
+                "professional_summary": normalized["professional_summary"],
+                "experience_summary": normalized["experience_summary"],
             }
             extracted_skill_names_list = extract_skill_names(normalized)
             job_skills = await resume_upload_repository.get_job_skills(
@@ -196,6 +199,15 @@ async def run_resume_processing_pipeline(
                 job_id=job_id,
                 resume_id=resume_id,
             )
+
+            # ---- Safety Check: Ensure resume hasn't been deleted during long processing ----
+            if not await resume_upload_repository.resume_exists(db, resume_id):
+                logger.info(
+                    "Stopping processing: resume_id=%s was deleted during analysis phase.",
+                    resume_id
+                )
+                return
+            # --------------------------------------------------------------------------------
 
             stage_started_at = time.perf_counter()
             stage_started_at = time.perf_counter()
