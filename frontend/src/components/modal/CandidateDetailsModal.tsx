@@ -136,15 +136,15 @@ export function CandidateDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[90%] lg:max-w-[1000px] max-h-[100vh] p-0 overflow-hidden rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl">
+      <DialogContent className="sm:max-w-[90%] lg:max-w-[1000px] max-h-screen p-0 overflow-hidden rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl">
         <DialogHeader className="pt-8 px-6 pb-4">
           <DialogTitle className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <User className="h-6 w-6" />
             </div>
 
             <div className="flex flex-col text-left gap-1">
-              <span className="text-[10px] uppercase font-black tracking-[0.2em] text-muted-foreground/60">
+              <span className="text-[10px] uppercase font-black tracking-[0.2em] ">
                 Candidate Profile
               </span>
               <span className="text-xl md:text-2xl font-black tracking-tight text-foreground">
@@ -156,13 +156,13 @@ export function CandidateDetailsModal({
         </DialogHeader>
 
         <div className="px-6 py-3 border-y border-muted-foreground/10 bg-muted/20 flex flex-wrap gap-4 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 whitespace-nowrap">
+                <span className="text-sm font-bold uppercase whitespace-nowrap">
                   Match Percentage
                 </span>
-                <span className="text-xl font-black text-blue-600 leading-none">
+                <span className="text-sm font-black text-blue-600 leading-none">
                   {analysis?.match_percentage || 0}%
                 </span>
               </div>
@@ -170,7 +170,7 @@ export function CandidateDetailsModal({
               <div className="w-px h-4 bg-muted-foreground/10" />
 
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 whitespace-nowrap">
+                <span className="text-sm font-bold uppercase whitespace-nowrap">
                   Pass / Fail
                 </span>
                 <Badge
@@ -193,7 +193,16 @@ export function CandidateDetailsModal({
                     </>
                   )}
                 </Badge>
+
               </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-bold uppercase whitespace-nowrap">
+                Analysis Version
+              </span>
+              <span className="text-sm font-black text-purple-600 leading-none">
+                V{(candidate as any)?.applied_version_number || "N/A"}
+              </span>
             </div>
             <Separator
               orientation="vertical"
@@ -249,10 +258,10 @@ export function CandidateDetailsModal({
                         Version {ver.version_num}
                         {ver.version_num ===
                           (candidate as any)?.applied_version_number && (
-                          <span className="ml-2 text-[8px] text-primary italic font-black">
-                            (Applied)
-                          </span>
-                        )}
+                            <span className="ml-2 text-[8px] text-primary italic font-black">
+                              (Applied)
+                            </span>
+                          )}
                         {ver.version_num === job.version && (
                           <span className="ml-2 text-[8px] text-green-600 italic font-black">
                             (Latest)
@@ -323,7 +332,7 @@ export function CandidateDetailsModal({
                       No note provided.
                     </p>
                   )}
-                  <div className="text-[10px] text-muted-foreground/60 font-medium">
+                  <div className="text-[10px]  font-medium">
                     Decided on{" "}
                     {new Date(
                       screeningDecision.created_at,
@@ -342,7 +351,7 @@ export function CandidateDetailsModal({
 
                   <div className="space-y-3">
                     {analysis?.missing_skills &&
-                    analysis.missing_skills.length > 0 ? (
+                      analysis.missing_skills.length > 0 ? (
                       <>
                         {(showAllSkills
                           ? analysis.missing_skills
@@ -387,13 +396,13 @@ export function CandidateDetailsModal({
                   </h3>
                   <div className="space-y-2">
                     {analysis?.extraordinary_points &&
-                    analysis.extraordinary_points.length > 0 ? (
+                      analysis.extraordinary_points.length > 0 ? (
                       analysis.extraordinary_points.map((point, idx) => (
                         <div
                           key={idx}
                           className="flex gap-3 text-sm leading-relaxed text-muted-foreground group"
                         >
-                          <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500 flex-shrink-0 group-hover:scale-150 transition-transform" />
+                          <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500 shrink-0 group-hover:scale-150 transition-transform" />
                           <p className="group-hover:text-foreground transition-colors">
                             {point}
                           </p>
@@ -446,10 +455,10 @@ export function CandidateDetailsModal({
                     {selectedVersionData.version_number ===
                       (candidate as ResumeScreeningResult)
                         ?.applied_version_number && (
-                      <Badge className="bg-primary/10 text-primary border-0 rounded-full font-black text-[10px] px-3 py-1">
-                        VERSION USED FOR ANALYSIS
-                      </Badge>
-                    )}
+                        <Badge className="bg-primary/10 text-primary border-0 rounded-full font-black text-[10px] px-3 py-1">
+                          VERSION USED FOR ANALYSIS
+                        </Badge>
+                      )}
                   </div>
 
                   <Separator className="bg-muted-foreground/10" />
@@ -481,13 +490,15 @@ export function CandidateDetailsModal({
             >
               Approve
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleAction("maybe")}
-              className="rounded-xl px-8 shadow-sm"
-            >
-              Maybe
-            </Button>
+            {(!screeningDecision || screeningDecision.decision !== "maybe") && (
+              <Button
+                variant="outline"
+                onClick={() => handleAction("maybe")}
+                className="rounded-xl px-8 shadow-sm"
+              >
+                Maybe
+              </Button>
+            )}
             <Button
               variant="destructive"
               onClick={() => handleAction("reject")}
@@ -504,13 +515,12 @@ export function CandidateDetailsModal({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-xl">
               <div
-                className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                  feedbackType === "approve"
-                    ? "bg-green-500/10 text-green-600"
-                    : feedbackType === "reject"
-                      ? "bg-red-500/10 text-red-600"
-                      : "bg-amber-500/10 text-amber-600"
-                }`}
+                className={`h-10 w-10 rounded-full flex items-center justify-center ${feedbackType === "approve"
+                  ? "bg-green-500/10 text-green-600"
+                  : feedbackType === "reject"
+                    ? "bg-red-500/10 text-red-600"
+                    : "bg-amber-500/10 text-amber-600"
+                  }`}
               >
                 <MessageSquare className="h-5 w-5" />
               </div>
@@ -532,13 +542,12 @@ export function CandidateDetailsModal({
                     : "Decision"}
               </label>
               <Textarea
-                placeholder={`Enter reason for ${
-                  feedbackType === "approve"
-                    ? "approving"
-                    : feedbackType === "reject"
-                      ? "rejecting"
-                      : "marking as maybe"
-                } ${candidate?.first_name || "candidate"}...`}
+                placeholder={`Enter reason for ${feedbackType === "approve"
+                  ? "approving"
+                  : feedbackType === "reject"
+                    ? "rejecting"
+                    : "marking as maybe"
+                  } ${candidate?.first_name || "candidate"}...`}
                 className="min-h-[120px] rounded-2xl resize-none border-muted-foreground/20 focus:border-primary/30 transition-colors"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -567,13 +576,12 @@ export function CandidateDetailsModal({
             >
               {isSubmitting
                 ? "Submitting..."
-                : `Confirm ${
-                    feedbackType === "approve"
-                      ? "Approval"
-                      : feedbackType === "reject"
-                        ? "Rejection"
-                        : "Decision"
-                  }`}
+                : `Confirm ${feedbackType === "approve"
+                  ? "Approval"
+                  : feedbackType === "reject"
+                    ? "Rejection"
+                    : "Decision"
+                }`}
             </Button>
           </DialogFooter>
         </DialogContent>

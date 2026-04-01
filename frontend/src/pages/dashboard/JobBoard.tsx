@@ -1,6 +1,7 @@
 import jobService from "@/apis/job";
 import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
-import { Button, Badge } from "@/components/";
+import { Button, Badge, Label, Switch } from "@/components/";
+import { cn } from "@/lib/utils";
 import { DateDisplay, DataTable, SkillsBadgeList } from "@/components/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -145,18 +146,23 @@ export default function JobBoard() {
         accessorKey: "is_active",
         header: "Status",
         cell: ({ row }) => (
-          <button
-            onClick={() => handleToggleStatus(row.original)}
-            className="hover:opacity-80 transition-opacity cursor-pointer flex"
-            title={`Click to ${row.original.is_active ? "deactivate" : "activate"}`}
-          >
-            <Badge
-              variant={row.original.is_active ? "is_active" in row.original && row.original.is_active ? "default" : "outline" : "outline"}
-              className="rounded-full px-3"
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={row.original.is_active}
+              onCheckedChange={() => handleToggleStatus(row.original)}
+              id={`status-${row.original.id}`}
+              size="sm"
+            />
+            <Label
+              htmlFor={`status-${row.original.id}`}
+              className={cn(
+                "text-sm font-medium transition-colors cursor-pointer",
+                row.original.is_active ? "text-primary" : "text-muted-foreground",
+              )}
             >
               {row.original.is_active ? "Active" : "Inactive"}
-            </Badge>
-          </button>
+            </Label>
+          </div>
         ),
       },
       {
