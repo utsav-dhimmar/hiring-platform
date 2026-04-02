@@ -317,21 +317,30 @@ class ResumeUploadService:
                 
                 if not location:
                     loc_val = source.get("location")
-                    if isinstance(loc_val, str) and loc_val.strip() != "Not mentioned":
-                        location = loc_val
+                    if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
+                        location = loc_val.strip()
                     elif isinstance(loc_val, list) and loc_val:
-                        first_loc = loc_val[0]
-                        if isinstance(first_loc, dict):
-                            loc_text = first_loc.get("text") or first_loc.get("location") or ""
-                        else:
-                            loc_text = str(first_loc)
-                        
-                        if loc_text and loc_text.strip() != "Not mentioned":
-                            location = loc_text
+                        for entry in loc_val:
+                            loc_text = ""
+                            if isinstance(entry, dict):
+                                loc_text = entry.get("text") or entry.get("location") or ""
+                            else:
+                                loc_text = str(entry)
+                            
+                            if loc_text and loc_text.strip().lower() not in ("not mentioned", "null", "none"):
+                                location = loc_text.strip()
+                                break
 
                 links = source.get("links") or source.get("social_links")
-                if isinstance(links, list):
-                    for link_item in links:
+                if links:
+                    if isinstance(links, str):
+                        link_list = [l.strip() for l in links.split(",") if l.strip()]
+                    elif isinstance(links, list):
+                        link_list = links
+                    else:
+                        link_list = []
+
+                    for link_item in link_list:
                         url = ""
                         if isinstance(link_item, dict):
                             url = link_item.get("url") or link_item.get("text") or ""
@@ -452,60 +461,7 @@ class ResumeUploadService:
         """Delete a resume and its associated data."""
         return await resume_upload_repository.delete_resume(db, resume_id=resume_id, job_id=job_id)
 
-    async def update_resume_status(
-        self,
-        *,
-        db: AsyncSession,
-        resume_id: uuid.UUID,
-        job_id: uuid.UUID,
-        pass_fail: str | None,
-    ) -> bool:
-        """Manually update the HR decision/status for a resume."""
-        from sqlalchemy import select
-        from app.v1.db.models.resumes import Resume
-        from app.v1.db.models.candidates import Candidate
-
-        stmt = (
-            select(Resume)
-            .join(Candidate, Candidate.id == Resume.candidate_id)
-            .where(
-                Resume.id == resume_id,
-                Candidate.applied_job_id == job_id,
-            )
-        )
-        result = await db.execute(stmt)
-        resume = result.scalar_one_or_none()
-
-        if not resume:
-            return False
-
-        _log.info(f"HR updated status for resume_id={resume_id} to: '{pass_fail}'")
-
-        # update the status
-        resume.pass_fail = pass_fail
-        await db.commit()
-
-        # Trigger cross-matching ONLY if the status is marked as 'fail' or 'failed'
-        normalized_status = (pass_fail or "").strip().lower()
-        if normalized_status in ("fail", "failed"):
-            _log.info(f"Triggering cross-match for failed resume_id={resume_id}")
-            self.background.schedule_cross_match(
-                resume_id=resume_id,
-                original_job_id=job_id
-            )
-        else:
-            # If the status is NOT fail, we should clear any PREVIOUS cross-matches
-            from sqlalchemy import delete
-            from app.v1.db.models.cross_job_matches import CrossJobMatch
-            
-            _log.info(f"Clearing old cross-matches for resume_id={resume_id} as status is now '{pass_fail}'")
-            await db.execute(
-                delete(CrossJobMatch).where(CrossJobMatch.resume_id == resume_id)
-            )
-            await db.commit()
-            _log.info(f"Skipping cross-match trigger. Status '{pass_fail}' is not a failure signal.")
-
-        return True
-
+    
+    # Legacy update_resume_status method was removed as it handled old pass_fail logic
 
 resume_upload_service = ResumeUploadService()

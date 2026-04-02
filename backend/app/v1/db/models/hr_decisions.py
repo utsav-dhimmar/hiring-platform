@@ -20,7 +20,7 @@ class HrDecision(Base):
         candidate_id: FK to the candidate being evaluated.
         stage_config_id: FK to the job stage this decision belongs to.
         user_id: FK to the user making the decision.
-        decision: The decision value — 'proceed', 'reject', or 'hold'.
+        decision: The decision value — 'proceed', 'reject', or 'May Be'.
         decided_at: Timestamp when the decision was made.
     """
 
@@ -40,10 +40,10 @@ class HrDecision(Base):
         nullable=False,
     )
 
-    stage_config_id: Mapped[uuid.UUID] = mapped_column(
+    stage_config_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("job_stage_configs.id"),
-        nullable=False,
+        nullable=True,
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -52,10 +52,16 @@ class HrDecision(Base):
         nullable=False,
     )
 
-    # DECISION FIELD: 'proceed', 'reject', 'hold'
+    # DECISION FIELD: 'proceed', 'reject', 'May Be'
     decision: Mapped[str] = mapped_column(
         Text,
         nullable=False,
+    )
+
+    # DECISION NOTES
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
     )
 
     # TIMESTAMPS

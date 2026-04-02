@@ -1,14 +1,15 @@
 import uuid
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidates import Candidate
 
 # from app.v1.db.models.job_stage_configs import JobStageConfig
-# from app.v1.schemas.job_stage import StageEvaluationRead
+# from app.v1.db.models.hr_decisions import HrDecision
+from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
 
 
@@ -23,20 +24,34 @@ class CandidateAdminService:
         job_id: uuid.UUID,
         skip: int = 0,
         limit: int = 100,
+        hr_decision: str | None = None,
     ) -> dict[str, Any]:
         """Get all candidates for a specific job."""
 
-        total_stmt = (
-            select(func.count())
-            .select_from(Candidate)
-            .where(Candidate.applied_job_id == job_id)
-        )
+        # Build base query with optional HR decision filter
+        base_query = select(Candidate).where(Candidate.applied_job_id == job_id)
+
+        if hr_decision:
+            # Simple join with HR decisions and filter by latest decision
+            base_query = base_query.join(
+                HrDecision, HrDecision.candidate_id == Candidate.id
+            ).where(
+                HrDecision.decision == hr_decision,
+                HrDecision.decided_at
+                == (
+                    select(func.max(HrDecision.decided_at)).where(
+                        HrDecision.candidate_id == Candidate.id
+                    )
+                ),
+            )
+
+        # Count query
+        total_stmt = select(func.count()).select_from(base_query.subquery())
         total = await db.scalar(total_stmt)
 
+        # Data query
         stmt = (
-            select(Candidate)
-            .where(Candidate.applied_job_id == job_id)
-            .options(selectinload(Candidate.resumes))
+            base_query.options(selectinload(Candidate.resumes))
             .order_by(Candidate.created_at.desc())
             .offset(skip)
             .limit(limit)

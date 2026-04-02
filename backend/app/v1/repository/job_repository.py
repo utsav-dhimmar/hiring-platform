@@ -116,19 +116,26 @@ class JobRepository:
 
         payload = object.model_dump(exclude_unset=True)
         skill_ids = payload.pop("skill_ids", None)
-        
+
         # Remove status from payload to prevent version creation on status changes
         status_change = payload.pop("status", None)
-        
-        core_fields_changed = any(k in payload for k in ["title", "department_id", "jd_text", "jd_json"])
+
+        core_fields_changed = any(
+            k in payload for k in ["title", "department_id", "jd_text", "jd_json"]
+        )
+        version_worthy_change = (
+            core_fields_changed
+            or "custom_extraction_fields" in payload
+            or skill_ids is not None
+        )
 
         for key, value in payload.items():
             setattr(job, key, value)
-            
+
         # Handle status change separately (without triggering version)
         if status_change is not None:
             job.status = status_change
-            
+
         if core_fields_changed:
             from app.v1.core.embeddings import embedding_service
             from app.v1.utils.text import build_job_text
@@ -139,21 +146,22 @@ class JobRepository:
         if skill_ids is not None:
             await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
 
-        # Increment version to record an update
-        job.version = (job.version or 1) + 1
+        if version_worthy_change:
+            # Increment version to record an update
+            job.version = (job.version or 1) + 1
 
-        from app.v1.db.models.job_versions import JobVersion
+            from app.v1.db.models.job_versions import JobVersion
 
-        job_version = JobVersion(
-            job_id=job.id,
-            version_number=job.version,
-            title=job.title,
-            jd_text=job.jd_text,
-            jd_json=job.jd_json,
-            jd_embedding=job.jd_embedding,
-            custom_extraction_fields=job.custom_extraction_fields,
-        )
-        db.add(job_version)
+            job_version = JobVersion(
+                job_id=job.id,
+                version_number=job.version,
+                title=job.title,
+                jd_text=job.jd_text,
+                jd_json=job.jd_json,
+                jd_embedding=job.jd_embedding,
+                custom_extraction_fields=job.custom_extraction_fields,
+            )
+            db.add(job_version)
 
         await db.commit()
 

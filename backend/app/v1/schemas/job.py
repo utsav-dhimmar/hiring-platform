@@ -96,6 +96,7 @@ class JobRead(JobBase):
     department: DepartmentRead | None = None
     skills: list[SkillRead] = []
     stages: list[JobStageConfigRead] = []
+    decision_summary: dict | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

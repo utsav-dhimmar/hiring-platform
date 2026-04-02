@@ -206,16 +206,17 @@ class ResumeProcessor:
         )
 
         stage_started_at = time.perf_counter()
-        analysis = heuristic_analyzer.analyze(
-            resume_text=candidate_text,
-            job_text=job_text,
+        analysis = self.analyzer.analyze(
+            raw_text=candidate_text,
+            candidate_info=parsed_summary,
+            job_title=job_text[:100],  # Short job title fallback since job_title isn't strictly passed
             job_skills=[skill.name for skill in job_skills],
             candidate_skills=candidate_skills,
             semantic_score=semantic_score,
             candidate_info=parsed_summary,
         )
         log_stage(
-            stage="heuristic_resume_analysis",
+            stage="llm_resume_analysis",
             started_at=stage_started_at,
             candidate_skills=len(candidate_skills),
             job_skills=len(job_skills),

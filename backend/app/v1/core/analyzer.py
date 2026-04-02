@@ -51,6 +51,7 @@ class ResumeJdAnalyzer:
     def analyze(
         self,
         *,
+        raw_text: str,
         candidate_info: dict[str, Any],
         job_title: str,
         job_skills: list[str],
@@ -60,6 +61,7 @@ class ResumeJdAnalyzer:
         """Perform a detailed LLM analysis of a resume's suitability for a job.
 
         Args:
+            raw_text: The full raw text of the resume to evaluate skills directly.
             candidate_info: The extracted candidate information from langextract.
             job_title: The title of the job.
             job_skills: List of skills required for the job.
@@ -78,6 +80,7 @@ class ResumeJdAnalyzer:
             job_skills=json.dumps(job_skills, ensure_ascii=True),
             candidate_skills=json.dumps(candidate_skills, ensure_ascii=True),
             candidate_info=json.dumps(candidate_info, ensure_ascii=True),
+            raw_text=raw_text,
         )
 
         outputs = list(self.model.infer([prompt]))
@@ -97,4 +100,10 @@ class ResumeJdAnalyzer:
                 raise ValueError("LLM returned invalid JSON for resume analysis.") from exc
         
         validated = ResumeJobAnalysisResult.model_validate(parsed_output)
-        return validated.model_dump()
+        result_dict = validated.model_dump()
+        
+        # Add fallback for empty extraordinary_points to maintain UI consistency
+        if not result_dict.get("extraordinary_points"):
+            result_dict["extraordinary_points"] = ["No extra Ordinary Points found from the resume"]
+            
+        return result_dict

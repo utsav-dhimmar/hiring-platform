@@ -27,11 +27,12 @@ RESUME_EXTRACTION_PROMPT = textwrap.dedent("""
     - email: Candidate's email address
     - phone: Candidate's phone number
     - location: Candidate's most granular location. Priority: City > State > Country. Extract ONLY the city name if found (e.g., "Bilimora"). If city is missing, use State. Do NOT extract societies, landmarks, buildings, or full street addresses.
+    - location: Candidate's most granular location. Priority: City > State > Country. Extract ONLY the city name if found (e.g., "Bilimora"). If city is missing, use State. Do NOT extract societies, landmarks, buildings, or full street addresses.
     - skills: Technical and professional skills (programming languages, tools, frameworks, soft skills)
     - experience: Work history including job title, company, dates, and responsibilities
     - education: Academic background including degree, institution, dates, and relevant details
     - certifications: Professional certifications with issuer and date when available
-- links: A single string containing URLs (LinkedIn, GitHub, portfolio, etc.). If multiple links exist, separate them with semicolons. Format: "link1; link2; link3"
+    - links: A single string containing URLs (LinkedIn, GitHub, portfolio, etc.). If multiple links exist, separate them with semicolons. Format: "link1; link2; link3"
     - extraordinary_highlights: A semicolon-separated string of ELITE-TIER achievements only. Focus on truly rare items: Awards, major patents, speaking at global conferences, Ivy League/top-10 education, or technical scale in the millions (e.g., "Scaled system to 10M+ users"; "Speaker at React Conf"; "Recipient of National Innovation Award"). EXCLUDE standard job duties or common certifications. If none, return "Not mentioned".
     - experience_summary: A 1-2 sentence overview of the candidate's professional tenure and core domains (e.g., "6+ years of experience in Fullstack development with a focus on scalable SaaS platforms").
     - professional_summary: A synthesized 2-3 sentence technical summary of the candidate's core value proposition and career profile. (Always provide this).
@@ -57,11 +58,29 @@ RESUME_EXTRACTION_EXAMPLES = [
         Stanford University | 2020 - 2022
         """,
         extractions=[
-            Extraction(extraction_class="name", extraction_text="John Doe", attributes={}),
-            Extraction(extraction_class="email", extraction_text="john.doe@email.com", attributes={}),
-            Extraction(extraction_class="phone", extraction_text="+1 (555) 012-3456", attributes={}),
-            Extraction(extraction_class="location", extraction_text="San Francisco, CA", attributes={"city": "San Francisco", "state": "CA"}),
-            Extraction(extraction_class="skill", extraction_text="Python, JavaScript, React, Machine Learning", attributes={"category": "technical"}),
+            Extraction(
+                extraction_class="name", extraction_text="John Doe", attributes={}
+            ),
+            Extraction(
+                extraction_class="email",
+                extraction_text="john.doe@email.com",
+                attributes={},
+            ),
+            Extraction(
+                extraction_class="phone",
+                extraction_text="+1 (555) 012-3456",
+                attributes={},
+            ),
+            Extraction(
+                extraction_class="location",
+                extraction_text="San Francisco, CA",
+                attributes={"city": "San Francisco", "state": "CA"},
+            ),
+            Extraction(
+                extraction_class="skill",
+                extraction_text="Python, JavaScript, React, Machine Learning",
+                attributes={"category": "technical"},
+            ),
             Extraction(
                 extraction_class="experience",
                 extraction_text="Senior Software Engineer | TechCorp Inc. | Jan 2023 - Present\n- Led development of microservices architecture serving 1M+ users\n- Reduced deployment time by 60% through automation",
@@ -85,16 +104,20 @@ RESUME_EXTRACTION_EXAMPLES = [
                     "level": "graduate",
                 },
             ),
-            Extraction(extraction_class="link", extraction_text="github.com/johndoe", attributes={"type": "github", "platform": "GitHub"}),
             Extraction(
-                extraction_class="extraordinary_highlights", 
-                extraction_text="Master of Science from Stanford University, Led development for 1M+ users", 
-                attributes={}
+                extraction_class="link",
+                extraction_text="github.com/johndoe",
+                attributes={"type": "github", "platform": "GitHub"},
             ),
             Extraction(
-                extraction_class="professional_summary", 
-                extraction_text="High-impact Senior Software Engineer with a Master's from Stanford and extensive experience in scaling microservices architecture.", 
-                attributes={}
+                extraction_class="extraordinary_highlights",
+                extraction_text="Master of Science from Stanford University, Led development for 1M+ users",
+                attributes={},
+            ),
+            Extraction(
+                extraction_class="professional_summary",
+                extraction_text="High-impact Senior Software Engineer with a Master's from Stanford and extensive experience in scaling microservices architecture.",
+                attributes={},
             ),
         ],
     )

@@ -38,8 +38,8 @@ class AdminService:
     async def log_action(self, *args, **kwargs) -> None:
         return await audit_service.log_action(*args, **kwargs)
 
-    async def get_audit_logs(self, *args, **kwargs) -> list[AuditLog]:
-        return await audit_service.get_audit_logs(*args, **kwargs)
+    async def get_candidates_for_job(self, *args, **kwargs) -> dict[str, Any]:
+        return await candidate_admin_service.get_candidates_for_job(*args, **kwargs)
 
     # User Management
     async def get_all_users(self, *args, **kwargs) -> list[User]:

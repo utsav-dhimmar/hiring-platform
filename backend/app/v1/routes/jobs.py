@@ -89,6 +89,8 @@ async def create_job(
     return await admin_service.create_job(db=db, admin_user_id=user.id, job_in=job_in)
 
 
+from app.v1.services.hr_decision_service import hr_decision_service
+
 @router.get("/{job_id}", response_model=JobRead)
 async def get_job(
     job_id: uuid.UUID,
@@ -96,7 +98,13 @@ async def get_job(
     user: UserRead = Depends(check_permission("jobs:access")),
 ) -> Any:
     """Get a specific job by ID."""
-    return await admin_service.get_job_by_id(db=db, job_id=job_id)
+    job = await admin_service.get_job_by_id(db=db, job_id=job_id)
+    
+    # Attach decision stats to avoid extra API call from frontend
+    stats = await hr_decision_service.get_job_decision_summary(db=db, job_id=job_id)
+    job.decision_summary = stats.model_dump()
+    
+    return job
 
 
 @router.get("/versions/{version_id}", response_model=JobVersionRead)

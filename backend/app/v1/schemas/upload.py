@@ -154,6 +154,25 @@ class ResumeRead(BaseModel):
 CandidateRead = CandidateResponse
 
 
+class ResumeRead(BaseModel):
+    """Schema for reading resume data."""
+
+    id: uuid.UUID
+    candidate_id: uuid.UUID
+    file_name: str
+    file_path: str
+    file_size: int
+    content_text: str | None = None
+    extracted_info: dict | None = None
+    pass_fail: str | None = None
+    created_at: datetime
+    updated_at: datetime | None = None
+
+
+# Alias for backward compatibility
+CandidateRead = CandidateResponse
+
+
 class JobCandidatesResponse(BaseModel):
     """Response containing a list of all candidates for a specific job."""
 
