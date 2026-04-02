@@ -10,8 +10,17 @@ from app.v1.dependencies import check_permission
 from app.v1.schemas.response import PaginatedData
 from app.v1.schemas.upload import CandidateResponse
 from app.v1.schemas.user import UserRead
+from app.v1.schemas.hr_decision import (
+    HRDecisionCreate,
+    HRDecisionResponse,
+    HRDecisionHistoryResponse,
+    HRDecisionUpdate,
+    HRDecisionSummary,
+    HRJobDecisionSummary,
+)
 from app.v1.services.admin_service import admin_service
-from fastapi import APIRouter, Depends, Query
+from app.v1.services.hr_decision_service import hr_decision_service
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter()
 
@@ -37,10 +46,11 @@ async def get_job_candidates(
     user: UserRead = Depends(check_permission("candidates:access")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    hr_decision: str | None = Query(None, description="Filter by HR decision: 'proceed', 'reject', or 'May Be'"),
 ) -> Any:
-    """Get all candidates for a specific job."""
+    """Get all candidates for a specific job, optionally filtered by HR decision."""
     return await admin_service.get_candidates_for_job(
-        db=db, job_id=job_id, skip=skip, limit=limit
+        db=db, job_id=job_id, skip=skip, limit=limit, hr_decision=hr_decision
     )
 
 
@@ -94,3 +104,80 @@ async def get_candidate_stage_evaluation(
     raise HTTPException(
         status_code=410, detail="Evaluation features are disabled."
     )
+
+
+# HR Decision Management Endpoints
+
+
+@router.get("/decisions/summary", response_model=HRDecisionSummary, tags=["HR Decisions"])
+async def get_global_decision_summary(
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:access")),
+) -> Any:
+    """Get global HR decision summary — total proceed, reject, May Be, and undecided counts across ALL candidates."""
+    try:
+        return await hr_decision_service.get_decision_summary(db=db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+
+
+@router.post("/{candidate_id}/decisions", response_model=HRDecisionResponse)
+async def create_candidate_decision(
+    candidate_id: uuid.UUID,
+    decision_data: HRDecisionCreate,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:decide")),
+) -> Any:
+    """Create a new HR decision for a candidate."""
+    try:
+        return await hr_decision_service.create_decision(
+            db=db,
+            candidate_id=candidate_id,
+            decision_data=decision_data,
+            user_id=user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/{candidate_id}/decisions", response_model=HRDecisionHistoryResponse)
+async def get_candidate_decision_history(
+    candidate_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:access")),
+) -> Any:
+    """Get complete decision history for a candidate."""
+    try:
+        return await hr_decision_service.get_decision_history(
+            db=db,
+            candidate_id=candidate_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.put("/decisions/{decision_id}", response_model=HRDecisionResponse)
+async def update_candidate_decision(
+    decision_id: uuid.UUID,
+    decision_data: HRDecisionUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:decide")),
+) -> Any:
+    """Update an existing HR decision."""
+    try:
+        return await hr_decision_service.update_decision(
+            db=db,
+            decision_id=decision_id,
+            decision_data=decision_data,
+            user_id=user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")

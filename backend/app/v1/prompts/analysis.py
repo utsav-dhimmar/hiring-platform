@@ -42,4 +42,7 @@ RESUME_JD_ANALYSIS_PROMPT = textwrap.dedent("""
 
     Candidate Profile Information (Extracted JSON summarizing experience, education, etc.):
     {candidate_info}
+    
+    Full Candidate Resume Text (Raw, for direct skill evaluation):
+    {raw_text}
     """).strip()

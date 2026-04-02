@@ -31,7 +31,14 @@ RESUME_EXTRACTION_PROMPT = textwrap.dedent("""
     - experience: Work history including job title, company, dates, and responsibilities
     - education: Academic background including degree, institution, dates, and relevant details
     - certifications: Professional certifications with issuer and date when available
+<<<<<<< Updated upstream
     - links: URLs (LinkedIn, GitHub, portfolio, etc.) with their type
+=======
+    - links: A single string containing URLs (LinkedIn, GitHub, portfolio, etc.). If multiple links exist, separate them with semicolons. Format: "link1; link2; link3"
+    - extraordinary_highlights: A semicolon-separated string of ELITE-TIER achievements only. Focus on truly rare items: Awards, major patents, speaking at global conferences, Ivy League/top-10 education, or technical scale in the millions (e.g., "Scaled system to 10M+ users"; "Speaker at React Conf"; "Recipient of National Innovation Award"). EXCLUDE standard job duties or common certifications. If none, return "Not mentioned".
+    - experience_summary: A 1-2 sentence overview of the candidate's professional tenure and core domains (e.g., "6+ years of experience in Fullstack development with a focus on scalable SaaS platforms").
+    - professional_summary: A synthesized 2-3 sentence technical summary of the candidate's core value proposition and career profile. (Always provide this).
+>>>>>>> Stashed changes
     """)
 
 RESUME_EXTRACTION_EXAMPLES = [
