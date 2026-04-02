@@ -119,41 +119,42 @@ class JobRepository:
         payload = object.model_dump(exclude_unset=True)
         skill_ids = payload.pop("skill_ids", None)
         
-        # Remove status from payload to prevent version creation on status changes
-        status_change = payload.pop("status", None)
-        
-        core_fields_changed = any(k in payload for k in ["title", "department_id", "jd_text", "jd_json"])
+        # Determine if core fields changed (triggers new version and re-embedding)
+        core_fields = ["title", "jd_text", "jd_json", "custom_extraction_fields", "department_id"]
+        core_fields_changed = any(k in payload for k in core_fields) or (skill_ids is not None)
 
         for key, value in payload.items():
             setattr(job, key, value)
             
-        # Handle status change separately (without triggering version)
-        if status_change is not None:
-            job.status = status_change
-            
         if core_fields_changed:
             from app.v1.core.embeddings import embedding_service
             from app.v1.utils.text import build_job_text
+            
+            # Update embeddings and chunks
             job.jd_embedding = embedding_service.encode_jd(build_job_text(job))
             await self._sync_job_chunks(db=db, job=job)
 
-        if skill_ids is not None:
-            await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
+            # Sync skills if provided
+            if skill_ids is not None:
+                await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
+                
+            # Increment version to record an update
+            job.version = (job.version or 1) + 1
             
-        # Increment version to record an update
-        job.version = (job.version or 1) + 1
-        
-        from app.v1.db.models.job_versions import JobVersion
-        job_version = JobVersion(
-            job_id=job.id,
-            version_number=job.version,
-            title=job.title,
-            jd_text=job.jd_text,
-            jd_json=job.jd_json,
-            jd_embedding=job.jd_embedding,
-            custom_extraction_fields=job.custom_extraction_fields,
-        )
-        db.add(job_version)
+            from app.v1.db.models.job_versions import JobVersion
+            job_version = JobVersion(
+                job_id=job.id,
+                version_number=job.version,
+                title=job.title,
+                jd_text=job.jd_text,
+                jd_json=job.jd_json,
+                jd_embedding=job.jd_embedding,
+                custom_extraction_fields=job.custom_extraction_fields,
+            )
+            db.add(job_version)
+        elif skill_ids is not None:
+            # If ONLY skill_ids changed (unlikely given core_fields_changed logic above), still sync
+            await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
 
         await db.commit()
 
@@ -217,6 +218,82 @@ class JobRepository:
             "data": list(result.scalars().unique().all()),
             "total": total or 0,
         }
+
+    async def get_decision_summary(self, db: AsyncSession, job_id: uuid.UUID) -> dict[str, int]:
+        """
+        Fetch summary counts of candidate screening decisions for a job.
+        
+        Optimized to use a single aggregate query.
+        """
+        from app.v1.db.models.candidates import Candidate
+        from app.v1.db.models.resumes import Resume
+        from app.v1.db.models.resume_screening_decisions import ResumeScreeningDecision
+        from sqlalchemy import func
+
+        # CTE to find the single latest resume for each candidate of this job
+        # We only need this to determine the 'unprocessed' count (no resume exists)
+        latest_res_cte = (
+            select(
+                Candidate.id.label("candidate_id"),
+                Resume.id.label("resume_id"),
+                func.row_number().over(
+                    partition_by=Candidate.id,
+                    order_by=Resume.uploaded_at.desc()
+                ).label("rn")
+            )
+            .select_from(Candidate)
+            .outerjoin(Resume, Candidate.id == Resume.candidate_id)
+            .where(Candidate.applied_job_id == job_id)
+            .cte("latest_res_cte")
+        )
+
+        # Aggregate counts by combining presence of resume and HR decisions
+        stmt = (
+            select(
+                latest_res_cte.c.resume_id,
+                ResumeScreeningDecision.decision,
+                func.count(latest_res_cte.c.candidate_id)
+            )
+            .select_from(latest_res_cte)
+            .outerjoin(ResumeScreeningDecision, latest_res_cte.c.candidate_id == ResumeScreeningDecision.candidate_id)
+            .where(latest_res_cte.c.rn == 1)
+            .group_by(
+                latest_res_cte.c.resume_id,
+                ResumeScreeningDecision.decision
+            )
+        )
+
+        result = await db.execute(stmt)
+        rows = result.all()
+        
+        summary = {
+            "total_candidate_count": 0,
+            "approved_count": 0,
+            "rejected_count": 0,
+            "maybe_count": 0,
+            "pending_count": 0,
+            "unprocessed_count": 0,
+        }
+
+        for resume_id, decision, count in rows:
+            summary["total_candidate_count"] += count
+            
+            # --- HR Decision Counts (Screening Decisions) ---
+            if decision == "approve":
+                summary["approved_count"] += count
+            elif decision == "reject":
+                summary["rejected_count"] += count
+            elif decision == "maybe":
+                summary["maybe_count"] += count
+            else:
+                # Candidate has no explicit HR decision record yet
+                summary["pending_count"] += count
+
+            # --- Unprocessed Check ---
+            if resume_id is None:
+                summary["unprocessed_count"] += count
+
+        return summary
 
     async def _sync_skills(
         self, db: AsyncSession, job_id: uuid.UUID, skill_ids: list[uuid.UUID]

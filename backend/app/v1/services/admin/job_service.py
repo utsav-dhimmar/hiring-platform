@@ -31,6 +31,12 @@ class JobAdminService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Job not found.",
             )
+        
+        # Attach decision summary
+        summary = await job_repository.get_decision_summary(db=db, job_id=job_id)
+        for key, value in summary.items():
+            setattr(job, key, value)
+            
         return job
 
     async def get_job_version(self, db: AsyncSession, version_id: uuid.UUID) -> Any:

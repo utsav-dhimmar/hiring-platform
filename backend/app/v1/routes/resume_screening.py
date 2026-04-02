@@ -23,13 +23,17 @@ async def create_screening_decision(
     current_user: UserRead = Depends(check_permission("candidates:access")),
 ) -> Any:
     """Submit or update an HR decision for resume screening."""
-    return await resume_screening_repository.create_or_update(
-        db=db,
-        candidate_id=decision_in.candidate_id,
-        user_id=current_user.id,
-        decision=decision_in.decision,
-        note=decision_in.note,
-    )
+    from fastapi import HTTPException
+    try:
+        return await resume_screening_repository.create_or_update(
+            db=db,
+            candidate_id=decision_in.candidate_id,
+            user_id=current_user.id,
+            decision=decision_in.decision,
+            note=decision_in.note,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/candidate/{candidate_id}", response_model=Optional[ResumeScreeningDecisionRead])

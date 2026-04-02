@@ -26,7 +26,7 @@ RESUME_EXTRACTION_PROMPT = textwrap.dedent("""
     - name: Full name of the candidate
     - email: Candidate's email address
     - phone: Candidate's phone number
-    - location: Candidate's most granular location. Priority: City > State > Country. Extract ONLY the city name if found (e.g., "Bilimora"). If city is missing, use State. Do NOT extract societies, landmarks, buildings, or full street addresses.
+    - location: Candidate's city and state/country (e.g., "Surat, Gujarat" or "Bilimora, India"). Look for this in the header or address section. Extract the most specific location provided.
     - skills: Technical and professional skills (programming languages, tools, frameworks, soft skills)
     - experience: Work history including job title, company, dates, and responsibilities
     - education: Academic background including degree, institution, dates, and relevant details

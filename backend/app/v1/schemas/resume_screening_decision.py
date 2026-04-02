@@ -22,6 +22,11 @@ class ResumeScreeningDecisionRead(ResumeScreeningDecisionBase):
     candidate_id: uuid.UUID
     user_id: uuid.UUID
     created_at: datetime
+    
+    # History fields
+    had_maybe: bool = False
+    maybe_note: Optional[str] = None
+    maybe_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

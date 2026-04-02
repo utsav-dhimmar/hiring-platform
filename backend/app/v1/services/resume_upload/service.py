@@ -316,13 +316,23 @@ class ResumeUploadService:
                     continue
                 
                 if not location:
-                    loc_val = source.get("location")
+                    loc_val = source.get("location") or source.get("address")
                     if isinstance(loc_val, str) and loc_val.strip() != "Not mentioned":
                         location = loc_val
                     elif isinstance(loc_val, list) and loc_val:
                         first_loc = loc_val[0]
+                        loc_text = ""
                         if isinstance(first_loc, dict):
-                            loc_text = first_loc.get("text") or first_loc.get("location") or ""
+                            # Try to build from attributes (City, State) if available
+                            attrs = first_loc.get("attributes") or {}
+                            city = attrs.get("city")
+                            state = attrs.get("state")
+                            if city and state:
+                                loc_text = f"{city}, {state}"
+                            elif city:
+                                loc_text = city
+                            else:
+                                loc_text = first_loc.get("text") or first_loc.get("location") or ""
                         else:
                             loc_text = str(first_loc)
                         

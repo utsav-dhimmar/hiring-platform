@@ -21,6 +21,7 @@ from app.v1.db.models.files import File as FileRecord
 from app.v1.db.models.job_skills import job_skills
 from app.v1.db.models.jobs import Job
 from app.v1.db.models.resume_chunks import ResumeChunk
+from app.v1.db.models.resume_screening_decisions import ResumeScreeningDecision
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.skills import Skill
 from app.v1.schemas.upload import ResumeRead, CandidateRead
@@ -679,6 +680,9 @@ class ResumeUploadRepository:
             )
             await db.execute(
                 delete(FileRecord).where(FileRecord.candidate_id == candidate_id)
+            )
+            await db.execute(
+                delete(ResumeScreeningDecision).where(ResumeScreeningDecision.candidate_id == candidate_id)
             )
             await db.execute(
                 delete(Candidate).where(Candidate.id == candidate_id)

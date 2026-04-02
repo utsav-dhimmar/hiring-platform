@@ -87,7 +87,7 @@ def normalize_extractions(
                     normalized["email"].append(item)
                 elif extraction_class == "phone":
                     normalized["phone"].append(item)
-                elif extraction_class == "location":
+                elif extraction_class in ["location", "address", "city"]:
                     normalized["location"].append(item)
                 elif extraction_class == "skill":
                     normalized["skills"].append(item)

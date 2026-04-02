@@ -96,6 +96,14 @@ class JobRead(JobBase):
     department: DepartmentRead | None = None
     skills: list[SkillRead] = []
     stages: list[JobStageConfigRead] = []
+    
+    # Decision Summary Counts
+    total_candidate_count: int = 0
+    approved_count: int = 0
+    rejected_count: int = 0
+    maybe_count: int = 0
+    pending_count: int = 0
+    unprocessed_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 

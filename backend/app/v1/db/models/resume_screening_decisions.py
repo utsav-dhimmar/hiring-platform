@@ -65,6 +65,19 @@ class ResumeScreeningDecision(Base):
         server_default=func.now(),
     )
 
+    # HISTORY FIELDS (Specifically for tracking the "Maybe" cycle)
+    had_maybe: Mapped[bool] = mapped_column(
+        default=False,
+    )
+    maybe_note: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    maybe_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     # RELATIONSHIPS
     candidate = relationship("Candidate", back_populates="screening_decision")
     user = relationship("User")
