@@ -32,7 +32,11 @@ export function ScreeningDecision({ decision }: ScreeningDecisionProps) {
           }
           className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase"
         >
-          {decision.decision}
+          {decision.decision === "approve"
+            ? "approved"
+            : decision.decision === "reject"
+              ? "rejected"
+              : decision.decision}
         </Badge>
       </div>
       {decision.note ? (

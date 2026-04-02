@@ -119,7 +119,7 @@ export function AnalysisContent({
               ))
             ) : (
               <p className="text-sm text-muted-foreground italic">
-                None identified.
+                No extraordinary points found from the resume.
               </p>
             )}
           </div>

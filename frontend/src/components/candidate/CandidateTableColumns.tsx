@@ -8,7 +8,6 @@ import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -41,7 +40,8 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
       // 1. CANDIDATE
       {
         id: "candidate",
-        accessorFn: (row) => `${row.first_name || ""} ${row.last_name || ""}`.trim(),
+        accessorFn: (row) =>
+          `${row.first_name || ""} ${row.last_name || ""}`.trim(),
         header: ({ column }) => (
           <Button
             variant="ghost"
@@ -54,19 +54,28 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         ),
         cell: ({ row }) => {
           const c = row.original;
-          const isProcessing = c.processing_status === "processing" || !c.is_parsed;
-          const fullName = `${c.first_name || ""} ${c.last_name || ""}`.trim() || "Unknown Candidate";
+          const isProcessing =
+            c.processing_status === "processing" || !c.is_parsed;
+          const fullName =
+            `${c.first_name || ""} ${c.last_name || ""}`.trim() ||
+            "Unknown Candidate";
           return (
             <div className="flex flex-col gap-0.5 min-w-[160px]">
               <span className="font-bold text-base text-foreground">
                 {isProcessing && !c.first_name ? (
-                  <span className="text-muted-foreground italic text-sm">Processing…</span>
+                  <span className="text-muted-foreground italic text-sm">
+                    Processing…
+                  </span>
                 ) : (
                   fullName
                 )}
               </span>
-              <span className="text-xs text-muted-foreground">{c.email || "N/A"}</span>
-              <span className="text-xs text-muted-foreground">{c.phone || "N/A"}</span>
+              <span className="text-xs text-muted-foreground">
+                {c.email || "N/A"}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {c.phone || "N/A"}
+              </span>
             </div>
           );
         },
@@ -88,14 +97,17 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         ),
         cell: ({ row }) => {
           const c = row.original;
-          const isProcessing = c.processing_status === "processing" || !c.is_parsed;
+          const isProcessing =
+            c.processing_status === "processing" || !c.is_parsed;
 
           if (isProcessing) {
             return (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
                   <div className="h-3.5 w-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs font-medium text-muted-foreground italic">Analyzing…</span>
+                  <span className="text-xs font-medium text-muted-foreground italic">
+                    Analyzing…
+                  </span>
                 </div>
                 <Badge
                   variant="outline"
@@ -132,7 +144,11 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                       : "fail"
                 }
                 className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
-                mapping={{ pass: "default", fail: "destructive", pending: "secondary" }}
+                mapping={{
+                  pass: "default",
+                  fail: "destructive",
+                  pending: "secondary",
+                }}
               />
             </div>
           );
@@ -149,14 +165,22 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           const status = c.processing_status || c.current_status;
           if (status === "processing" || status === "queued") {
             return (
-              <Badge variant="secondary" className="inline-flex items-center gap-1 rounded-lg">
+              <Badge
+                variant="secondary"
+                className="inline-flex items-center gap-1 rounded-lg"
+              >
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Processing
               </Badge>
             );
           }
-          if (!status) return <span className="text-muted-foreground text-sm">N/A</span>;
-          return <StatusBadge status={status === "failed" ? "failed" : "completed"} />;
+          if (!status)
+            return <span className="text-muted-foreground text-sm">N/A</span>;
+          return (
+            <StatusBadge
+              status={status === "failed" ? "failed" : "completed"}
+            />
+          );
         },
       },
 
@@ -178,7 +202,11 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                     variant="secondary"
                     className="ml-2 h-4 px-1 text-[10px] bg-primary/10 text-primary border-primary/20"
                   >
-                    {hrDecisionFilter.charAt(0).toUpperCase() + hrDecisionFilter.slice(1)}
+                    {hrDecisionFilter === "approve"
+                      ? "Approved"
+                      : hrDecisionFilter === "reject"
+                        ? "Rejected"
+                        : hrDecisionFilter.charAt(0).toUpperCase() + hrDecisionFilter.slice(1)}
                   </Badge>
                 )}
                 <Filter
@@ -186,7 +214,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                     "ml-2 h-3.5 w-3.5 transition-colors",
                     hrDecisionFilter !== "all"
                       ? "text-primary fill-primary/10"
-                      : "text-muted-foreground group-hover:text-foreground"
+                      : "text-muted-foreground group-hover:text-foreground",
                   )}
                 />
               </Button>
@@ -195,38 +223,49 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
               <DropdownMenuGroup>
                 <DropdownMenuLabel>Filter by Decision</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={hrDecisionFilter} onValueChange={setHrDecisionFilter}>
-                  <DropdownMenuRadioItem value="all">All Decisions</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="approve">Approved</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="maybe">Maybe</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="reject">Rejected</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="pending">Pending</DropdownMenuRadioItem>
+                <DropdownMenuRadioGroup
+                  value={hrDecisionFilter}
+                  onValueChange={setHrDecisionFilter}
+                >
+                  <DropdownMenuRadioItem value="all">
+                    All Decisions
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="approve">
+                    Approved
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="maybe">
+                    Maybe
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="reject">
+                    Rejected
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="pending">
+                    Pending
+                  </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Sort</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
-                  <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
-                  Sort Ascending
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
-                  <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
-                  Sort Descending
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         ),
         cell: ({ row }) => {
           const decision = row.original.screening_decision;
           if (!decision) {
-            return <span className="text-muted-foreground text-sm">Pending</span>;
+            return (
+              <span className="text-muted-foreground text-sm">Pending</span>
+            );
           }
 
           return (
             <StatusBadge
               status={decision}
+              label={
+                decision === "approve"
+                  ? "approved"
+                  : decision === "reject"
+                    ? "rejected"
+                    : decision
+              }
               className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
               mapping={{
                 approve: "default",
@@ -248,38 +287,56 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
             <div className="flex items-center gap-1">
               {linkedin_url ? (
                 <a
-                  href={linkedin_url.startsWith("http") ? linkedin_url : `https://${linkedin_url}`}
+                  href={
+                    linkedin_url.startsWith("http")
+                      ? linkedin_url
+                      : `https://${linkedin_url}`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   title="LinkedIn Profile"
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                    "text-blue-600 hover:text-blue-800 transition-colors"
+                    "text-blue-600 hover:text-blue-800 transition-colors",
                   )}
                 >
                   <LinkedinLogo className="h-4 w-4" />
                 </a>
               ) : (
-                <Button variant="ghost" size="icon-sm" disabled className="px-0">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled
+                  className="px-0"
+                >
                   <LinkedinLogo className="h-4 w-4" />
                 </Button>
               )}
 
               {github_url ? (
                 <a
-                  href={github_url.startsWith("http") ? github_url : `https://${github_url}`}
+                  href={
+                    github_url.startsWith("http")
+                      ? github_url
+                      : `https://${github_url}`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   title="GitHub Profile"
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                    "text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white transition-colors"
+                    "text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white transition-colors",
                   )}
                 >
                   <GithubLogo className="h-4 w-4" />
                 </a>
               ) : (
-                <Button variant="ghost" size="icon-sm" disabled className="px-0">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled
+                  className="px-0"
+                >
                   <GithubLogo className="h-4 w-4" />
                 </Button>
               )}
@@ -304,7 +361,8 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         ),
         cell: ({ row }) => {
           const date = row.original.applied_at || row.original.created_at;
-          if (!date) return <span className="text-muted-foreground text-sm">N/A</span>;
+          if (!date)
+            return <span className="text-muted-foreground text-sm">N/A</span>;
           return <DateDisplay date={date} showTime={false} />;
         },
       },
@@ -316,7 +374,8 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         header: "Location",
         cell: ({ row }) => {
           const loc = row.original.location;
-          if (!loc) return <span className="text-muted-foreground text-sm">N/A</span>;
+          if (!loc)
+            return <span className="text-muted-foreground text-sm">N/A</span>;
           const truncatedLoc = loc.length > 20 ? `${loc.slice(0, 18)}...` : loc;
           return (
             <div className="flex items-center gap-1.5 text-sm" title={loc}>
@@ -329,18 +388,18 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
       // 8. ACTIONS
       ...(renderActions
         ? [
-            {
-              id: "actions",
-              header: () => <div className="text-right pr-2">Actions</div>,
-              cell: ({ row }: { row: { original: T } }) => (
-                <div className="flex items-center justify-end gap-2 pr-2">
-                  {renderActions(row.original)}
-                </div>
-              ),
-            } as ColumnDef<T>,
-          ]
+          {
+            id: "actions",
+            header: () => <div className="text-right pr-2">Actions</div>,
+            cell: ({ row }: { row: { original: T } }) => (
+              <div className="flex items-center justify-end gap-2 pr-2">
+                {renderActions(row.original)}
+              </div>
+            ),
+          } as ColumnDef<T>,
+        ]
         : []),
     ],
-    [renderActions, hrDecisionFilter, setHrDecisionFilter]
+    [renderActions, hrDecisionFilter, setHrDecisionFilter],
   );
 };

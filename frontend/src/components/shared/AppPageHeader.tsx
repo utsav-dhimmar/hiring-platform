@@ -55,69 +55,56 @@ export default function AppPageHeader({
   return (
     <header
       className={cn(
-        "rounded-[1.75rem] border border-border/70 bg-card/70 px-4 py-4 shadow-sm backdrop-blur-sm sm:px-5 sm:py-5",
+        "rounded-[1.75rem] border border-border/70 bg-card/70 px-2 py-2 shadow-sm backdrop-blur-sm sm:px-3 sm:py-3",
         className,
       )}
     >
       <div className={cn("flex flex-col gap-4", contentClassName)}>
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0 space-y-2">
-            <div className="flex items-start justify-between gap-3 md:hidden">
-              <div className="flex min-w-0 items-center gap-3">
-                {mobileMenuTrigger ? <MobileMenuTrigger /> : null}
-                <div className="min-w-0">
-                  <h1
-                    className={cn(
-                      "truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl",
-                      headingClassName,
-                    )}
-                  >
-                    {title}
-                  </h1>
-                  {subtitle ? (
-                    <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-                      {subtitle}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              {actions ? (
-                <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                  {actions}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="hidden space-y-1 md:block">
-              <h1
-                className={cn(
-                  "text-2xl font-bold tracking-tight text-foreground sm:text-3xl ",
-                  headingClassName,
-                )}
-              >
-                {title}
-              </h1>
-              {subtitle ? (
-                <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-                  {subtitle}
-                </p>
-              ) : null}
-            </div>
-
+        {/* Navigation Layer: Trigger and Back Action */}
+        {(mobileMenuTrigger || backAction) && (
+          <div className="flex items-center gap-3">
+            {mobileMenuTrigger ? <MobileMenuTrigger /> : null}
             {backAction ? (
-              <div className="md:hidden">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="-ml-2 rounded-xl px-2.5 text-muted-foreground"
-                  onClick={backAction.onClick}
-                >
-                  {backAction.label}
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-2 h-8 rounded-xl px-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-muted/50 hover:text-foreground"
+                onClick={backAction.onClick}
+              >
+                {backAction.label}
+              </Button>
             ) : null}
+          </div>
+        )}
 
+        {/* Main Content Layer: Title and Actions */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-1.5">
+            <h1
+              className={cn(
+                "text-2xl font-bold tracking-tight text-foreground sm:text-3xl",
+                headingClassName,
+              )}
+            >
+              {title}
+            </h1>
+            {subtitle ? (
+              <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+
+          {actions ? (
+            <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+              {actions}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Supplementary Layer: Breadcrumbs and Meta */}
+        {(breadcrumbs || meta) && (
+          <div className="flex flex-col gap-3">
             {breadcrumbs ? (
               <div className="min-w-0 overflow-hidden text-xs text-muted-foreground sm:text-sm">
                 {breadcrumbs}
@@ -130,26 +117,7 @@ export default function AppPageHeader({
               </div>
             ) : null}
           </div>
-
-          {actions ? (
-            <div className="hidden shrink-0 flex-wrap items-center justify-end gap-2 md:flex">
-              {actions}
-            </div>
-          ) : null}
-        </div>
-        <div className="hidden items-center gap-2 md:flex">
-          {mobileMenuTrigger ? <MobileMenuTrigger /> : null}
-          {backAction ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="-ml-2 rounded-xl px-2.5 text-muted-foreground"
-              onClick={backAction.onClick}
-            >
-              {backAction.label}
-            </Button>
-          ) : null}
-        </div>
+        )}
       </div>
     </header>
   );

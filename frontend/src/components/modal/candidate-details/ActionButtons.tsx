@@ -21,15 +21,15 @@ export function ActionButtons({
       <Button
         onClick={() => onAction("approve")}
         variant="default"
-        className="rounded-xl px-8 shadow-md"
+        className="rounded-xl px-8 shadow-md uppercase font-bold"
       >
-        Approve
+        Approved
       </Button>
       {showMaybeButton && (
         <Button
           variant="outline"
           onClick={() => onAction("maybe")}
-          className="rounded-xl px-8 shadow-sm"
+          className="rounded-xl px-8 shadow-sm uppercase font-bold"
         >
           Maybe
         </Button>
@@ -37,9 +37,9 @@ export function ActionButtons({
       <Button
         variant="destructive"
         onClick={() => onAction("reject")}
-        className="rounded-xl px-8 shadow-md"
+        className="rounded-xl px-8 shadow-md uppercase font-bold"
       >
-        Reject
+        Rejected
       </Button>
     </div>
   );

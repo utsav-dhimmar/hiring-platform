@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 interface StatusBadgeProps {
   /** The status value to display (boolean or string) */
   status: string | boolean;
+  /** Optional custom label to display instead of the status value */
+  label?: string;
   /** Label to show when status is true (default: "Active") */
   trueLabel?: string;
   /** Label to show when status is false (default: "Inactive") */
@@ -31,6 +33,7 @@ interface StatusBadgeProps {
  */
 const StatusBadge = ({
   status,
+  label: customLabel,
   trueLabel = "Active",
   falseLabel = "Inactive",
   trueVariant = "default",
@@ -42,10 +45,10 @@ const StatusBadge = ({
   let variant: "default" | "secondary" | "destructive" | "outline" = "secondary";
 
   if (typeof status === "boolean") {
-    label = status ? trueLabel : falseLabel;
+    label = customLabel || (status ? trueLabel : falseLabel);
     variant = status ? trueVariant : falseVariant;
   } else {
-    label = status;
+    label = customLabel || status;
 
     if (mapping) {
       variant = mapping[status.toLowerCase()] || "secondary";
