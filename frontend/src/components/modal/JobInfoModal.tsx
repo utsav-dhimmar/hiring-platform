@@ -79,7 +79,7 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                 variant={job.is_active ? "default" : "outline"}
                 className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap"
               >
-                {job.is_active ? "Active" : "Closed"}
+                {job.is_active ? "Active" : "Inactive"}
               </Badge>
             </div>
           </div>
@@ -103,8 +103,8 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                         size="sm"
                         onClick={() => setSelectedVersionId(v.id)}
                         className={`rounded-full h-7 px-3 text-[10px] font-bold uppercase transition-all ${selectedVersionId === v.id
-                            ? "bg-primary text-primary-foreground shadow-md"
-                            : "hover:bg-primary/5"
+                          ? "bg-primary text-primary-foreground shadow-md"
+                          : "hover:bg-primary/5"
                           }`}
                       >
                         V{v.version_num}

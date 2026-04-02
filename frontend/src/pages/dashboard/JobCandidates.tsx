@@ -236,7 +236,7 @@ export default function JobCandidates() {
                       variant={job.is_active ? "default" : "outline"}
                       className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider"
                     >
-                      {job.is_active ? "Active" : "Closed"}
+                      {job.is_active ? "Active" : "Inactive"}
                     </Badge>
                     {job.version != null && (
                       <>
