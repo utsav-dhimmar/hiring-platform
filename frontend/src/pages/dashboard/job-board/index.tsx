@@ -15,9 +15,9 @@ import { JobDeleteDialog } from "@/components/job-board/JobDeleteDialog";
 import { getJobColumns } from "@/components/job-board/JobColumns";
 
 /**
- * JobBoard page component for the employer dashboard.
+ * JobBoard page component for the dashboard.
  *
- * Displays a searchable data table of the employer's job postings with
+ * Displays a searchable data table of the jobs with
  * actions for editing, toggling active status, viewing candidates, and deleting.
  * Jobs are fetched on mount and refreshed after every mutation.
  *
