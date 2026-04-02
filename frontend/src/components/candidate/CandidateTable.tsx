@@ -21,6 +21,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -88,6 +99,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   const [nameFilter, setNameFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [hrDecisionFilter, setHrDecisionFilter] = useState<string>("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({ from: undefined, to: undefined });
 
   // ── Derived filter options ────────────────────────────────────────────────
@@ -141,14 +153,24 @@ export function CandidateTable<T extends UnifiedCandidate>({
         if (dateRange.to && d > endOfDay(dateRange.to)) return false;
       }
 
+      // HR Decision filter
+      if (hrDecisionFilter !== "all") {
+        if (hrDecisionFilter === "pending") {
+          if (c.screening_decision) return false;
+        } else if (c.screening_decision !== hrDecisionFilter) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [candidates, nameFilter, statusFilter, locationFilter, dateRange]);
+  }, [candidates, nameFilter, statusFilter, locationFilter, hrDecisionFilter, dateRange]);
 
   const hasActiveFilters =
     nameFilter ||
     statusFilter !== "all" ||
     locationFilter !== "all" ||
+    hrDecisionFilter !== "all" ||
     dateRange?.from ||
     dateRange?.to;
 
@@ -156,6 +178,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
     setNameFilter("");
     setStatusFilter("all");
     setLocationFilter("all");
+    setHrDecisionFilter("all");
     setDateRange({ from: undefined, to: undefined });
   };
 
@@ -294,7 +317,53 @@ export function CandidateTable<T extends UnifiedCandidate>({
       {
         id: "screening_decision",
         accessorKey: "screening_decision",
-        header: "HR Decision",
+        header: ({ column }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-3 h-8 data-[state=open]:bg-accent font-semibold group"
+              >
+                <span>HR Decision</span>
+                {/* {hrDecisionFilter !== "all" && (
+                  <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px] bg-primary/10 text-primary border-primary/20">
+                    {hrDecisionFilter.charAt(0).toUpperCase() + hrDecisionFilter.slice(1)}
+                  </Badge>
+                )} */}
+                <Filter className={cn(
+                  "ml-2 h-3.5 w-3.5 transition-colors",
+                  hrDecisionFilter !== "all" ? "text-primary fill-primary/10" : "text-muted-foreground group-hover:text-foreground"
+                )} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Filter by Decision</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={hrDecisionFilter} onValueChange={setHrDecisionFilter}>
+                  <DropdownMenuRadioItem value="all">All Decisions</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="approve">Approved</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="maybe">Maybe</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="reject">Rejected</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="pending">Pending</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Sort</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
+                  <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
+                  Sort Ascending
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
+                  <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
+                  Sort Descending
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
         cell: ({ row }) => {
           const decision = row.original.screening_decision;
           if (!decision) {
