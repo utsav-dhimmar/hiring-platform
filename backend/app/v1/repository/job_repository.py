@@ -116,14 +116,19 @@ class JobRepository:
 
         payload = object.model_dump(exclude_unset=True)
         skill_ids = payload.pop("skill_ids", None)
-
-        core_fields_changed = any(
-            k in payload for k in ["title", "department_id", "jd_text", "jd_json"]
-        )
+        
+        # Remove status from payload to prevent version creation on status changes
+        status_change = payload.pop("status", None)
+        
+        core_fields_changed = any(k in payload for k in ["title", "department_id", "jd_text", "jd_json"])
 
         for key, value in payload.items():
             setattr(job, key, value)
-
+            
+        # Handle status change separately (without triggering version)
+        if status_change is not None:
+            job.status = status_change
+            
         if core_fields_changed:
             from app.v1.core.embeddings import embedding_service
             from app.v1.utils.text import build_job_text
