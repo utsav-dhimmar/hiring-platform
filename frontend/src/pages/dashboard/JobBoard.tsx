@@ -144,7 +144,18 @@ export default function JobBoard() {
       },
       {
         accessorKey: "is_active",
-        header: "Status",
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="hover:bg-transparent p-0 font-semibold"
+            >
+              Status
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          );
+        },
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
             <Switch
