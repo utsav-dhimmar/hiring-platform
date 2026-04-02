@@ -1,7 +1,8 @@
-import { Button, Badge } from "@/components/";
+import { Button, Badge, Switch, Label } from "@/components/";
 import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
 import { ArrowLeft, Upload } from "lucide-react";
 import type { Job } from "@/types/job";
+import { cn } from "@/lib/utils";
 
 interface JobCandidatesHeaderProps {
   job: Job | null;
@@ -9,6 +10,7 @@ interface JobCandidatesHeaderProps {
   onInfoClick: () => void;
   onUploadClick: () => void;
   isUploading: boolean;
+  onToggleStatus: () => void;
 }
 
 export const JobCandidatesHeader = ({
@@ -17,6 +19,7 @@ export const JobCandidatesHeader = ({
   onInfoClick,
   onUploadClick,
   isUploading,
+  onToggleStatus,
 }: JobCandidatesHeaderProps) => {
   return (
     <div className="flex flex-col gap-2">
@@ -40,27 +43,36 @@ export const JobCandidatesHeader = ({
             <span className="text-blue-500 font-semibold">
               {job?.department_name || "Department"}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="text-muted-foreground">Status:</span>
               {job && (
-                <>
-                  <Badge
-                    variant={job.is_active ? "default" : "outline"}
-                    className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={job.is_active}
+                    onCheckedChange={onToggleStatus}
+                    id={`status-${job.id}`}
+                    size="sm"
+                  />
+                  <Label
+                    htmlFor={`status-${job.id}`}
+                    className={cn(
+                      "text-sm font-medium transition-colors cursor-pointer",
+                      job.is_active ? "text-primary" : "text-muted-foreground",
+                    )}
                   >
                     {job.is_active ? "Active" : "Inactive"}
+                  </Label>
+                </div>
+              )}
+              {job?.version != null && (
+                <>
+                  <span className="text-muted-foreground ml-1">Version:</span>
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                  >
+                    v{job.version}
                   </Badge>
-                  {job.version != null && (
-                    <>
-                      <span className="text-muted-foreground ml-1">Version:</span>
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                      >
-                        v{job.version}
-                      </Badge>
-                    </>
-                  )}
                 </>
               )}
             </div>

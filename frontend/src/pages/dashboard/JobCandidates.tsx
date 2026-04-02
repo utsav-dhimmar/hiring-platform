@@ -25,6 +25,7 @@ export default function JobCandidates() {
     handleFileChange,
     handleReanalyzeCandidate,
     handleReanalyzeAll,
+    handleToggleStatus,
     needsReanalysis,
     stats,
   } = useJobCandidates(jobSlug);
@@ -45,6 +46,7 @@ export default function JobCandidates() {
         onBack={() => navigate("/dashboard/jobs")}
         onInfoClick={() => setIsJobModalOpen(true)}
         onUploadClick={handleUploadClick}
+        onToggleStatus={handleToggleStatus}
         isUploading={isUploading}
       />
 
@@ -122,7 +124,7 @@ export default function JobCandidates() {
                         </Button>
                       )}
                     />
-                    <HoverCardContent side="bottom" className="w-auto p-2 min-w-0">
+                    <HoverCardContent side="top" className="w-auto p-2 min-w-0">
                       <div className="text-sm font-semibold text-amber-700">Reanalyze</div>
                     </HoverCardContent>
                   </HoverCard>
@@ -145,7 +147,7 @@ export default function JobCandidates() {
                         </Button>
                       )}
                     />
-                    <HoverCardContent side="bottom" className="w-auto p-2 min-w-0">
+                    <HoverCardContent side="top" className="w-auto p-2 min-w-0">
                       <div className="text-sm font-semibold">More Info</div>
                     </HoverCardContent>
                   </HoverCard>

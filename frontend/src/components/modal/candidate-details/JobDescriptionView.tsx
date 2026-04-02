@@ -80,7 +80,11 @@ export function JobDescriptionView({
                     onValueChange={onVersionChange}
                   >
                     <SelectTrigger className="w-[140px] h-9 bg-background border-muted-foreground/20 rounded-xl text-xs font-bold">
-                      <SelectValue placeholder="Select Version" />
+                      <SelectValue placeholder="Select Version">
+                        {selectedVersionData
+                          ? `Version ${selectedVersionData.version_number}`
+                          : "Select Version"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-muted-foreground/10">
                       {job.job_versions.map((ver) => (
@@ -96,7 +100,7 @@ export function JobDescriptionView({
                             </span>
                           )}
                           {ver.version_num === job.version && (
-                            <span className="ml-2 text-[8px] text-green-600 italic font-black">
+                            <span className="ml-2 text-[8px] text-green-400 italic font-black">
                               (Latest)
                             </span>
                           )}

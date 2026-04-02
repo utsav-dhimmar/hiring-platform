@@ -86,27 +86,24 @@ export const CandidateTableFilters = ({
       {/* Date range picker */}
       <div className="flex items-center gap-1.5 px-3 h-9 rounded-xl border border-input text-sm">
         <Popover>
-          <PopoverTrigger>
-            <Button
-              variant="ghost"
-              className={cn(
-                "h-7 px-2 text-xs font-normal hover:bg-transparent",
-                !dateRange?.from && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
+          <PopoverTrigger
+            className={cn(
+              "inline-flex items-center h-7 px-2 text-xs font-normal rounded-md bg-transparent hover:bg-transparent focus-visible:outline-none",
+              !dateRange?.from && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+            {dateRange?.from ? (
+              dateRange.to ? (
+                <>
+                  {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                </>
               ) : (
-                <span>Applied date range</span>
-              )}
-            </Button>
+                format(dateRange.from, "LLL dd, y")
+              )
+            ) : (
+              <span>Applied date range</span>
+            )}
           </PopoverTrigger>
           <PopoverContent
             className="w-auto p-0 rounded-2xl border bg-popover shadow-2xl ml-2 ring-1 ring-foreground/5 overflow-hidden"

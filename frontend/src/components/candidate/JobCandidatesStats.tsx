@@ -16,7 +16,7 @@ export const JobCandidatesStats = ({
   hrRejectedCount,
 }: JobCandidatesStatsProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 text-center">
       {/* Total Candidates */}
       <div className="group p-6 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-card/50 transition-all duration-300 border-muted-foreground/10">
         <span className="text-4xl font-black text-foreground">{totalCandidates}</span>

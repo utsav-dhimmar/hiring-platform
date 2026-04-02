@@ -136,6 +136,19 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
     toast.success("Requests sent for all candidates that need reanalysis.");
   }, [candidates, job, needsReanalysis]);
 
+  const handleToggleStatus = useCallback(async () => {
+    if (!job) return;
+    try {
+      await jobService.updateJob(job.id, { is_active: !job.is_active });
+      toast.success(`Job ${!job.is_active ? "activated" : "deactivated"} successfully`);
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to toggle job status:", error);
+      const errorMessage = extractErrorMessage(error, "Failed to update job status");
+      toast.error(errorMessage);
+    }
+  }, [job, fetchData]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -169,6 +182,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
     handleFileChange,
     handleReanalyzeCandidate,
     handleReanalyzeAll,
+    handleToggleStatus,
     needsReanalysis,
     stats: {
       hrApprovedCount,
