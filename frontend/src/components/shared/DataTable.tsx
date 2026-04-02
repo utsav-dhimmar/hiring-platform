@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useEffect, useState } from "react";
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -56,10 +56,22 @@ export function DataTable<TData, TValue>({
   isServerSide = false,
   headerActions,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>(initialSorting);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [sorting, setSorting] = useState<SortingState>(initialSorting);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({
+    pageIndex,
+    pageSize,
+  });
+
+  // Sync internal pagination when props change
+  useEffect(() => {
+    setInternalPagination({ pageIndex, pageSize });
+  }, [pageIndex, pageSize]);
+
+  const paginationState = isServerSide ? { pageIndex, pageSize } : internalPagination;
+  const handlePaginationChange = isServerSide ? onPaginationChange : setInternalPagination;
 
   const table = useReactTable({
     data,
@@ -75,16 +87,13 @@ export function DataTable<TData, TValue>({
     // Add server-side pagination config
     manualPagination: isServerSide,
     pageCount: pageCount,
-    onPaginationChange: onPaginationChange,
+    onPaginationChange: handlePaginationChange,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination: {
-        pageIndex,
-        pageSize,
-      },
+      pagination: paginationState,
     },
   });
 
@@ -148,11 +157,7 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
-        <div className="flex-1 text-sm text-muted-foreground w-full text-center sm:text-left">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-4 ">
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 w-full sm:w-auto">
           <div className="flex items-center space-x-2">
             <p className="text-sm font-medium">Rows per page</p>

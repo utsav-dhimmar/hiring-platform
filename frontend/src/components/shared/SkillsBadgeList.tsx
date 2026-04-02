@@ -59,7 +59,7 @@ const SkillsBadgeList = ({
                 <Badge
                   {...props}
                   variant="outline"
-                  className="font-medium text-[10px] px-2 py-0.5 rounded-md cursor-help bg-background hover:bg-muted transition-colors border-dashed"
+                  className="font-medium text-[10px] px-2 py-0.5 rounded-md bg-background hover:bg-muted transition-colors border-dashed"
                 >
                   +{remainingSkills.length} more
                 </Badge>
