@@ -10,6 +10,7 @@ import { JobCandidatesSkeleton } from "@/components/candidate/JobCandidatesSkele
 import { JobCandidatesStats } from "@/components/candidate/JobCandidatesStats";
 import { JobCandidatesHeader } from "@/components/candidate/JobCandidatesHeader";
 import type { ResumeScreeningResult } from "@/types/admin";
+import { AppPageShell } from "@/components/shared";
 
 export default function JobCandidates() {
   const { jobSlug } = useParams<{ jobSlug: string }>();
@@ -40,7 +41,7 @@ export default function JobCandidates() {
   };
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl mx-auto px-4 pt-0 pb-4 animate-in fade-in duration-500">
+    <AppPageShell width="wide" className="animate-in fade-in duration-500">
       <JobCandidatesHeader
         job={job}
         onBack={() => navigate("/dashboard/jobs")}
@@ -61,8 +62,7 @@ export default function JobCandidates() {
         />
       )}
 
-      {/* Content Container */}
-      <div className="rounded-[2.5rem] border p-4 bg-card/30 backdrop-blur-md shadow-lg border-muted-foreground/10 min-h-125">
+      <div className="app-surface-card p-3 sm:p-4">
         {loading ? (
           <JobCandidatesSkeleton count={5} />
         ) : candidates?.length === 0 ? (
@@ -179,6 +179,6 @@ export default function JobCandidates() {
         accept=".pdf,.doc,.docx"
         onChange={handleFileChange}
       />
-    </div>
+    </AppPageShell>
   );
 }

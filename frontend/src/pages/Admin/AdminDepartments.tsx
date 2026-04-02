@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { adminDepartmentService } from "@/apis/admin/service";
 import type { DepartmentRead } from "@/types/admin";
-import { PageHeader, useToast, DataTable, ErrorDisplay } from "@/components/shared";
+import { AppPageShell, PageHeader, useToast, DataTable, ErrorDisplay } from "@/components/shared";
 import { CreateDepartmentModal, DeleteModal } from "@/components/modal";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import { Edit2, Trash2Icon, ArrowUpDown } from "lucide-react";
@@ -113,9 +113,10 @@ const AdminDepartments = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <AppPageShell width="wide">
       <PageHeader
         title="Department Management"
+        mobileMenuTrigger
         actions={
           <Button onClick={handleCreateClick} className="rounded-xl px-6">
             Create Department
@@ -156,7 +157,7 @@ const AdminDepartments = () => {
         isLoading={isDeleting}
         error={deleteError}
       />
-    </div>
+    </AppPageShell>
   );
 };
 

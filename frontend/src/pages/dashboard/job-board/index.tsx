@@ -1,5 +1,5 @@
 import jobService from "@/apis/job";
-import { DataTable } from "@/components/shared";
+import { AppPageShell, DataTable } from "@/components/shared";
 import type { Job } from "@/types/job";
 import { extractErrorMessage } from "@/utils/error";
 import { useCallback, useEffect, useState, useMemo } from "react";
@@ -112,10 +112,10 @@ export default function JobBoard() {
   );
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl mx-auto px-4 pt-0 pb-4">
+    <AppPageShell width="wide">
       <JobBoardHeader />
 
-      <div className="border rounded-3xl p-4 bg-card/50 backdrop-blur-sm min-h-[600px] shadow-sm">
+      <div className="app-surface-card p-3 sm:p-4">
         {loading ? (
           <div className="flex flex-col gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -141,6 +141,6 @@ export default function JobBoard() {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setIsDeleteDialogOpen(false)}
       />
-    </div>
+    </AppPageShell>
   );
 }

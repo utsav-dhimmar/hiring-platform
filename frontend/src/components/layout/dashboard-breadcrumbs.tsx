@@ -48,54 +48,69 @@ const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   profile: { label: "Profile", icon: UserCog },
 };
 
-/** Turn a slug like "senior-frontend-developer" into "Senior Frontend Developer" */
-function humanize(segment: string): string {
-  return segment
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+const HIDE_DYNAMIC_BEFORE = new Set(["edit", "candidates", "versions"]);
+const DYNAMIC_PARENT_SEGMENTS = new Set(["jobs"]);
+
+function shouldHideSegment(pathnames: string[], index: number) {
+  const segment = pathnames[index];
+  const nextSegment = pathnames[index + 1];
+  const previousSegment = pathnames[index - 1];
+
+  if (ROUTE_META[segment]) {
+    return false;
+  }
+
+  if (!previousSegment || !DYNAMIC_PARENT_SEGMENTS.has(previousSegment)) {
+    return false;
+  }
+
+  return !nextSegment || HIDE_DYNAMIC_BEFORE.has(nextSegment);
 }
 
 export function DashboardBreadcrumbs() {
   const location = useLocation();
   const pathnames = location.pathname.split("/").filter(Boolean);
 
-  // Build crumb data
-  const crumbs = pathnames.map((segment, index) => {
+  const visibleSegments = pathnames
+    .map((segment, index) => ({ segment, index }))
+    .filter(({ index }) => !shouldHideSegment(pathnames, index));
+
+  const crumbs = visibleSegments.map(({ segment, index }, crumbIndex) => {
     const routeTo = `/${pathnames.slice(0, index + 1).join("/")}`;
     const meta = ROUTE_META[segment];
-    const label = meta?.label ?? humanize(segment);
+    const label = meta?.label ?? "Details";
     const Icon = meta?.icon ?? FileText;
-    const isLast = index === pathnames.length - 1;
+    const isLast = crumbIndex === visibleSegments.length - 1;
 
-    return { segment, routeTo, label, Icon, isLast, index };
+    return { routeTo, label, Icon, isLast, crumbIndex };
   });
 
   return (
     <Breadcrumb>
-      <BreadcrumbList className="flex-nowrap text-xs sm:text-sm">
-        {crumbs.map(({ routeTo, label, Icon, isLast, index }) => (
+      <BreadcrumbList className="flex-nowrap overflow-hidden text-[11px] text-muted-foreground sm:text-xs">
+        {crumbs.map(({ routeTo, label, Icon, isLast, crumbIndex }) => (
           <React.Fragment key={routeTo}>
             <BreadcrumbItem
               className={
-                index === 0
-                  ? "hidden md:flex items-center gap-1.5"
-                  : "flex items-center gap-1.5"
+                crumbIndex === 0
+                  ? "hidden md:flex min-w-0 items-center gap-1.5"
+                  : "flex min-w-0 items-center gap-1.5"
               }
             >
               {isLast ? (
-                <BreadcrumbPage className="flex items-center gap-1.5 font-semibold text-primary">
+                <BreadcrumbPage className="flex min-w-0 items-center gap-1.5 font-semibold text-primary">
                   <Icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate max-w-[140px] sm:max-w-[200px]">
+                  <span className="truncate max-w-30 sm:max-w-45 lg:max-w-60">
                     {label}
                   </span>
                 </BreadcrumbPage>
               ) : (
                 <BreadcrumbLink
                   render={<Link to={routeTo} />}
-                  className="flex items-center gap-1.5 text-muted-foreground/70 hover:text-foreground transition-colors duration-200"
+                  className="flex min-w-0 items-center gap-1.5 text-muted-foreground/70 transition-colors duration-200 hover:text-foreground"
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate max-w-[100px] sm:max-w-[160px]">
+                  <span className="truncate max-w-18 sm:max-w-35 lg:max-w-45">
                     {label}
                   </span>
                 </BreadcrumbLink>
@@ -105,7 +120,7 @@ export function DashboardBreadcrumbs() {
             {!isLast && (
               <BreadcrumbSeparator
                 className={
-                  index === 0
+                  crumbIndex === 0
                     ? "hidden md:flex [&>svg]:size-3"
                     : "[&>svg]:size-3"
                 }

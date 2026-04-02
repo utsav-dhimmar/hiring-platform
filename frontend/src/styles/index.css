@@ -131,3 +131,9 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .app-surface-card {
+    @apply rounded-[1.75rem] border border-border/70 bg-card/60 shadow-sm backdrop-blur-sm;
+  }
+}

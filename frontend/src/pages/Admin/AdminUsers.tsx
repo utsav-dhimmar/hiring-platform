@@ -7,7 +7,7 @@ import { useState } from "react";
 import { adminUserService } from "@/apis/admin/service";
 import type { UserAdminRead } from "@/types/admin";
 import {
-
+  AppPageShell,
   DateDisplay,
   PageHeader,
   StatusBadge,
@@ -170,9 +170,10 @@ const AdminUsers = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 pt-0 pb-8">
+    <AppPageShell width="wide">
       <PageHeader
         title="User Management"
+        mobileMenuTrigger
         actions={<Button onClick={handleCreateClick}>Create User</Button>}
       />
 
@@ -212,7 +213,7 @@ const AdminUsers = () => {
         isLoading={isDeleting}
         error={deleteError}
       />
-    </div>
+    </AppPageShell>
   );
 };
 

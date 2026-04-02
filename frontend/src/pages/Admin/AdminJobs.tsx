@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { adminJobService } from "@/apis/admin/service";
 import type { JobRead } from "@/types/admin";
 import {
+  AppPageShell,
   DateDisplay,
   PageHeader,
   StatusBadge,
@@ -183,10 +184,10 @@ const AdminJobs = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 pt-0 pb-8">
+    <AppPageShell width="wide">
       <PageHeader
         title="Job Management"
-
+        mobileMenuTrigger
       />
 
       {loading ? (
@@ -222,7 +223,7 @@ const AdminJobs = () => {
         isLoading={isDeleting}
         error={deleteError}
       />
-    </div>
+    </AppPageShell>
   );
 };
 

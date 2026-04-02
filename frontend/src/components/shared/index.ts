@@ -7,6 +7,8 @@ export { DateDisplay, default as DateDisplayDefault } from "@/components/shared/
 export { default as DeleteModal } from "@/components/modal/DeleteModal";
 export { default as LoadingSpinner } from "@/components/shared/LoadingSpinner";
 export { default as ErrorDisplay } from "@/components/shared/ErrorDisplay";
+export { default as AppPageHeader } from "@/components/shared/AppPageHeader";
+export { default as AppPageShell } from "@/components/shared/AppPageShell";
 export { default as PageHeader } from "@/components/shared/PageHeader";
 export { default as StatusBadge } from "@/components/shared/StatusBadge";
 export { default as ErrorBoundary } from "@/components/shared/ErrorBoundary";

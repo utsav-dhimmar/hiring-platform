@@ -8,6 +8,7 @@ import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
 import type { PermissionRead, RoleRead } from "@/types/admin";
 import {
   AdminDataTable,
+  AppPageShell,
   DateDisplay,
   PageHeader,
   type Column,
@@ -126,9 +127,10 @@ const AdminRoles = () => {
   ];
 
   return (
-    <div className="admin-dashboard">
+    <AppPageShell width="wide">
       <PageHeader
         title="Role & Permission Management"
+        mobileMenuTrigger
         actions={
           <>
             <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
@@ -139,7 +141,7 @@ const AdminRoles = () => {
         }
       />
 
-      <div className="flex flex-col gap-8 mt-6">
+      <div className="flex flex-col gap-8">
         <div className="space-y-4">
           <h2 className="text-xl font-bold tracking-tight">Roles</h2>
           <AdminDataTable
@@ -197,7 +199,7 @@ const AdminRoles = () => {
         isLoading={permissionDelete.isDeleting}
         error={permissionDelete.error}
       />
-    </div>
+    </AppPageShell>
   );
 };
 

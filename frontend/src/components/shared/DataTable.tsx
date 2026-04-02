@@ -98,26 +98,26 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3 sm:space-y-4">
       {searchKey && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
+        <div className="flex w-full flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
           <div className="relative w-full sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
               value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
               onChange={(event) => table.getColumn(searchKey)?.setFilterValue(event.target.value)}
-              className="pl-9 h-10 rounded-xl transition-all focus:ring-2 focus:ring-primary/20"
+              className="h-10 rounded-xl border-border/70 bg-background/90 pl-9 transition-all focus:ring-2 focus:ring-primary/20"
             />
           </div>
           {headerActions && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
               {headerActions}
             </div>
           )}
         </div>
       )}
-      <div className="rounded-2xl border bg-background/50 backdrop-blur-sm overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-background/70 backdrop-blur-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -157,8 +157,8 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-4 ">
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 w-full sm:w-auto">
+      <div className="flex flex-col items-center justify-center gap-3 py-2 sm:flex-row sm:gap-4">
+        <div className="flex w-full flex-wrap items-center justify-center gap-3 sm:w-auto sm:gap-5 lg:gap-6">
           <div className="flex items-center space-x-2">
             <p className="text-sm font-medium">Rows per page</p>
             <select

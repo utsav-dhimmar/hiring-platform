@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { RecentUploadRead } from "@/types/admin";
-import { DataTable, DateDisplay, PageHeader, ErrorDisplay } from "@/components/shared";
+import { AppPageShell, DataTable, DateDisplay, PageHeader, ErrorDisplay } from "@/components/shared";
 import { useAdminData } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -96,8 +96,8 @@ const AdminRecentUploads = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader title="Recent Uploads" />
+    <AppPageShell width="wide">
+      <PageHeader title="Recent Uploads" mobileMenuTrigger />
 
       {error && !uploads.length ? (
         <ErrorDisplay message={error} onRetry={fetchData} />
@@ -113,7 +113,7 @@ const AdminRecentUploads = () => {
           onPaginationChange={setPagination}
         />
       )}
-    </div>
+    </AppPageShell>
   );
 };
 

@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AuditLogRead } from "@/types/admin";
-import { DataTable, DateDisplay, PageHeader, ErrorDisplay } from "@/components/shared";
+import { AppPageShell, DataTable, DateDisplay, PageHeader, ErrorDisplay } from "@/components/shared";
 import { useAdminData } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -77,8 +77,8 @@ const AdminAuditLogs = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader title="Audit Logs" />
+    <AppPageShell width="wide">
+      <PageHeader title="Audit Logs" mobileMenuTrigger />
 
       {error && !logs.length ? (
         <ErrorDisplay message={error} onRetry={fetchData} />
@@ -94,7 +94,7 @@ const AdminAuditLogs = () => {
           onPaginationChange={setPagination}
         />
       )}
-    </div>
+    </AppPageShell>
   );
 };
 

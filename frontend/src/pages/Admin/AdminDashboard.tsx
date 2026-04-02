@@ -5,7 +5,7 @@
 
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
-import { AdminDataTable, PageHeader, StatCard, type Column } from "@/components/shared";
+import { AdminDataTable, AppPageShell, PageHeader, StatCard, type Column } from "@/components/shared";
 import { useAdminData } from "@/hooks";
 
 const AdminDashboard = () => {
@@ -34,10 +34,10 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="admin-dashboard">
-      <PageHeader title="Panel Dashboard" />
+    <AppPageShell width="wide">
+      <PageHeader title="Panel Dashboard" mobileMenuTrigger />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-1">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         <StatCard label="Total Users" value={analytics?.total_users ?? 0} />
         <StatCard label="Active Users" value={analytics?.active_users ?? 0} />
         <StatCard label="Total Jobs" value={analytics?.total_jobs ?? 0} />
@@ -46,9 +46,9 @@ const AdminDashboard = () => {
         <StatCard label="Total Resumes" value={analytics?.total_resumes ?? 0} />
       </div>
 
-      <div className="report-section mt-5">
+      <div className="space-y-5">
         <h2 className="mb-4">Hiring Report Summary</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 p-1 mb-6">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
           <StatCard
             label="Resumes (Last 30 Days)"
             value={report?.resumes_uploaded_last_30_days ?? 0}
@@ -77,7 +77,7 @@ const AdminDashboard = () => {
           />
         </div>
 
-        <div className="jobs-table-container">
+        <div className="app-surface-card p-4 sm:p-5">
           <h3 className="mb-3">Candidates by Job</h3>
           <AdminDataTable
             columns={jobColumns}
@@ -91,7 +91,7 @@ const AdminDashboard = () => {
           />
         </div>
       </div>
-    </div>
+    </AppPageShell>
   );
 };
 

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Mail, User, ShieldCheck, Calendar } from "lucide-react";
+import { AppPageShell, PageHeader } from "@/components/shared";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<UserRead | null>(null);
@@ -44,8 +45,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-10">
-      <h1 className="mb-8 text-3xl font-bold">User Profile</h1>
+    <AppPageShell width="form">
+      <PageHeader title="User Profile" mobileMenuTrigger />
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="md:col-span-1">
@@ -113,6 +114,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AppPageShell>
   );
 }

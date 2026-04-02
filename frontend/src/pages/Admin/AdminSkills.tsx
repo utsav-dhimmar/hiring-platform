@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { adminSkillService } from "@/apis/admin/service";
 import type { SkillRead } from "@/types/admin";
-import { PageHeader, useToast, DataTable, ErrorDisplay } from "@/components/shared";
+import { AppPageShell, PageHeader, useToast, DataTable, ErrorDisplay } from "@/components/shared";
 import { CreateSkillModal, DeleteModal } from "@/components/modal";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import { Edit2, Trash2Icon, ArrowUpDown } from "lucide-react";
@@ -111,9 +111,10 @@ const AdminSkills = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <AppPageShell width="wide">
       <PageHeader
         title="Skill Management"
+        mobileMenuTrigger
         actions={
           <Button onClick={handleCreateClick} className="rounded-xl px-6">
             Create Skill
@@ -154,7 +155,7 @@ const AdminSkills = () => {
         isLoading={isDeleting}
         error={deleteError}
       />
-    </div>
+    </AppPageShell>
   );
 };
 

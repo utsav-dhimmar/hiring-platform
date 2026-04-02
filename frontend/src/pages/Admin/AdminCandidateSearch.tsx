@@ -8,6 +8,7 @@ import { adminCandidateService, adminJobService } from "@/apis/admin/service";
 import type { JobRead } from "@/types/admin";
 import type { CandidateResponse } from "@/types/resume";
 import {
+  AppPageShell,
   ErrorDisplay,
   PageHeader,
   CandidateSearchForm,
@@ -172,36 +173,32 @@ const AdminCandidateSearch = () => {
   });
 
   return (
-    <div className="admin-dashboard max-w-7xl mx-auto px-2 py-0 flex flex-col gap-3">
-      <div className="mb-0 rounded-2xl shadow-sm border border-border">
-        <PageHeader
-          title={
-            jobId ? `Candidates for ${job?.title || "Job"}` : "Candidate Search"
-          }
-          className="mb-0 border-0 p-2"
-          actions={
-            jobId && (
-              <div className="flex gap-2 items-center">
-                <QuickResumeUpload
-                  jobId={jobId}
-                  onSuccess={fetchCandidates}
-                  variant="default"
-                />
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    navigate(
-                      isAdminPath ? "/dashboard/admin/jobs" : "/dashboard/jobs",
-                    )
-                  }
-                >
-                  Back to Jobs
-                </Button>
-              </div>
-            )
-          }
-        />
-      </div>
+    <AppPageShell width="wide" gap="tight">
+      <PageHeader
+        title={jobId ? `Candidates for ${job?.title || "Job"}` : "Candidate Search"}
+        mobileMenuTrigger
+        actions={
+          jobId && (
+            <>
+              <QuickResumeUpload
+                jobId={jobId}
+                onSuccess={fetchCandidates}
+                variant="default"
+              />
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  navigate(
+                    isAdminPath ? "/dashboard/admin/jobs" : "/dashboard/jobs",
+                  )
+                }
+              >
+                Back to Jobs
+              </Button>
+            </>
+          )
+        }
+      />
 
       {job && <JobSummaryCard job={job} />}
 
@@ -250,7 +247,7 @@ const AdminCandidateSearch = () => {
         isLoading={isDeleting}
         error={deleteError}
       />
-    </div>
+    </AppPageShell>
   );
 };
 

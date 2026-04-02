@@ -63,15 +63,15 @@ const RegisterPage = () => {
 
   if (isSuccess) {
     return (
-      <div className="flex flex-col min-h-screen bg-muted/30">
-        <header className="w-full py-6 px-8 flex items-center justify-center absolute top-0 left-0 bg-transparent z-10">
+      <div className="flex min-h-screen flex-col bg-muted/30">
+        <header className="absolute left-0 top-0 z-10 flex w-full items-center justify-center px-6 py-5 sm:px-8">
           <Link to="/" className="transition-opacity hover:opacity-80">
             <Logo variant="dark" className="h-10" />
           </Link>
         </header>
 
-        <div className="flex-1 flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8">
-          <div className="w-full max-w-md space-y-8 mt-16">
+        <div className="flex flex-1 items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+          <div className="w-full max-w-md pt-16 sm:pt-12">
             <Card className="shadow-xl border-border/50 rounded-2xl overflow-hidden bg-card text-center p-4">
               <CardContent className="py-8">
                 <div className="mb-6 flex justify-center">
@@ -95,7 +95,7 @@ const RegisterPage = () => {
             </Card>
           </div>
         </div>
-        <footer className="w-full py-6 px-8 flex items-center justify-center bg-transparent z-10">
+        <footer className="flex w-full items-center justify-center px-6 py-5 sm:px-8">
           <p className="text-sm text-muted-foreground">{INFO.copyright}</p>
         </footer>
       </div>
@@ -103,15 +103,15 @@ const RegisterPage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-muted/30">
-      <header className="w-full py-6 px-8 flex items-center justify-center absolute top-0 left-0 bg-transparent z-10">
+    <div className="flex min-h-screen flex-col bg-muted/30">
+      <header className="absolute left-0 top-0 z-10 flex w-full items-center justify-center px-6 py-5 sm:px-8">
         <Link to="/" className="transition-opacity hover:opacity-80">
           <Logo variant="dark" className="h-10" />
         </Link>
       </header>
 
-      <div className="flex-1 flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-8 mt-16">
+      <div className="flex flex-1 items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md pt-16 sm:pt-12">
           <Card className="shadow-xl border-border/50 rounded-2xl overflow-hidden bg-card">
             <CardHeader className="space-y-2 pt-5 pb-6 text-center">
               <CardTitle className="text-3xl font-extrabold tracking-tight">
@@ -220,7 +220,7 @@ const RegisterPage = () => {
           </Card>
         </div>
       </div>
-      <footer className="w-full py-6 px-8 flex items-center justify-center bg-transparent z-10">
+      <footer className="flex w-full items-center justify-center px-6 py-5 sm:px-8">
         <p className="text-sm text-muted-foreground">{INFO.copyright}</p>
       </footer>
     </div>
@@ -228,4 +228,3 @@ const RegisterPage = () => {
 };
 
 export default RegisterPage;
-

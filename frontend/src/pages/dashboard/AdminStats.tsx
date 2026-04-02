@@ -2,7 +2,7 @@ import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
 import { useAdminData } from "@/hooks/useAdminData";
 import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
-import { StatCard, DataTable } from "@/components/shared";
+import { AppPageHeader, AppPageShell, StatCard, DataTable } from "@/components/shared";
 import {
   ArrowUpDown,
 } from "lucide-react";
@@ -68,12 +68,12 @@ export default function AdminStats() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-4 pt-0 pb-8">
-      {/* Header Section */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">Platform Statistics</h1>
-        <DashboardBreadcrumbs />
-      </div>
+    <AppPageShell width="wide">
+      <AppPageHeader
+        title="Platform Statistics"
+        breadcrumbs={<DashboardBreadcrumbs />}
+        mobileMenuTrigger
+      />
 
       {loading && dashboardData.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
@@ -90,8 +90,7 @@ export default function AdminStats() {
         </div>
       ) : (
         <>
-          {/* Main Analytics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-3 m-1">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8">
             <StatCard
               label="Total Users"
               value={analytics?.total_users ?? 0}
@@ -157,13 +156,12 @@ export default function AdminStats() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
-            {/* Candidates by Job Table */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold tracking-tight">Candidates by Job</h2>
               </div>
-              <div className="border rounded-2xl p-0 overflow-hidden bg-card/50 backdrop-blur-sm shadow-sm ring-1 ring-border/50">
+              <div className="app-surface-card overflow-hidden p-0">
                 <DataTable
                   columns={columns}
                   data={report?.candidates_by_job || []}
@@ -173,7 +171,6 @@ export default function AdminStats() {
               </div>
             </div>
 
-            {/* Additional Reports */}
             <div className="flex flex-col gap-4">
               <h2 className="text-xl font-semibold tracking-tight">Performance Summary</h2>
               <div className="grid grid-cols-1 gap-4">
@@ -241,6 +238,6 @@ export default function AdminStats() {
           </div>
         </>
       )}
-    </div>
+    </AppPageShell>
   );
 }
