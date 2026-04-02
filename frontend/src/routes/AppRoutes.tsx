@@ -11,7 +11,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import PublicRoute from "@/components/auth/PublicRoute";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import DashboardLayout from "@/pages/dashboard/DashboardLayout";
-import JobBoard from "@/pages/dashboard/JobBoard";
+import JobBoard from "@/pages/dashboard/job-board";
 import RoleRoute from "@/components/auth/RoleRoute";
 import RegisterPage from "@/pages/Auth/RegisterPage";
 

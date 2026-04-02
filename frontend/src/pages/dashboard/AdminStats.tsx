@@ -177,7 +177,7 @@ export default function AdminStats() {
             <div className="flex flex-col gap-4">
               <h2 className="text-xl font-semibold tracking-tight">Performance Summary</h2>
               <div className="grid grid-cols-1 gap-4">
-                <div className="border rounded-2xl p-6 bg-gradient-to-br from-primary/10 to-transparent border-primary/20 space-y-2">
+                <div className="border rounded-2xl p-6 bg-linear-to-br from-primary/10 to-transparent border-primary/20 space-y-2">
                   <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                     Average Resume Score
                   </span>
