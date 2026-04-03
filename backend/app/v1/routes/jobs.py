@@ -98,6 +98,10 @@ async def get_job(
     # Attach decision stats to avoid extra API call from frontend
     stats = await hr_decision_service.get_job_decision_summary(db=db, job_id=job_id)
     job.decision_summary = stats.model_dump()
+
+    # Attach screening stats
+    screening_stats = await hr_decision_service.get_job_screening_summary(db=db, job_id=job_id)
+    job.automated_screening_summary = screening_stats
     
     return job
 
