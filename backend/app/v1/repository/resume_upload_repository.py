@@ -531,6 +531,7 @@ class ResumeUploadRepository:
                     select(Candidate)
                     .options(
                         selectinload(Candidate.resumes).selectinload(Resume.file),
+                        selectinload(Candidate.hr_decisions),
                     )
                     .where(
                         Candidate.applied_job_id == job_id,

@@ -286,6 +286,7 @@ class ResumeUploadService:
 
         candidate_responses = []
         for candidate in candidates:
+            # 1. Get latest resume
             resumes = getattr(candidate, "resumes", [])
             latest_resume = (
                 max(resumes, key=lambda resume: resume.uploaded_at)
@@ -293,82 +294,74 @@ class ResumeUploadService:
                 else None
             )
 
+            # 2. Setup defaults
+            location = candidate.info.get("location") if candidate.info else None
+            linkedin_url = None
+            github_url = None
             analysis = None
             is_parsed = False
             resume_score = None
             pass_fail = None
             processing_status = None
             processing_error = None
-            location = None
-            linkedin_url = None
-            github_url = None
+            hr_decision = None
 
-            search_sources = []
-            if candidate.info and isinstance(candidate.info, dict):
-                search_sources.append(candidate.info)
-            if latest_resume and latest_resume.parse_summary:
-                search_sources.append(latest_resume.parse_summary)
-                if "extracted_data" in latest_resume.parse_summary:
-                    search_sources.append(latest_resume.parse_summary["extracted_data"])
+            # 3. Get latest HR Decision
+            if candidate.hr_decisions:
+                latest_hr_decision = max(candidate.hr_decisions, key=lambda d: d.decided_at)
+                hr_decision = latest_hr_decision.decision
 
-            for source in search_sources:
-                if not isinstance(source, dict):
-                    continue
-                
-                if not location:
-                    loc_val = source.get("location")
-                    if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
-                        location = loc_val.strip()
-                    elif isinstance(loc_val, list) and loc_val:
-                        for entry in loc_val:
-                            loc_text = ""
-                            if isinstance(entry, dict):
-                                loc_text = entry.get("text") or entry.get("location") or ""
-                            else:
-                                loc_text = str(entry)
-                            
-                            if loc_text and loc_text.strip().lower() not in ("not mentioned", "null", "none"):
-                                location = loc_text.strip()
-                                break
-
-                links = source.get("links") or source.get("social_links")
-                if links:
-                    if isinstance(links, str):
-                        link_list = [l.strip() for l in links.split(",") if l.strip()]
-                    elif isinstance(links, list):
-                        link_list = links
-                    else:
-                        link_list = []
-
-                    for link_item in link_list:
-                        url = ""
-                        if isinstance(link_item, dict):
-                            url = link_item.get("url") or link_item.get("text") or ""
-                        elif isinstance(link_item, str):
-                            url = link_item
-                        
-                        if not url or not isinstance(url, str):
-                            continue
-                        
-                        url_lower = url.lower()
-                        if "linkedin.com" in url_lower and not linkedin_url:
-                            linkedin_url = url
-                        elif "github.com" in url_lower and not github_url:
-                            github_url = url
-
+            # 4. Extract data from latest resume (if any)
             if latest_resume:
                 is_parsed = bool(latest_resume.parsed)
                 resume_score = latest_resume.resume_score
                 pass_fail = latest_resume.pass_fail
                 parse_summary = latest_resume.parse_summary or {}
-                processing_info = parse_summary.get("processing", {})
-                if isinstance(processing_info, dict):
-                    processing_status = processing_info.get("status")
-                    processing_error = processing_info.get("error")
-                analysis_payload = parse_summary.get("analysis")
-                if isinstance(analysis_payload, dict):
-                    analysis = ResumeMatchAnalysis.model_validate(analysis_payload)
+                
+                # Processing status
+                p_info = parse_summary.get("processing", {})
+                if isinstance(p_info, dict):
+                    processing_status = p_info.get("status")
+                    processing_error = p_info.get("error")
+                
+                # Analysis
+                a_payload = parse_summary.get("analysis")
+                if isinstance(a_payload, dict):
+                    analysis = ResumeMatchAnalysis.model_validate(a_payload)
 
+                # Social links and location from source data
+                # (Pattern matched from CandidateAdminService)
+                src = parse_summary.get("source_data", {})
+                if isinstance(src, dict):
+                    # Location
+                    loc_val = src.get("location")
+                    if loc_val:
+                        if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
+                            location = loc_val.strip()
+                        elif isinstance(loc_val, list) and loc_val:
+                            for entry in loc_val:
+                                t = ""
+                                if isinstance(entry, dict):
+                                    t = entry.get("text") or entry.get("location") or ""
+                                else:
+                                    t = str(entry)
+                                
+                                if t and t.strip().lower() not in ("not mentioned", "null", "none"):
+                                    location = t.strip()
+                                    break
+
+                    # Social Links
+                    links = src.get("links") or src.get("social_links")
+                    if links:
+                        link_list = [l.strip() for l in links.split(",") if l.strip()] if isinstance(links, str) else (links if isinstance(links, list) else [])
+                        for u in link_list:
+                            u_str = (u.get("url") or u.get("text") or "") if isinstance(u, dict) else (str(u) if u else "")
+                            if not u_str or not isinstance(u_str, str): continue
+                            ul = u_str.lower()
+                            if "linkedin.com" in ul and not linkedin_url: linkedin_url = u_str
+                            elif "github.com" in ul and not github_url: github_url = u_str
+
+            # 5. Append response
             candidate_responses.append(
                 CandidateResponse(
                     id=candidate.id,
@@ -381,6 +374,7 @@ class ResumeUploadService:
                     github_url=github_url,
                     current_status=candidate.current_status,
                     created_at=candidate.created_at,
+                    applied_job_id=candidate.applied_job_id,
                     resume_id=latest_resume.id if latest_resume else None,
                     applied_version_number=candidate.applied_version_number,
                     resume_analysis=analysis,
@@ -389,6 +383,7 @@ class ResumeUploadService:
                     is_parsed=is_parsed,
                     processing_status=processing_status,
                     processing_error=processing_error,
+                    hr_decision=hr_decision,
                 )
             )
 
