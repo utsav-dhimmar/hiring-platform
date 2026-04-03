@@ -256,7 +256,7 @@ class HRDecisionService:
 
         return HRDecisionSummary(
             total_candidates=total_candidates,
-            proceed_count=counts.get("approve", 0),
+            approved_count=counts.get("approve", 0),
             reject_count=counts.get("reject", 0),
             maybe_count=counts.get("May Be", 0),
             undecided_count=max(total_candidates - decided_total, 0),
@@ -306,7 +306,7 @@ class HRDecisionService:
         return HRJobDecisionSummary(
             job_id=job_id,
             total_candidates=total_candidates,
-            proceed_count=counts.get("approve", 0),
+            approved_count=counts.get("approve", 0),
             reject_count=counts.get("reject", 0),
             maybe_count=counts.get("May Be", 0),
             undecided_count=max(total_candidates - decided_total, 0),
@@ -353,7 +353,7 @@ class HRDecisionService:
         summary = await self.get_decision_summary(db)
         return {
             "total_candidates": summary.total_candidates,
-            "proceed_count": summary.proceed_count,
+            "approved_count": summary.approved_count,
             "reject_count": summary.reject_count,
             "maybe_count": summary.maybe_count,
             "undecided_count": summary.undecided_count,

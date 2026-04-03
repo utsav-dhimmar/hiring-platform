@@ -82,7 +82,7 @@ class HRDecisionSummary(BaseModel):
     """Summary of HR decisions — overall counts per status (global or per-job)."""
 
     total_candidates: int = Field(..., description="Total candidates with at least one decision")
-    proceed_count: int = Field(..., description="Candidates approved/proceeded")
+    approved_count: int = Field(..., description="Candidates approved/proceeded")
     reject_count: int = Field(..., description="Candidates rejected")
     maybe_count: int = Field(..., description="Candidates marked as 'May Be'")
     undecided_count: int = Field(..., description="Candidates with no decision yet (total resumes - decided)")
@@ -95,7 +95,7 @@ class HRJobDecisionSummary(BaseModel):
 
     job_id: uuid.UUID
     total_candidates: int
-    proceed_count: int
+    approved_count: int
     reject_count: int
     maybe_count: int
     undecided_count: int
