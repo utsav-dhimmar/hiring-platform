@@ -75,20 +75,18 @@ export function DataTable<TData, TValue>({
   const handlePaginationChange = isServerSide ? onPaginationChange : setInternalPagination;
 
   const isFirstRender = useRef(true);
-  
+
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    
+
     // Scroll to top of content area on page change
-    const scrollContainer = document.querySelector(".overflow-auto");
-    if (scrollContainer) {
-      scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   }, [paginationState.pageIndex]);
 
   const table = useReactTable({

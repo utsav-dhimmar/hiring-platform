@@ -69,7 +69,6 @@ export default function AppPageHeader({
   breadcrumbs,
   meta,
   actions,
-  backAction,
   mobileMenuTrigger = false,
   className,
   contentClassName,

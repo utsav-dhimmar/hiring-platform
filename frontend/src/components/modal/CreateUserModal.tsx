@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
   SelectContent,
-  Checkbox,
+  Switch,
   Form,
   FormField,
   FormItem,
@@ -38,13 +38,9 @@ import { userCreateSchema, type UserCreateFormValues } from "@/schemas/admin";
  * Props for the CreateUserModal component.
  */
 interface CreateUserModalProps {
-  /** Controls visibility of the modal */
   show: boolean;
-  /** Callback to close the modal */
   handleClose: () => void;
-  /** Callback fired after user is successfully created or updated */
   onUserSaved: () => void;
-  /** Optional user data for editing mode */
   user?: UserAdminRead | null;
 }
 
@@ -239,12 +235,19 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
               control={control}
               name="is_active"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 space-y-0 pt-2">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active Account</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Enable or disable this user's access to the platform.
+                    </p>
+                  </div>
                   <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
-                  <FormLabel className="cursor-pointer select-none">Active User Account</FormLabel>
-                  <FormMessage />
                 </FormItem>
               )}
             />
