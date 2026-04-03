@@ -21,6 +21,7 @@ interface CandidateAnalysisModalProps {
   onHide: () => void;
   jobId: string | undefined;
   resumeId: string | null;
+  passing_threshold?: number;
 }
 
 const CandidateAnalysisModal = ({
@@ -28,6 +29,7 @@ const CandidateAnalysisModal = ({
   onHide,
   jobId,
   resumeId,
+  passing_threshold = 65,
 }: CandidateAnalysisModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,34 +85,26 @@ const CandidateAnalysisModal = ({
                   <div className="text-muted-foreground text-sm mb-1">Status</div>
                   <Badge
                     variant={
-                      // (data.pass_fail === true ||
-                      //   String(data.pass_fail).toLowerCase() === "pass") &&
-                      (data.resume_score ?? 0) >= 65
+                      (data.pass_fail === true ||
+                        String(data.pass_fail).toLowerCase() === "pass" ||
+                        (data.resume_score ?? 0) >= passing_threshold)
                         ? "default"
-                        : data.pass_fail === false ||
-                          String(data.pass_fail).toLowerCase() === "fail" ||
-                          (data.resume_score ?? 0) < 65
-                          ? "destructive"
-                          : "secondary"
+                        : "destructive"
                     }
                   >
                     {
-                      // (data.pass_fail === true ||
-                      //   String(data.pass_fail).toLowerCase() === "pass") &&
-                      (data.resume_score ?? 0) >= 65
+                      (data.pass_fail === true ||
+                        String(data.pass_fail).toLowerCase() === "pass" ||
+                        (data.resume_score ?? 0) >= passing_threshold)
                         ? "PASS"
-                        :
-                        // data.pass_fail === false ||
-                        //     String(data.pass_fail).toLowerCase() === "fail" ||
-                        (data.resume_score ?? 0) < 65
-                          ? "FAIL"
-                          : "PENDING"}
+                        : "FAIL"
+                    }
                   </Badge>
                 </div>
                 <div className="text-end">
                   <div className="text-muted-foreground text-sm mb-1">Score</div>
                   <div
-                    className={`text-2xl font-bold ${data.resume_score && data.resume_score >= 80 ? "text-green-500" : data.resume_score && data.resume_score >= 65 ? "text-yellow-500" : "text-red-500"}`}
+                    className={`text-2xl font-bold ${data.resume_score && data.resume_score >= 80 ? "text-green-500" : data.resume_score && data.resume_score >= passing_threshold ? "text-yellow-500" : "text-red-500"}`}
                   >
                     {data.resume_score !== null ? `${data.resume_score.toFixed(1)}%` : "N/A"}
                   </div>

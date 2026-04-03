@@ -1,5 +1,5 @@
 import client from "@/apis/client";
-import type { Job, JobVersionDetail } from "@/types/job";
+import type { Job, JobVersionDetail, JobsListResponse } from "@/types/job";
 import type { CandidateAnalysisResponse } from "@/types/admin";
 
 type JobPayload = Record<string, unknown>;
@@ -19,11 +19,11 @@ const jobService = {
    * const jobs = await jobService.getJobs(0, 50);
    * ```
    */
-  getJobs: async (skip = 0, limit = 100): Promise<Job[]> => {
-    const response = await client.get<{ data: Job[]; total: number }>("/jobs/", {
+  getJobs: async (skip = 0, limit = 100): Promise<JobsListResponse> => {
+    const response = await client.get<JobsListResponse>("/jobs/", {
       params: { skip, limit },
     });
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -33,11 +33,11 @@ const jobService = {
    * @param limit - Maximum number of records to return
    * @returns Promise resolving to an array of matching job postings
    */
-  searchJobs: async (query: string, skip = 0, limit = 100): Promise<Job[]> => {
-    const response = await client.get<{ data: Job[]; total: number }>("/jobs/search", {
+  searchJobs: async (query: string, skip = 0, limit = 10): Promise<JobsListResponse> => {
+    const response = await client.get<JobsListResponse>("/jobs/search", {
       params: { q: query, skip, limit },
     });
-    return response.data.data;
+    return response.data;
   },
 
   /**

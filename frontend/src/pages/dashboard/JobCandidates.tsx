@@ -79,6 +79,7 @@ export default function JobCandidates() {
           <div className="animate-in slide-in-from-bottom-5 duration-700">
             <CandidateTable
               candidates={candidates}
+              passing_threshold={job?.passing_threshold}
               headerActions={
                 <Button
                   variant="outline"
@@ -191,6 +192,7 @@ export default function JobCandidates() {
         jobId={job?.id}
         onDecisionSubmitted={() => fetchData()}
         initialTab={modalInitialTab}
+        passing_threshold={job?.passing_threshold}
       />
 
       <JobInfoModal

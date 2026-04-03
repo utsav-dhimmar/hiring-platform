@@ -54,6 +54,8 @@ export default function CreateJob() {
       jd_text: "",
       is_active: true,
       skill_ids: [],
+      passing_threshold: 65,
+      custom_extraction_fields: [],
     },
   });
 
@@ -89,7 +91,7 @@ export default function CreateJob() {
           } else {
             // Fallback: fetch all jobs and find by slug
             const allJobs = await jobService.getJobs();
-            jobData = allJobs.find((j) => slugify(j.title) === jobSlug);
+            jobData = allJobs.data.find((j: any) => slugify(j.title) === jobSlug);
 
             // If still not found, try a more lenient match or just error out
             if (!jobData) {
@@ -108,6 +110,8 @@ export default function CreateJob() {
               jd_text: jobData.jd_text || "",
               is_active: jobData.is_active ?? true,
               skill_ids: jobData.skills?.map((s: any) => s.id) || [],
+              passing_threshold: jobData.passing_threshold ?? 65,
+              custom_extraction_fields: jobData.custom_extraction_fields || [],
             });
           }
         } catch (error) {
@@ -269,26 +273,137 @@ export default function CreateJob() {
               />
 
               {/* Is Active Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="passing_threshold"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col justify-center rounded-2xl border border-muted-foreground/20 p-6 bg-card/10 backdrop-blur-sm hover:bg-card/20 transition-all shadow-sm">
+                      <div className="space-y-1 mb-4">
+                        <FormLabel className="text-lg font-bold">
+                          Passing Threshold
+                        </FormLabel>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          Minimum matching score required for candidates.
+                        </p>
+                      </div>
+                      <FormControl>
+                        <div className="flex items-center gap-4">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            className="h-12 text-lg rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-center w-24"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary transition-all duration-300" 
+                              style={{ width: `${field.value}%` }}
+                            />
+                          </div>
+                          <span className="text-lg font-bold text-primary w-12 text-right">
+                            {field.value}%
+                          </span>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-2xl border border-muted-foreground/20 p-6 bg-card/10 backdrop-blur-sm hover:bg-card/20 transition-all shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-lg font-bold">
+                          Job Status
+                        </FormLabel>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          Control visibility on the job board. Currently{" "}
+                          {field.value ? "Active" : "Inactive"}.
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Custom Extraction Fields Section */}
+            <div className="app-surface-card space-y-6 p-4 sm:p-5">
+              <div className="space-y-1">
+                <h2 className="text-md font-bold tracking-tight">
+                  Custom Extraction Fields
+                </h2>
+                <p className="text-muted-foreground text-md font-medium">
+                  Add specific information you want the AI to extract from resumes (e.g. "Notice Period", "Willingness to Relocate").
+                </p>
+              </div>
+
               <FormField
                 control={form.control}
-                name="is_active"
+                name="custom_extraction_fields"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-2xl border border-muted-foreground/20 p-6 bg-card/10 backdrop-blur-sm hover:bg-card/20 transition-all shadow-sm">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-lg font-bold">
-                        Job Status
-                      </FormLabel>
-                      <p className="text-sm text-muted-foreground font-medium">
-                        Control visibility on the job board. Currently{" "}
-                        {field.value ? "Active" : "Inactive"}.
-                      </p>
-                    </div>
+                  <FormItem>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Type a field name and press enter..."
+                            className="h-12 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                const val = e.currentTarget.value.trim();
+                                if (val && !field.value?.includes(val)) {
+                                  field.onChange([...(field.value || []), val]);
+                                  e.currentTarget.value = "";
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          {field.value?.map((item: string, index: number) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="pl-3 pr-2 py-1.5 text-sm rounded-xl bg-primary/10 text-primary border-none font-bold animate-in zoom-in duration-300 group"
+                            >
+                              {item}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newVal = [...field.value];
+                                  newVal.splice(index, 1);
+                                  field.onChange(newVal);
+                                }}
+                                className="ml-2 hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </Badge>
+                          ))}
+                          {(!field.value || field.value.length === 0) && (
+                            <p className="text-sm text-muted-foreground italic font-medium py-2">
+                              No custom fields added yet.
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

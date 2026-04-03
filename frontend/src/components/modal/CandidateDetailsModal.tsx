@@ -41,6 +41,7 @@ interface CandidateDetailsModalProps {
   jobId?: string;
   onDecisionSubmitted?: () => void | Promise<void>;
   initialTab?: "analysis" | "jd" | "discovery" | "version-result";
+  passing_threshold?: number;
 }
 
 /**
@@ -58,6 +59,7 @@ export function CandidateDetailsModal({
   jobId,
   onDecisionSubmitted,
   initialTab = "analysis",
+  passing_threshold,
 }: CandidateDetailsModalProps) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -225,6 +227,7 @@ export function CandidateDetailsModal({
             candidate={candidate} 
             activeTab={activeTab}
             onVersionClick={() => setActiveTab("version-result")}
+            passing_threshold={passing_threshold}
           />
 
           <div className="flex w-full items-center gap-3 sm:w-auto sm:justify-end">

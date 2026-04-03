@@ -51,6 +51,8 @@ export interface Job {
   is_active: boolean;
   /** Optional custom extraction fields used during resume parsing */
   custom_extraction_fields?: string[] | null;
+  /** Threshold score (0-100) for considering a candidate as 'passed' */
+  passing_threshold: number;
   /** Current active version number */
   version?: number;
   /** Total number of saved versions */
@@ -61,6 +63,8 @@ export interface Job {
   stages?: JobStageConfig[];
   /** Backend-provided decision summary for the job */
   decision_summary?: JobDecisionSummary | null;
+  /** Real-time automated screening summary from the backend */
+  automated_screening_summary?: Record<string, any> | null;
   /** ID of the user who created the job posting */
   created_by: string;
   /** Timestamp when the job was created */
@@ -68,3 +72,14 @@ export interface Job {
   /** Skills linked to the job */
   skills: { id: string; name: string; description: string | null }[];
 }
+
+/**
+ * Paginated response for job lists including global dashboard metrics.
+ */
+export interface JobsListResponse {
+  data: Job[];
+  total: number;
+  global_decision_summary: Record<string, any> | null;
+  global_screening_summary: Record<string, any> | null;
+}
+

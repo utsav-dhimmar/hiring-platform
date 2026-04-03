@@ -8,18 +8,20 @@ import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
 
-function scoreColor(score: number) {
+function scoreColor(score: number, threshold: number = 65) {
   if (score >= 80) return "bg-green-500";
-  if (score >= 65) return "bg-yellow-500";
+  if (score >= threshold) return "bg-yellow-500";
   return "bg-red-500";
 }
 
 interface UseCandidateTableColumnsProps<T extends UnifiedCandidate> {
   renderActions?: (candidate: T) => React.ReactNode;
+  passing_threshold?: number;
 }
 
 export const useCandidateTableColumns = <T extends UnifiedCandidate>({
   renderActions,
+  passing_threshold = 65,
 }: UseCandidateTableColumnsProps<T>) => {
   return useMemo<ColumnDef<T>[]>(
     () => [
@@ -116,7 +118,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                 <span className="font-bold text-sm">{score.toFixed(1)}%</span>
                 <div className="w-14 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${scoreColor(score)}`}
+                    className={`h-full rounded-full ${scoreColor(score, passing_threshold)}`}
                     style={{ width: `${score}%` }}
                   />
                 </div>
@@ -126,10 +128,9 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   c.pass_fail === null || c.pass_fail === undefined
                     ? "pending"
                     :
-                    //  (
-                    //   c.pass_fail === true ||
-                    //     String(c.pass_fail).toLowerCase() === "pass") &&
-                    (c.resume_score ?? 0) >= 65
+                    (c.pass_fail === true ||
+                      String(c.pass_fail).toLowerCase() === "pass" || 
+                      (c.resume_score ?? 0) >= passing_threshold)
                       ? "pass"
                       : "fail"
                 }

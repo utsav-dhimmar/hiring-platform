@@ -36,8 +36,8 @@ export default function JobBoard() {
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await jobService.getJobs();
-      setJobs(data);
+      const response = await jobService.getJobs();
+      setJobs(response.data);
     } catch (error) {
       console.error("Failed to fetch jobs:", error);
       const errorMessage = extractErrorMessage(error, "Failed to load jobs.");

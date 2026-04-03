@@ -149,8 +149,12 @@ export const jobCreateSchema = z.object({
     .or(z.literal("")),
   /** Whether the job is active by default */
   is_active: z.boolean().default(true),
+  /** Threshold score (0-100) for considering a candidate as 'passed' */
+  passing_threshold: z.number().min(0).max(100).default(65),
   /** Array of skill UUIDs required for this job */
   skill_ids: z.array(z.string().uuid("Invalid skill ID")).default([]),
+  /** Optional custom extraction fields used during resume parsing */
+  custom_extraction_fields: z.array(z.string()).optional().default([]),
 });
 
 /**
@@ -177,9 +181,14 @@ export const jobUpdateSchema = z.object({
     .or(z.literal("")),
   /** Whether the job is active */
   is_active: z.boolean().optional(),
+  /** Threshold score (0-100) */
+  passing_threshold: z.number().min(0).max(100).optional(),
   /** Array of skill UUIDs */
   skill_ids: z.array(z.string().uuid("Invalid skill ID")).optional().default([]),
+  /** Array of custom extraction fields */
+  custom_extraction_fields: z.array(z.string()).optional(),
 });
+
 
 /**
  * Type inferred from jobUpdateSchema.

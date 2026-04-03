@@ -10,6 +10,7 @@ interface AnalysisStatsProps {
   candidate: CandidateResponse | CandidateAnalysis;
   onVersionClick?: () => void;
   activeTab?: string;
+  passing_threshold?: number;
 }
 
 /**
@@ -20,12 +21,13 @@ export function AnalysisStats({
   candidate,
   onVersionClick,
   activeTab,
+  passing_threshold = 65,
 }: AnalysisStatsProps) {
   const analysis = candidate.resume_analysis;
   const isPassed =
-    // (candidate.pass_fail === true ||
-    //   String(candidate.pass_fail).toLowerCase() === "pass") &&
-    (candidate.resume_score ?? 0) >= 65;
+    candidate.pass_fail === true ||
+    String(candidate.pass_fail).toLowerCase() === "pass" ||
+    (candidate.resume_score ?? 0) >= passing_threshold;
   const isVersionTab = activeTab === "version-result";
 
   return (

@@ -24,6 +24,7 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   pagination?: PaginationState;
   onPaginationChange?: OnChangeFn<PaginationState>;
   pageCount?: number;
+  passing_threshold?: number;
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -35,6 +36,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   pagination,
   onPaginationChange,
   pageCount,
+  passing_threshold,
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -56,6 +58,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
 
   const columns = useCandidateTableColumns({
     renderActions,
+    passing_threshold,
   });
 
   return (

@@ -29,8 +29,8 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
         let id = (location.state as JobRouteState | null)?.jobId || currentJobId.current;
 
         if (!id) {
-          const allJobs = await jobService.getJobs();
-          const foundJob = allJobs.find((j) => slugify(j.title) === jobSlug);
+          const response = await jobService.getJobs();
+          const foundJob = response.data.find((j) => slugify(j.title) === jobSlug);
 
           if (!foundJob) {
             toast.error("Job not found.");
