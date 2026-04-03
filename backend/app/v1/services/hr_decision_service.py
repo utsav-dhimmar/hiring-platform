@@ -27,29 +27,35 @@ def _trigger_cross_match_for_candidate(candidate: Candidate) -> None:
     """Fire-and-forget Celery cross-match task for a rejected candidate.
     
     Picks the candidate's job_id as the original job, and the latest
-    resume_id from the candidate's resumes relationship (if loaded).
-    If resumes are not loaded, we skip silently — cross-match is best-effort.
+    resume_id from the candidate's resumes relationship.
     """
     try:
-        from app.v1.services.resume_upload.tasks import cross_match_resume_task
+        from app.v1.services.resume_upload.background import BackgroundProcessor
+        from app.v1.services.resume_upload.processor import ResumeProcessor
+        
         resumes = getattr(candidate, "resumes", None) or []
         if not resumes:
-            logger.warning(
+            logger.info(
                 "cross_match skipped: no resumes found for candidate_id=%s", candidate.id
             )
             return
+            
         # Pick the most recently uploaded resume
         latest_resume = max(resumes, key=lambda r: r.uploaded_at)
-        cross_match_resume_task.delay(
-            resume_id_str=str(latest_resume.id),
-            original_job_id_str=str(candidate.applied_job_id),
+        
+        # Use BackgroundProcessor for standard task scheduling
+        bg_processor = BackgroundProcessor(ResumeProcessor())
+        bg_processor.schedule_cross_match(
+            resume_id=latest_resume.id,
+            original_job_id=candidate.applied_job_id
         )
+        
         logger.info(
-            "cross_match_resume_task queued for candidate_id=%s resume_id=%s job_id=%s",
-            candidate.id, latest_resume.id, candidate.applied_job_id,
+            "Automatic cross-match triggered for candidate_id=%s, resume_id=%s, job_id=%s",
+            candidate.id, latest_resume.id, candidate.applied_job_id
         )
     except Exception:
-        logger.exception("Failed to queue cross-match task for candidate_id=%s", candidate.id)
+        logger.exception("Failed to queue automatic cross-match task for candidate_id=%s", candidate.id)
 
 
 class HRDecisionService:
@@ -250,7 +256,7 @@ class HRDecisionService:
 
         return HRDecisionSummary(
             total_candidates=total_candidates,
-            approve_count=counts.get("approve", 0),
+            approved_count=counts.get("approve", 0),
             reject_count=counts.get("reject", 0),
             maybe_count=counts.get("May Be", 0),
             undecided_count=max(total_candidates - decided_total, 0),
@@ -300,11 +306,58 @@ class HRDecisionService:
         return HRJobDecisionSummary(
             job_id=job_id,
             total_candidates=total_candidates,
-            approve_count=counts.get("approve", 0),
+            approved_count=counts.get("approve", 0),
             reject_count=counts.get("reject", 0),
             maybe_count=counts.get("May Be", 0),
             undecided_count=max(total_candidates - decided_total, 0),
         )
+
+    async def get_job_screening_summary(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+    ) -> dict[str, int]:
+        """Count resumes for a job grouped by pass_fail status ('passed', 'failed', 'pending')."""
+        result = await db.execute(
+            select(Resume.pass_fail, func.count(Resume.id))
+            .join(Candidate, Resume.candidate_id == Candidate.id)
+            .where(Candidate.applied_job_id == job_id)
+            .group_by(Resume.pass_fail)
+        )
+        counts = {row[0]: row[1] for row in result.all()}
+        return {
+            "job_id": job_id,
+            "passed_count": counts.get("passed", 0),
+            "failed_count": counts.get("failed", 0),
+            "pending_count": counts.get("pending", 0),
+        }
+
+    async def get_global_screening_summary(
+        self,
+        db: AsyncSession,
+    ) -> dict[str, int]:
+        """Global count of resumes grouped by pass_fail status."""
+        result = await db.execute(
+            select(Resume.pass_fail, func.count(Resume.id))
+            .group_by(Resume.pass_fail)
+        )
+        counts = {row[0]: row[1] for row in result.all()}
+        return {
+            "passed": counts.get("passed", 0),
+            "failed": counts.get("failed", 0),
+            "pending": counts.get("pending", 0),
+        }
+
+    async def get_global_decision_summary(self, db: AsyncSession) -> dict[str, int]:
+        """Global count of latest decisions for all candidates."""
+        summary = await self.get_decision_summary(db)
+        return {
+            "total_candidates": summary.total_candidates,
+            "approved_count": summary.approved_count,
+            "reject_count": summary.reject_count,
+            "maybe_count": summary.maybe_count,
+            "undecided_count": summary.undecided_count,
+        }
 
 
 # Create service instance

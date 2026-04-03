@@ -40,11 +40,9 @@ class BackgroundProcessor:
             file_path: Path to the stored resume file.
         """
         from .tasks import process_resume_task
-        
+
         process_resume_task.delay(
-            job_id_str=str(job_id),
-            resume_id_str=str(resume_id),
-            file_path=file_path
+            job_id_str=str(job_id), resume_id_str=str(resume_id), file_path=file_path
         )
         logger.info("Celery task scheduled for resume_id=%s", resume_id)
 
@@ -84,6 +82,7 @@ class BackgroundProcessor:
         file_path: str,
     ) -> None:
         from .pipeline import run_resume_processing_pipeline
+
         await run_resume_processing_pipeline(
             job_id=job_id,
             resume_id=resume_id,
@@ -92,28 +91,46 @@ class BackgroundProcessor:
             mark_failed_cb=self._mark_resume_failed,
         )
 
-    def schedule_mass_refresh(self, job_id: uuid.UUID, full_refresh: bool = False) -> None:
+    def schedule_mass_refresh(
+        self, job_id: uuid.UUID, full_refresh: bool = False
+    ) -> None:
         """Schedule a background task to refresh extractions for all resumes of a job."""
         from .tasks import mass_refresh_task
-        mass_refresh_task.delay(job_id_str=str(job_id), full_refresh=full_refresh)
-        logger.info("Celery task scheduled for mass refresh job_id=%s, full_refresh=%s", job_id, full_refresh)
 
-    def schedule_candidate_reanalyze(self, job_id: uuid.UUID, candidate_id: uuid.UUID) -> None:
+        mass_refresh_task.delay(job_id_str=str(job_id), full_refresh=full_refresh)
+        logger.info(
+            "Celery task scheduled for mass refresh job_id=%s, full_refresh=%s",
+            job_id,
+            full_refresh,
+        )
+
+    def schedule_candidate_reanalyze(
+        self, job_id: uuid.UUID, candidate_id: uuid.UUID
+    ) -> None:
         """Schedule a background task to reanalyze a single candidate against the latest JD version."""
         from .tasks import reanalyze_candidate_task
-        reanalyze_candidate_task.delay(job_id_str=str(job_id), candidate_id_str=str(candidate_id))
-        logger.info("Celery task scheduled for candidate reanalysis. job_id=%s, candidate_id=%s", job_id, candidate_id)
 
-    def schedule_cross_match(self, resume_id: uuid.UUID, original_job_id: uuid.UUID) -> None:
+        reanalyze_candidate_task.delay(
+            job_id_str=str(job_id), candidate_id_str=str(candidate_id)
+        )
+        logger.info(
+            "Celery task scheduled for candidate reanalysis. job_id=%s, candidate_id=%s",
+            job_id,
+            candidate_id,
+        )
+
+    def schedule_cross_match(
+        self, resume_id: uuid.UUID, original_job_id: uuid.UUID
+    ) -> None:
         """Schedule a background task to run cross-job matching for a resume."""
         from .tasks import cross_match_resume_task
+
         cross_match_resume_task.delay(
-            resume_id_str=str(resume_id), 
-            original_job_id_str=str(original_job_id)
+            resume_id_str=str(resume_id), original_job_id_str=str(original_job_id)
         )
-        logger.info("Celery task scheduled for cross-job matching. resume_id=%s", resume_id)
-
-
+        logger.info(
+            "Celery task scheduled for cross-job matching. resume_id=%s", resume_id
+        )
 
     async def mass_refresh_in_background(
         self,
@@ -129,16 +146,24 @@ class BackgroundProcessor:
         from app.v1.db.session import async_session_maker
         from app.v1.repository.job_repository import job_repository
         from app.v1.repository.resume_upload_repository import resume_upload_repository
-        from app.v1.services.resume_upload.custom_extractor import custom_extractor_service
+        from app.v1.services.resume_upload.custom_extractor import (
+            custom_extractor_service,
+        )
 
-        logger.info("Starting mass refresh in background for job_id=%s (full_refresh=%s)", job_id, full_refresh)
+        logger.info(
+            "Starting mass refresh in background for job_id=%s (full_refresh=%s)",
+            job_id,
+            full_refresh,
+        )
         async with async_session_maker() as db:
             job = await job_repository.get(db, job_id)
             if not job:
                 logger.warning("Job %s not found for mass refresh", job_id)
                 return
 
-            resumes = await resume_upload_repository.get_resumes_for_job(db, job_id=job_id)
+            resumes = await resume_upload_repository.get_resumes_for_job(
+                db, job_id=job_id
+            )
             updated = 0
 
             # Pre-load skills if doing full refresh
@@ -146,14 +171,21 @@ class BackgroundProcessor:
             if full_refresh:
                 from sqlalchemy.orm import selectinload
                 from app.v1.db.models.jobs import Job
-                job_stmt = select(Job).options(selectinload(Job.skills)).where(Job.id == job_id)
+
+                job_stmt = (
+                    select(Job)
+                    .options(selectinload(Job.skills))
+                    .where(Job.id == job_id)
+                )
                 job_with_skills = await db.scalar(job_stmt)
                 if job_with_skills:
                     job_skills = job_with_skills.skills
 
             for resume in resumes:
                 chunk = await db.scalar(
-                    select(ResumeChunk).where(ResumeChunk.resume_id == resume.id).limit(1)
+                    select(ResumeChunk)
+                    .where(ResumeChunk.resume_id == resume.id)
+                    .limit(1)
                 )
                 if not chunk or not chunk.raw_text:
                     continue
@@ -162,56 +194,73 @@ class BackgroundProcessor:
                     # Perform full re-analysis (Semantic score + LLM insights)
                     insights = await self.processor.generate_resume_insights(
                         raw_text=chunk.raw_text,
-                        parsed_summary=resume.parse_summary if resume.parse_summary else {},
+                        parsed_summary=resume.parse_summary or {},
                         job=job,
                         job_skills=job_skills,
-                        candidate_skills=extract_skill_names(resume.parse_summary) if resume.parse_summary else [],
+                        candidate_skills=resume.parse_summary.get("skills", [])
+                        if resume.parse_summary
+                        else [],
                     )
-                    
+
                     # Update columns AND parse_summary
                     match_percentage = insights["analysis"]["match_percentage"]
                     resume.resume_score = match_percentage
-                    resume.pass_fail = resume.pass_fail or "pending"
-                    
+                    resume.pass_fail = (
+                        "passed"
+                        if match_percentage >= job.passing_threshold
+                        else "failed"
+                    )
+
                     # Update candidate's applied version (if candidate relation is available)
-                    if hasattr(resume, 'candidate') and resume.candidate:
+                    if hasattr(resume, "candidate") and resume.candidate:
                         resume.candidate.applied_version_number = job.version
-                    
-                        
+
                         new_summary = dict(resume.parse_summary)
                         new_summary["analysis"] = insights["analysis"]
                         resume.parse_summary = new_summary
                         flag_modified(resume, "parse_summary")
-                    
+
                     if chunk.parsed_json and isinstance(chunk.parsed_json, dict):
                         new_parsed = dict(chunk.parsed_json)
                         new_parsed["analysis"] = insights["analysis"]
                         chunk.parsed_json = new_parsed
                         flag_modified(chunk, "parsed_json")
-                        
+
                 elif job.custom_extraction_fields:
                     # Perform ONLY custom field extraction
-                    custom_extractions = await custom_extractor_service.extract_background_custom_fields(
-                        raw_text=chunk.raw_text,
-                        fields_list=job.custom_extraction_fields,
+                    custom_extractions = (
+                        await custom_extractor_service.extract_background_custom_fields(
+                            raw_text=chunk.raw_text,
+                            fields_list=job.custom_extraction_fields,
+                        )
                     )
 
                     if custom_extractions:
                         # Update resume.parse_summary
-                        if resume.parse_summary and isinstance(resume.parse_summary, dict):
+                        if resume.parse_summary and isinstance(
+                            resume.parse_summary, dict
+                        ):
                             new_summary = dict(resume.parse_summary)
-                            if "analysis" in new_summary and isinstance(new_summary["analysis"], dict):
+                            if "analysis" in new_summary and isinstance(
+                                new_summary["analysis"], dict
+                            ):
                                 new_summary["analysis"] = dict(new_summary["analysis"])
-                                new_summary["analysis"]["custom_extractions"] = custom_extractions
+                                new_summary["analysis"]["custom_extractions"] = (
+                                    custom_extractions
+                                )
                             resume.parse_summary = new_summary
                             flag_modified(resume, "parse_summary")
 
                         # Update chunk.parsed_json
                         if chunk.parsed_json and isinstance(chunk.parsed_json, dict):
                             new_parsed = dict(chunk.parsed_json)
-                            if "analysis" in new_parsed and isinstance(new_parsed["analysis"], dict):
+                            if "analysis" in new_parsed and isinstance(
+                                new_parsed["analysis"], dict
+                            ):
                                 new_parsed["analysis"] = dict(new_parsed["analysis"])
-                                new_parsed["analysis"]["custom_extractions"] = custom_extractions
+                                new_parsed["analysis"]["custom_extractions"] = (
+                                    custom_extractions
+                                )
                             chunk.parsed_json = new_parsed
                             flag_modified(chunk, "parsed_json")
 
@@ -220,7 +269,11 @@ class BackgroundProcessor:
                     await resume_upload_repository.commit(db)
 
             await resume_upload_repository.commit(db)
-            logger.info("Completed mass refresh for job_id=%s, %d resumes updated", job_id, updated)
+            logger.info(
+                "Completed mass refresh for job_id=%s, %d resumes updated",
+                job_id,
+                updated,
+            )
 
     async def reanalyze_candidate_in_background(
         self,
@@ -240,7 +293,8 @@ class BackgroundProcessor:
         logger.info("Starting candidate re-analysis for candidate_id=%s", candidate_id)
         async with async_session_maker() as db:
             job = await job_repository.get(db, job_id)
-            if not job: return
+            if not job:
+                return
 
             resume = await db.scalar(
                 select(Resume)
@@ -248,36 +302,50 @@ class BackgroundProcessor:
                 .order_by(Resume.uploaded_at.desc())
                 .limit(1)
             )
-            if not resume: return
+            if not resume:
+                return
 
             from sqlalchemy.orm import selectinload
             from app.v1.db.models.jobs import Job
-            job_with_skills = await db.scalar(select(Job).options(selectinload(Job.skills)).where(Job.id == job_id))
+
+            job_with_skills = await db.scalar(
+                select(Job).options(selectinload(Job.skills)).where(Job.id == job_id)
+            )
             job_skills = job_with_skills.skills if job_with_skills else []
 
             chunk = await db.scalar(
                 select(ResumeChunk).where(ResumeChunk.resume_id == resume.id).limit(1)
             )
-            if not chunk or not chunk.raw_text: return
+            if not chunk or not chunk.raw_text:
+                return
 
             insights = await self.processor.generate_resume_insights(
                 raw_text=chunk.raw_text,
-                parsed_summary=resume.parse_summary if resume.parse_summary else {},
+                parsed_summary=resume.parse_summary or {},
                 job=job,
                 job_skills=job_skills,
-                candidate_skills=extract_skill_names(resume.parse_summary) if resume.parse_summary else [],
+                candidate_skills=resume.parse_summary.get("skills", [])
+                if resume.parse_summary
+                else [],
             )
 
             custom_extractions = {}
             if job.custom_extraction_fields:
-                from app.v1.services.resume_upload.custom_extractor import custom_extractor_service
-                custom_extractions = await custom_extractor_service.extract_background_custom_fields(
-                    raw_text=chunk.raw_text,
-                    fields_list=job.custom_extraction_fields,
+                from app.v1.services.resume_upload.custom_extractor import (
+                    custom_extractor_service,
+                )
+
+                custom_extractions = (
+                    await custom_extractor_service.extract_background_custom_fields(
+                        raw_text=chunk.raw_text,
+                        fields_list=job.custom_extraction_fields,
+                    )
                 )
 
             resume.resume_score = insights["analysis"]["match_percentage"]
-            resume.pass_fail = "pending"
+            resume.pass_fail = (
+                "passed" if resume.resume_score >= job.passing_threshold else "failed"
+            )
 
             candidate = await db.get(Candidate, candidate_id)
             if candidate:
@@ -300,4 +368,6 @@ class BackgroundProcessor:
                 flag_modified(chunk, "parsed_json")
 
             await db.commit()
-            logger.info("Completed candidate re-analysis for candidate_id=%s", candidate_id)
+            logger.info(
+                "Completed candidate re-analysis for candidate_id=%s", candidate_id
+            )

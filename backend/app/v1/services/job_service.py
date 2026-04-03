@@ -14,34 +14,19 @@ class JobService:
 
     async def get_jobs(self, db: AsyncSession, skip: int = 0, limit: int = 100):
         """
-        Retrieve a list of jobs with pagination.
-
-        Args:
-            db (AsyncSession): Database session.
-            skip (int): Number of records to skip.
-            limit (int): Maximum number of records to return.
-
-        Returns:
-            dict[str, Any]: A dictionary containing the list of jobs and total count.
+        Retrieve a list of jobs with pagination and global summaries.
         """
-        return await job_repository.get_multi(db=db, skip=skip, limit=limit)
+        from app.v1.services.admin.job_service import job_admin_service
+        return await job_admin_service.get_all_jobs(db=db, skip=skip, limit=limit)
 
     async def search_jobs(
         self, db: AsyncSession, query: str, skip: int = 0, limit: int = 100
     ):
         """
-        Search for jobs by title and description.
-
-        Args:
-            db (AsyncSession): Database session.
-            query (str): The search query.
-            skip (int): Number of records to skip.
-            limit (int): Maximum number of records to return.
-
-        Returns:
-            dict[str, Any]: A dictionary containing the matching jobs and total count.
+        Search for jobs with global and per-job screening summaries.
         """
-        return await job_repository.search(db=db, query=query, skip=skip, limit=limit)
+        from app.v1.services.admin.job_service import job_admin_service
+        return await job_admin_service.search_jobs(db=db, query=query, skip=skip, limit=limit)
 
 
 job_service = JobService()

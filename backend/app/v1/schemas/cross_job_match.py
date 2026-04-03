@@ -24,4 +24,4 @@ class CrossJobMatchRead(CrossJobMatchBase):
 class CrossJobMatchResponse(BaseModel):
     """Response schema for a list of cross-job matches."""
     resume_id: uuid.UUID
-    matches: list[CrossJobMatchRead]
+    matches: dict[uuid.UUID, CrossJobMatchRead]

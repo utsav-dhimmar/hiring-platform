@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -52,11 +52,12 @@ async def trigger_cross_job_match(
 )
 async def get_cross_job_matches(
     resume_id: uuid.UUID,
+    job_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
 ) -> CrossJobMatchResponse:
     """Retrieve existing cross-job matches for a resume."""
-    result = await db.execute(
+    query = (
         select(CrossJobMatch)
         .options(
             selectinload(CrossJobMatch.matched_job).selectinload(Job.skills),
@@ -64,11 +65,15 @@ async def get_cross_job_matches(
             selectinload(CrossJobMatch.matched_job).selectinload(Job.versions),
         )
         .where(CrossJobMatch.resume_id == resume_id)
-        .order_by(CrossJobMatch.match_score.desc())
     )
+
+    if job_id:
+        query = query.where(CrossJobMatch.matched_job_id == job_id)
+
+    result = await db.execute(query.order_by(CrossJobMatch.match_score.desc()))
     matches = result.scalars().all()
     
     return CrossJobMatchResponse(
         resume_id=resume_id,
-        matches=[CrossJobMatchRead.model_validate(m) for m in matches]
+        matches={m.matched_job_id: CrossJobMatchRead.model_validate(m) for m in matches}
     )

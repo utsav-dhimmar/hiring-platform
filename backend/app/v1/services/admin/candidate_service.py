@@ -11,6 +11,7 @@ from app.v1.db.models.candidates import Candidate
 # from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
+from app.v1.schemas.response import PaginatedData
 
 
 class CandidateAdminService:
@@ -26,41 +27,42 @@ class CandidateAdminService:
         limit: int = 100,
         hr_decision: str | None = None,
         jd_version: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> PaginatedData[CandidateResponse]:
         """Get all candidates for a specific job."""
 
         # Build base query with optional HR decision filter
-        base_query = select(Candidate).where(Candidate.applied_job_id == job_id)
+        job_filter = Candidate.applied_job_id == job_id
 
+        # Subquery for total count before limit/offset
+        total_stmt = select(func.count()).select_from(Candidate).where(job_filter)
+
+        # Base query for data
+        stmt = select(Candidate).where(job_filter)
+
+        # Apply filters
         if hr_decision:
-            # Simple join with HR decisions and filter by latest decision
-            base_query = (
-                base_query.join(
-                    HrDecision, HrDecision.candidate_id == Candidate.id
-                ).where(
-                    HrDecision.decision == hr_decision,
-                    HrDecision.decided_at
-                    == (
-                        select(func.max(HrDecision.decided_at))
-                        .where(HrDecision.candidate_id == Candidate.id)
-                        .scalar_subquery()
-                        .correlate(Candidate)
-                    ),
-                ),
+            # Subquery to find the latest decision for each candidate
+            latest_decision_subq = (
+                select(HrDecision.decision)
+                .where(HrDecision.candidate_id == Candidate.id)
+                .order_by(HrDecision.decided_at.desc())
+                .limit(1)
+                .scalar_subquery()
             )
+            stmt = stmt.where(latest_decision_subq == hr_decision)
+            total_stmt = total_stmt.where(latest_decision_subq == hr_decision)
 
         if jd_version is not None:
-            base_query = base_query.where(
+            stmt = stmt.where(Candidate.applied_version_number == jd_version)
+            total_stmt = total_stmt.where(
                 Candidate.applied_version_number == jd_version
             )
 
-        # Count query
-        total_stmt = select(func.count()).select_from(base_query.subquery())
         total = await db.scalar(total_stmt)
 
-        # Data query
+        # Final query with eager loading, sorting, and paging
         stmt = (
-            base_query.options(
+            stmt.options(
                 selectinload(Candidate.resumes), selectinload(Candidate.hr_decisions)
             )
             .order_by(Candidate.created_at.desc())
@@ -69,10 +71,11 @@ class CandidateAdminService:
         )
         result = await db.execute(stmt)
         candidates = list(result.scalars().all())
-        return {
-            "data": [self._map_candidate_to_response(c) for c in candidates],
-            "total": total or 0,
-        }
+
+        return PaginatedData[CandidateResponse](
+            data=[self._map_candidate_to_response(c) for c in candidates],
+            total=total or 0,
+        )
 
     async def search_candidates_for_job(
         self,
@@ -81,7 +84,7 @@ class CandidateAdminService:
         query: str | None = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> dict[str, Any]:
+    ) -> PaginatedData[CandidateResponse]:
         """Search candidates for a specific job."""
 
         job_filter = Candidate.applied_job_id == job_id
@@ -113,10 +116,10 @@ class CandidateAdminService:
         result = await db.execute(stmt)
         candidates = list(result.scalars().all())
 
-        return {
-            "data": [self._map_candidate_to_response(c) for c in candidates],
-            "total": total or 0,
-        }
+        return PaginatedData[CandidateResponse](
+            data=[self._map_candidate_to_response(c) for c in candidates],
+            total=total or 0,
+        )
 
     async def search_candidates(
         self,
@@ -124,7 +127,7 @@ class CandidateAdminService:
         query: str | None = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> dict[str, Any]:
+    ) -> PaginatedData[CandidateResponse]:
         """Search candidates across all jobs."""
 
         # Data and count queries
@@ -155,10 +158,10 @@ class CandidateAdminService:
         result = await db.execute(stmt)
         candidates = list(result.scalars().all())
 
-        return {
-            "data": [self._map_candidate_to_response(c) for c in candidates],
-            "total": total or 0,
-        }
+        return PaginatedData[CandidateResponse](
+            data=[self._map_candidate_to_response(c) for c in candidates],
+            total=total or 0,
+        )
 
     def _map_candidate_to_response(self, candidate: Candidate) -> CandidateResponse:
         """Helper to map Candidate model to CandidateResponse schema."""

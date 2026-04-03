@@ -17,7 +17,7 @@ from app.v1.schemas.job import (
     JobStatusUpdate,
     JobsListRead,
     JobUpdate,
-)
+), JobStatusUpdate
 from app.v1.schemas.job_stage import (
     JobStageConfigCreate,
     JobStageConfigRead,
@@ -103,6 +103,10 @@ async def get_job(
     # Attach decision stats to avoid extra API call from frontend
     stats = await hr_decision_service.get_job_decision_summary(db=db, job_id=job_id)
     job.decision_summary = stats.model_dump()
+
+    # Attach screening stats
+    screening_stats = await hr_decision_service.get_job_screening_summary(db=db, job_id=job_id)
+    job.automated_screening_summary = screening_stats
     
     return job
 
@@ -161,7 +165,7 @@ async def update_job_status(
     user: UserRead = Depends(check_permission("jobs:manage")),
     status_in: JobStatusUpdate,
 ) -> Any:
-    """Update only the active status of a job (Enable/Disable)."""
+    """Update job active status without incrementing version."""
     return await admin_service.update_job_status(
         db=db, admin_user_id=user.id, job_id=job_id, status_in=status_in
     )

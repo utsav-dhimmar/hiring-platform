@@ -291,7 +291,22 @@ class ResumeUploadService:
             )
 
             # 2. Setup defaults
-            location = candidate.info.get("location") if candidate.info else None
+            location = None
+            if candidate.info and isinstance(candidate.info, dict):
+                loc_val = candidate.info.get("location")
+                if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
+                    location = loc_val.strip()
+                elif isinstance(loc_val, list) and loc_val:
+                    for entry in loc_val:
+                        t = ""
+                        if isinstance(entry, dict):
+                            t = entry.get("text") or entry.get("location") or ""
+                        else:
+                            t = str(entry)
+                        
+                        if t and t.strip().lower() not in ("not mentioned", "null", "none"):
+                            location = t.strip()
+                            break
             linkedin_url = None
             github_url = None
             analysis = None

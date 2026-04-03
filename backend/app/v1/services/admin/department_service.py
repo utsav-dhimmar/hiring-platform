@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.models.departments import Department
 from app.v1.repository.department_repository import department_repository
 from app.v1.schemas.department import DepartmentCreate, DepartmentRead, DepartmentUpdate
+from app.v1.schemas.response import PaginatedData
 from app.v1.services.admin.audit_service import audit_service
 
 
@@ -21,19 +22,19 @@ class DepartmentService:
 
     async def get_all_departments(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> dict[str, Any]:
+    ) -> PaginatedData[DepartmentRead]:
         """Get all departments with pagination."""
         result = await department_repository.crud.get_multi(
             db=db, offset=skip, limit=limit
         )
-        return {
-            "data": result["data"],
-            "total": result.get("total_count", 0),
-        }
+        return PaginatedData[DepartmentRead](
+            data=[DepartmentRead.model_validate(d) for d in result["data"]],
+            total=result.get("total_count", 0),
+        )
 
     async def get_department_by_id(
         self, db: AsyncSession, department_id: uuid.UUID
-    ) -> Department:
+    ) -> DepartmentRead:
         """Get a department by ID."""
         department = await department_repository.crud.get(db=db, id=department_id)
         if not department:
@@ -41,14 +42,14 @@ class DepartmentService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Department not found.",
             )
-        return department
+        return DepartmentRead.model_validate(department)
 
     async def create_department(
         self,
         db: AsyncSession,
         admin_user_id: uuid.UUID,
         department_in: DepartmentCreate,
-    ) -> Department:
+    ) -> DepartmentRead:
         """Create a new department."""
         department = Department(
             name=department_in.name,
@@ -66,7 +67,7 @@ class DepartmentService:
             target_id=department.id,
             details={"name": department.name},
         )
-        return department
+        return DepartmentRead.model_validate(department)
 
     async def update_department(
         self,

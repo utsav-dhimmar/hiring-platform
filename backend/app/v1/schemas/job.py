@@ -21,6 +21,7 @@ class JobBase(BaseModel):
     jd_text: str | None = None
     jd_json: dict | None = None
     is_active: bool = True
+    passing_threshold: float = 65.0
     custom_extraction_fields: list[str] | None = None
 
 
@@ -43,12 +44,13 @@ class JobUpdate(BaseModel):
     jd_json: dict | None = None
     is_active: bool | None = None
     skill_ids: list[uuid.UUID] | None = None
+    passing_threshold: float | None = None
     custom_extraction_fields: list[str] | None = None
 
 
 class JobStatusUpdate(BaseModel):
     """
-    Schema for updating a job's active status.
+    Schema for updating only the job's active status.
     """
 
     is_active: bool
@@ -97,6 +99,7 @@ class JobRead(JobBase):
     skills: list[SkillRead] = []
     stages: list[JobStageConfigRead] = []
     decision_summary: dict | None = None
+    automated_screening_summary: dict | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -108,3 +111,5 @@ class JobsListRead(BaseModel):
 
     data: list[JobRead]
     total: int
+    global_decision_summary: dict | None = None
+    global_screening_summary: dict | None = None

@@ -293,7 +293,7 @@ async def run_resume_processing_pipeline(
             resume_record.parsed = True
             resume_record.parse_summary = parse_summary_with_analysis
             resume_record.resume_score = analysis.match_percentage
-            resume_record.pass_fail = "pending"
+            resume_record.pass_fail = "passed" if resume_record.resume_score >= job.passing_threshold else "failed"
             resume_record.text_hash = text_hash
 
             stage_started_at = time.perf_counter()

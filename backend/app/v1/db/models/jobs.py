@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, Numeric
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -98,6 +98,12 @@ class Job(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean(),
         default=True,
+        nullable=False,
+    )
+
+    passing_threshold: Mapped[float] = mapped_column(
+        Numeric(10, 2),
+        default=65.0,
         nullable=False,
     )
 

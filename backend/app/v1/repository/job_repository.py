@@ -98,6 +98,7 @@ class JobRepository:
             jd_json=job.jd_json,
             jd_embedding=job.jd_embedding,
             custom_extraction_fields=job.custom_extraction_fields,
+            passing_threshold=job.passing_threshold,
         )
         db.add(job_version)
 
@@ -121,7 +122,14 @@ class JobRepository:
         status_change = payload.pop("status", None)
 
         core_fields_changed = any(
-            k in payload for k in ["title", "department_id", "jd_text", "jd_json"]
+            k in payload
+            for k in [
+                "title",
+                "department_id",
+                "jd_text",
+                "jd_json",
+                "passing_threshold",
+            ]
         )
         version_worthy_change = (
             core_fields_changed
@@ -160,6 +168,7 @@ class JobRepository:
                 jd_json=job.jd_json,
                 jd_embedding=job.jd_embedding,
                 custom_extraction_fields=job.custom_extraction_fields,
+                passing_threshold=job.passing_threshold,
             )
             db.add(job_version)
 
