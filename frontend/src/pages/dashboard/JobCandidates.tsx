@@ -9,7 +9,7 @@ import { useJobCandidates } from "@/hooks/useJobCandidates";
 import { JobCandidatesSkeleton } from "@/components/candidate/JobCandidatesSkeleton";
 import { JobCandidatesStats } from "@/components/candidate/JobCandidatesStats";
 import { JobCandidatesHeader } from "@/components/candidate/JobCandidatesHeader";
-import type { ResumeScreeningResult } from "@/types/admin";
+import type { CandidateAnalysis } from "@/types/admin";
 import { AppPageShell } from "@/components/shared";
 
 export default function JobCandidates() {
@@ -31,8 +31,15 @@ export default function JobCandidates() {
     needsReanalysis,
     stats,
   } = useJobCandidates(jobSlug);
+  console.log(candidates,
+    job,
+    loading,
+    isUploading,
+    reanalyzingCandidateIds,
 
-  const [selectedCandidate, setSelectedCandidate] = useState<ResumeScreeningResult | null>(null);
+    stats,)
+
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
 

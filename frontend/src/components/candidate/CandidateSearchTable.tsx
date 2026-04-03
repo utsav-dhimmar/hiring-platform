@@ -22,7 +22,7 @@ interface CandidateSearchTableProps {
   pagination: PaginationState;
   onPaginationChange: OnChangeFn<PaginationState>;
   onShowMore: (candidate: CandidateResponse) => void;
-  onShowScreeningDetails: (candidate: CandidateResponse) => void;
+  onShowAnalysisDetails: (candidate: CandidateResponse) => void;
   onDelete: (candidate: CandidateResponse) => void;
 }
 
@@ -32,6 +32,7 @@ const CandidateSearchTable = ({
   pagination,
   onPaginationChange,
   onShowMore,
+  onShowAnalysisDetails,
 }: CandidateSearchTableProps): ReactElement => {
   return (
     <CandidateTable
@@ -42,24 +43,45 @@ const CandidateSearchTable = ({
       onPaginationChange={onPaginationChange}
       pageCount={Math.ceil(total / pagination.pageSize)}
       renderActions={(candidate) => (
-        <HoverCard>
-          <HoverCardTrigger
-            render={(props) => (
-              <Button
-                {...props}
-                variant="secondary"
-                size="sm"
-                className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
-                onClick={() => onShowMore(candidate)}
-              >
-                <Info className="h-4 w-4 shrink-0" />
-              </Button>
-            )}
-          />
-          <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-            <div className="text-sm font-semibold">More Info</div>
-          </HoverCardContent>
-        </HoverCard>
+        <div className="flex items-center gap-2">
+          <HoverCard>
+            <HoverCardTrigger
+              render={(props) => (
+                <Button
+                  {...props}
+                  variant="secondary"
+                  size="sm"
+                  className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
+                  onClick={() => onShowAnalysisDetails(candidate)}
+                >
+                  <Info className="h-4 w-4 shrink-0" />
+                </Button>
+              )}
+            />
+            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+              <div className="text-sm font-semibold text-primary">Analysis Details</div>
+            </HoverCardContent>
+          </HoverCard>
+
+          <HoverCard>
+            <HoverCardTrigger
+              render={(props) => (
+                <Button
+                  {...props}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 w-9 p-0 rounded-xl border border-muted-foreground/10 hover:bg-muted transition-all duration-300 flex items-center justify-center shrink-0"
+                  onClick={() => onShowMore(candidate)}
+                >
+                  <Info className="h-4 w-4 shrink-0" />
+                </Button>
+              )}
+            />
+            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+              <div className="text-sm font-semibold">Candidate Info</div>
+            </HoverCardContent>
+          </HoverCard>
+        </div>
       )}
     />
   );

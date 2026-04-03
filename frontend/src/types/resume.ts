@@ -133,7 +133,7 @@ export interface CandidateResponse {
   /** Computed resume score (0-100) */
   resume_score: number | null;
   /** Pass/fail decision from screening */
-  pass_fail: boolean | null;
+  pass_fail: string | boolean | null;
   /** Whether the resume was successfully parsed */
   is_parsed: boolean;
   /** Current processing status */
@@ -141,7 +141,7 @@ export interface CandidateResponse {
   /** Error message if processing failed */
   processing_error: string | null;
   /** Current HR screening decision, if one has been made */
-  screening_decision?: "approve" | "reject" | "maybe" | null;
+  hr_decision?: "approve" | "reject" | "maybe" | null;
   /** ID of the job the candidate applied for */
   applied_job_id?: string | null;
   /** ID of the associated resume record */
@@ -198,7 +198,7 @@ export interface JobResumeInfoResponse {
   /** Computed resume score (0-100) */
   resume_score: number | null;
   /** Pass/fail decision from screening */
-  pass_fail: boolean | null;
+  pass_fail: string | boolean | null;
 }
 
 /**
@@ -217,10 +217,8 @@ export interface JobResumesResponse {
  * Response containing job details and all associated candidates.
  */
 export interface JobCandidatesResponse {
-  /** ID of the job */
-  job_id: string;
-  /** List of candidates who applied for this job */
-  candidates: CandidateResponse[];
+  data: CandidateResponse[];
+  total: number;
 }
 
 /**

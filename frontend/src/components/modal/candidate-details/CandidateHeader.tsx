@@ -1,13 +1,13 @@
 import { User } from "lucide-react";
 import { DialogTitle } from "@/components/ui/dialog";
 import type { CandidateResponse } from "@/types/resume";
-import type { ResumeScreeningResult } from "@/types/admin";
+import type { CandidateAnalysis } from "@/types/admin";
 
 /**
  * Props for {@link CandidateHeader}.
  */
 interface CandidateHeaderProps {
-  candidate: CandidateResponse | ResumeScreeningResult;
+  candidate: CandidateResponse | CandidateAnalysis;
 }
 
 /**

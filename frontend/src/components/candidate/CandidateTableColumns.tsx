@@ -125,7 +125,9 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                 status={
                   c.pass_fail === null || c.pass_fail === undefined
                     ? "pending"
-                    : c.pass_fail && (c.resume_score ?? 0) >= 65
+                    : (c.pass_fail === true ||
+                        String(c.pass_fail).toLowerCase() === "pass") &&
+                      (c.resume_score ?? 0) >= 65
                       ? "pass"
                       : "fail"
                 }
@@ -172,11 +174,11 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
 
       // 4. SCREENING DECISION
       {
-        id: "screening_decision",
-        accessorKey: "screening_decision",
+        id: "hr_decision",
+        accessorKey: "hr_decision",
         header: "HR Decision",
         cell: ({ row }) => {
-          const decision = row.original.screening_decision;
+          const decision = row.original.hr_decision;
           if (!decision) {
             return (
               <span className="text-muted-foreground text-sm">Pending</span>

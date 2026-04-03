@@ -1,6 +1,6 @@
 import client from "@/apis/client";
 import type { Job, JobVersionDetail } from "@/types/job";
-import type { ResumeScreeningResultsResponse } from "@/types/admin";
+import type { CandidateAnalysisResponse } from "@/types/admin";
 
 type JobPayload = Record<string, unknown>;
 
@@ -87,8 +87,8 @@ const jobService = {
    * @param jobId - The UUID of the job
    * @returns Promise resolving to the list of candidates
    */
-  getJobCandidates: async (jobId: string): Promise<ResumeScreeningResultsResponse> => {
-    const response = await client.get<ResumeScreeningResultsResponse>(`/jobs/${jobId}/candidates`);
+  getJobCandidates: async (jobId: string): Promise<CandidateAnalysisResponse> => {
+    const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`);
     return response.data;
   },
 

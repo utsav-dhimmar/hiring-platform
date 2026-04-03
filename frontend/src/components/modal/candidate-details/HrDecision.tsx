@@ -1,26 +1,26 @@
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare } from "lucide-react";
-import type { ResumeScreeningDecision } from "@/apis/resumeScreening";
+import type { CandidateDecision } from "@/apis/candidateDecision";
 
 /**
- * Props for {@link ScreeningDecision}.
+ * Props for {@link HrDecision}.
  */
-interface ScreeningDecisionProps {
-  decision: ResumeScreeningDecision;
+interface HrDecisionProps {
+  decision: CandidateDecision;
 }
 
 /**
- * Read-only card that shows the HR screening decision (approve / reject / maybe),
+ * Read-only card that shows the HR decision (approve / reject / maybe),
  * the optional note, and the decision date. Rendered inside the analysis tab
  * when a decision already exists.
  */
-export function ScreeningDecision({ decision }: ScreeningDecisionProps) {
+export function HrDecision({ decision }: HrDecisionProps) {
   return (
     <section className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
-          HR Screening Decision
+          HR Decision
         </h3>
         <Badge
           variant={
@@ -39,15 +39,15 @@ export function ScreeningDecision({ decision }: ScreeningDecisionProps) {
               : decision.decision}
         </Badge>
       </div>
-      {decision.note ? (
+      {decision.notes ? (
         <p className="text-sm text-muted-foreground italic leading-relaxed">
-          &ldquo;{decision.note}&rdquo;
+          &ldquo;{decision.notes}&rdquo;
         </p>
       ) : (
         <p className="text-xs text-muted-foreground italic">No note provided.</p>
       )}
       <div className="text-[10px]  font-medium">
-        Decided on {new Date(decision.created_at).toLocaleDateString()}
+        Decided on {new Date(decision.decided_at).toLocaleDateString()}
       </div>
     </section>
   );

@@ -416,7 +416,7 @@ export interface JobRead extends Omit<Job, "skills"> {
 /**
  * Detailed AI analysis of a resume.
  */
-export interface ResumeAnalysis {
+export interface CandidateMatchAnalysis {
   match_percentage: number;
   skill_gap_analysis: string;
   experience_alignment: string;
@@ -427,9 +427,9 @@ export interface ResumeAnalysis {
 }
 
 /**
- * Result of a resume screening for a single candidate.
+ * Result of a candidate analysis/screening for a single candidate.
  */
-export interface ResumeScreeningResult {
+export interface CandidateAnalysis {
   id: string;
   first_name?: string;
   last_name?: string;
@@ -437,13 +437,13 @@ export interface ResumeScreeningResult {
   phone?: string;
   current_status?: string;
   resume_score?: number;
-  pass_fail?: boolean;
-  resume_analysis?: ResumeAnalysis | null;
+  pass_fail?: string | boolean | null;
+  resume_analysis?: CandidateMatchAnalysis | null;
   created_at: string;
   is_parsed?: boolean;
   processing_status?: string;
   processing_error?: string | null;
-  screening_decision?: "approve" | "reject" | "maybe" | null;
+  hr_decision?: "approve" | "reject" | "maybe" | null;
   linkedin_url?: string | null;
   github_url?: string | null;
   /**
@@ -465,9 +465,9 @@ export interface ResumeScreeningResult {
 }
 
 /**
- * Response containing all resume screening results for a job.
+ * Response containing all candidate analysis results for a job.
  */
-export interface ResumeScreeningResultsResponse {
-  job_id: string;
-  candidates: ResumeScreeningResult[];
+export interface CandidateAnalysisResponse {
+  data: CandidateAnalysis[];
+  total: number;
 }

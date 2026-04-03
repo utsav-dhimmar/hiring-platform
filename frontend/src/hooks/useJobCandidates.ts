@@ -4,7 +4,7 @@ import jobService from "@/apis/job";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/error";
 import { slugify } from "@/utils/slug";
-import type { ResumeScreeningResult } from "@/types/admin";
+import type { CandidateAnalysis } from "@/types/admin";
 import type { Job } from "@/types/job";
 
 type JobRouteState = {
@@ -14,7 +14,7 @@ type JobRouteState = {
 export const useJobCandidates = (jobSlug: string | undefined) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [candidates, setCandidates] = useState<ResumeScreeningResult[]>([]);
+  const [candidates, setCandidates] = useState<CandidateAnalysis[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -44,14 +44,14 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
 
         if (isPolling) {
           const candidatesData = await jobService.getJobCandidates(id);
-          setCandidates(candidatesData.candidates || []);
+          setCandidates(candidatesData.data || []);
         } else {
           const [jobData, candidatesData] = await Promise.all([
             jobService.getJob(id),
             jobService.getJobCandidates(id),
           ]);
           setJob(jobData);
-          setCandidates(candidatesData.candidates || []);
+          setCandidates(candidatesData.data || []);
         }
       } catch (error) {
         console.error("Failed to fetch job data:", error);
@@ -106,7 +106,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
   );
 
   const needsReanalysis = useCallback(
-    (candidate: ResumeScreeningResult): boolean => {
+    (candidate: CandidateAnalysis): boolean => {
       if (
         candidate.processing_status === "processing" ||
         candidate.processing_status === "queued" ||

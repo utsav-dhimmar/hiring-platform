@@ -1,14 +1,14 @@
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import type { CandidateResponse } from "@/types/resume";
-import type { ResumeScreeningResult } from "@/types/admin";
+import type { CandidateAnalysis } from "@/types/admin";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { resumeScreeningApi } from "@/apis/resumeScreening";
+import { candidateDecisionApi } from "@/apis/candidateDecision";
 import type {
   HrDecisionHistoryItem,
-  ResumeScreeningDecision,
-} from "@/apis/resumeScreening";
+  CandidateDecision,
+} from "@/apis/candidateDecision";
 import { adminJobService } from "@/apis/admin/job";
 import type { Job, JobVersionDetail } from "@/types/job";
 import { useForm } from "react-hook-form";
@@ -25,7 +25,7 @@ import { AnalysisTabs } from "@/components/modal/candidate-details/AnalysisTabs"
 import { AnalysisContent } from "@/components/modal/candidate-details/AnalysisContent";
 import { DecisionHistory } from "@/components/modal/candidate-details/DecisionHistory";
 import { JobDescriptionView } from "@/components/modal/candidate-details/JobDescriptionView";
-import { ScreeningDecision } from "@/components/modal/candidate-details/ScreeningDecision";
+import { HrDecision } from "@/components/modal/candidate-details/HrDecision";
 import { FeedbackDialog } from "@/components/modal/candidate-details/FeedbackDialog";
 import { ActionButtons } from "@/components/modal/candidate-details/ActionButtons";
 
@@ -35,7 +35,7 @@ import { ActionButtons } from "@/components/modal/candidate-details/ActionButton
 interface CandidateDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  candidate: CandidateResponse | ResumeScreeningResult | null;
+  candidate: CandidateResponse | CandidateAnalysis | null;
   jobId?: string;
   onDecisionSubmitted?: () => void | Promise<void>;
 }
@@ -57,8 +57,8 @@ export function CandidateDetailsModal({
 }: CandidateDetailsModalProps) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [screeningDecision, setScreeningDecision] =
-    useState<ResumeScreeningDecision | null>(null);
+  const [hrDecision, setHrDecision] =
+    useState<CandidateDecision | null>(null);
   const [decisionHistory, setDecisionHistory] = useState<
     HrDecisionHistoryItem[]
   >([]);
@@ -135,24 +135,21 @@ export function CandidateDetailsModal({
 
   useEffect(() => {
     if (isOpen && candidate?.id) {
-      resumeScreeningApi
-        .getDecision(candidate.id)
-        .then((data) => {
-          setScreeningDecision(data);
-        })
-        .catch(() => {
-          setScreeningDecision(null);
-        });
-      resumeScreeningApi
+      candidateDecisionApi
         .getDecisionHistory(candidate.id)
         .then((data) => {
           setDecisionHistory(data.decisions);
+          // The first item in history is the latest decision
+          setHrDecision(
+            data.decisions.length > 0 ? data.decisions[0] : null,
+          );
         })
         .catch(() => {
+          setHrDecision(null);
           setDecisionHistory([]);
         });
     } else {
-      setScreeningDecision(null);
+      setHrDecision(null);
       setDecisionHistory([]);
     }
   }, [isOpen, candidate?.id]);
@@ -160,7 +157,7 @@ export function CandidateDetailsModal({
   if (!candidate) return null;
 
   const canTakeDecision =
-    !screeningDecision || screeningDecision.decision === "maybe";
+    !hrDecision || hrDecision.decision.toLowerCase() === "maybe";
 
   const handleAction = (type: "approve" | "reject" | "maybe") => {
     reset({
@@ -175,14 +172,17 @@ export function CandidateDetailsModal({
 
     setIsSubmitting(true);
     try {
-      const result = await resumeScreeningApi.submitDecision({
+      const result = await candidateDecisionApi.submitDecision({
         candidate_id: candidate.id,
         decision: data.decision,
         note: data.note,
       });
-      setScreeningDecision(result);
-      const history = await resumeScreeningApi.getDecisionHistory(candidate.id);
-      setDecisionHistory(history.decisions);
+      setHrDecision(result);
+      // Refresh history to include the new decision
+      const historyResponse = await candidateDecisionApi.getDecisionHistory(
+        candidate.id,
+      );
+      setDecisionHistory(historyResponse.decisions);
       await onDecisionSubmitted?.();
       toast.success("Decision submitted successfully");
       setShowFeedbackModal(false);
@@ -228,8 +228,8 @@ export function CandidateDetailsModal({
               showAllSkills={showAllSkills}
               setShowAllSkills={setShowAllSkills}
             >
-              {screeningDecision && (
-                <ScreeningDecision decision={screeningDecision} />
+              {hrDecision && (
+                <HrDecision decision={hrDecision} />
               )}
               <DecisionHistory decisions={decisionHistory} />
             </AnalysisContent>
@@ -240,7 +240,7 @@ export function CandidateDetailsModal({
               isLoadingVersion={isLoadingVersion}
               onVersionChange={handleVersionChange}
               appliedVersionNumber={
-                (candidate as ResumeScreeningResult)?.applied_version_number ??
+                (candidate as CandidateAnalysis)?.applied_version_number ??
                 undefined
               }
             />
@@ -251,7 +251,7 @@ export function CandidateDetailsModal({
           <ActionButtons
             onAction={handleAction}
             showMaybeButton={
-              !screeningDecision || screeningDecision.decision !== "maybe"
+              !hrDecision || hrDecision.decision.toLowerCase() !== "may be"
             }
           />
         )}

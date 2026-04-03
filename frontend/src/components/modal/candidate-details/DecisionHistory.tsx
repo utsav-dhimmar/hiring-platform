@@ -1,14 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { History, MessageSquare } from "lucide-react";
-import type { HrDecisionHistoryItem } from "@/apis/resumeScreening";
+import type { HrDecisionHistoryItem } from "@/apis/candidateDecision";
 
 interface DecisionHistoryProps {
   decisions: HrDecisionHistoryItem[];
 }
 
 function getDecisionBadgeVariant(decision: HrDecisionHistoryItem["decision"]) {
-  if (decision === "proceed") return "default";
+  if (decision === "approve") return "default";
   if (decision === "reject") return "destructive";
   return "secondary";
 }

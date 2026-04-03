@@ -16,19 +16,19 @@ import { adminJobService } from "@/apis/admin/service";
 import type { JobResumeInfoResponse } from "@/types/resume";
 import { extractErrorMessage } from "@/utils/error";
 
-interface ResumeScreeningDetailModalProps {
+interface CandidateAnalysisModalProps {
   show: boolean;
   onHide: () => void;
   jobId: string | undefined;
   resumeId: string | null;
 }
 
-const ResumeScreeningDetailModal = ({
+const CandidateAnalysisModal = ({
   show,
   onHide,
   jobId,
   resumeId,
-}: ResumeScreeningDetailModalProps) => {
+}: CandidateAnalysisModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<JobResumeInfoResponse | null>(null);
@@ -42,8 +42,8 @@ const ResumeScreeningDetailModal = ({
       const result = await adminJobService.getJobResumeDetail(jobId, resumeId);
       setData(result);
     } catch (err) {
-      console.error("Failed to fetch resume screening details:", err);
-      setError(extractErrorMessage(err, "Failed to load screening details."));
+      console.error("Failed to fetch candidate analysis details:", err);
+      setError(extractErrorMessage(err, "Failed to load analysis details."));
     } finally {
       setLoading(false);
     }
@@ -63,36 +63,44 @@ const ResumeScreeningDetailModal = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="border-0 pb-0">
           <DialogTitle className="font-bold">
-            Detailed Screening: {data?.candidate_first_name} {data?.candidate_last_name}
+            Analysis Details: {data?.candidate_first_name} {data?.candidate_last_name}
           </DialogTitle>
         </DialogHeader>
         <div className="pt-3">
           {loading && (
             <div className="text-center py-5">
               <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-              <p className="mt-2 text-muted-foreground">Loading screening details...</p>
+              <p className="mt-2 text-muted-foreground">Loading analysis details...</p>
             </div>
           )}
 
           {error && <ErrorDisplay message={error} onRetry={fetchData} />}
 
           {!loading && !error && data && (
-            <div className="resume-details">
+            <div className="candidate-analysis-details">
               <div className="flex justify-between items-center mb-4 p-3 bg-muted rounded-lg border">
                 <div>
                   <div className="text-muted-foreground text-sm mb-1">Status</div>
                   <Badge
                     variant={
-                      data.pass_fail && (data.resume_score ?? 0) >= 65
+                      (data.pass_fail === true ||
+                        String(data.pass_fail).toLowerCase() === "pass") &&
+                      (data.resume_score ?? 0) >= 65
                         ? "default"
-                        : data.pass_fail === false || (data.resume_score ?? 0) < 65
+                        : data.pass_fail === false ||
+                            String(data.pass_fail).toLowerCase() === "fail" ||
+                            (data.resume_score ?? 0) < 65
                           ? "destructive"
                           : "secondary"
                     }
                   >
-                    {data.pass_fail === true && (data.resume_score ?? 0) >= 65
+                    {(data.pass_fail === true ||
+                      String(data.pass_fail).toLowerCase() === "pass") &&
+                    (data.resume_score ?? 0) >= 65
                       ? "PASS"
-                      : data.pass_fail === false || (data.resume_score ?? 0) < 65
+                      : data.pass_fail === false ||
+                          String(data.pass_fail).toLowerCase() === "fail" ||
+                          (data.resume_score ?? 0) < 65
                         ? "FAIL"
                         : "PENDING"}
                   </Badge>
@@ -139,7 +147,7 @@ const ResumeScreeningDetailModal = ({
               <section className="mb-4">
                 <h5 className="font-bold mb-3 flex items-center gap-2">
                   <span className="bg-secondary/20 p-1 rounded text-secondary">📋</span>
-                  Resume Metadata
+                  Candidate Metadata
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <Card className="h-100 border-0 shadow-sm p-3">
@@ -167,4 +175,4 @@ const ResumeScreeningDetailModal = ({
   );
 };
 
-export default ResumeScreeningDetailModal;
+export default CandidateAnalysisModal;

@@ -1,13 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from "lucide-react";
 import type { CandidateResponse } from "@/types/resume";
-import type { ResumeScreeningResult } from "@/types/admin";
+import type { CandidateAnalysis } from "@/types/admin";
 
 /**
  * Props for {@link AnalysisStats}.
  */
 interface AnalysisStatsProps {
-  candidate: CandidateResponse | ResumeScreeningResult;
+  candidate: CandidateResponse | CandidateAnalysis;
 }
 
 /**
@@ -16,7 +16,10 @@ interface AnalysisStatsProps {
  */
 export function AnalysisStats({ candidate }: AnalysisStatsProps) {
   const analysis = candidate.resume_analysis;
-  const isPassed = candidate.pass_fail && (candidate.resume_score ?? 0) >= 65;
+  const isPassed =
+    (candidate.pass_fail === true ||
+      String(candidate.pass_fail).toLowerCase() === "pass") &&
+    (candidate.resume_score ?? 0) >= 65;
 
   return (
     <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-4">

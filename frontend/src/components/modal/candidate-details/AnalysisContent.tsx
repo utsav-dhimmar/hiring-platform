@@ -2,14 +2,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import type { CandidateResponse } from "@/types/resume";
-import type { ResumeScreeningResult } from "@/types/admin";
+import type { CandidateAnalysis } from "@/types/admin";
 import type { ReactNode } from "react";
 
 /**
  * Props for {@link AnalysisContent}.
  */
 interface AnalysisContentProps {
-  candidate: CandidateResponse | ResumeScreeningResult;
+  candidate: CandidateResponse | CandidateAnalysis;
   showAllSkills: boolean;
   setShowAllSkills: (show: boolean) => void;
   children?: ReactNode;

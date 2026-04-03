@@ -19,7 +19,7 @@ import CandidateSearchTable from "@/components/candidate/CandidateSearchTable";
 import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
 import {
   CandidateDetailsModal,
-  ResumeScreeningDetailModal,
+  CandidateAnalysisModal,
   DeleteModal,
 } from "@/components/modal";
 import { resumeService } from "@/apis/resume";
@@ -45,7 +45,7 @@ const AdminCandidateSearch = () => {
 
   // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
-  const [showScreeningDetails, setShowScreeningDetails] = useState(false);
+  const [showAnalysisDetails, setShowAnalysisDetails] = useState(false);
   const [selectedCandidate, setSelectedCandidate] =
     useState<CandidateResponse | null>(null);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
@@ -144,10 +144,10 @@ const AdminCandidateSearch = () => {
     setShowDetail(true);
   };
 
-  const handleShowScreeningDetails = (candidate: CandidateResponse) => {
+  const handleShowAnalysisDetails = (candidate: CandidateResponse) => {
     setSelectedCandidate(candidate);
     setSelectedResumeId(candidate.resume_id || null);
-    setShowScreeningDetails(true);
+    setShowAnalysisDetails(true);
   };
 
   const {
@@ -218,7 +218,7 @@ const AdminCandidateSearch = () => {
           pagination={pagination}
           onPaginationChange={setPagination}
           onShowMore={handleShowMore}
-          onShowScreeningDetails={handleShowScreeningDetails}
+          onShowScreeningDetails={handleShowAnalysisDetails}
           onDelete={handleDeleteClick}
         />
       )}
@@ -231,9 +231,9 @@ const AdminCandidateSearch = () => {
         jobId={jobId}
       />
 
-      <ResumeScreeningDetailModal
-        show={showScreeningDetails}
-        onHide={() => setShowScreeningDetails(false)}
+      <CandidateAnalysisModal
+        show={showAnalysisDetails}
+        onHide={() => setShowAnalysisDetails(false)}
         jobId={jobId || (selectedCandidate?.applied_job_id ?? undefined)}
         resumeId={selectedResumeId}
       />

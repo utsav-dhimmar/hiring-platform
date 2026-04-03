@@ -1,6 +1,6 @@
 /**
  * Canonical candidate shape for table usage.
- * Both ResumeScreeningResult and CandidateResponse satisfy this interface.
+ * Both CandidateAnalysis and CandidateResponse satisfy this interface.
  */
 export interface UnifiedCandidate {
   id: string;
@@ -12,10 +12,10 @@ export interface UnifiedCandidate {
   github_url?: string | null;
   current_status?: string | null;
   resume_score?: number | null;
-  pass_fail?: boolean | null;
+  pass_fail?: string | boolean | null;
   is_parsed?: boolean;
   processing_status?: string | null;
-  screening_decision?: "approve" | "reject" | "maybe" | null;
+  hr_decision?: "approve" | "reject" | "maybe" | null;
   created_at: string;
   /** Explicit apply timestamp – falls back to created_at, then "N/A" */
   applied_at?: string | null;

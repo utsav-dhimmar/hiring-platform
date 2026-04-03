@@ -3,11 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import type { CandidateResponse } from "@/types/resume";
 import { UserCheck, ThumbsUp, AlertTriangle, Info } from "lucide-react";
 
-interface ResumeScreeningResultProps {
+interface CandidateAnalysisResultProps {
   candidate: CandidateResponse;
 }
 
-const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
+const CandidateAnalysisResult = ({ candidate }: CandidateAnalysisResultProps) => {
   const analysis = candidate.resume_analysis;
 
   if (!analysis) {
@@ -17,9 +17,9 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
           <div className="mb-3 text-muted-foreground">
             <UserCheck className="h-12 w-12 mx-auto opacity-50" />
           </div>
-          <h5>No Resume Analysis Available</h5>
+          <h5>No Analysis Available</h5>
           <p className="text-muted-foreground">
-            The resume for this candidate hasn't been analyzed yet or the analysis failed.
+            The candidate hasn't been analyzed yet or the analysis failed.
           </p>
         </div>
       </Card>
@@ -27,10 +27,10 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
   }
 
   return (
-    <div className="resume-screening-result">
+    <div className="candidate-analysis-result">
       <Card className="mb-4 border-0 shadow-sm rounded-4 overflow-hidden">
         <div className="bg-white px-4 py-3 border-b flex justify-between items-center">
-          <h5 className="mb-0 font-bold">Stage 0: Resume Screening Results</h5>
+          <h5 className="mb-0 font-bold">Stage 0: Candidate Analysis Results</h5>
           <Badge
             variant={
               candidate.resume_score && candidate.resume_score >= 70 ? "default" : "secondary"
@@ -135,4 +135,4 @@ const ResumeScreeningResult = ({ candidate }: ResumeScreeningResultProps) => {
   );
 };
 
-export default ResumeScreeningResult;
+export default CandidateAnalysisResult;
