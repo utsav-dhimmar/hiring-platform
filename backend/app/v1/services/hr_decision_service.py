@@ -110,8 +110,8 @@ class HRDecisionService:
             f"by user {user_id}"
         )
 
-        # Trigger cross-match in background if candidate is rejected
-        if decision_data.decision == "reject":
+        # Trigger cross-match in background if candidate is rejected (case-insensitive)
+        if decision_data.decision.lower() == "reject":
             _trigger_cross_match_for_candidate(candidate)
         
         return HRDecisionResponse.model_validate(hr_decision)
@@ -197,8 +197,8 @@ class HRDecisionService:
             f"by user {user_id}"
         )
 
-        # Trigger cross-match in background if candidate is rejected
-        if decision_data.decision == "reject":
+        # Trigger cross-match in background if candidate is rejected (case-insensitive)
+        if decision_data.decision.lower() == "reject":
             # We need the candidate model with resumes loaded
             candidate_result = await db.execute(
                 select(Candidate)
@@ -250,7 +250,7 @@ class HRDecisionService:
 
         return HRDecisionSummary(
             total_candidates=total_candidates,
-            proceed_count=counts.get("proceed", 0),
+            approve_count=counts.get("approve", 0),
             reject_count=counts.get("reject", 0),
             maybe_count=counts.get("May Be", 0),
             undecided_count=max(total_candidates - decided_total, 0),
@@ -300,7 +300,7 @@ class HRDecisionService:
         return HRJobDecisionSummary(
             job_id=job_id,
             total_candidates=total_candidates,
-            proceed_count=counts.get("proceed", 0),
+            approve_count=counts.get("approve", 0),
             reject_count=counts.get("reject", 0),
             maybe_count=counts.get("May Be", 0),
             undecided_count=max(total_candidates - decided_total, 0),

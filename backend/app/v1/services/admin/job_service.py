@@ -4,6 +4,8 @@ from app.v1.db.models.jobs import Job
 from app.v1.repository.job_repository import job_repository
 from app.v1.schemas.job import JobCreate, JobUpdate
 from app.v1.services.admin.audit_service import audit_service
+from app.v1.services.admin.department_service import department_service
+from app.v1.services.admin.skill_service import skill_service
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +36,15 @@ class JobAdminService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_in: JobCreate
     ) -> Job:
         """Create a new job."""
+        # Validate department existence if provided
+        if job_in.department_id:
+            await department_service.get_department_by_id(db, job_in.department_id)
+
+        # Validate skills existence if provided
+        if job_in.skill_ids:
+            for skill_id in job_in.skill_ids:
+                await skill_service.get_skill_by_id(db, skill_id)
+
         job = await job_repository.create(
             db=db, object=job_in, created_by=admin_user_id
         )
@@ -59,8 +70,29 @@ class JobAdminService:
         job_update: JobUpdate,
         background_tasks=None,
     ) -> Job:
-        """Update a job. Auto-triggers mass refresh if custom_extraction_fields changed."""
+        # Update a job. Auto-triggers mass refresh if custom_extraction_fields changed.
         await self.get_job_by_id(db=db, job_id=job_id)
+
+        # Filter out invalid department_id if provided
+        if job_update.department_id:
+            try:
+                await department_service.get_department_by_id(db, job_update.department_id)
+            except HTTPException:
+                # If department doesn't exist, don't update it (keep existing)
+                job_update.department_id = None
+
+        # Filter out invalid skill_ids if provided
+        if job_update.skill_ids:
+            valid_skill_ids = []
+            for s_id in job_update.skill_ids:
+                try:
+                    await skill_service.get_skill_by_id(db, s_id)
+                    valid_skill_ids.append(s_id)
+                except HTTPException:
+                    # Skip invalid skill IDs (like the 3fa85f64 dummy placeholder)
+                    continue
+            job_update.skill_ids = valid_skill_ids
+
         updated_job = await job_repository.update(
             db=db, id=job_id, object=job_update
         )

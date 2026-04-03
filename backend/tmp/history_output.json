@@ -1,0 +1,104 @@
+{
+  "name": "Devarshi Vaidya",
+  "email": "devarshivaidya2307@gmail.com",
+  "links": [
+    {
+      "text": "www.linkedin.com/in/devarshi-vaidya-6096041aa",
+      "attributes": {
+        "type": "linkedin",
+        "platform": "LinkedIn"
+      }
+    }
+  ],
+  "phone": "+91-910-671-6144",
+  "skills": [
+    {
+      "text": "Not mentioned",
+      "attributes": {}
+    }
+  ],
+  "analysis": {
+    "missing_skills": [],
+    "match_percentage": 0.0,
+    "strength_summary": "",
+    "custom_extractions": {
+      "About": "I have 3 years of industry experience. Extremely motivated to constantly develop my skills and grow professionally. I am confident in my ability to come up with interesting ideas that effectively contribute to the growth of the organization.",
+      "Projects": "Waaree Industry: Business Technology: React JS, TypeScript, NodeJS, Strapi CMS, PostgreSQL, Html, CSS, Bootstrap. Key features: Development of dynamic CMS website.",
+      "Working Experience": "Done internship at August Code Solutions Pvt Ltd. (Jan-2021 to June-2021). Doing job of Junior Web developer at August Code Solutions Pvt Ltd. (July-2021 to June-2022). Doing job of Junior Intermediate Web developer at August Code Solutions Pvt Ltd. (July-2022 to Present)."
+    },
+    "skill_gap_analysis": "",
+    "experience_alignment": "",
+    "extraordinary_points": [
+      "No extra Ordinary Points found from the resume"
+    ]
+  },
+  "location": [
+    {
+      "text": "Not mentioned",
+      "attributes": {}
+    },
+    {
+      "text": "Not mentioned",
+      "attributes": {}
+    },
+    {
+      "text": "Surat",
+      "attributes": {}
+    }
+  ],
+  "education": [
+    {
+      "text": "Not mentioned",
+      "attributes": {}
+    },
+    {
+      "text": "Not mentioned",
+      "attributes": {}
+    },
+    {
+      "text": "2017-2021 B.E Computer Engineering CGPA: 8.94 Gujarat Technological University\n2017 12th (Higher Secondary Examination) 64.92% Gujarat Secondary and Higher Secondary Education Board\n2015 10th (Secondary Examination) 70.67% Gujarat Secondary and Higher Secondary Education Board",
+      "attributes": {}
+    }
+  ],
+  "experience": [
+    {
+      "text": "Internship | August Code Solutions Pvt Ltd | Jan-2021 to June-2021",
+      "attributes": {
+        "title": "Internship",
+        "company": "August Code Solutions Pvt Ltd",
+        "end_date": "June-2021",
+        "start_date": "Jan-2021"
+      }
+    },
+    {
+      "text": "Junior Web Developer | August Code Solutions Pvt Ltd | July-2021 to June-2022",
+      "attributes": {
+        "title": "Junior Web Developer",
+        "company": "August Code Solutions Pvt Ltd",
+        "end_date": "June-2022",
+        "start_date": "July-2021"
+      }
+    },
+    {
+      "text": "Junior Intermediate Web Developer | August Code Solutions Pvt Ltd | July-2022 to Present",
+      "attributes": {
+        "title": "Junior Intermediate Web Developer",
+        "company": "August Code Solutions Pvt Ltd",
+        "end_date": "Present",
+        "start_date": "July-2022"
+      }
+    },
+    {
+      "text": "Not mentioned",
+      "attributes": {}
+    },
+    {
+      "text": "Not mentioned",
+      "attributes": {}
+    }
+  ],
+  "processing": {
+    "status": "completed"
+  },
+  "certifications": []
+}

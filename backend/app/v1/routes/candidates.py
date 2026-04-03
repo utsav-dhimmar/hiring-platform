@@ -46,11 +46,17 @@ async def get_job_candidates(
     user: UserRead = Depends(check_permission("candidates:access")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    hr_decision: str | None = Query(None, description="Filter by HR decision: 'proceed', 'reject', or 'May Be'"),
+    hr_decision: str | None = Query(None, description="Filter by HR decision: 'approve', 'reject', or 'May Be'"),
+    jd_version: int | None = Query(None, description="Filter by original JD version number"),
 ) -> Any:
     """Get all candidates for a specific job, optionally filtered by HR decision."""
     return await admin_service.get_candidates_for_job(
-        db=db, job_id=job_id, skip=skip, limit=limit, hr_decision=hr_decision
+        db=db,
+        job_id=job_id,
+        skip=skip,
+        limit=limit,
+        hr_decision=hr_decision,
+        jd_version=jd_version,
     )
 
 

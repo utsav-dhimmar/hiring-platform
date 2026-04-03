@@ -16,7 +16,7 @@ from app.v1.db.models.audit_logs import AuditLog
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.files import File
 from app.v1.db.models.jobs import Job
-from app.v1.db.models.resume_screening_decisions import ResumeScreeningDecision
+from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.db.models.permissions import Permission
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.roles import Role
@@ -413,10 +413,10 @@ class AdminRepository:
             else None
         )
 
-        # HR Decisions and Pending stats (using the new specialized table)
+        # HR Decisions and Pending stats (using the consolidated HrDecision table)
         hr_decided_count = (
             await db.scalar(
-                select(func.count(func.distinct(ResumeScreeningDecision.candidate_id)))
+                select(func.count(func.distinct(HrDecision.candidate_id)))
             )
             or 0
         )
