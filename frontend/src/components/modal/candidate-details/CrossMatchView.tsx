@@ -31,11 +31,12 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     if (!resumeId) return;
     try {
       const data = await crossMatchApi.getCrossMatches(resumeId);
-      setMatches(data.matches);
+      const matchesArray = Object.values(data.matches);
+      setMatches(matchesArray);
 
       // Check if any match is "new" (created after our start time)
       if (isDiscovering && startTime) {
-        const hasNewMatches = data.matches.some(
+        const hasNewMatches = matchesArray.some(
           (m) => new Date(m.created_at).getTime() > (startTime - 5000) // Small buffer
         );
         if (hasNewMatches) {
@@ -184,6 +185,19 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
                       </div>
                       <span className="font-black text-blue-600 tracking-tight">{(match.match_score)}% Match</span>
                     </div>
+
+                    <Badge
+                      variant="secondary"
+                      className={`
+                        text-[10px] h-4.5 px-2 font-black border-none transition-all
+                        ${match.match_score >= (match.matched_job?.passing_threshold ?? 65)
+                          ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20"
+                          : "bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/20"
+                        }
+                      `}
+                    >
+                      {match.match_score >= (match.matched_job?.passing_threshold ?? 65) ? "PASSED" : "FAILED"}
+                    </Badge>
                   </div>
                 </div>
                 <Button

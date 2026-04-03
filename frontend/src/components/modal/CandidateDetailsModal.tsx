@@ -83,7 +83,7 @@ export function CandidateDetailsModal({
   });
 
   const { reset } = form;
-  
+
   // Sync activeTab with initialTab when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -223,8 +223,8 @@ export function CandidateDetailsModal({
         </DialogHeader>
 
         <div className="px-4 py-3 sm:px-6 border-y border-muted-foreground/10 bg-muted/20 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <AnalysisStats 
-            candidate={candidate} 
+          <AnalysisStats
+            candidate={candidate}
             activeTab={activeTab}
             onVersionClick={() => setActiveTab("version-result")}
             passing_threshold={passing_threshold}
@@ -246,7 +246,7 @@ export function CandidateDetailsModal({
               showAllSkills={showAllSkills}
               setShowAllSkills={setShowAllSkills}
             >
-              {hrDecision && (
+              {hrDecision && hrDecision.decision.toLowerCase() !== "may be" && (
                 <HrDecision decision={hrDecision} />
               )}
               <DecisionHistory decisions={decisionHistory} />
@@ -263,8 +263,8 @@ export function CandidateDetailsModal({
               }
             />
           ) : activeTab === "discovery" ? (
-            <CrossMatchView 
-              resumeId={(candidate as CandidateAnalysis)?.resume_id} 
+            <CrossMatchView
+              resumeId={(candidate as CandidateAnalysis)?.resume_id}
               candidateId={candidate.id}
               onClose={onClose}
             />

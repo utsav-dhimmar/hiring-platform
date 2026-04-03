@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { DateDisplay } from "@/components/shared/DateDisplay"
 import { History, MessageSquare } from "lucide-react";
 import type { HrDecisionHistoryItem } from "@/apis/candidateDecision";
 
@@ -58,7 +59,7 @@ export function DecisionHistory({ decisions }: DecisionHistoryProps) {
                 </Badge>
               </div>
               <span className="text-[11px] font-medium text-muted-foreground">
-                {new Date(decision.decided_at).toLocaleString()}
+                Decided on <DateDisplay date={decision.decided_at} className="text-[11px]" />
               </span>
             </div>
 

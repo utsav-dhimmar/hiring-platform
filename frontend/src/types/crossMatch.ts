@@ -30,6 +30,6 @@ export interface CrossJobMatchRead extends CrossJobMatchBase {
 export interface CrossJobMatchResponse {
   /** ID of the resume these matches are for */
   resume_id: string;
-  /** List of match records */
-  matches: CrossJobMatchRead[];
+  /** Dictionary of match records keyed by matched_job_id */
+  matches: Record<string, CrossJobMatchRead>;
 }

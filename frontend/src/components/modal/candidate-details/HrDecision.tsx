@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { DateDisplay } from "@/components/shared/DateDisplay"
 import { MessageSquare } from "lucide-react";
 import type { CandidateDecision } from "@/apis/candidateDecision";
 
@@ -47,7 +48,7 @@ export function HrDecision({ decision }: HrDecisionProps) {
         <p className="text-xs text-muted-foreground italic">No note provided.</p>
       )}
       <div className="text-[10px]  font-medium">
-        Decided on {new Date(decision.decided_at).toLocaleDateString()}
+        Decided on <DateDisplay date={decision.decided_at} className="text-[10px]" />
       </div>
     </section>
   );

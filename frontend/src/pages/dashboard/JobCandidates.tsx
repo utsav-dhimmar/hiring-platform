@@ -130,31 +130,6 @@ export default function JobCandidates() {
                       <div className="text-sm font-semibold text-amber-700">Reanalyze</div>
                     </HoverCardContent>
                   </HoverCard>
-
-                  <HoverCard>
-                    <HoverCardTrigger
-                      render={(props) => (
-                        <Button
-                          {...props}
-                          variant="secondary"
-                          size="sm"
-                          className="h-9 w-9 p-0 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-all duration-300 border border-primary/10 flex items-center justify-center shrink-0"
-                          onClick={(e) => {
-                            if (props.onClick) props.onClick(e);
-                            setSelectedCandidate(candidate);
-                            setModalInitialTab("discovery");
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          <Compass className="h-4 w-4 shrink-0" />
-                        </Button>
-                      )}
-                    />
-                    <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-                      <div className="text-sm font-semibold text-indigo-700">Discovery</div>
-                    </HoverCardContent>
-                  </HoverCard>
-
                   <HoverCard>
                     <HoverCardTrigger
                       render={(props) => (
