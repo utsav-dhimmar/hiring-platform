@@ -35,7 +35,7 @@ export default function AppPageShell({
   return (
     <section
       className={cn(
-        "w-full px-3 pb-5 pt-3 sm:px-4 md:px-5 md:pb-6 md:pt-4 lg:px-6 lg:pb-8",
+        "w-full px-3 pb-5 pt-3 sm:px-2 md:px-3.5 md:pb-3 md:pt-2 lg:px-3 lg:pb-4",
         className,
       )}
     >

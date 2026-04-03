@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Menu } from "lucide-react";
+import { Menu, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,11 +31,34 @@ function MobileMenuTrigger() {
     <Button
       variant="outline"
       size="icon-sm"
-      className="rounded-xl border-border/70 bg-background/90 shadow-sm md:hidden"
+      className="rounded-xl border-border/70 bg-background/90 shadow-sm md:hidden shrink-0"
       onClick={toggleSidebar}
     >
       <Menu className="h-4 w-4" />
       <span className="sr-only">Toggle menu</span>
+    </Button>
+  );
+}
+
+function DesktopSidebarTrigger() {
+  const { toggleSidebar, isMobile, open } = useSidebar();
+
+  if (isMobile) {
+    return null;
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className="-ml-1.5 h-8 w-8 shrink-0 text-muted-foreground hover:bg-muted/50 hover:text-foreground hidden md:flex"
+      onClick={toggleSidebar}
+      title="Toggle Sidebar"
+    >
+      {
+        open ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />
+      }
+      <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
 }
@@ -61,11 +84,11 @@ export default function AppPageHeader({
     >
       <div className={cn("flex flex-col gap-4", contentClassName)}>
         {/* Main Content Layer: Title, Navigation and Actions */}
-        <div className="flex flex-col gap-1.5 sm:flex-1">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-2 sm:flex-1">
+          <div className="flex flex-row items-start justify-between gap-4 sm:flex-row md:items-center">
+            <div className="flex flex-wrap items-center gap-3">
               {mobileMenuTrigger ? <MobileMenuTrigger /> : null}
-              {backAction ? (
+              {/* {backAction ? (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -74,7 +97,8 @@ export default function AppPageHeader({
                 >
                   {backAction.label}
                 </Button>
-              ) : null}
+              ) : null} */}
+              <DesktopSidebarTrigger />
               <h1
                 className={cn(
                   "text-2xl font-bold tracking-tight text-foreground sm:text-3xl",
@@ -86,7 +110,7 @@ export default function AppPageHeader({
             </div>
 
             {actions ? (
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 {actions}
               </div>
             ) : null}
@@ -101,7 +125,7 @@ export default function AppPageHeader({
 
         {/* Supplementary Layer: Breadcrumbs and Meta */}
         {(breadcrumbs || meta) && (
-          <div className="flex flex-col gap-3 ml-12 sm:ml-1">
+          <div className="flex flex-col gap-3 sm:ml-1">
             {breadcrumbs ? (
               <div className="min-w-0 overflow-hidden text-xs text-muted-foreground sm:text-sm">
                 {breadcrumbs}

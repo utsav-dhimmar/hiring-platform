@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 
 interface PaginationProps {
@@ -9,6 +10,23 @@ interface PaginationProps {
 }
 
 const Pagination = ({ page, pageSize, total, onPageChange, dataLength }: PaginationProps) => {
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    // Scroll to top of content area on page change
+    const scrollContainer = document.querySelector(".overflow-auto");
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [page]);
+
   const totalPages = Math.ceil(total / pageSize);
 
   if (totalPages <= 1) return null;

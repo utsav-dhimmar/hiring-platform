@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -73,6 +73,23 @@ export function DataTable<TData, TValue>({
 
   const paginationState = isServerSide ? { pageIndex, pageSize } : internalPagination;
   const handlePaginationChange = isServerSide ? onPaginationChange : setInternalPagination;
+
+  const isFirstRender = useRef(true);
+  
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
+    // Scroll to top of content area on page change
+    const scrollContainer = document.querySelector(".overflow-auto");
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [paginationState.pageIndex]);
 
   const table = useReactTable({
     data,

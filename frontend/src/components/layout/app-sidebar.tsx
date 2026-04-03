@@ -12,7 +12,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { LogOut, User, Mail, Shield } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -122,7 +121,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <Link to="/dashboard" className="flex-1">
           <Logo variant="dark" />
         </Link>
-        <SidebarTrigger className="h-8 w-8 ml-auto" />
       </SidebarHeader>
       <SidebarContent>
         {data.navMain.map((item) => (
