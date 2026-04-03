@@ -2,7 +2,7 @@ import uuid
 
 from app.v1.db.models.jobs import Job
 from app.v1.repository.job_repository import job_repository
-from app.v1.schemas.job import JobCreate, JobUpdate, JobRead, JobsListRead
+from app.v1.schemas.job import JobCreate, JobUpdate, JobRead, JobsListRead, JobStatusUpdate
 from app.v1.services.admin.audit_service import audit_service
 from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.skill_service import skill_service
@@ -173,6 +173,30 @@ class JobAdminService:
         #     )
         # -----------------------------------------------------------------------
 
+        return JobRead.model_validate(updated_job)
+
+    async def update_job_status(
+        self, db: AsyncSession, admin_user_id: uuid.UUID, job_id: uuid.UUID, status_in: JobStatusUpdate
+    ) -> JobRead:
+        """Update job active status without incrementing version."""
+        # 1. Verify existence
+        await self.get_job_by_id(db=db, job_id=job_id)
+        
+        # 2. Update status via repository
+        # JobRepository.update logic correctly identifies is_active as a non-version-worthy change.
+        job_update = JobUpdate(is_active=status_in.is_active)
+        updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
+        
+        # 3. Log Audit
+        await audit_service.log_action(
+            db=db,
+            user_id=admin_user_id,
+            action="update_job_status",
+            target_type="job",
+            target_id=job_id,
+            details={"is_active": status_in.is_active}
+        )
+        
         return JobRead.model_validate(updated_job)
 
     async def delete_job(

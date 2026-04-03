@@ -105,6 +105,9 @@ class AdminService:
     async def update_job(self, *args, **kwargs) -> Job:
         return await job_admin_service.update_job(*args, **kwargs)
 
+    async def update_job_status(self, *args, **kwargs) -> Job:
+        return await job_admin_service.update_job_status(*args, **kwargs)
+
     async def delete_job(self, *args, **kwargs) -> None:
         return await job_admin_service.delete_job(*args, **kwargs)
 

@@ -48,6 +48,14 @@ class JobUpdate(BaseModel):
     custom_extraction_fields: list[str] | None = None
 
 
+class JobStatusUpdate(BaseModel):
+    """
+    Schema for updating only the job's active status.
+    """
+
+    is_active: bool
+
+
 class JobVersionMinimal(BaseModel):
     """
     Minimal schema for a Job version, showing only version number and its unique ID.

@@ -1,9 +1,13 @@
 from typing import Any
 import uuid
 from fastapi import HTTPException, status
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.models.skills import Skill
+from app.v1.db.models.jobs import Job
+from app.v1.db.models.job_skills import job_skills
+from app.v1.db.models.candidate_skills import candidate_skills
 from app.v1.repository.skill_repository import skill_repository
 from app.v1.schemas.skill import SkillCreate, SkillRead, SkillUpdate
 from app.v1.schemas.response import PaginatedData
@@ -100,15 +104,50 @@ class SkillService:
     async def delete_skill(
         self, db: AsyncSession, admin_user_id: uuid.UUID, skill_id: uuid.UUID
     ) -> None:
-        """Delete a skill."""
-        await self.get_skill_by_id(db=db, skill_id=skill_id)
+        """Delete a skill after safety checks and cleaning associations."""
+        # 1. Fetch Skill to verify existence and get details
+        skill = await skill_repository.crud.get(db=db, id=skill_id)
+        if not skill:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Skill not found.",
+            )
+        
+        # Safe attribute access as requested
+        skill_name = skill.name if hasattr(skill, 'name') else skill.get('name', "Unknown Skill")
+
+        # 2. Safety Check: Is it being used in any ACTIVE Jobs?
+        active_jobs_query = (
+            select(Job.id)
+            .join(job_skills, Job.id == job_skills.c.job_id)
+            .where(job_skills.c.skill_id == skill_id, Job.is_active == True)
+        )
+        result = await db.execute(active_jobs_query)
+        active_job_ids = [str(row[0]) for row in result.fetchall()]
+
+        if active_job_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot delete skill '{skill_name}' because it is being used in ACTIVE Job(s) with ID(s): {active_job_ids}. Please deactivate these Job(s) first."
+            )
+
+        # 3. Clean Linkage: Cascade delete associations from junction tables
+        # Required to satisfy Foreign Key constraints
+        await db.execute(delete(job_skills).where(job_skills.c.skill_id == skill_id))
+        await db.execute(delete(candidate_skills).where(candidate_skills.c.skill_id == skill_id))
+
+        # 4. Final Deletion: Delete the skill itself
         await skill_repository.crud.delete(db=db, id=skill_id)
+        await db.commit()
+
+        # 5. Audit Log
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
             action="delete_skill",
             target_type="skill",
             target_id=skill_id,
+            details={"name": skill_name}
         )
 
 skill_service = SkillService()

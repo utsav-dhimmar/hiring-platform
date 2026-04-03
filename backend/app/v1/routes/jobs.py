@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission
-from app.v1.schemas.job import JobCreate, JobRead, JobsListRead, JobUpdate
+from app.v1.schemas.job import JobCreate, JobRead, JobsListRead, JobUpdate, JobStatusUpdate
 from app.v1.schemas.job_stage import (
     JobStageConfigCreate,
     JobStageConfigRead,
@@ -136,6 +136,20 @@ async def update_job(
     return await admin_service.update_job(
         db=db, admin_user_id=user.id, job_id=job_id, job_update=job_update,
         background_tasks=background_tasks,
+    )
+
+
+@router.patch("/{job_id}/status", response_model=JobRead)
+async def update_job_status(
+    job_id: uuid.UUID,
+    *,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:manage")),
+    status_in: JobStatusUpdate,
+) -> Any:
+    """Update job active status without incrementing version."""
+    return await admin_service.update_job_status(
+        db=db, admin_user_id=user.id, job_id=job_id, status_in=status_in
     )
 
 
