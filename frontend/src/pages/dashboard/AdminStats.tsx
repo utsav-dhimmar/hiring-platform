@@ -237,7 +237,8 @@ export default function AdminStats() {
             </div>
           </div>
         </>
-      )}
+      )
+    }
     </AppPageShell>
   );
 }

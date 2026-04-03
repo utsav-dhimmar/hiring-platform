@@ -181,7 +181,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password (Optional)</FormLabel>
+                      <FormLabel>Password</FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="Enter password" {...field} />
                       </FormControl>

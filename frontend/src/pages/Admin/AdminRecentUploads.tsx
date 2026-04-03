@@ -25,6 +25,20 @@ const AdminRecentUploads = () => {
 
   const columns: ColumnDef<RecentUploadRead>[] = [
     {
+      accessorKey: "created_at",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Date
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <DateDisplay date={row.original.created_at} />,
+    },
+    {
       accessorKey: "file_name",
       header: ({ column }) => (
         <Button
@@ -79,20 +93,7 @@ const AdminRecentUploads = () => {
         </span>
       ),
     },
-    {
-      accessorKey: "created_at",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent p-0 font-semibold"
-        >
-          Date
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => <DateDisplay date={row.original.created_at} />,
-    },
+
   ];
 
   return (

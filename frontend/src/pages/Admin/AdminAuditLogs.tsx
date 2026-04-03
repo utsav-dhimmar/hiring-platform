@@ -54,6 +54,7 @@ const AdminAuditLogs = () => {
         </span>
       ),
     },
+    /*
     {
       accessorKey: "target_type",
       header: "Target Type",
@@ -74,6 +75,7 @@ const AdminAuditLogs = () => {
         </div>
       ),
     },
+    */
   ];
 
   return (

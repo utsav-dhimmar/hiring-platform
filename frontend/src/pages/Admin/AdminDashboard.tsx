@@ -30,6 +30,7 @@ const AdminDashboard = () => {
 
   const jobColumns: Column<any>[] = [
     { header: "Job Title", accessor: "job_title" },
+    { header: "Department", accessor: "department" },
     { header: "Candidate Count", accessor: "candidate_count" },
   ];
 
@@ -37,44 +38,51 @@ const AdminDashboard = () => {
     <AppPageShell width="wide">
       <PageHeader title="Panel Dashboard" mobileMenuTrigger />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      <div className="mb-6 space-y-4">
+        <h2 className="text-xl font-semibold">Analytics Overview</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
         <StatCard label="Total Users" value={analytics?.total_users ?? 0} />
         <StatCard label="Active Users" value={analytics?.active_users ?? 0} />
+        <StatCard label="Total Roles" value={analytics?.total_roles ?? 0} />
         <StatCard label="Total Jobs" value={analytics?.total_jobs ?? 0} />
         <StatCard label="Active Jobs" value={analytics?.active_jobs ?? 0} />
         <StatCard label="Total Candidates" value={analytics?.total_candidates ?? 0} />
         <StatCard label="Total Resumes" value={analytics?.total_resumes ?? 0} />
       </div>
+    </div>
 
       <div className="space-y-5">
-        <h2 className="mb-4">Hiring Report Summary</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+        <h2 className="text-xl font-semibold mb-4">Hiring Report Summary</h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
           <StatCard
             label="Resumes (Last 30 Days)"
             value={report?.resumes_uploaded_last_30_days ?? 0}
           />
-          {/* <StatCard
-            label="Avg Resume Score"
-            value={
-              report?.average_resume_score ? report?.average_resume_score.toFixed(2) : "N/A"
-            }
-          /> */}
-          {/* <StatCard
-            label="Pass Rate"
-            value={report?.pass_rate ? report?.pass_rate.toFixed(2) + "%" : "N/A"}
-          /> */}
           <StatCard
-            label="LLM Parsed"
-            value={report?.llm_parsed_count ?? 0}
+            label="Passed"
+            value={report?.total_passed ?? 0}
+          />
+          <StatCard
+            label="Failed"
+            value={report?.total_failed ?? 0}
+          />
+          <StatCard
+            label="Pending"
+            value={report?.total_pending ?? 0}
+          />
+          <StatCard
+            label="Unprocessed"
+            value={report?.total_unprocessed ?? 0}
           />
           <StatCard
             label="HR Decided"
             value={report?.hr_decided_count ?? 0}
           />
           <StatCard
-            label="No Action"
+            label="No Action (HR)"
             value={report?.pending_count ?? 0}
           />
+
         </div>
 
         <div className="app-surface-card p-4 sm:p-5">
