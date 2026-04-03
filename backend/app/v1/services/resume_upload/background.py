@@ -113,6 +113,7 @@ class BackgroundProcessor:
         logger.info("Celery task scheduled for cross-job matching. resume_id=%s", resume_id)
 
 
+
     async def mass_refresh_in_background(
         self,
         *,
@@ -175,7 +176,7 @@ class BackgroundProcessor:
                     if hasattr(resume, 'candidate') and resume.candidate:
                         resume.candidate.applied_version_number = job.version
                     
-                    if resume.parse_summary and isinstance(resume.parse_summary, dict):
+                        
                         new_summary = dict(resume.parse_summary)
                         new_summary["analysis"] = insights["analysis"]
                         resume.parse_summary = new_summary

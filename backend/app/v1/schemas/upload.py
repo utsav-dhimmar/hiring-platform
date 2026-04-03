@@ -30,6 +30,8 @@ class MissingSkill(BaseModel):
     score: float = Field(ge=0, le=100)
 
 
+
+
 class ResumeMatchAnalysis(BaseModel):
     """Structured analysis of a resume's match with a job description."""
 
@@ -133,6 +135,7 @@ class CandidateResponse(BaseModel):
     is_parsed: bool = False
     processing_status: str | None = None
     processing_error: str | None = None
+    hr_decision: str | None = None
 
 
 class ResumeRead(BaseModel):

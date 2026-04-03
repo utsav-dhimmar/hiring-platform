@@ -20,7 +20,7 @@ class HrDecision(Base):
         candidate_id: FK to the candidate being evaluated.
         stage_config_id: FK to the job stage this decision belongs to.
         user_id: FK to the user making the decision.
-        decision: The decision value — 'proceed', 'reject', or 'May Be'.
+        decision: The decision value — 'approve', 'reject', or 'May Be'.
         decided_at: Timestamp when the decision was made.
     """
 
@@ -52,7 +52,7 @@ class HrDecision(Base):
         nullable=False,
     )
 
-    # DECISION FIELD: 'proceed', 'reject', 'May Be'
+    # DECISION FIELD: 'approve', 'reject', 'May Be'
     decision: Mapped[str] = mapped_column(
         Text,
         nullable=False,
@@ -71,6 +71,6 @@ class HrDecision(Base):
     )
 
     # RELATIONSHIPS
-    candidate = relationship("Candidate", foreign_keys=[candidate_id])
+    candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="hr_decisions", foreign_keys=[candidate_id])
     stage_config = relationship("JobStageConfig", foreign_keys=[stage_config_id])
     user = relationship("User", foreign_keys=[user_id])

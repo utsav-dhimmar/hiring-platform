@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from app.v1.db.models.files import File
     from app.v1.db.models.jobs import Job
     from app.v1.db.models.resumes import Resume
-    from app.v1.db.models.resume_screening_decisions import ResumeScreeningDecision
+    from app.v1.db.models.hr_decisions import HrDecision
 
 
 class Candidate(Base):
@@ -114,6 +114,4 @@ class Candidate(Base):
     )
     resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="candidate")
     files: Mapped[list["File"]] = relationship("File", back_populates="candidate")
-    screening_decision: Mapped["ResumeScreeningDecision"] = relationship(
-        "ResumeScreeningDecision", back_populates="candidate", uselist=False
-    )
+    hr_decisions: Mapped[list["HrDecision"]] = relationship("HrDecision", back_populates="candidate")

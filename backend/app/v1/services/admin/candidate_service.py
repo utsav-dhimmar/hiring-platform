@@ -24,6 +24,7 @@ class CandidateAdminService:
         skip: int = 0,
         limit: int = 100,
         hr_decision: str | None = None,
+        jd_version: int | None = None,
     ) -> dict[str, Any]:
         """Get all candidates for a specific job."""
 
@@ -43,9 +44,14 @@ class CandidateAdminService:
                     HrDecision.decided_at == (
                         select(func.max(HrDecision.decided_at))
                         .where(HrDecision.candidate_id == Candidate.id)
+                        .scalar_subquery()
+                        .correlate(Candidate)
                     )
                 )
             )
+        
+        if jd_version is not None:
+            base_query = base_query.where(Candidate.applied_version_number == jd_version)
 
         # Count query
         total_stmt = select(func.count()).select_from(base_query.subquery())
@@ -54,7 +60,10 @@ class CandidateAdminService:
         # Data query
         stmt = (
             base_query
-            .options(selectinload(Candidate.resumes))
+            .options(
+                selectinload(Candidate.resumes),
+                selectinload(Candidate.hr_decisions)
+            )
             .order_by(Candidate.created_at.desc())
             .offset(skip)
             .limit(limit)
@@ -78,9 +87,8 @@ class CandidateAdminService:
 
         job_filter = Candidate.applied_job_id == job_id
 
-        stmt = (
-            select(Candidate).where(job_filter).options(selectinload(Candidate.resumes))
-        )
+        # Data and count queries
+        stmt = select(Candidate).where(job_filter)
         total_stmt = select(func.count()).select_from(Candidate).where(job_filter)
 
         if query:
@@ -94,10 +102,13 @@ class CandidateAdminService:
 
         total = await db.scalar(total_stmt)
 
+        # Apply paging and ordering to the same statement object
         stmt = (
-            select(Candidate)
-            .where(search_filter, job_filter)
-            .options(selectinload(Candidate.resumes))
+            stmt
+            .options(
+                selectinload(Candidate.resumes),
+                selectinload(Candidate.hr_decisions)
+            )
             .order_by(Candidate.created_at.desc())
             .offset(skip)
             .limit(limit)
@@ -119,7 +130,8 @@ class CandidateAdminService:
     ) -> dict[str, Any]:
         """Search candidates across all jobs."""
 
-        stmt = select(Candidate).options(selectinload(Candidate.resumes))
+        # Data and count queries
+        stmt = select(Candidate)
         total_stmt = select(func.count()).select_from(Candidate)
 
         if query:
@@ -133,10 +145,13 @@ class CandidateAdminService:
 
         total = await db.scalar(total_stmt)
 
+        # Apply paging and ordering to the same statement object
         stmt = (
-            select(Candidate)
-            .where(search_filter)
-            .options(selectinload(Candidate.resumes))
+            stmt
+            .options(
+                selectinload(Candidate.resumes),
+                selectinload(Candidate.hr_decisions)
+            )
             .order_by(Candidate.created_at.desc())
             .offset(skip)
             .limit(limit)
@@ -163,8 +178,65 @@ class CandidateAdminService:
         pass_fail = None
         processing_status = None
         processing_error = None
+        location = None
+        linkedin_url = None
+        github_url = None
 
+        search_sources = []
+        if candidate.info and isinstance(candidate.info, dict):
+            search_sources.append(candidate.info)
+        
         if latest_resume:
+            if latest_resume.parse_summary:
+                search_sources.append(latest_resume.parse_summary)
+                if "extracted_data" in latest_resume.parse_summary:
+                    search_sources.append(latest_resume.parse_summary["extracted_data"])
+
+            for source in search_sources:
+                if not isinstance(source, dict):
+                    continue
+                
+                if not location:
+                    loc_val = source.get("location")
+                    if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
+                        location = loc_val.strip()
+                    elif isinstance(loc_val, list) and loc_val:
+                        for entry in loc_val:
+                            loc_text = ""
+                            if isinstance(entry, dict):
+                                loc_text = entry.get("text") or entry.get("location") or ""
+                            else:
+                                loc_text = str(entry)
+                            
+                            if loc_text and loc_text.strip().lower() not in ("not mentioned", "null", "none"):
+                                location = loc_text.strip()
+                                break
+
+                links = source.get("links") or source.get("social_links")
+                if links:
+                    if isinstance(links, str):
+                        link_list = [l.strip() for l in links.split(",") if l.strip()]
+                    elif isinstance(links, list):
+                        link_list = links
+                    else:
+                        link_list = []
+
+                    for link_item in link_list:
+                        url = ""
+                        if isinstance(link_item, dict):
+                            url = link_item.get("url") or link_item.get("text") or ""
+                        elif isinstance(link_item, str):
+                            url = link_item
+                        
+                        if not url or not isinstance(url, str):
+                            continue
+                        
+                        url_lower = url.lower()
+                        if "linkedin.com" in url_lower and not linkedin_url:
+                            linkedin_url = url
+                        elif "github.com" in url_lower and not github_url:
+                            github_url = url
+
             is_parsed = bool(latest_resume.parsed)
             resume_score = latest_resume.resume_score
             pass_fail = latest_resume.pass_fail
@@ -179,14 +251,27 @@ class CandidateAdminService:
             if isinstance(analysis_payload, dict):
                 analysis = ResumeMatchAnalysis.model_validate(analysis_payload)
 
+        # Get latest HR decision
+        hr_decisions = getattr(candidate, "hr_decisions", [])
+        latest_decision = (
+            max(hr_decisions, key=lambda d: d.decided_at)
+            if hr_decisions
+            else None
+        )
+
         return CandidateResponse(
             id=candidate.id,
             first_name=candidate.first_name,
             last_name=candidate.last_name,
             email=candidate.email,
             phone=candidate.phone,
+            location=location,
+            linkedin_url=linkedin_url,
+            github_url=github_url,
             current_status=candidate.current_status,
             applied_job_id=candidate.applied_job_id,
+            applied_version_number=candidate.applied_version_number,
+            resume_id=latest_resume.id if latest_resume else None,
             created_at=candidate.created_at,
             resume_analysis=analysis,
             resume_score=resume_score,
@@ -194,6 +279,7 @@ class CandidateAdminService:
             is_parsed=is_parsed,
             processing_status=processing_status,
             processing_error=processing_error,
+            hr_decision=latest_decision.decision if latest_decision else None,
         )
 
 
