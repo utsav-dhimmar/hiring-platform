@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button, Input } from "@/components/";
-import { FileText, RotateCw, Info, Compass } from "lucide-react";
+import { FileText, RotateCw, Info } from "lucide-react";
 import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import CandidateTable from "@/components/candidate/CandidateTable";

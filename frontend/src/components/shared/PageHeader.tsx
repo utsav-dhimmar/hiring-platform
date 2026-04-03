@@ -9,7 +9,6 @@ interface PageHeaderProps {
   className?: string;
   breadcrumbs?: ReactNode;
   meta?: ReactNode;
-  mobileMenuTrigger?: boolean;
 }
 
 const PageHeader = ({
@@ -19,7 +18,6 @@ const PageHeader = ({
   className = "",
   breadcrumbs,
   meta,
-  mobileMenuTrigger = false,
 }: PageHeaderProps) => {
   return (
     <AppPageHeader
@@ -28,7 +26,6 @@ const PageHeader = ({
       actions={actions}
       breadcrumbs={breadcrumbs}
       meta={meta}
-      mobileMenuTrigger={mobileMenuTrigger}
       className={className}
       headingClassName="text-2xl sm:text-3xl"
     />

@@ -116,7 +116,7 @@ const AdminDepartments = () => {
     <AppPageShell width="wide">
       <PageHeader
         title="Department Management"
-        mobileMenuTrigger
+
         actions={
           <Button onClick={handleCreateClick} className="rounded-xl px-6">
             Create Department

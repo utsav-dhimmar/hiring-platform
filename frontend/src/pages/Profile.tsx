@@ -46,7 +46,7 @@ export default function ProfilePage() {
 
   return (
     <AppPageShell width="form">
-      <PageHeader title="User Profile" mobileMenuTrigger />
+      <PageHeader title="User Profile" />
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="md:col-span-1">

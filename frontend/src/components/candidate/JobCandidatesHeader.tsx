@@ -26,7 +26,7 @@ export const JobCandidatesHeader = ({
     <AppPageHeader
       title={job?.title || "Loading..."}
       breadcrumbs={<DashboardBreadcrumbs />}
-      mobileMenuTrigger
+
       backAction={{ label: "Back to Jobs", onClick: onBack }}
       meta={
         <>

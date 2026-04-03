@@ -29,6 +29,7 @@ export default function JobBoard() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingJobId, setLoadingJobId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
 
@@ -98,6 +99,7 @@ export default function JobBoard() {
         onToggleStatus: handleToggleStatus,
         onDelete: handleDeleteClick,
         onEdit: (job) => {
+          setLoadingJobId(job.id);
           const slug = slugify(job.title);
           navigate(`/dashboard/jobs/${slug}/edit`, { state: { jobId: job.id } });
         },
@@ -107,8 +109,9 @@ export default function JobBoard() {
             state: { jobId: job.id },
           });
         },
+        loadingJobId,
       }),
-    [navigate, handleToggleStatus],
+    [navigate, handleToggleStatus, loadingJobId],
   );
 
   return (

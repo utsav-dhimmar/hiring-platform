@@ -7,11 +7,23 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
+import { useTheme } from "@/components/shared/theme-provider";
 
 function scoreColor(score: number, threshold: number = 65) {
   if (score >= 80) return "bg-green-500";
   if (score >= threshold) return "bg-yellow-500";
   return "bg-red-500";
+}
+
+function isValidUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+  return (
+    trimmed !== "" &&
+    trimmed !== "n/a" &&
+    trimmed !== "null" &&
+    trimmed !== "undefined"
+  );
 }
 
 interface UseCandidateTableColumnsProps<T extends UnifiedCandidate> {
@@ -23,6 +35,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
   renderActions,
   passing_threshold = 65,
 }: UseCandidateTableColumnsProps<T>) => {
+  const { theme } = useTheme()
   return useMemo<ColumnDef<T>[]>(
     () => [
       // 1. CANDIDATE
@@ -129,7 +142,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                     ? "pending"
                     :
                     (c.pass_fail === true ||
-                      String(c.pass_fail).toLowerCase() === "pass" || 
+                      String(c.pass_fail).toLowerCase() === "pass" ||
                       (c.resume_score ?? 0) >= passing_threshold)
                       ? "pass"
                       : "fail"
@@ -215,9 +228,11 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         header: "Socials",
         cell: ({ row }) => {
           const { linkedin_url, github_url } = row.original;
+          const logoVariant = theme === "dark" ? "dark" : "light";
+
           return (
             <div className="flex items-center gap-1">
-              {linkedin_url ? (
+              {isValidUrl(linkedin_url) ? (
                 <a
                   href={
                     linkedin_url.startsWith("http")
@@ -232,20 +247,20 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                     "text-blue-600 hover:text-blue-800 transition-colors",
                   )}
                 >
-                  <LinkedinLogo className="h-4 w-4" />
+                  <LinkedinLogo className="h-4 w-4" variant={logoVariant} />
                 </a>
               ) : (
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   disabled
-                  className="px-0"
+                  className="px-0 opacity-30"
                 >
-                  <LinkedinLogo className="h-4 w-4" />
+                  <LinkedinLogo className="h-4 w-4" variant={logoVariant} />
                 </Button>
               )}
 
-              {github_url ? (
+              {isValidUrl(github_url) ? (
                 <a
                   href={
                     github_url.startsWith("http")
@@ -260,16 +275,16 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                     "text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white transition-colors",
                   )}
                 >
-                  <GithubLogo className="h-4 w-4" />
+                  <GithubLogo className="h-4 w-4" variant={logoVariant} />
                 </a>
               ) : (
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   disabled
-                  className="px-0"
+                  className="px-0 opacity-30"
                 >
-                  <GithubLogo className="h-4 w-4" />
+                  <GithubLogo className="h-4 w-4" variant={logoVariant} />
                 </Button>
               )}
             </div>

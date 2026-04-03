@@ -66,7 +66,7 @@ const AdminJobs = () => {
   const handleViewCandidates = (jobId: string) => {
     navigate(`/admin/jobs/${jobId}/candidates`);
   };
-  
+
   const handleToggleStatus = async (job: JobRead) => {
     try {
       await adminJobService.updateJob(job.id, { is_active: !job.is_active });
@@ -187,7 +187,7 @@ const AdminJobs = () => {
     <AppPageShell width="wide">
       <PageHeader
         title="Job Management"
-        mobileMenuTrigger
+
       />
 
       {loading ? (

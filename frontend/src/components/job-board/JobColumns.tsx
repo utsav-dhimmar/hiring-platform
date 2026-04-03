@@ -14,6 +14,7 @@ interface ColumnHandlers {
   onDelete: (job: Job) => void;
   onEdit: (job: Job) => void;
   onCandidates: (job: Job) => void;
+  loadingJobId?: string | null;
 }
 
 /**
@@ -31,6 +32,7 @@ export const getJobColumns = ({
   onDelete,
   onEdit,
   onCandidates,
+  loadingJobId,
 }: ColumnHandlers): ColumnDef<Job>[] => [
     {
       accessorKey: "title",
@@ -134,6 +136,7 @@ export const getJobColumns = ({
                   className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
                   onClick={() => onEdit(row.original)}
                   title="Edit Job"
+                  isLoading={loadingJobId === row.original.id}
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>

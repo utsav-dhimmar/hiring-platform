@@ -130,7 +130,7 @@ const AdminRoles = () => {
     <AppPageShell width="wide">
       <PageHeader
         title="Role & Permission Management"
-        mobileMenuTrigger
+
         actions={
           <>
             <Button variant="outline" onClick={() => setShowPermissionModal(true)}>

@@ -98,7 +98,7 @@ const AdminRecentUploads = () => {
 
   return (
     <AppPageShell width="wide">
-      <PageHeader title="Recent Uploads" mobileMenuTrigger />
+      <PageHeader title="Recent Uploads" />
 
       {error && !uploads.length ? (
         <ErrorDisplay message={error} onRetry={fetchData} />

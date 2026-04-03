@@ -13,4 +13,3 @@ export * from "./job";
 export * from "./skill";
 export * from "./candidate";
 export * from "./department";
-export * from "./results";

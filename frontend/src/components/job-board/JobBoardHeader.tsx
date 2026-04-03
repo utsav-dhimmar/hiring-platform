@@ -14,7 +14,6 @@ export const JobBoardHeader = () => {
     <AppPageHeader
       title="Job Board"
       breadcrumbs={<DashboardBreadcrumbs />}
-      mobileMenuTrigger
       actions={
         <Button
           className="rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm"

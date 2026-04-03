@@ -72,7 +72,6 @@ export default function AdminStats() {
       <AppPageHeader
         title="Platform Statistics"
         breadcrumbs={<DashboardBreadcrumbs />}
-        mobileMenuTrigger
       />
 
       {loading && dashboardData.length === 0 ? (

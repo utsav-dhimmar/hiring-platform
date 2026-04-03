@@ -6,7 +6,7 @@ import { INFO } from "@/constants";
 export default function DashboardLayout() {
   return (
     <SidebarProvider>
-      <AppSidebar className="w-52" />
+      <AppSidebar />
       <SidebarInset className="flex flex-col min-h-screen">
         <div className="flex-1 overflow-auto bg-background">
           <Outlet />
@@ -21,5 +21,3 @@ export default function DashboardLayout() {
     </SidebarProvider>
   );
 }
-
-

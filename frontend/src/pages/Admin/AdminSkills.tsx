@@ -114,7 +114,6 @@ const AdminSkills = () => {
     <AppPageShell width="wide">
       <PageHeader
         title="Skill Management"
-        mobileMenuTrigger
         actions={
           <Button onClick={handleCreateClick} className="rounded-xl px-6">
             Create Skill

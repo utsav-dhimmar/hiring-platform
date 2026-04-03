@@ -148,7 +148,7 @@ const AdminUsers = () => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-shrink-0"
+              className="shrink-0"
               onClick={() => handleEditClick(user)}
             >
               Edit
@@ -157,7 +157,7 @@ const AdminUsers = () => {
               <Button
                 variant="destructive"
                 size="sm"
-                className="flex-shrink-0"
+                className="shrink-0"
                 onClick={() => handleDeleteClick(user)}
               >
                 Delete
@@ -173,7 +173,7 @@ const AdminUsers = () => {
     <AppPageShell width="wide">
       <PageHeader
         title="User Management"
-        mobileMenuTrigger
+
         actions={<Button onClick={handleCreateClick}>Create User</Button>}
       />
 

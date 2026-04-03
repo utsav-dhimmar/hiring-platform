@@ -80,7 +80,7 @@ const AdminAuditLogs = () => {
 
   return (
     <AppPageShell width="wide">
-      <PageHeader title="Audit Logs" mobileMenuTrigger />
+      <PageHeader title="Audit Logs" />
 
       {error && !logs.length ? (
         <ErrorDisplay message={error} onRetry={fetchData} />

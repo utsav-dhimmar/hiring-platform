@@ -176,7 +176,7 @@ const AdminCandidateSearch = () => {
     <AppPageShell width="wide" gap="tight">
       <PageHeader
         title={jobId ? `Candidates for ${job?.title || "Job"}` : "Candidate Search"}
-        mobileMenuTrigger
+
         actions={
           jobId && (
             <>
