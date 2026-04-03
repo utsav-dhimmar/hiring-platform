@@ -39,7 +39,7 @@ class ResumeUploadRepository:
     Provides methods for managing candidates, file records, and resume data
     during the resume screening process.
     """
-    
+
     def __init__(self) -> None:
         """Initialize the ResumeUploadRepository with FastCRUD instances."""
         self.crud = FastCRUD(Resume, ResumeRead)
@@ -396,7 +396,9 @@ class ResumeUploadRepository:
         Returns:
             True if it exists, False otherwise.
         """
-        return (await db.scalar(select(func.count(Resume.id)).where(Resume.id == resume_id))) > 0
+        return (
+            await db.scalar(select(func.count(Resume.id)).where(Resume.id == resume_id))
+        ) > 0
 
     async def mark_resume_failed(
         self,
@@ -543,7 +545,7 @@ class ResumeUploadRepository:
                     select(Candidate)
                     .options(
                         selectinload(Candidate.resumes).selectinload(Resume.file),
-                        selectinload(Candidate.screening_decision),
+                        selectinload(Candidate.hr_decisions),
                     )
                     .where(
                         Candidate.applied_job_id == job_id,
@@ -654,18 +656,14 @@ class ResumeUploadRepository:
         file_id = resume.file_id
 
         # Delete resume chunks first (FK dependency)
-        await db.execute(
-            delete(ResumeChunk).where(ResumeChunk.resume_id == resume_id)
-        )
+        await db.execute(delete(ResumeChunk).where(ResumeChunk.resume_id == resume_id))
 
         # Delete the resume row
         await db.delete(resume)
 
         # Explicitly delete the file record to clear deduplication hash
         if file_id:
-            await db.execute(
-                delete(FileRecord).where(FileRecord.id == file_id)
-            )
+            await db.execute(delete(FileRecord).where(FileRecord.id == file_id))
 
         await db.flush()
 
@@ -683,20 +681,26 @@ class ResumeUploadRepository:
             await db.execute(
                 delete(HrDecision).where(HrDecision.candidate_id == candidate_id)
             )
-            
+
             # Delete dependents of Interview first (FK dependency)
-            interview_ids_subquery = select(Interview.id).where(Interview.candidate_id == candidate_id)
-            await db.execute(
-                delete(Transcript).where(Transcript.interview_id.in_(interview_ids_subquery))
+            interview_ids_subquery = select(Interview.id).where(
+                Interview.candidate_id == candidate_id
             )
             await db.execute(
-                delete(Recording).where(Recording.interview_id.in_(interview_ids_subquery))
+                delete(Transcript).where(
+                    Transcript.interview_id.in_(interview_ids_subquery)
+                )
             )
-            
+            await db.execute(
+                delete(Recording).where(
+                    Recording.interview_id.in_(interview_ids_subquery)
+                )
+            )
+
             await db.execute(
                 delete(Interview).where(Interview.candidate_id == candidate_id)
             )
-            
+
             # CrossJobMatch references resume_id, not candidate_id
             await db.execute(
                 delete(CrossJobMatch).where(
@@ -711,9 +715,7 @@ class ResumeUploadRepository:
             await db.execute(
                 delete(FileRecord).where(FileRecord.candidate_id == candidate_id)
             )
-            await db.execute(
-                delete(Candidate).where(Candidate.id == candidate_id)
-            )
+            await db.execute(delete(Candidate).where(Candidate.id == candidate_id))
 
         await db.commit()
         return True
