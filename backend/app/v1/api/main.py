@@ -13,7 +13,6 @@ from app.v1.routes.health import router as health_router
 from app.v1.routes.departments import router as departments_router
 from app.v1.routes.jobs import router as jobs_router
 from app.v1.routes.resume_upload import router as resume_upload_router
-from app.v1.routes.resume_screening import router as screening_decision_router
 from app.v1.routes.skills import router as skills_router
 from app.v1.routes.users import router as auth_router
 from app.v1.routes.cross_job_matches import router as cross_job_match_router
@@ -23,7 +22,6 @@ api_router = APIRouter()
 api_router.include_router(health_router)
 api_router.include_router(auth_router, prefix="/users", tags=["users"])
 api_router.include_router(resume_upload_router, tags=["resume-upload"])
-api_router.include_router(screening_decision_router, prefix="/resume-screening", tags=["resume-screening"])
 api_router.include_router(jobs_router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(skills_router, prefix="/skills", tags=["skills"])
 api_router.include_router(departments_router, prefix="/departments", tags=["departments"])

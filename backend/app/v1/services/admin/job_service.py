@@ -7,6 +7,8 @@ from app.v1.schemas.job import JobCreate, JobStatusUpdate, JobUpdate
 from app.v1.services.admin.audit_service import audit_service
 from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.skill_service import skill_service
+from app.v1.services.admin.department_service import department_service
+from app.v1.services.admin.skill_service import skill_service
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,6 +49,15 @@ class JobAdminService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_in: JobCreate
     ) -> Job:
         """Create a new job."""
+        # Validate department existence if provided
+        if job_in.department_id:
+            await department_service.get_department_by_id(db, job_in.department_id)
+
+        # Validate skills existence if provided
+        if job_in.skill_ids:
+            for skill_id in job_in.skill_ids:
+                await skill_service.get_skill_by_id(db, skill_id)
+
         job = await job_repository.create(
             db=db, object=job_in, created_by=admin_user_id
         )
@@ -72,32 +83,32 @@ class JobAdminService:
         job_update: JobUpdate,
         background_tasks=None,
     ) -> Job:
-        """Update a job. Auto-triggers mass refresh if custom_extraction_fields changed."""
-        current_job = await self.get_job_by_id(db=db, job_id=job_id)
-        
-        # Check if job is currently disabled
-        if not current_job.is_active:
-            update_data = job_update.model_dump(exclude_unset=True)
-            # If it's disabled, we only allow re-enabling it. 
-            # If any other field is present or if is_active is not being set to True, raise error.
-            if any(k != "is_active" for k in update_data.keys()) or update_data.get("is_active") is not True:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Cannot update a disabled job. Please enable it first.",
-                )
-        
-        # Validate department and skills if provided
-        update_data = job_update.model_dump(exclude_unset=True)
-        if "department_id" in update_data and update_data["department_id"]:
-            await department_service.get_department_by_id(db=db, department_id=update_data["department_id"])
-        
-        if "skill_ids" in update_data and update_data["skill_ids"]:
-            for skill_id in update_data["skill_ids"]:
-                await skill_service.get_skill_by_id(db=db, skill_id=skill_id)
+        # Update a job. Auto-triggers mass refresh if custom_extraction_fields changed.
+        await self.get_job_by_id(db=db, job_id=job_id)
 
-        updated_job = await job_repository.update(
-            db=db, id=job_id, object=job_update
-        )
+        # Filter out invalid department_id if provided
+        if job_update.department_id:
+            try:
+                await department_service.get_department_by_id(
+                    db, job_update.department_id
+                )
+            except HTTPException:
+                # If department doesn't exist, don't update it (keep existing)
+                job_update.department_id = None
+
+        # Filter out invalid skill_ids if provided
+        if job_update.skill_ids:
+            valid_skill_ids = []
+            for s_id in job_update.skill_ids:
+                try:
+                    await skill_service.get_skill_by_id(db, s_id)
+                    valid_skill_ids.append(s_id)
+                except HTTPException:
+                    # Skip invalid skill IDs (like the 3fa85f64 dummy placeholder)
+                    continue
+            job_update.skill_ids = valid_skill_ids
+
+        updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
@@ -105,9 +116,7 @@ class JobAdminService:
             target_type="job",
             target_id=job_id,
             details={
-                "updated_fields": list(
-                    job_update.model_dump(exclude_unset=True).keys()
-                )
+                "updated_fields": list(job_update.model_dump(exclude_unset=True).keys())
             },
         )
 
@@ -150,12 +159,12 @@ class JobAdminService:
     ) -> Job:
         """Update only the active status of a job (Enable/Disable)."""
         await self.get_job_by_id(db=db, job_id=job_id)
-        
+
         # Bypasses the edit lock as this is a specific status update API
         updated_job = await job_repository.update(
             db=db, id=job_id, object=JobUpdate(is_active=status_in.is_active)
         )
-        
+
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,

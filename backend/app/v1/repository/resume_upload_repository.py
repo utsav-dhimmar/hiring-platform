@@ -23,6 +23,11 @@ from app.v1.db.models.jobs import Job
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.skills import Skill
+from app.v1.db.models.hr_decisions import HrDecision
+from app.v1.db.models.interviews import Interview
+from app.v1.db.models.cross_job_matches import CrossJobMatch
+from app.v1.db.models.transcripts import Transcript
+from app.v1.db.models.recordings import Recording
 from app.v1.schemas.upload import ResumeRead, CandidateRead
 
 _log = logging.getLogger(__name__)
@@ -564,17 +569,18 @@ class ResumeUploadRepository:
         Returns:
             A list of Resume objects.
         """
-        # Using FastCRUD to fetch joined records with descending sort
-        return await self.crud.get_joined(
-            db=db,
-            join_model=Candidate,
-            join_on=(Resume.candidate_id == Candidate.id),
-            filters={"applied_job_id": job_id},
-            sort_columns=["uploaded_at"],
-            sort_orders=["desc"],
-            schema_to_select=ResumeRead,
-            return_as_model=False,  # Return SQLAlchemy objects for compatibility
+        # Using stable SQLAlchemy query with selectinload to ensure relations are available
+        query = (
+            select(Resume)
+            .join(Candidate, Resume.candidate_id == Candidate.id)
+            .options(
+                selectinload(Resume.candidate),
+                selectinload(Resume.file),
+            )
+            .where(Candidate.applied_job_id == job_id)
+            .order_by(Resume.uploaded_at.desc())
         )
+        return list((await db.scalars(query)).all())
 
     async def commit(self, db: AsyncSession) -> None:
         """Commit the current transaction.
@@ -672,6 +678,31 @@ class ResumeUploadRepository:
             await db.execute(
                 delete(candidate_skills).where(
                     candidate_skills.c.candidate_id == candidate_id
+                )
+            )
+            await db.execute(
+                delete(HrDecision).where(HrDecision.candidate_id == candidate_id)
+            )
+            
+            # Delete dependents of Interview first (FK dependency)
+            interview_ids_subquery = select(Interview.id).where(Interview.candidate_id == candidate_id)
+            await db.execute(
+                delete(Transcript).where(Transcript.interview_id.in_(interview_ids_subquery))
+            )
+            await db.execute(
+                delete(Recording).where(Recording.interview_id.in_(interview_ids_subquery))
+            )
+            
+            await db.execute(
+                delete(Interview).where(Interview.candidate_id == candidate_id)
+            )
+            
+            # CrossJobMatch references resume_id, not candidate_id
+            await db.execute(
+                delete(CrossJobMatch).where(
+                    CrossJobMatch.resume_id.in_(
+                        select(Resume.id).where(Resume.candidate_id == candidate_id)
+                    )
                 )
             )
             await db.execute(

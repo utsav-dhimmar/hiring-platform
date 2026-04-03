@@ -14,16 +14,12 @@ from pydantic import BaseModel, ConfigDict, Field, validator
 class HRDecisionCreate(BaseModel):
     """Schema for creating a new HR decision."""
 
-    decision: Literal["proceed", "reject", "May Be"] = Field(
-        ..., description="Decision value: proceed, reject, or May Be"
+    decision: Literal["approve", "reject", "May Be"] = Field(
+        ..., description="Decision value: approve, reject, or May Be"
     )
     notes: str | None = Field(
         None, 
         description="Optional notes for the decision. Required for 'May Be' decisions."
-    )
-    stage_config_id: uuid.UUID | None = Field(
-        None,
-        description="Optional stage config ID for multi-stage decisions"
     )
 
     @validator('notes')
@@ -64,7 +60,7 @@ class HRDecisionHistoryResponse(BaseModel):
 class HRDecisionUpdate(BaseModel):
     """Schema for updating an existing HR decision."""
 
-    decision: Literal["proceed", "reject", "May Be"] = Field(
+    decision: Literal["approve", "reject", "May Be"] = Field(
         ..., description="Updated decision value"
     )
     notes: str | None = Field(
@@ -86,7 +82,7 @@ class HRDecisionSummary(BaseModel):
     """Summary of HR decisions — overall counts per status (global or per-job)."""
 
     total_candidates: int = Field(..., description="Total candidates with at least one decision")
-    proceed_count: int = Field(..., description="Candidates approved/proceeded")
+    approve_count: int = Field(..., description="Candidates approved/proceeded")
     reject_count: int = Field(..., description="Candidates rejected")
     maybe_count: int = Field(..., description="Candidates marked as 'May Be'")
     undecided_count: int = Field(..., description="Candidates with no decision yet (total resumes - decided)")
@@ -99,7 +95,7 @@ class HRJobDecisionSummary(BaseModel):
 
     job_id: uuid.UUID
     total_candidates: int
-    proceed_count: int
+    approve_count: int
     reject_count: int
     maybe_count: int
     undecided_count: int
