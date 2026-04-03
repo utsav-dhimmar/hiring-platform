@@ -2,7 +2,7 @@ import uuid
 
 from app.v1.db.models.jobs import Job
 from app.v1.repository.job_repository import job_repository
-from app.v1.schemas.job import JobCreate, JobUpdate
+from app.v1.schemas.job import JobCreate, JobUpdate, JobRead, JobsListRead
 from app.v1.services.admin.audit_service import audit_service
 from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.skill_service import skill_service
@@ -17,12 +17,48 @@ class JobAdminService:
 
     async def get_all_jobs(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> list[Job]:
-        """Get all jobs with pagination."""
+    ) -> JobsListRead:
+        """Get all jobs with pagination and global dashboard summaries."""
         result = await job_repository.get_multi(db=db, skip=skip, limit=limit)
-        return result["data"]
+        
+        from app.v1.services.hr_decision_service import hr_decision_service
+        
+        job_reads = []
+        for job in result["data"]:
+            job_read = JobRead.model_validate(job)
+            # Add per-job automated screening summary
+            job_read.automated_screening_summary = await hr_decision_service.get_job_screening_summary(db, job.id)
+            job_reads.append(job_read)
+            
+        return JobsListRead(
+            data=job_reads,
+            total=result["total"],
+            global_decision_summary=await hr_decision_service.get_global_decision_summary(db),
+            global_screening_summary=await hr_decision_service.get_global_screening_summary(db),
+        )
 
-    async def get_job_by_id(self, db: AsyncSession, job_id: uuid.UUID) -> Job:
+    async def search_jobs(
+        self, db: AsyncSession, query: str, skip: int = 0, limit: int = 100
+    ) -> JobsListRead:
+        """Search jobs with global and per-job screening summaries."""
+        result = await job_repository.search(db=db, query=query, skip=skip, limit=limit)
+        
+        from app.v1.services.hr_decision_service import hr_decision_service
+        
+        job_reads = []
+        for job in result["data"]:
+            job_read = JobRead.model_validate(job)
+            job_read.automated_screening_summary = await hr_decision_service.get_job_screening_summary(db, job.id)
+            job_reads.append(job_read)
+            
+        return JobsListRead(
+            data=job_reads,
+            total=result["total"],
+            global_decision_summary=await hr_decision_service.get_global_decision_summary(db),
+            global_screening_summary=await hr_decision_service.get_global_screening_summary(db),
+        )
+
+    async def get_job_by_id(self, db: AsyncSession, job_id: uuid.UUID) -> JobRead:
         """Get a job by ID."""
         job = await job_repository.get(db=db, id=job_id)
         if not job:
@@ -30,11 +66,11 @@ class JobAdminService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Job not found.",
             )
-        return job
+        return JobRead.model_validate(job)
 
     async def create_job(
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_in: JobCreate
-    ) -> Job:
+    ) -> JobRead:
         """Create a new job."""
         # Validate department existence if provided
         if job_in.department_id:
@@ -60,7 +96,7 @@ class JobAdminService:
             target_id=job.id,
             details={"title": job.title},
         )
-        return job
+        return JobRead.model_validate(job)
 
     async def update_job(
         self,
@@ -69,7 +105,7 @@ class JobAdminService:
         job_id: uuid.UUID,
         job_update: JobUpdate,
         background_tasks=None,
-    ) -> Job:
+    ) -> JobRead:
         # Update a job. Auto-triggers mass refresh if custom_extraction_fields changed.
         await self.get_job_by_id(db=db, job_id=job_id)
 
@@ -137,7 +173,7 @@ class JobAdminService:
         #     )
         # -----------------------------------------------------------------------
 
-        return updated_job
+        return JobRead.model_validate(updated_job)
 
     async def delete_job(
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_id: uuid.UUID

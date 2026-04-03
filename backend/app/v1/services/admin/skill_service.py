@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.models.skills import Skill
 from app.v1.repository.skill_repository import skill_repository
 from app.v1.schemas.skill import SkillCreate, SkillRead, SkillUpdate
+from app.v1.schemas.response import PaginatedData
 from app.v1.services.admin.audit_service import audit_service
 
 class SkillService:
@@ -15,19 +16,19 @@ class SkillService:
 
     async def get_all_skills(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> dict[str, Any]:
+    ) -> PaginatedData[SkillRead]:
         """Get all skills with pagination."""
         result = await skill_repository.crud.get_multi(
             db=db, offset=skip, limit=limit
         )
-        return {
-            "data": result["data"],
-            "total": result.get("total_count", 0),
-        }
+        return PaginatedData[SkillRead](
+            data=[SkillRead.model_validate(s) for s in result["data"]],
+            total=result.get("total_count", 0),
+        )
 
     async def get_skill_by_id(
         self, db: AsyncSession, skill_id: uuid.UUID
-    ) -> Skill:
+    ) -> SkillRead:
         """Get a skill by ID."""
         skill = await skill_repository.crud.get(db=db, id=skill_id)
         if not skill:
@@ -35,11 +36,11 @@ class SkillService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Skill not found.",
             )
-        return skill
+        return SkillRead.model_validate(skill)
 
     async def create_skill(
         self, db: AsyncSession, admin_user_id: uuid.UUID, skill_in: SkillCreate
-    ) -> Skill:
+    ) -> SkillRead:
         """Create a new skill."""
         skill = Skill(
             name=skill_in.name,
@@ -57,7 +58,7 @@ class SkillService:
             target_id=skill.id,
             details={"name": skill.name},
         )
-        return skill
+        return SkillRead.model_validate(skill)
 
     async def update_skill(
         self,

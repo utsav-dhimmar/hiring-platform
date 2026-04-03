@@ -161,16 +161,16 @@ class BackgroundProcessor:
                     # Perform full re-analysis (Semantic score + LLM insights)
                     insights = await self.processor.generate_resume_insights(
                         raw_text=chunk.raw_text,
-                        parsed_summary=resume.parse_summary.get("extracted_data", {}) if resume.parse_summary else {},
+                        parsed_summary=resume.parse_summary or {},
                         job=job,
                         job_skills=job_skills,
-                        candidate_skills=resume.parse_summary.get("extracted_data", {}).get("skills", []) if resume.parse_summary else [],
+                        candidate_skills=resume.parse_summary.get("skills", []) if resume.parse_summary else [],
                     )
                     
                     # Update columns AND parse_summary
                     match_percentage = insights["analysis"]["match_percentage"]
                     resume.resume_score = match_percentage
-                    resume.pass_fail = resume.pass_fail or "pending"
+                    resume.pass_fail = "passed" if match_percentage >= job.passing_threshold else "failed"
                     
                     # Update candidate's applied version (if candidate relation is available)
                     if hasattr(resume, 'candidate') and resume.candidate:
@@ -261,10 +261,10 @@ class BackgroundProcessor:
 
             insights = await self.processor.generate_resume_insights(
                 raw_text=chunk.raw_text,
-                parsed_summary=resume.parse_summary.get("extracted_data", {}) if resume.parse_summary else {},
+                parsed_summary=resume.parse_summary or {},
                 job=job,
                 job_skills=job_skills,
-                candidate_skills=resume.parse_summary.get("extracted_data", {}).get("skills", []) if resume.parse_summary else [],
+                candidate_skills=resume.parse_summary.get("skills", []) if resume.parse_summary else [],
             )
 
             custom_extractions = {}
@@ -276,7 +276,7 @@ class BackgroundProcessor:
                 )
 
             resume.resume_score = insights["analysis"]["match_percentage"]
-            resume.pass_fail = "pending"
+            resume.pass_fail = "passed" if resume.resume_score >= job.passing_threshold else "failed"
 
             candidate = await db.get(Candidate, candidate_id)
             if candidate:

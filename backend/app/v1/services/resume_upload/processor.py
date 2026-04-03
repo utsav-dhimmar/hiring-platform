@@ -207,9 +207,9 @@ class ResumeProcessor:
 
         stage_started_at = time.perf_counter()
         analysis = self.analyzer.analyze(
-            raw_text=candidate_text,
+            raw_text=raw_text,
             candidate_info=parsed_summary,
-            job_title=job_text[:100],  # Short job title fallback since job_title isn't strictly passed
+            job_title=getattr(job, "title", "Job Description")[:150],
             job_skills=[skill.name for skill in job_skills],
             candidate_skills=candidate_skills,
             semantic_score=semantic_score,
