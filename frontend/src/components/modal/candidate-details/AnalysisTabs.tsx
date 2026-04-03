@@ -14,11 +14,11 @@ interface AnalysisTabsProps {
  */
 export function AnalysisTabs({ activeTab, setActiveTab }: AnalysisTabsProps) {
   return (
-    <div className="flex bg-background/50 rounded-xl p-1 gap-1 border border-muted-foreground/5">
+    <div className="grid w-full grid-cols-2 gap-1 rounded-xl border border-muted-foreground/5 bg-background/50 p-1 sm:flex sm:w-auto">
       <Button
         variant={activeTab === "analysis" ? "secondary" : "ghost"}
         size="sm"
-        className="rounded-lg h-8 text-[10px] font-black uppercase tracking-wider"
+        className="h-8 rounded-lg px-3 text-[10px] font-black uppercase tracking-wider"
         onClick={() => setActiveTab("analysis")}
       >
         Analysis
@@ -26,7 +26,7 @@ export function AnalysisTabs({ activeTab, setActiveTab }: AnalysisTabsProps) {
       <Button
         variant={activeTab === "jd" ? "secondary" : "ghost"}
         size="sm"
-        className="rounded-lg h-8 text-[10px] font-black uppercase tracking-wider"
+        className="h-8 rounded-lg px-3 text-[10px] font-black uppercase tracking-wider"
         onClick={() => setActiveTab("jd")}
       >
         JD Version

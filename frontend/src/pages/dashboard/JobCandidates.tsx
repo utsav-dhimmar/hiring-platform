@@ -23,6 +23,7 @@ export default function JobCandidates() {
     loading,
     isUploading,
     reanalyzingCandidateIds,
+    fetchData,
     handleFileChange,
     handleReanalyzeCandidate,
     handleReanalyzeAll,
@@ -53,12 +54,11 @@ export default function JobCandidates() {
 
       {!loading && candidates?.length > 0 && (
         <JobCandidatesStats
-          totalCandidates={candidates.length}
-          passedCount={stats.passedCount}
-          failedCount={stats.failedCount}
-          hrApprovedCount={stats.hrApprovedCount}
-          hrMaybeCount={stats.hrMaybeCount}
-          hrRejectedCount={stats.hrRejectedCount}
+          totalCandidates={stats.totalCandidates}
+          proceedCount={stats.proceedCount}
+          rejectCount={stats.rejectCount}
+          maybeCount={stats.maybeCount}
+          undecidedCount={stats.undecidedCount}
         />
       )}
 
@@ -163,6 +163,7 @@ export default function JobCandidates() {
         onClose={() => setIsModalOpen(false)}
         candidate={selectedCandidate}
         jobId={job?.id}
+        onDecisionSubmitted={() => fetchData()}
       />
 
       <JobInfoModal

@@ -96,7 +96,7 @@ export default function AppPageHeader({
           </div>
 
           {actions ? (
-            <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 sm:justify-end">
               {actions}
             </div>
           ) : null}

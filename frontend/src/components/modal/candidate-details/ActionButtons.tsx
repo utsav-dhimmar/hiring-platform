@@ -17,11 +17,11 @@ export function ActionButtons({
   showMaybeButton,
 }: ActionButtonsProps) {
   return (
-    <div className="p-4 border-t border-muted-foreground/10 flex flex-wrap gap-4 items-center justify-center bg-muted/10">
+    <div className="sticky bottom-0 z-10 border-t border-muted-foreground/10 bg-card/95 p-4 backdrop-blur supports-backdrop-filter:bg-card/80 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
       <Button
         onClick={() => onAction("approve")}
         variant="default"
-        className="rounded-xl px-8 shadow-md uppercase font-bold"
+        className="w-full rounded-xl px-8 shadow-md uppercase font-bold sm:w-auto"
       >
         Approved
       </Button>
@@ -29,7 +29,7 @@ export function ActionButtons({
         <Button
           variant="outline"
           onClick={() => onAction("maybe")}
-          className="rounded-xl px-8 shadow-sm uppercase font-bold"
+          className="w-full rounded-xl px-8 shadow-sm uppercase font-bold sm:w-auto"
         >
           Maybe
         </Button>
@@ -37,7 +37,7 @@ export function ActionButtons({
       <Button
         variant="destructive"
         onClick={() => onAction("reject")}
-        className="rounded-xl px-8 shadow-md uppercase font-bold"
+        className="w-full rounded-xl px-8 shadow-md uppercase font-bold sm:w-auto"
       >
         Rejected
       </Button>

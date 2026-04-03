@@ -56,8 +56,6 @@ export function CandidateTable<T extends UnifiedCandidate>({
 
   const columns = useCandidateTableColumns({
     renderActions,
-    hrDecisionFilter,
-    setHrDecisionFilter,
   });
 
   return (
@@ -71,6 +69,8 @@ export function CandidateTable<T extends UnifiedCandidate>({
         setLocationFilter={setLocationFilter}
         dateRange={dateRange}
         setDateRange={setDateRange}
+        hrDecisionFilter={hrDecisionFilter}
+        setHrDecisionFilter={setHrDecisionFilter}
         statusOptions={statusOptions}
         locationOptions={locationOptions}
         hasActiveFilters={hasActiveFilters}

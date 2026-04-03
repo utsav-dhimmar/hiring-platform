@@ -1,20 +1,10 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Filter, Loader2 } from "lucide-react";
+import { ArrowUpDown, Loader2 } from "lucide-react";
 import { DateDisplay, StatusBadge } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuGroup,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
 
@@ -26,14 +16,10 @@ function scoreColor(score: number) {
 
 interface UseCandidateTableColumnsProps<T extends UnifiedCandidate> {
   renderActions?: (candidate: T) => React.ReactNode;
-  hrDecisionFilter: string;
-  setHrDecisionFilter: (value: string) => void;
 }
 
 export const useCandidateTableColumns = <T extends UnifiedCandidate>({
   renderActions,
-  hrDecisionFilter,
-  setHrDecisionFilter,
 }: UseCandidateTableColumnsProps<T>) => {
   return useMemo<ColumnDef<T>[]>(
     () => [
@@ -188,66 +174,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
       {
         id: "screening_decision",
         accessorKey: "screening_decision",
-        header: ({ column }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="-ml-3 h-8 data-[state=open]:bg-accent font-semibold group"
-              >
-                <span>HR Decision</span>
-                {hrDecisionFilter !== "all" && (
-                  <Badge
-                    variant="secondary"
-                    className="ml-2 h-4 px-1 text-[10px] bg-primary/10 text-primary border-primary/20"
-                  >
-                    {hrDecisionFilter === "approve"
-                      ? "Approved"
-                      : hrDecisionFilter === "reject"
-                        ? "Rejected"
-                        : hrDecisionFilter.charAt(0).toUpperCase() + hrDecisionFilter.slice(1)}
-                  </Badge>
-                )}
-                <Filter
-                  className={cn(
-                    "ml-2 h-3.5 w-3.5 transition-colors",
-                    hrDecisionFilter !== "all"
-                      ? "text-primary fill-primary/10"
-                      : "text-muted-foreground group-hover:text-foreground",
-                  )}
-                />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Filter by Decision</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup
-                  value={hrDecisionFilter}
-                  onValueChange={setHrDecisionFilter}
-                >
-                  <DropdownMenuRadioItem value="all">
-                    All Decisions
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="approve">
-                    Approved
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="maybe">
-                    Maybe
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="reject">
-                    Rejected
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="pending">
-                    Pending
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
+        header: "HR Decision",
         cell: ({ row }) => {
           const decision = row.original.screening_decision;
           if (!decision) {
@@ -400,6 +327,6 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         ]
         : []),
     ],
-    [renderActions, hrDecisionFilter, setHrDecisionFilter],
+    [renderActions],
   );
 };

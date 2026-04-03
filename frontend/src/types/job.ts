@@ -1,5 +1,14 @@
 import type { JobStageConfig } from "@/types/stage";
 
+export interface JobDecisionSummary {
+  job_id: string;
+  total_candidates: number;
+  proceed_count: number;
+  reject_count: number;
+  maybe_count: number;
+  undecided_count: number;
+}
+
 /**
  * Minimal job version metadata returned by the backend.
  */
@@ -50,6 +59,8 @@ export interface Job {
   job_versions?: JobVersionMinimal[];
   /** Configured interview stages */
   stages?: JobStageConfig[];
+  /** Backend-provided decision summary for the job */
+  decision_summary?: JobDecisionSummary | null;
   /** ID of the user who created the job posting */
   created_by: string;
   /** Timestamp when the job was created */

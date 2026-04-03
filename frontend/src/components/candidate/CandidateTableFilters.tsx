@@ -16,6 +16,8 @@ interface CandidateTableFiltersProps {
   setLocationFilter: (value: string) => void;
   dateRange: DateRange | undefined;
   setDateRange: (range: DateRange | undefined) => void;
+  hrDecisionFilter: string;
+  setHrDecisionFilter: (value: string) => void;
   statusOptions: string[];
   locationOptions: string[];
   hasActiveFilters: boolean;
@@ -33,6 +35,8 @@ export const CandidateTableFilters = ({
   setLocationFilter,
   dateRange,
   setDateRange,
+  hrDecisionFilter,
+  setHrDecisionFilter,
   statusOptions,
   locationOptions,
   hasActiveFilters,
@@ -41,7 +45,7 @@ export const CandidateTableFilters = ({
   totalCount,
 }: CandidateTableFiltersProps) => {
   return (
-    <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/30 rounded-2xl border border-muted-foreground/10">
+    <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/30 rounded-2xl border border-muted-foreground/10 ">
       {/* Name / email search */}
       <div className="relative flex-1 min-w-[180px] max-w-xs">
         <Input
@@ -82,6 +86,19 @@ export const CandidateTableFilters = ({
           ))}
         </select>
       )}
+ 
+      {/* HR Decision dropdown */}
+      <select
+        value={hrDecisionFilter}
+        onChange={(e) => setHrDecisionFilter(e.target.value)}
+        className="h-9 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
+      >
+        <option value="all">All Decisions</option>
+        <option value="approve">Approved</option>
+        <option value="maybe">Maybe</option>
+        <option value="reject">Rejected</option>
+        <option value="pending">Pending</option>
+      </select>
 
       {/* Date range picker */}
       <div className="flex items-center gap-1.5 px-3 h-9 rounded-xl border border-input text-sm">

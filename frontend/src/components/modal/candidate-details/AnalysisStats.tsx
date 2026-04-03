@@ -19,20 +19,20 @@ export function AnalysisStats({ candidate }: AnalysisStatsProps) {
   const isPassed = candidate.pass_fail && (candidate.resume_score ?? 0) >= 65;
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-bold uppercase whitespace-nowrap">
+    <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span className="text-xs font-bold uppercase sm:text-sm whitespace-nowrap">
           Match Percentage
         </span>
-        <span className="text-sm font-black text-blue-600 leading-none">
+        <span className="text-sm font-black text-blue-600 leading-none sm:text-base">
           {analysis?.match_percentage || 0}%
         </span>
       </div>
 
-      <div className="w-px h-4 bg-muted-foreground/10" />
+      <div className="hidden h-4 w-px bg-muted-foreground/10 sm:block" />
 
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-bold uppercase whitespace-nowrap">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span className="text-xs font-bold uppercase sm:text-sm whitespace-nowrap">
           Pass / Fail
         </span>
         <Badge
@@ -60,13 +60,13 @@ export function AnalysisStats({ candidate }: AnalysisStatsProps) {
         </Badge>
       </div>
 
-      <div className="w-px h-4 bg-muted-foreground/10" />
+      <div className="hidden h-4 w-px bg-muted-foreground/10 sm:block" />
 
-      <div className="flex items-center gap-1">
-        <span className="text-sm font-bold uppercase whitespace-nowrap">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-1">
+        <span className="text-xs font-bold uppercase sm:text-sm whitespace-nowrap">
           Analysis Version
         </span>
-        <span className="text-sm font-black text-purple-600 leading-none">
+        <span className="text-sm font-black text-purple-600 leading-none sm:text-base">
           V{(candidate as any)?.applied_version_number || "N/A"}
         </span>
       </div>

@@ -9,6 +9,12 @@ import type { CandidateResponse } from "@/types/resume";
 import type { PaginationState, OnChangeFn } from "@tanstack/react-table";
 import CandidateTable from "@/components/candidate/CandidateTable";
 import { Button } from "@/components/ui/button";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../ui/hover-card";
+import { Info } from "lucide-react";
 
 interface CandidateSearchTableProps {
   candidates: CandidateResponse[];
@@ -36,15 +42,24 @@ const CandidateSearchTable = ({
       onPaginationChange={onPaginationChange}
       pageCount={Math.ceil(total / pagination.pageSize)}
       renderActions={(candidate) => (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="rounded-xl font-semibold h-9 px-4 bg-muted/50 hover:bg-muted text-foreground transition-all border border-muted-foreground/10"
-          title="View Details"
-          onClick={() => onShowMore(candidate)}
-        >
-          More Info
-        </Button>
+        <HoverCard>
+          <HoverCardTrigger
+            render={(props) => (
+              <Button
+                {...props}
+                variant="secondary"
+                size="sm"
+                className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
+                onClick={() => onShowMore(candidate)}
+              >
+                <Info className="h-4 w-4 shrink-0" />
+              </Button>
+            )}
+          />
+          <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+            <div className="text-sm font-semibold">More Info</div>
+          </HoverCardContent>
+        </HoverCard>
       )}
     />
   );

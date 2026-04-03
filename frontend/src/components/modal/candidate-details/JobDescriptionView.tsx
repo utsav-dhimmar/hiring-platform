@@ -34,7 +34,7 @@ export function JobDescriptionView({
   appliedVersionNumber,
 }: JobDescriptionViewProps) {
   return (
-    <div className="h-full flex flex-col gap-4 p-4">
+    <div className="flex h-full flex-col gap-4 p-2 sm:p-4">
       {isLoadingVersion ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 py-20">
           <div className="h-8 w-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
@@ -43,17 +43,17 @@ export function JobDescriptionView({
           </p>
         </div>
       ) : selectedVersionData ? (
-        <div className="bg-muted/30 rounded-3xl p-6 border border-muted-foreground/5 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="space-y-4 rounded-3xl border border-muted-foreground/5 bg-muted/30 p-4 sm:space-y-6 sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3 sm:items-center">
               <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                 <FileText className="h-5 w-5" />
               </div>
-              <div className="flex flex-col">
-                <h4 className="text-lg font-black tracking-tight">
+              <div className="flex min-w-0 flex-col">
+                <h4 className="break-words text-base font-black tracking-tight sm:text-lg">
                   {selectedVersionData.title}
                 </h4>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   <span>Version {selectedVersionData.version_number}</span>
                   <span className="h-1 w-1 bg-muted-foreground rounded-full" />
                   <span>
@@ -66,20 +66,20 @@ export function JobDescriptionView({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:justify-end">
               {appliedVersionNumber === selectedVersionData.version_number && (
                 <Badge className="bg-primary/10 text-primary border-0 rounded-full font-black text-[10px] px-3 py-1">
                   VERSION USED FOR ANALYSIS
                 </Badge>
               )}
               {job?.job_versions && (
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex w-full items-center gap-2 sm:w-auto sm:ml-0">
                   <History className="h-4 w-4 text-muted-foreground" />
                   <Select
                     value={selectedVersionData?.id || ""}
                     onValueChange={onVersionChange}
                   >
-                    <SelectTrigger className="w-[140px] h-9 bg-background border-muted-foreground/20 rounded-xl text-xs font-bold">
+                    <SelectTrigger className="h-9 w-full bg-background border-muted-foreground/20 rounded-xl text-xs font-bold sm:w-[140px]">
                       <SelectValue placeholder="Select Version">
                         {selectedVersionData
                           ? `Version ${selectedVersionData.version_number}`

@@ -59,6 +59,7 @@ export function DataTable<TData, TValue>({
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [globalFilter, setGlobalFilter] = useState<string>("");
   const [rowSelection, setRowSelection] = useState({});
   const [internalPagination, setInternalPagination] = useState<PaginationState>({
     pageIndex,
@@ -83,6 +84,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
     // Add server-side pagination config
     manualPagination: isServerSide,
@@ -92,6 +94,7 @@ export function DataTable<TData, TValue>({
       sorting,
       columnFilters,
       columnVisibility,
+      globalFilter,
       rowSelection,
       pagination: paginationState,
     },
@@ -105,8 +108,8 @@ export function DataTable<TData, TValue>({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
-              value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-              onChange={(event) => table.getColumn(searchKey)?.setFilterValue(event.target.value)}
+              value={globalFilter ?? ""}
+              onChange={(event) => table.setGlobalFilter(event.target.value)}
               className="h-10 rounded-xl border-border/70 bg-background/90 pl-9 transition-all focus:ring-2 focus:ring-primary/20"
             />
           </div>

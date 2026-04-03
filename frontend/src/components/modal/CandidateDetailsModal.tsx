@@ -5,7 +5,10 @@ import type { ResumeScreeningResult } from "@/types/admin";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { resumeScreeningApi } from "@/apis/resumeScreening";
-import type { ResumeScreeningDecision } from "@/apis/resumeScreening";
+import type {
+  HrDecisionHistoryItem,
+  ResumeScreeningDecision,
+} from "@/apis/resumeScreening";
 import { adminJobService } from "@/apis/admin/job";
 import type { Job, JobVersionDetail } from "@/types/job";
 import { useForm } from "react-hook-form";
@@ -20,6 +23,7 @@ import { CandidateHeader } from "@/components/modal/candidate-details/CandidateH
 import { AnalysisStats } from "@/components/modal/candidate-details/AnalysisStats";
 import { AnalysisTabs } from "@/components/modal/candidate-details/AnalysisTabs";
 import { AnalysisContent } from "@/components/modal/candidate-details/AnalysisContent";
+import { DecisionHistory } from "@/components/modal/candidate-details/DecisionHistory";
 import { JobDescriptionView } from "@/components/modal/candidate-details/JobDescriptionView";
 import { ScreeningDecision } from "@/components/modal/candidate-details/ScreeningDecision";
 import { FeedbackDialog } from "@/components/modal/candidate-details/FeedbackDialog";
@@ -33,6 +37,7 @@ interface CandidateDetailsModalProps {
   onClose: () => void;
   candidate: CandidateResponse | ResumeScreeningResult | null;
   jobId?: string;
+  onDecisionSubmitted?: () => void | Promise<void>;
 }
 
 /**
@@ -48,11 +53,15 @@ export function CandidateDetailsModal({
   onClose,
   candidate,
   jobId,
+  onDecisionSubmitted,
 }: CandidateDetailsModalProps) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [screeningDecision, setScreeningDecision] =
     useState<ResumeScreeningDecision | null>(null);
+  const [decisionHistory, setDecisionHistory] = useState<
+    HrDecisionHistoryItem[]
+  >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [job, setJob] = useState<Job | null>(null);
   const [selectedVersionData, setSelectedVersionData] =
@@ -75,13 +84,21 @@ export function CandidateDetailsModal({
       adminJobService.getJobById(targetJobId).then((data) => {
         setJob(data as unknown as Job);
       });
+    } else {
+      setJob(null);
     }
   }, [isOpen, jobId, (candidate as any)?.applied_job_id]);
 
   useEffect(() => {
-    // If candidate has an applied version, fetch it
     const appliedVersion = (candidate as any)?.applied_version_number;
-    if (isOpen && appliedVersion && job?.job_versions) {
+    if (!isOpen || !job) {
+      setIsLoadingVersion(false);
+      setSelectedVersionData(null);
+      return;
+    }
+
+    // If candidate has an applied version, fetch it.
+    if (appliedVersion && job.job_versions) {
       const versionMeta = job.job_versions.find(
         (v) => v.version_num === appliedVersion,
       );
@@ -91,15 +108,52 @@ export function CandidateDetailsModal({
           .getJobVersion(versionMeta.id)
           .then((data) => setSelectedVersionData(data))
           .finally(() => setIsLoadingVersion(false));
+        return;
       }
     }
-  }, [isOpen, job?.job_versions, (candidate as any)?.applied_version_number]);
+
+    // If the job has no saved snapshots yet, or only a single version,
+    // fall back to the JD content already included on the job payload
+    // instead of showing an empty state.
+    const versionCount = job.total_versions ?? job.job_versions?.length ?? 0;
+    if (versionCount <= 1) {
+      setSelectedVersionData({
+        id: job.job_versions?.[0]?.id ?? job.id,
+        job_id: job.id,
+        version_number: job.job_versions?.[0]?.version_num ?? job.version ?? 1,
+        title: job.title,
+        jd_text: job.jd_text,
+        jd_json: job.jd_json,
+        custom_extraction_fields: job.custom_extraction_fields ?? null,
+        created_at: job.created_at,
+      });
+      return;
+    }
+
+    setSelectedVersionData(null);
+  }, [isOpen, job, (candidate as any)?.applied_version_number]);
 
   useEffect(() => {
     if (isOpen && candidate?.id) {
-      resumeScreeningApi.getDecision(candidate.id).then((data) => {
-        setScreeningDecision(data);
-      });
+      resumeScreeningApi
+        .getDecision(candidate.id)
+        .then((data) => {
+          setScreeningDecision(data);
+        })
+        .catch(() => {
+          setScreeningDecision(null);
+        });
+      resumeScreeningApi
+        .getDecisionHistory(candidate.id)
+        .then((data) => {
+          setDecisionHistory(data.decisions);
+        })
+        .catch(() => {
+          setDecisionHistory([]);
+        });
+    } else {
+      setScreeningDecision(null);
+      setDecisionHistory([]);
     }
   }, [isOpen, candidate?.id]);
 
@@ -127,6 +181,9 @@ export function CandidateDetailsModal({
         note: data.note,
       });
       setScreeningDecision(result);
+      const history = await resumeScreeningApi.getDecisionHistory(candidate.id);
+      setDecisionHistory(history.decisions);
+      await onDecisionSubmitted?.();
       toast.success("Decision submitted successfully");
       setShowFeedbackModal(false);
     } catch (error) {
@@ -147,24 +204,24 @@ export function CandidateDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[90%] lg:max-w-[1000px] max-h-screen p-0 overflow-hidden rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl">
-        <DialogHeader className="pt-8 px-6 pb-4">
+      <DialogContent className="flex w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col sm:w-[92vw] sm:max-w-[92vw] lg:max-w-250 max-h-[calc(100vh-1rem)] sm:max-h-[92vh] p-0 overflow-hidden rounded-[1.75rem] sm:rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl">
+        <DialogHeader className="pt-3 px-2 pb-2 sm:pt-4 sm:px-3">
           <CandidateHeader candidate={candidate} />
         </DialogHeader>
 
-        <div className="px-6 py-3 border-y border-muted-foreground/10 bg-muted/20 flex flex-wrap gap-4 items-center justify-between">
+        <div className="px-4 py-3 sm:px-6 border-y border-muted-foreground/10 bg-muted/20 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <AnalysisStats candidate={candidate} />
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full items-center gap-3 sm:w-auto sm:justify-end">
             <Separator
               orientation="vertical"
-              className="h-10 bg-muted-foreground/10"
+              className="hidden h-10 bg-muted-foreground/10 sm:block"
             />
             <AnalysisTabs activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
         </div>
 
-        <div className="flex-1 p-3 max-h-[calc(90vh-240px)] overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2 pb-4 sm:p-3">
           {activeTab === "analysis" ? (
             <AnalysisContent
               candidate={candidate}
@@ -174,6 +231,7 @@ export function CandidateDetailsModal({
               {screeningDecision && (
                 <ScreeningDecision decision={screeningDecision} />
               )}
+              <DecisionHistory decisions={decisionHistory} />
             </AnalysisContent>
           ) : (
             <JobDescriptionView

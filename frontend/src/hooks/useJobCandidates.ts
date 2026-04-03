@@ -166,11 +166,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
     }
   }, [candidates, fetchData]);
 
-  const hrApprovedCount = candidates.filter((c) => c.screening_decision === "approve").length;
-  const hrMaybeCount = candidates.filter((c) => c.screening_decision === "maybe").length;
-  const hrRejectedCount = candidates.filter((c) => c.screening_decision === "reject").length;
-  const passedCount = candidates.filter((c) => (c.resume_score ?? 0) >= 65 && c.pass_fail).length;
-  const failedCount = candidates.filter((c) => (c.resume_score ?? 0) < 65 || !c.pass_fail).length;
+  const decisionSummary = job?.decision_summary;
 
   return {
     candidates,
@@ -185,11 +181,11 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
     handleToggleStatus,
     needsReanalysis,
     stats: {
-      hrApprovedCount,
-      hrMaybeCount,
-      hrRejectedCount,
-      passedCount,
-      failedCount,
+      totalCandidates: decisionSummary?.total_candidates ?? candidates.length,
+      proceedCount: decisionSummary?.proceed_count ?? 0,
+      rejectCount: decisionSummary?.reject_count ?? 0,
+      maybeCount: decisionSummary?.maybe_count ?? 0,
+      undecidedCount: decisionSummary?.undecided_count ?? candidates.length,
     },
   };
 };
