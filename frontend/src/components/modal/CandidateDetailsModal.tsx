@@ -28,6 +28,8 @@ import { JobDescriptionView } from "@/components/modal/candidate-details/JobDesc
 import { HrDecision } from "@/components/modal/candidate-details/HrDecision";
 import { FeedbackDialog } from "@/components/modal/candidate-details/FeedbackDialog";
 import { ActionButtons } from "@/components/modal/candidate-details/ActionButtons";
+import { CrossMatchView } from "@/components/modal/candidate-details/CrossMatchView";
+import { VersionResultView } from "@/components/modal/candidate-details/VersionResultView";
 
 /**
  * Props for {@link CandidateDetailsModal}.
@@ -38,6 +40,7 @@ interface CandidateDetailsModalProps {
   candidate: CandidateResponse | CandidateAnalysis | null;
   jobId?: string;
   onDecisionSubmitted?: () => void | Promise<void>;
+  initialTab?: "analysis" | "jd" | "discovery" | "version-result";
 }
 
 /**
@@ -54,6 +57,7 @@ export function CandidateDetailsModal({
   candidate,
   jobId,
   onDecisionSubmitted,
+  initialTab = "analysis",
 }: CandidateDetailsModalProps) {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -66,7 +70,7 @@ export function CandidateDetailsModal({
   const [job, setJob] = useState<Job | null>(null);
   const [selectedVersionData, setSelectedVersionData] =
     useState<JobVersionDetail | null>(null);
-  const [activeTab, setActiveTab] = useState<"analysis" | "jd">("analysis");
+  const [activeTab, setActiveTab] = useState<"analysis" | "jd" | "discovery" | "version-result">(initialTab);
   const [isLoadingVersion, setIsLoadingVersion] = useState(false);
 
   const form = useForm<CandidateDecisionFormValues>({
@@ -77,6 +81,13 @@ export function CandidateDetailsModal({
   });
 
   const { reset } = form;
+  
+  // Sync activeTab with initialTab when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab || "analysis");
+    }
+  }, [isOpen, initialTab]);
 
   useEffect(() => {
     const targetJobId = jobId || (candidate as any)?.applied_job_id;
@@ -210,7 +221,11 @@ export function CandidateDetailsModal({
         </DialogHeader>
 
         <div className="px-4 py-3 sm:px-6 border-y border-muted-foreground/10 bg-muted/20 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <AnalysisStats candidate={candidate} />
+          <AnalysisStats 
+            candidate={candidate} 
+            activeTab={activeTab}
+            onVersionClick={() => setActiveTab("version-result")}
+          />
 
           <div className="flex w-full items-center gap-3 sm:w-auto sm:justify-end">
             <Separator
@@ -233,7 +248,7 @@ export function CandidateDetailsModal({
               )}
               <DecisionHistory decisions={decisionHistory} />
             </AnalysisContent>
-          ) : (
+          ) : activeTab === "jd" ? (
             <JobDescriptionView
               job={job}
               selectedVersionData={selectedVersionData}
@@ -243,6 +258,19 @@ export function CandidateDetailsModal({
                 (candidate as CandidateAnalysis)?.applied_version_number ??
                 undefined
               }
+            />
+          ) : activeTab === "discovery" ? (
+            <CrossMatchView 
+              resumeId={(candidate as CandidateAnalysis)?.resume_id} 
+              candidateId={candidate.id}
+              onClose={onClose}
+            />
+          ) : (
+            <VersionResultView
+              candidate={candidate as CandidateAnalysis}
+              job={job}
+              showAllSkills={showAllSkills}
+              setShowAllSkills={setShowAllSkills}
             />
           )}
         </div>

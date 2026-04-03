@@ -439,6 +439,7 @@ export interface CandidateAnalysis {
   resume_score?: number;
   pass_fail?: string | boolean | null;
   resume_analysis?: CandidateMatchAnalysis | null;
+  resume_id?: string;
   created_at: string;
   is_parsed?: boolean;
   processing_status?: string;

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button, Input } from "@/components/";
-import { FileText, RotateCw, Info } from "lucide-react";
+import { FileText, RotateCw, Info, Compass } from "lucide-react";
 import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import CandidateTable from "@/components/candidate/CandidateTable";
@@ -31,17 +31,11 @@ export default function JobCandidates() {
     needsReanalysis,
     stats,
   } = useJobCandidates(jobSlug);
-  console.log(candidates,
-    job,
-    loading,
-    isUploading,
-    reanalyzingCandidateIds,
-
-    stats,)
 
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+  const [modalInitialTab, setModalInitialTab] = useState<"analysis" | "jd" | "discovery">("analysis");
 
   const handleUploadClick = () => {
     if (!job?.is_active) return;
@@ -143,10 +137,35 @@ export default function JobCandidates() {
                           {...props}
                           variant="secondary"
                           size="sm"
+                          className="h-9 w-9 p-0 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-all duration-300 border border-primary/10 flex items-center justify-center shrink-0"
+                          onClick={(e) => {
+                            if (props.onClick) props.onClick(e);
+                            setSelectedCandidate(candidate);
+                            setModalInitialTab("discovery");
+                            setIsModalOpen(true);
+                          }}
+                        >
+                          <Compass className="h-4 w-4 shrink-0" />
+                        </Button>
+                      )}
+                    />
+                    <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                      <div className="text-sm font-semibold text-indigo-700">Discovery</div>
+                    </HoverCardContent>
+                  </HoverCard>
+
+                  <HoverCard>
+                    <HoverCardTrigger
+                      render={(props) => (
+                        <Button
+                          {...props}
+                          variant="secondary"
+                          size="sm"
                           className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
                           onClick={(e) => {
                             if (props.onClick) props.onClick(e);
                             setSelectedCandidate(candidate);
+                            setModalInitialTab("analysis");
                             setIsModalOpen(true);
                           }}
                         >
@@ -171,6 +190,7 @@ export default function JobCandidates() {
         candidate={selectedCandidate}
         jobId={job?.id}
         onDecisionSubmitted={() => fetchData()}
+        initialTab={modalInitialTab}
       />
 
       <JobInfoModal

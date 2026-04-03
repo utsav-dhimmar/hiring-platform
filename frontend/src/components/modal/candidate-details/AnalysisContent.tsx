@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import type { CandidateResponse } from "@/types/resume";
-import type { CandidateAnalysis } from "@/types/admin";
+import type { CandidateAnalysis, CandidateMatchAnalysis } from "@/types/admin";
 import type { ReactNode } from "react";
 
 /**
@@ -12,6 +12,8 @@ interface AnalysisContentProps {
   candidate: CandidateResponse | CandidateAnalysis;
   showAllSkills: boolean;
   setShowAllSkills: (show: boolean) => void;
+  /** Optional override for analysis data (used for historical results) */
+  analysisOverride?: CandidateMatchAnalysis | null;
   children?: ReactNode;
 }
 
@@ -24,9 +26,11 @@ export function AnalysisContent({
   candidate,
   showAllSkills,
   setShowAllSkills,
+  analysisOverride,
   children,
 }: AnalysisContentProps) {
-  const analysis = candidate.resume_analysis;
+  const analysis =
+    analysisOverride !== undefined ? analysisOverride : candidate.resume_analysis;
 
   return (
     <div className="space-y-3 pb-4">

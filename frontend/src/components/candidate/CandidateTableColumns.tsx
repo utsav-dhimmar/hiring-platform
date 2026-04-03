@@ -125,9 +125,11 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                 status={
                   c.pass_fail === null || c.pass_fail === undefined
                     ? "pending"
-                    : (c.pass_fail === true ||
-                        String(c.pass_fail).toLowerCase() === "pass") &&
-                      (c.resume_score ?? 0) >= 65
+                    :
+                    //  (
+                    //   c.pass_fail === true ||
+                    //     String(c.pass_fail).toLowerCase() === "pass") &&
+                    (c.resume_score ?? 0) >= 65
                       ? "pass"
                       : "fail"
                 }

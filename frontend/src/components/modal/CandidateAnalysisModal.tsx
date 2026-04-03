@@ -83,26 +83,28 @@ const CandidateAnalysisModal = ({
                   <div className="text-muted-foreground text-sm mb-1">Status</div>
                   <Badge
                     variant={
-                      (data.pass_fail === true ||
-                        String(data.pass_fail).toLowerCase() === "pass") &&
+                      // (data.pass_fail === true ||
+                      //   String(data.pass_fail).toLowerCase() === "pass") &&
                       (data.resume_score ?? 0) >= 65
                         ? "default"
                         : data.pass_fail === false ||
-                            String(data.pass_fail).toLowerCase() === "fail" ||
-                            (data.resume_score ?? 0) < 65
+                          String(data.pass_fail).toLowerCase() === "fail" ||
+                          (data.resume_score ?? 0) < 65
                           ? "destructive"
                           : "secondary"
                     }
                   >
-                    {(data.pass_fail === true ||
-                      String(data.pass_fail).toLowerCase() === "pass") &&
-                    (data.resume_score ?? 0) >= 65
-                      ? "PASS"
-                      : data.pass_fail === false ||
-                          String(data.pass_fail).toLowerCase() === "fail" ||
-                          (data.resume_score ?? 0) < 65
-                        ? "FAIL"
-                        : "PENDING"}
+                    {
+                      // (data.pass_fail === true ||
+                      //   String(data.pass_fail).toLowerCase() === "pass") &&
+                      (data.resume_score ?? 0) >= 65
+                        ? "PASS"
+                        :
+                        // data.pass_fail === false ||
+                        //     String(data.pass_fail).toLowerCase() === "fail" ||
+                        (data.resume_score ?? 0) < 65
+                          ? "FAIL"
+                          : "PENDING"}
                   </Badge>
                 </div>
                 <div className="text-end">
