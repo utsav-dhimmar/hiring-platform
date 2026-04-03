@@ -333,7 +333,7 @@ export default function CreateJob() {
                             : "bg-background/50 border-muted-foreground/10 text-muted-foreground hover:border-primary/50 hover:bg-primary/5",
                         )}
                       >
-                        <span className="font-bold text-xs lg:text-sm truncate mr-2 text-wrap">
+                        <span className="font-bold text-xs lg:text-sm mr-2 whitespace-normal leading-tight">
                           {skill.name}
                         </span>
 
