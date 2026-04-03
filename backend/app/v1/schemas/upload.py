@@ -132,26 +132,7 @@ class CandidateResponse(BaseModel):
     is_parsed: bool = False
     processing_status: str | None = None
     processing_error: str | None = None
-    screening_decision: str | None = None
-
-
-class ResumeRead(BaseModel):
-    """Schema for reading resume data."""
-
-    id: uuid.UUID
-    candidate_id: uuid.UUID
-    file_name: str
-    file_path: str
-    file_size: int
-    content_text: str | None = None
-    extracted_info: dict | None = None
-    pass_fail: str | None = None
-    created_at: datetime
-    updated_at: datetime | None = None
-
-
-# Alias for backward compatibility
-CandidateRead = CandidateResponse
+    hr_decision: str | None = None
 
 
 class ResumeRead(BaseModel):
