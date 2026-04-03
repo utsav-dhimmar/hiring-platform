@@ -157,7 +157,7 @@ export function CandidateDetailsModal({
   if (!candidate) return null;
 
   const canTakeDecision =
-    !hrDecision || hrDecision.decision.toLowerCase() === "maybe";
+    !hrDecision || hrDecision.decision.toLowerCase() === "may be";
 
   const handleAction = (type: "approve" | "reject" | "maybe") => {
     reset({

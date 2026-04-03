@@ -3,7 +3,7 @@ import type { JobStageConfig } from "@/types/stage";
 export interface JobDecisionSummary {
   job_id: string;
   total_candidates: number;
-  proceed_count: number;
+  approve_count: number;
   reject_count: number;
   maybe_count: number;
   undecided_count: number;

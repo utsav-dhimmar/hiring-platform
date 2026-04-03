@@ -1,6 +1,6 @@
 interface JobCandidatesStatsProps {
   totalCandidates: number;
-  proceedCount: number;
+  approveCount: number;
   rejectCount: number;
   maybeCount: number;
   undecidedCount: number;
@@ -8,7 +8,7 @@ interface JobCandidatesStatsProps {
 
 export const JobCandidatesStats = ({
   totalCandidates,
-  proceedCount,
+  approveCount,
   rejectCount,
   maybeCount,
   undecidedCount,
@@ -23,11 +23,11 @@ export const JobCandidatesStats = ({
         </span>
       </div>
 
-      {/* Proceed */}
+      {/* Approve */}
       <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-green-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-green-500/20">
-        <span className="text-4xl font-black text-green-600">{proceedCount}</span>
+        <span className="text-4xl font-black text-green-600">{approveCount}</span>
         <span className="text-sm font-bold text-green-600/70 uppercase tracking-widest group-hover:text-green-600 transition-colors">
-          Proceed
+          Approved
         </span>
       </div>
 

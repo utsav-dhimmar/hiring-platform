@@ -62,7 +62,7 @@ export default function JobCandidates() {
       {!loading && candidates?.length > 0 && (
         <JobCandidatesStats
           totalCandidates={stats.totalCandidates}
-          proceedCount={stats.proceedCount}
+          approveCount={stats.approveCount}
           rejectCount={stats.rejectCount}
           maybeCount={stats.maybeCount}
           undecidedCount={stats.undecidedCount}

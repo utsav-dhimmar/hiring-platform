@@ -182,7 +182,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
     needsReanalysis,
     stats: {
       totalCandidates: decisionSummary?.total_candidates ?? candidates.length,
-      proceedCount: decisionSummary?.proceed_count ?? 0,
+      approveCount: decisionSummary?.approve_count ?? 0,
       rejectCount: decisionSummary?.reject_count ?? 0,
       maybeCount: decisionSummary?.maybe_count ?? 0,
       undecidedCount: decisionSummary?.undecided_count ?? candidates.length,
