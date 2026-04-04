@@ -166,6 +166,11 @@ class AnalyticsSummary(BaseModel):
     total_resumes: int
     active_jobs: int
     active_users: int
+    approved_count: int
+    maybe_count: int
+    reject_count: int
+    hr_decision_count: int
+    pending_decision_count: int
 
 
 class JobCandidatesStats(BaseModel):
@@ -186,7 +191,6 @@ class HiringReport(BaseModel):
     candidates_by_job: list[JobCandidatesStats]
     resumes_uploaded_last_30_days: int
     average_resume_score: float | None
-    pass_rate: float | None
-    llm_parsed_count: int
     hr_decided_count: int
     pending_count: int
+
