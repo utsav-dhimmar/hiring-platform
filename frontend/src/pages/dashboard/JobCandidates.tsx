@@ -31,7 +31,6 @@ export default function JobCandidates() {
     needsReanalysis,
     stats,
   } = useJobCandidates(jobSlug);
-
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);

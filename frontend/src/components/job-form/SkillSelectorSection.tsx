@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
+
+
 import { X, Plus, Check, Search } from "lucide-react";
 import {
   FormField,
@@ -18,10 +20,15 @@ interface SkillSelectorSectionProps {
 export const SkillSelectorSection = ({
   availableSkills,
 }: SkillSelectorSectionProps) => {
-  const { control, setValue, watch } = useFormContext();
+  const { control, setValue } = useFormContext();
   const [skillSearch, setSkillSearch] = useState("");
 
-  const selectedSkillIds = watch("skill_ids") || [];
+  const selectedSkillIds = useWatch({
+    control,
+    name: "skill_ids",
+    defaultValue: [],
+  });
+
 
   const toggleSkill = (skillId: string) => {
     const current = [...selectedSkillIds];
@@ -31,8 +38,13 @@ export const SkillSelectorSection = ({
     } else {
       current.push(skillId);
     }
-    setValue("skill_ids", current, { shouldValidate: true });
+    setValue("skill_ids", current, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
   };
+
 
   const selectedSkills = availableSkills.filter((s) =>
     selectedSkillIds.includes(s.id),

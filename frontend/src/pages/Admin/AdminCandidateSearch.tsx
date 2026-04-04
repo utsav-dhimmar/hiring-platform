@@ -22,6 +22,7 @@ import {
   CandidateAnalysisModal,
   DeleteModal,
 } from "@/components/modal";
+import { JobCandidatesSkeleton } from "@/components/candidate/JobCandidatesSkeleton";
 import { resumeService } from "@/apis/resume";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import type { PaginationState } from "@tanstack/react-table";
@@ -211,16 +212,22 @@ const AdminCandidateSearch = () => {
 
       {error ? (
         <ErrorDisplay message={error} onRetry={fetchCandidates} />
+      ) : loading && candidates.length === 0 ? (
+        <div className="mt-6">
+          <JobCandidatesSkeleton count={pagination.pageSize} />
+        </div>
       ) : (
-        <CandidateSearchTable
-          candidates={candidates}
-          total={total}
-          pagination={pagination}
-          onPaginationChange={setPagination}
-          onShowMore={handleShowMore}
-          onShowScreeningDetails={handleShowAnalysisDetails}
-          onDelete={handleDeleteClick}
-        />
+        <div className={loading ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
+          <CandidateSearchTable
+            candidates={candidates}
+            total={total}
+            pagination={pagination}
+            onPaginationChange={setPagination}
+            onShowMore={handleShowMore}
+            onShowAnalysisDetails={handleShowAnalysisDetails}
+            onDelete={handleDeleteClick}
+          />
+        </div>
       )}
 
       {/* Candidate Detail Modal */}

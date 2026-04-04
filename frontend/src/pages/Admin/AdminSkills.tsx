@@ -25,6 +25,7 @@ const AdminSkills = () => {
   const {
     data: skills,
     total,
+    loading,
     error,
     fetchData: fetchSkills,
   } = useAdminData<SkillRead>(() => adminSkillService.getAllSkills(pageIndex * pageSize, pageSize));
@@ -127,6 +128,7 @@ const AdminSkills = () => {
         <DataTable
           columns={columns}
           data={skills}
+          loading={loading}
           searchKey="name"
           searchPlaceholder="Filter skills by name..."
           initialSorting={[{ id: "name", desc: false }]}

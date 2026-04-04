@@ -62,10 +62,10 @@ const AdminDashboard = () => {
             label="Passed"
             value={report?.total_passed ?? 0}
           />
-          <StatCard
+          {/* <StatCard
             label="Failed"
             value={report?.total_failed ?? 0}
-          />
+          /> */}
           <StatCard
             label="Pending"
             value={report?.total_pending ?? 0}

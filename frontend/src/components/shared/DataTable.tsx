@@ -16,6 +16,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { TableRowSkeleton } from "./SkeletonVariants";
 
 import {
   Table,
@@ -31,6 +32,7 @@ import { Input } from "@/components/ui/input";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  loading?: boolean;
   searchKey?: string;
   searchPlaceholder?: string;
   initialSorting?: SortingState;
@@ -46,6 +48,7 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
+  loading = false,
   searchKey,
   searchPlaceholder = "Search...",
   initialSorting = [],
@@ -153,9 +156,17 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading && data.length === 0 ? (
+              [...Array(pageSize)].map((_, i) => (
+                <TableRowSkeleton key={i} columns={columns.length} />
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className={loading ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
