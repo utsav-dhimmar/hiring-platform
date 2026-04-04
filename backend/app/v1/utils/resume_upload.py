@@ -126,3 +126,46 @@ def extract_skill_names(
                 seen.add(key)
                 skill_names.append(part)
     return skill_names
+
+
+def extract_social_links(data: dict) -> tuple[str | None, str | None]:
+    """Extract LinkedIn and GitHub URLs from a data dictionary.
+
+    Args:
+        data: Dictionary that may contain 'links' or 'social_links'.
+
+    Returns:
+        A tuple of (linkedin_url, github_url).
+    """
+    import re
+
+    linkedin_url = None
+    github_url = None
+
+    links = data.get("links") or data.get("social_links")
+    if not links:
+        return None, None
+
+    if isinstance(links, str):
+        # Split by comma or semicolon
+        link_list = [l.strip() for l in re.split(r"[;,]", links) if l.strip()]
+    elif isinstance(links, list):
+        link_list = []
+        for item in links:
+            if isinstance(item, dict):
+                link_list.append(item.get("url") or item.get("text") or "")
+            else:
+                link_list.append(str(item))
+    else:
+        link_list = []
+
+    for link in link_list:
+        if not link or not isinstance(link, str):
+            continue
+        link_lower = link.lower()
+        if "linkedin.com" in link_lower and not linkedin_url:
+            linkedin_url = link
+        elif "github.com" in link_lower and not github_url:
+            github_url = link
+
+    return linkedin_url, github_url

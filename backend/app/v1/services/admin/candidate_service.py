@@ -11,6 +11,7 @@ from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.schemas.job_stage import StageEvaluationRead
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
 from app.v1.schemas.response import PaginatedData
+from app.v1.utils.resume_upload import extract_social_links
 
 
 class CandidateAdminService:
@@ -213,30 +214,10 @@ class CandidateAdminService:
                                 location = loc_text.strip()
                                 break
 
-                links = source.get("links") or source.get("social_links")
-                if links:
-                    if isinstance(links, str):
-                        link_list = [l.strip() for l in links.split(",") if l.strip()]
-                    elif isinstance(links, list):
-                        link_list = links
-                    else:
-                        link_list = []
-
-                    for link_item in link_list:
-                        url = ""
-                        if isinstance(link_item, dict):
-                            url = link_item.get("url") or link_item.get("text") or ""
-                        elif isinstance(link_item, str):
-                            url = link_item
-                        
-                        if not url or not isinstance(url, str):
-                            continue
-                        
-                        url_lower = url.lower()
-                        if "linkedin.com" in url_lower and not linkedin_url:
-                            linkedin_url = url
-                        elif "github.com" in url_lower and not github_url:
-                            github_url = url
+                # Extract URLs using utility function
+                l_link, g_link = extract_social_links(source)
+                if l_link and not linkedin_url: linkedin_url = l_link
+                if g_link and not github_url: github_url = g_link
 
             is_parsed = bool(latest_resume.parsed)
             resume_score = latest_resume.resume_score

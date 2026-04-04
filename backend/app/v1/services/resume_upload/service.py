@@ -17,6 +17,7 @@ from app.v1.core.config import settings
 from app.v1.core.storage import resolve_storage_path, to_storage_relative_path
 from app.v1.repository.job_repository import job_repository
 from app.v1.repository.resume_upload_repository import resume_upload_repository
+from app.v1.utils.resume_upload import extract_social_links
 from app.v1.schemas.job import JobRead
 from app.v1.schemas.upload import (
     CandidateResponse,
@@ -346,35 +347,41 @@ class ResumeUploadService:
 
                 # Social links and location from source data
                 # (Pattern matched from CandidateAdminService)
-                src = parse_summary.get("source_data", {})
-                if isinstance(src, dict):
-                    # Location
-                    loc_val = src.get("location")
-                    if loc_val:
-                        if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
-                            location = loc_val.strip()
-                        elif isinstance(loc_val, list) and loc_val:
-                            for entry in loc_val:
-                                t = ""
-                                if isinstance(entry, dict):
-                                    t = entry.get("text") or entry.get("location") or ""
-                                else:
-                                    t = str(entry)
-                                
-                                if t and t.strip().lower() not in ("not mentioned", "null", "none"):
-                                    location = t.strip()
-                                    break
+                # Collect sources for info extraction
+                search_sources = [candidate.info or {}]
+                if parse_summary:
+                    search_sources.append(parse_summary)
+                    if "extracted_data" in parse_summary:
+                        search_sources.append(parse_summary["extracted_data"])
+                    if "source_data" in parse_summary:
+                        search_sources.append(parse_summary["source_data"])
 
-                    # Social Links
-                    links = src.get("links") or src.get("social_links")
-                    if links:
-                        link_list = [l.strip() for l in links.split(",") if l.strip()] if isinstance(links, str) else (links if isinstance(links, list) else [])
-                        for u in link_list:
-                            u_str = (u.get("url") or u.get("text") or "") if isinstance(u, dict) else (str(u) if u else "")
-                            if not u_str or not isinstance(u_str, str): continue
-                            ul = u_str.lower()
-                            if "linkedin.com" in ul and not linkedin_url: linkedin_url = u_str
-                            elif "github.com" in ul and not github_url: github_url = u_str
+                for source in search_sources:
+                    if not isinstance(source, dict):
+                        continue
+
+                    # 1. Location extraction (if not already found)
+                    if not location:
+                        loc_val = source.get("location")
+                        if loc_val:
+                            if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
+                                location = loc_val.strip()
+                            elif isinstance(loc_val, list) and loc_val:
+                                for entry in loc_val:
+                                    t = ""
+                                    if isinstance(entry, dict):
+                                        t = entry.get("text") or entry.get("location") or ""
+                                    else:
+                                        t = str(entry)
+                                    
+                                    if t and t.strip().lower() not in ("not mentioned", "null", "none"):
+                                        location = t.strip()
+                                        break
+
+                    # 2. Social Links extraction (using utility)
+                    l_link, g_link = extract_social_links(source)
+                    if l_link and not linkedin_url: linkedin_url = l_link
+                    if g_link and not github_url: github_url = g_link
 
             # 5. Append response
             candidate_responses.append(

@@ -9,6 +9,7 @@ RESUME_JD_ANALYSIS_PROMPT = textwrap.dedent("""
     Compare the resume against the job description and return only JSON.
     Use concise, recruiter-friendly wording.
     Treat the semantic score as a supporting signal, not the only basis.
+    Evaluate "experience_alignment" based on the **relevance, depth, and specific roles** mentioned in the work history. Do NOT summarize or score purely based on a "years of experience" calculation; prioritize whether the candidate has actually performed the required tasks.
 
     Required JSON schema:
     {{
