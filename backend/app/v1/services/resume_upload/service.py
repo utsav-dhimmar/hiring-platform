@@ -346,29 +346,37 @@ class ResumeUploadService:
 
                 # Social links and location from source data
                 # (Pattern matched from CandidateAdminService)
-                src = parse_summary.get("source_data", {})
-                if isinstance(src, dict):
+                search_sources = [parse_summary]
+                if "source_data" in parse_summary:
+                    search_sources.append(parse_summary["source_data"])
+                if "extracted_data" in parse_summary:
+                    search_sources.append(parse_summary["extracted_data"])
+
+                for src in search_sources:
+                    if not isinstance(src, dict): continue
+                    
                     # Location
-                    loc_val = src.get("location")
-                    if loc_val:
-                        if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
-                            location = loc_val.strip()
-                        elif isinstance(loc_val, list) and loc_val:
-                            for entry in loc_val:
-                                t = ""
-                                if isinstance(entry, dict):
-                                    t = entry.get("text") or entry.get("location") or ""
-                                else:
-                                    t = str(entry)
-                                
-                                if t and t.strip().lower() not in ("not mentioned", "null", "none"):
-                                    location = t.strip()
-                                    break
+                    if not location:
+                        loc_val = src.get("location")
+                        if loc_val:
+                            if isinstance(loc_val, str) and loc_val.strip().lower() not in ("not mentioned", "null", "none"):
+                                location = loc_val.strip()
+                            elif isinstance(loc_val, list) and loc_val:
+                                for entry in loc_val:
+                                    t = ""
+                                    if isinstance(entry, dict):
+                                        t = entry.get("text") or entry.get("location") or ""
+                                    else:
+                                        t = str(entry)
+                                    
+                                    if t and t.strip().lower() not in ("not mentioned", "null", "none"):
+                                        location = t.strip()
+                                        break
 
                     # Social Links
                     links = src.get("links") or src.get("social_links")
                     if links:
-                        link_list = [l.strip() for l in links.split(",") if l.strip()] if isinstance(links, str) else (links if isinstance(links, list) else [])
+                        link_list = [l.strip() for l in links.split(";") if l.strip()] if isinstance(links, str) else (links if isinstance(links, list) else [])
                         for u in link_list:
                             u_str = (u.get("url") or u.get("text") or "") if isinstance(u, dict) else (str(u) if u else "")
                             if not u_str or not isinstance(u_str, str): continue

@@ -115,6 +115,7 @@ class AuditLogRead(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
+    user_name: str | None = None
     action: str
     target_type: str | None = None
     target_id: uuid.UUID | None = None

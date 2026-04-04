@@ -87,15 +87,15 @@ def normalize_extractions(
                 normalized["phone"].append(item)
             elif extraction_class == "location":
                 normalized["location"].append(item)
-            elif extraction_class == "skill":
+            elif extraction_class in ("skill", "skills"):
                 normalized["skills"].append(item)
             elif extraction_class == "experience":
                 normalized["experience"].append(item)
             elif extraction_class == "education":
                 normalized["education"].append(item)
-            elif extraction_class == "certification":
+            elif extraction_class in ("certification", "certifications"):
                 normalized["certifications"].append(item)
-            elif extraction_class == "link":
+            elif extraction_class in ("link", "links"):
                 normalized["links"].append(item)
 
     return normalized

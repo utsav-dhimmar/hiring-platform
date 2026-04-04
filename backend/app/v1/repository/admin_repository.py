@@ -97,18 +97,17 @@ class AdminRepository:
         await db.commit()
 
     async def get_all_roles(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, search: str | None = None
     ) -> list[Role]:
         """
-        Retrieve all roles with pagination.
-
-        @param db - Database session
-        @param skip - Number of records to skip for pagination
-        @param limit - Maximum number of records to return
-        @returns List of Role objects ordered by name
+        Retrieve all roles with pagination and optional search by name.
         """
+        stmt = select(Role)
+        if search:
+            stmt = stmt.where(Role.name.ilike(f"%{search}%"))
+        
         result = await db.execute(
-            select(Role).offset(skip).limit(limit).order_by(Role.name)
+            stmt.offset(skip).limit(limit).order_by(Role.name)
         )
         return list(result.scalars().all())
 
@@ -269,7 +268,7 @@ class AdminRepository:
         self, db: AsyncSession, skip: int = 0, limit: int = 100
     ) -> list[AuditLog]:
         """
-        Retrieve all audit logs with pagination.
+        Retrieve all audit logs with pagination and user names.
 
         @param db - Database session
         @param skip - Number of records to skip for pagination
@@ -278,6 +277,7 @@ class AdminRepository:
         """
         result = await db.execute(
             select(AuditLog)
+            .options(selectinload(AuditLog.user))
             .offset(skip)
             .limit(limit)
             .order_by(desc(AuditLog.created_at))

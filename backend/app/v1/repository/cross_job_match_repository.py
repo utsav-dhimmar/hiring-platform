@@ -45,8 +45,7 @@ class CrossJobMatchRepository:
             List of active Jobs with embeddings.
         """
         query = select(Job).where(
-            Job.is_active.is_(True),
-            Job.jd_embedding.is_not(None)
+            Job.is_active.is_(True)
         )
         if exclude_job_id:
             query = query.where(Job.id != exclude_job_id)
@@ -85,8 +84,10 @@ class CrossJobMatchRepository:
                 "id": UUIDHelper.generate_uuid7(),
                 "resume_id": resume_id,
                 "original_job_id": original_job_id,
+                "candidate_id": m.get("candidate_id"),
                 "matched_job_id": m["matched_job_id"],
                 "match_score": m["match_score"],
+                "match_analysis": m.get("match_analysis"),
                 "created_at": datetime.now()
             }
             for m in matches

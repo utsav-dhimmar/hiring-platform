@@ -149,21 +149,42 @@ async def run_resume_processing_pipeline(
                 return
             # --------------------------------------------------
 
+            from app.v1.utils.text import extract_heuristic_info
+            
+            # Helper to check if a value is effectively missing
+            def is_missing(val):
+                if not val: return True
+                if isinstance(val, str) and val.strip().lower() in ("not mentioned", "null", "none"): return True
+                return False
+
+            h_info = extract_heuristic_info(raw_text)
+            
+            # Name fallback (heuristic for name is harder, but we can at least avoid 'Not mentioned')
             parsed_name = (
                 str(normalized["name"][0]["text"]).strip()
-                if normalized["name"]
+                if normalized.get("name") and not is_missing(normalized["name"][0]["text"])
                 else None
             )
+
+            # Email fallback
             parsed_email = (
                 str(normalized["email"][0]["text"]).strip()
-                if normalized["email"]
-                else None
+                if normalized.get("email") and not is_missing(normalized["email"][0]["text"])
+                else h_info.get("email")
             )
+
+            # Phone fallback
             parsed_phone = (
                 str(normalized["phone"][0]["text"]).strip()
-                if normalized["phone"]
-                else None
+                if normalized.get("phone") and not is_missing(normalized["phone"][0]["text"])
+                else h_info.get("phone")
             )
+
+            # Social Links fallback
+            if not normalized.get("links") or is_missing(normalized["links"][0]["text"]):
+                if h_info.get("links"):
+                    normalized["links"] = [{"text": link, "attributes": {}} for link in h_info["links"]]
+            
             first_name, last_name = split_name(parsed_name)
             parsed_summary = {
                 "name": parsed_name,

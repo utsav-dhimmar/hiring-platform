@@ -159,3 +159,41 @@ def split_into_chunks(text: str, max_words: int = 150) -> list[str]:
         chunks.append(" ".join(current_chunk))
         
     return chunks
+
+
+def extract_heuristic_info(text: str) -> dict[str, Any]:
+    """Extract Email, Phone, and Social links from raw text using regex as a fallback.
+    
+    Args:
+        text: Raw text to scan.
+        
+    Returns:
+        Dictionary with 'email', 'phone', and 'links'.
+    """
+    import re
+    
+    # Patterns
+    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    # Basic phone pattern (supports + country code, parentheses, dashes, spaces)
+    phone_pattern = r'(?:\+\d{1,3}[\s-]?)?\(?\d{3,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,4}'
+    social_patterns = [
+        r'(?:https?://)?(?:www\.)?linkedin\.com/(?:in|company)/[\w\d\-._~:/?#[\]@!$&\'()*+,;=]+',
+        r'(?:https?://)?(?:www\.)?github\.com/[\w\d\-._~:/?#[\]@!$&\'()*+,;=]+'
+    ]
+    
+    emails = re.findall(email_pattern, text)
+    phones = re.findall(phone_pattern, text)
+    
+    links = []
+    for pattern in social_patterns:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        for match in matches:
+            link = match.strip().rstrip('.,;)]')
+            if link not in links:
+                links.append(link)
+                
+    return {
+        "email": emails[0] if emails else None,
+        "phone": phones[0] if phones else None,
+        "links": links
+    }
