@@ -17,6 +17,9 @@ class CrossJobMatchCreate(CrossJobMatchBase):
 class CrossJobMatchRead(CrossJobMatchBase):
     """Schema for reading CrossJobMatch data."""
     created_at: datetime
+    candidate_id: uuid.UUID | None = None
+    match_analysis: dict | None = None
+    pass_fail: str | None = None
     matched_job: JobRead | None = None
 
     model_config = ConfigDict(from_attributes=True)

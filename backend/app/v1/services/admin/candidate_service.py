@@ -28,20 +28,13 @@ class CandidateAdminService:
         hr_decision: str | None = None,
         jd_version: int | None = None,
     ) -> PaginatedData[CandidateResponse]:
-        """Get all candidates for a specific job."""
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
 
-        # Build base query with optional HR decision filter
-        job_filter = Candidate.applied_job_id == job_id
+        # 1. Fetch direct candidates
+        dir_filter = Candidate.applied_job_id == job_id
+        dir_stmt = select(Candidate).where(dir_filter)
 
-        # Subquery for total count before limit/offset
-        total_stmt = select(func.count()).select_from(Candidate).where(job_filter)
-
-        # Base query for data
-        stmt = select(Candidate).where(job_filter)
-
-        # Apply filters
         if hr_decision:
-            # Subquery to find the latest decision for each candidate
             latest_decision_subq = (
                 select(HrDecision.decision)
                 .where(HrDecision.candidate_id == Candidate.id)
@@ -49,32 +42,106 @@ class CandidateAdminService:
                 .limit(1)
                 .scalar_subquery()
             )
-            stmt = stmt.where(latest_decision_subq == hr_decision)
-            total_stmt = total_stmt.where(latest_decision_subq == hr_decision)
+            dir_stmt = dir_stmt.where(latest_decision_subq == hr_decision)
 
         if jd_version is not None:
-            stmt = stmt.where(Candidate.applied_version_number == jd_version)
-            total_stmt = total_stmt.where(
-                Candidate.applied_version_number == jd_version
-            )
+            dir_stmt = dir_stmt.where(Candidate.applied_version_number == jd_version)
 
-        total = await db.scalar(total_stmt)
-
-        # Final query with eager loading, sorting, and paging
-        stmt = (
-            stmt.options(
-                selectinload(Candidate.resumes), selectinload(Candidate.hr_decisions)
-            )
-            .order_by(Candidate.created_at.desc())
-            .offset(skip)
-            .limit(limit)
+        dir_stmt = dir_stmt.options(
+            selectinload(Candidate.resumes), selectinload(Candidate.hr_decisions)
         )
-        result = await db.execute(stmt)
-        candidates = list(result.scalars().all())
+        dir_result = await db.execute(dir_stmt)
+        direct_candidates = list(dir_result.scalars().unique().all())
+
+        # 2. Fetch cross-matched candidates
+        xm_stmt = (
+            select(CrossJobMatch)
+            .where(CrossJobMatch.matched_job_id == job_id)
+            .options(
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes),
+                selectinload(CrossJobMatch.candidate).selectinload(
+                    Candidate.hr_decisions
+                ),
+            )
+        )
+        xm_result = await db.execute(xm_stmt)
+        cross_matches = list(xm_result.scalars().unique().all())
+
+        # 3. Map to responses
+        responses = []
+        for c in direct_candidates:
+            responses.append(self._map_candidate_to_response(c, target_job_id=job_id))
+
+        for xm in cross_matches:
+            if not xm.candidate:
+                continue
+
+            # Map candidate normally
+            resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id)
+
+            # Evaluate override values
+            analysis_obj = resp.resume_analysis
+            if xm.match_analysis:
+                try:
+                    analysis_obj = ResumeMatchAnalysis.model_validate(xm.match_analysis)
+                except Exception:
+                    pass
+
+            # Calculate pass_fail dynamically based on this job's threshold
+            match_score_val = (
+                float(xm.match_score) if xm.match_score is not None else 0.0
+            )
+            threshold_val = (
+                float(xm.matched_job.passing_threshold)
+                if xm.matched_job and xm.matched_job.passing_threshold
+                else 65.0
+            )
+            derived_pass_fail = (
+                "passed" if match_score_val >= threshold_val else "failed"
+            )
+
+            # Override with cross-match data securely via model_copy
+            resp = resp.model_copy(
+                update={
+                    "applied_job_id": job_id,
+                    "current_status": "Applied (Cross-Match)",
+                    "resume_score": match_score_val,
+                    "pass_fail": derived_pass_fail,
+                    "resume_analysis": analysis_obj,
+                    "created_at": xm.created_at,
+                }
+            )
+
+            # Apply hr_decision filter in-memory for cross-matches if needed
+            if hr_decision:
+                latest_dec = next(
+                    iter(
+                        sorted(
+                            xm.candidate.hr_decisions,
+                            key=lambda d: d.decided_at,
+                            reverse=True,
+                        )
+                    ),
+                    None,
+                )
+                if not latest_dec or latest_dec.decision != hr_decision:
+                    continue
+
+            if jd_version is not None and resp.applied_version_number != jd_version:
+                continue
+
+            responses.append(resp)
+
+        # 4. Sort entirely by created_at (most recent first)
+        responses.sort(key=lambda x: x.created_at, reverse=True)
+
+        # 5. Paginate
+        total = len(responses)
+        paginated_responses = responses[skip : skip + limit]
 
         return PaginatedData[CandidateResponse](
-            data=[self._map_candidate_to_response(c) for c in candidates],
-            total=total or 0,
+            data=paginated_responses,
+            total=total,
         )
 
     async def search_candidates_for_job(
@@ -85,40 +152,95 @@ class CandidateAdminService:
         skip: int = 0,
         limit: int = 100,
     ) -> PaginatedData[CandidateResponse]:
-        """Search candidates for a specific job."""
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
 
-        job_filter = Candidate.applied_job_id == job_id
+        # 1. Fetch direct candidates
+        dir_filter = Candidate.applied_job_id == job_id
+        dir_stmt = select(Candidate).where(dir_filter)
 
-        # Data and count queries
-        stmt = select(Candidate).where(job_filter)
-        total_stmt = select(func.count()).select_from(Candidate).where(job_filter)
-
+        search_filter = None
         if query:
             search_filter = or_(
                 Candidate.first_name.ilike(f"%{query}%"),
                 Candidate.last_name.ilike(f"%{query}%"),
                 Candidate.email.ilike(f"%{query}%"),
             )
-            stmt = stmt.where(search_filter)
-            total_stmt = total_stmt.where(search_filter)
+            dir_stmt = dir_stmt.where(search_filter)
 
-        total = await db.scalar(total_stmt)
-
-        # Apply paging and ordering to the same statement object
-        stmt = (
-            stmt.options(
-                selectinload(Candidate.resumes), selectinload(Candidate.hr_decisions)
-            )
-            .order_by(Candidate.created_at.desc())
-            .offset(skip)
-            .limit(limit)
+        dir_stmt = dir_stmt.options(
+            selectinload(Candidate.resumes), selectinload(Candidate.hr_decisions)
         )
-        result = await db.execute(stmt)
-        candidates = list(result.scalars().all())
+        dir_result = await db.execute(dir_stmt)
+        direct_candidates = list(dir_result.scalars().unique().all())
+
+        # 2. Fetch cross-matched candidates
+        xm_stmt = (
+            select(CrossJobMatch)
+            .where(CrossJobMatch.matched_job_id == job_id)
+            .options(
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes),
+                selectinload(CrossJobMatch.candidate).selectinload(
+                    Candidate.hr_decisions
+                ),
+            )
+        )
+        if search_filter is not None:
+            xm_stmt = xm_stmt.join(
+                Candidate, CrossJobMatch.candidate_id == Candidate.id
+            ).where(search_filter)
+
+        xm_result = await db.execute(xm_stmt)
+        cross_matches = list(xm_result.scalars().unique().all())
+
+        # 3. Map to responses
+        responses = []
+        for c in direct_candidates:
+            responses.append(self._map_candidate_to_response(c, target_job_id=job_id))
+
+        for xm in cross_matches:
+            if not xm.candidate:
+                continue
+
+            resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id)
+            analysis_obj = resp.resume_analysis
+            if xm.match_analysis:
+                try:
+                    analysis_obj = ResumeMatchAnalysis.model_validate(xm.match_analysis)
+                except Exception:
+                    pass
+
+            match_score_val = (
+                float(xm.match_score) if xm.match_score is not None else 0.0
+            )
+            threshold_val = (
+                float(xm.matched_job.passing_threshold)
+                if xm.matched_job and xm.matched_job.passing_threshold
+                else 65.0
+            )
+            derived_pass_fail = (
+                "passed" if match_score_val >= threshold_val else "failed"
+            )
+
+            resp = resp.model_copy(
+                update={
+                    "applied_job_id": job_id,
+                    "current_status": "Applied (Cross-Match)",
+                    "resume_score": match_score_val,
+                    "pass_fail": derived_pass_fail,
+                    "resume_analysis": analysis_obj,
+                    "created_at": xm.created_at,
+                }
+            )
+            responses.append(resp)
+
+        # 4. Sort and paginate
+        responses.sort(key=lambda x: x.created_at, reverse=True)
+        total = len(responses)
+        paginated_responses = responses[skip : skip + limit]
 
         return PaginatedData[CandidateResponse](
-            data=[self._map_candidate_to_response(c) for c in candidates],
-            total=total or 0,
+            data=paginated_responses,
+            total=total,
         )
 
     async def search_candidates(
@@ -163,7 +285,9 @@ class CandidateAdminService:
             total=total or 0,
         )
 
-    def _map_candidate_to_response(self, candidate: Candidate) -> CandidateResponse:
+    def _map_candidate_to_response(
+        self, candidate: Candidate, target_job_id: uuid.UUID | None = None
+    ) -> CandidateResponse:
         """Helper to map Candidate model to CandidateResponse schema."""
         resumes = getattr(candidate, "resumes", [])
         latest_resume = (
@@ -223,7 +347,11 @@ class CandidateAdminService:
                 links = source.get("links") or source.get("social_links")
                 if links:
                     if isinstance(links, str):
-                        link_list = [l.strip() for l in links.split(",") if l.strip()]
+                        import re
+
+                        link_list = [
+                            l.strip() for l in re.split(r"[;,]", links) if l.strip()
+                        ]
                     elif isinstance(links, list):
                         link_list = links
                     else:
@@ -261,6 +389,18 @@ class CandidateAdminService:
 
         # Get latest HR decision
         hr_decisions = getattr(candidate, "hr_decisions", [])
+        if target_job_id:
+            # Filter HR decisions to this specific job ID, or fallback to natively applied if null
+            filtered_decisions = []
+            for d in hr_decisions:
+                if str(getattr(d, "job_id", None)) == str(target_job_id):
+                    filtered_decisions.append(d)
+                elif getattr(d, "job_id", None) is None and str(
+                    candidate.applied_job_id
+                ) == str(target_job_id):
+                    filtered_decisions.append(d)
+            hr_decisions = filtered_decisions
+
         latest_decision = (
             max(hr_decisions, key=lambda d: d.decided_at) if hr_decisions else None
         )

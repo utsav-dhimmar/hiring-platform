@@ -21,6 +21,10 @@ class HRDecisionCreate(BaseModel):
         None, 
         description="Optional notes for the decision. Required for 'May Be' decisions."
     )
+    job_id: uuid.UUID | None = Field(
+        None,
+        description="Optional Job ID to link this decision to a specific job (e.g. for cross-matched candidates)."
+    )
 
     @validator('notes')
     def validate_may_be_notes(cls, v, values):
@@ -38,6 +42,7 @@ class HRDecisionResponse(BaseModel):
     id: uuid.UUID
     candidate_id: uuid.UUID
     stage_config_id: uuid.UUID | None
+    job_id: uuid.UUID | None = None
     user_id: uuid.UUID
     decision: str
     notes: str | None

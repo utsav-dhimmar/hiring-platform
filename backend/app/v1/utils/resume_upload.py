@@ -72,39 +72,34 @@ def normalize_extractions(
             {"text": item, "attributes": {}}
             for item in getattr(extracted, "certifications", [])
         ]
-    else:
-        documents = extracted if isinstance(extracted, list) else [extracted]
-        for document in documents:
-            for extraction in getattr(document, "extractions", []):
-                item = {
-                    "text": getattr(extraction, "extraction_text", ""),
-                    "attributes": getattr(extraction, "attributes", {}) or {},
-                }
-                extraction_class = getattr(extraction, "extraction_class", "")
-                if extraction_class == "name":
-                    normalized["name"].append(item)
-                elif extraction_class == "email":
-                    normalized["email"].append(item)
-                elif extraction_class == "phone":
-                    normalized["phone"].append(item)
-                elif extraction_class == "location":
-                    normalized["location"].append(item)
-                elif extraction_class == "skill":
-                    normalized["skills"].append(item)
-                elif extraction_class == "experience":
-                    normalized["experience"].append(item)
-                elif extraction_class == "education":
-                    normalized["education"].append(item)
-                elif extraction_class == "certification":
-                    normalized["certifications"].append(item)
-                elif extraction_class == "link":
-                    normalized["links"].append(item)
-                elif extraction_class == "extraordinary_highlights":
-                    normalized["extraordinary_highlights"].append(item)
-                elif extraction_class == "professional_summary":
-                    normalized["professional_summary"].append(item)
-                elif extraction_class == "experience_summary":
-                    normalized["experience_summary"].append(item)
+        return normalized
+
+    documents = extracted if isinstance(extracted, list) else [extracted]
+    for document in documents:
+        for extraction in getattr(document, "extractions", []):
+            item = {
+                "text": getattr(extraction, "extraction_text", ""),
+                "attributes": getattr(extraction, "attributes", {}) or {},
+            }
+            extraction_class = getattr(extraction, "extraction_class", "")
+            if extraction_class == "name":
+                normalized["name"].append(item)
+            elif extraction_class == "email":
+                normalized["email"].append(item)
+            elif extraction_class == "phone":
+                normalized["phone"].append(item)
+            elif extraction_class == "location":
+                normalized["location"].append(item)
+            elif extraction_class in ("skill", "skills"):
+                normalized["skills"].append(item)
+            elif extraction_class == "experience":
+                normalized["experience"].append(item)
+            elif extraction_class == "education":
+                normalized["education"].append(item)
+            elif extraction_class in ("certification", "certifications"):
+                normalized["certifications"].append(item)
+            elif extraction_class in ("link", "links"):
+                normalized["links"].append(item)
 
     return normalized
 

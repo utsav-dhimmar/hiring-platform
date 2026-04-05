@@ -52,7 +52,6 @@ async def trigger_cross_job_match(
 )
 async def get_cross_job_matches(
     resume_id: uuid.UUID,
-    job_id: uuid.UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
 ) -> CrossJobMatchResponse:
@@ -67,13 +66,18 @@ async def get_cross_job_matches(
         .where(CrossJobMatch.resume_id == resume_id)
     )
 
-    if job_id:
-        query = query.where(CrossJobMatch.matched_job_id == job_id)
-
     result = await db.execute(query.order_by(CrossJobMatch.match_score.desc()))
     matches = result.scalars().all()
     
+    match_dict = {}
+    for m in matches:
+        validated = CrossJobMatchRead.model_validate(m)
+        score_val = float(m.match_score) if m.match_score is not None else 0.0
+        thresh_val = float(m.matched_job.passing_threshold) if m.matched_job and m.matched_job.passing_threshold else 65.0
+        validated.pass_fail = "passed" if score_val >= thresh_val else "failed"
+        match_dict[m.matched_job_id] = validated
+
     return CrossJobMatchResponse(
         resume_id=resume_id,
-        matches={m.matched_job_id: CrossJobMatchRead.model_validate(m) for m in matches}
+        matches=match_dict
     )

@@ -115,9 +115,10 @@ async def get_all_roles(
     admin: UserRead = Depends(check_permission("roles:read")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
-    """Get all roles."""
-    return await admin_service.get_all_roles(db=db, skip=skip, limit=limit)
+    """Get all roles with optional search."""
+    return await admin_service.get_all_roles(db=db, skip=skip, limit=limit, search=q)
 
 
 @router.post(

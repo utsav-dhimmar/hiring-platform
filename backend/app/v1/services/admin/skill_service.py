@@ -19,11 +19,15 @@ class SkillService:
     """
 
     async def get_all_skills(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, search: str | None = None
     ) -> PaginatedData[SkillRead]:
-        """Get all skills with pagination."""
+        """Get all skills with pagination and optional search using FastCRUD filters."""
+        filters = {}
+        if search:
+            filters["name__ilike"] = f"%{search}%"
+
         result = await skill_repository.crud.get_multi(
-            db=db, offset=skip, limit=limit
+            db=db, offset=skip, limit=limit, **filters
         )
         return PaginatedData[SkillRead](
             data=[SkillRead.model_validate(s) for s in result["data"]],
@@ -117,18 +121,19 @@ class SkillService:
         skill_name = skill.name if hasattr(skill, 'name') else skill.get('name', "Unknown Skill")
 
         # 2. Safety Check: Is it being used in any ACTIVE Jobs?
+        # Fetch Job Titles for better error message
         active_jobs_query = (
-            select(Job.id)
+            select(Job.title)
             .join(job_skills, Job.id == job_skills.c.job_id)
             .where(job_skills.c.skill_id == skill_id, Job.is_active == True)
         )
         result = await db.execute(active_jobs_query)
-        active_job_ids = [str(row[0]) for row in result.fetchall()]
+        active_job_titles = [row[0] for row in result.fetchall()]
 
-        if active_job_ids:
+        if active_job_titles:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot delete skill '{skill_name}' because it is being used in ACTIVE Job(s) with ID(s): {active_job_ids}. Please deactivate these Job(s) first."
+                detail=f"Cannot delete skill '{skill_name}' because it is being used in ACTIVE Job(s): {active_job_titles}. Please deactivate these Job(s) first."
             )
 
         # 3. Clean Linkage: Cascade delete associations from junction tables

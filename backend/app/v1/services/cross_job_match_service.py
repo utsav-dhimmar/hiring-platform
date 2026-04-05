@@ -1,143 +1,188 @@
 import uuid
-import math
 import logging
-import asyncio
-from typing import List, Dict, Any
 
-from sentence_transformers import CrossEncoder
+from sqlalchemy import select
 
 from app.v1.db.session import async_session_maker
 from app.v1.repository.cross_job_match_repository import cross_job_match_repository
 from app.v1.core.embeddings import embedding_service
-from app.v1.utils.text import build_job_text, build_candidate_text
-from sqlalchemy import select, func
+from app.v1.utils.text import build_job_text
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.job_chunks import JobChunk
-from app.v1.core.config import settings
 
 _log = logging.getLogger(__name__)
 
-CROSS_ENCODER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-_SHORTLIST_N = 20        # bi-encoder narrows to this many
-_FINAL_N = 10            # reranker keeps this many
-_MIN_SCORE_TO_STORE = 40.0
+_SHORTLIST_N = 100   # bi-encoder narrows to this many
+_MIN_SCORE   = 0.0   # store all matches
 
 class CrossJobMatchService:
-    """Service for cross-job matching using bi-encoder and cross-encoder reranking."""
+    """Service for cross-job matching using bi-encoder + chunk reranking.
+    
+    Architecture (v2):
+    - NO duplicate Candidate or Resume records are created.
+    - Job-specific AI analysis is stored directly in cross_job_matches.match_analysis.
+    - get_candidates_for_job merges cross-matched candidates on the fly.
+    """
 
     async def run_cross_match(self, *, resume_id: uuid.UUID, original_job_id: uuid.UUID) -> None:
-        """Execute the two-stage cross-job matching process.
-        
-        1. Bi-encoder: fast similarity shortlist (top 20).
-        2. Cross-encoder: precise reranking (top 10).
-        """
+        """Run cross-job matching and store AI analysis per matched job."""
+        from app.v1.db.models.candidates import Candidate
+        from app.v1.db.models.resumes import Resume
+        from app.v1.services.resume_upload.background import BackgroundProcessor
+        from app.v1.services.resume_upload.processor import ResumeProcessor
+
         async with async_session_maker() as db:
-            # Stage 0: Load resume and its embedding
-            resume = await cross_job_match_repository.get_resume_with_embedding(db, resume_id=resume_id)
-            if resume is None:
-                _log.warning("Resume not found resume_id=%s. Skipping cross-match.", resume_id)
+            # 1. Load original resume + candidate
+            resume = await db.get(Resume, resume_id)
+            if not resume:
+                _log.warning("run_cross_match: resume %s not found", resume_id)
                 return
 
-            # Fetch all resume chunks for this candidate early (we need them for Deep Match anyway)
-            resume_chunk_result = await db.execute(
-                select(ResumeChunk.chunk_embedding)
-                .where(ResumeChunk.resume_id == resume_id)
+            orig_candidate = await db.get(Candidate, resume.candidate_id)
+            if not orig_candidate:
+                _log.warning("run_cross_match: candidate not found for resume %s", resume_id)
+                return
+
+            # 2. Get embedding — resume level first, fallback to chunks
+            chunk_stmt = select(ResumeChunk).where(ResumeChunk.resume_id == resume_id)
+            orig_chunks = (await db.execute(chunk_stmt)).scalars().all()
+            resume_embeddings = [c.chunk_embedding for c in orig_chunks if c.chunk_embedding is not None]
+            raw_text = orig_chunks[0].raw_text if orig_chunks else ""
+
+            base_embedding = (
+                resume.resume_embedding
+                if resume.resume_embedding is not None
+                else (resume_embeddings[0] if resume_embeddings else None)
             )
-            resume_embeddings = [r for r in resume_chunk_result.scalars().all() if r is not None]
-
-            # Use the main resume_embedding or the first chunk as a bi-encoder proxy
-            base_embedding = resume.resume_embedding
-            if base_embedding is None and resume_embeddings:
-                base_embedding = resume_embeddings[0]
-                _log.info("Using first chunk as fallback embedding for bi-encoder shortlist.")
-
             if base_embedding is None:
-                _log.warning("No embedding found for resume_id=%s in either Resume or ResumeChunk. Skipping cross-match.", resume_id)
+                _log.warning("run_cross_match: no embedding for resume %s — skipping", resume_id)
                 return
 
-            # Stage 1: Bi-encoder shortlist (fast)
+            # 3. Shortlist all active jobs with bi-encoder
             other_jobs = await cross_job_match_repository.get_all_active_jobs_with_embeddings(
                 db, exclude_job_id=original_job_id
             )
             if not other_jobs:
-                _log.info("No other active jobs with embeddings found for cross-matching.")
+                _log.info("run_cross_match: no other active jobs found")
                 return
 
-            scored_shortlist = []
+            scored = []
             for job in other_jobs:
-                bi_score = embedding_service.get_semantic_score_from_embeddings(
-                    base_embedding, job.jd_embedding
-                )
-                _log.info("Job %s | Bi-Score: %s", job.id, bi_score)
-                scored_shortlist.append({"job": job, "bi_score": bi_score})
-
-            # Sort by bi_score descending and take top N
-            scored_shortlist.sort(key=lambda x: x["bi_score"], reverse=True)
-            shortlist = scored_shortlist[:_SHORTLIST_N]
-
-            if not shortlist:
-                await cross_job_match_repository.upsert_matches(
-                    db, resume_id=resume_id, original_job_id=original_job_id, matches=[]
-                )
-                await db.commit()
-                return
-
-        
-            # Stage 2: Reranking with Deep Match (Chunk-level embeddings)
-            if not resume_embeddings:
-                _log.warning("No ResumeChunk embeddings found for resume_id=%s. Using bi-encoder scores.", resume_id)
-                # Ensure all items have a final_score for sorting
-                for item in shortlist:
-                    item["final_score"] = item["bi_score"]
-            else:
-                for item in shortlist:
-                    job = item["job"]
+                job_emb = job.jd_embedding
+                if job_emb is None:
                     try:
-                        # Fetch all job chunks for this job
-                        job_chunk_result = await db.execute(
-                            select(JobChunk.chunk_embedding)
-                            .where(JobChunk.job_id == job.id)
-                        )
-                        job_chunk_embeddings = [j for j in job_chunk_result.scalars().all() if j is not None]
-                        
-                        max_sim = 0.0
-                        if job_chunk_embeddings:
-                            # Full Deep Match: Max similarity across ALL pairs (ResumeChunk, JobChunk)
-                            for r_emb in resume_embeddings:
-                                for j_emb in job_chunk_embeddings:
-                                    sim = embedding_service.get_semantic_score_from_embeddings(r_emb, j_emb)
-                                    if sim > max_sim:
-                                        max_sim = sim
-                        else:
-                            # Fallback: Max similarity between ResumeChunks and the aggregate JD embedding
-                            for r_emb in resume_embeddings:
-                                sim = embedding_service.get_semantic_score_from_embeddings(r_emb, job.jd_embedding)
-                                if sim > max_sim:
-                                    max_sim = sim
-                        
-                        # Scale is already 0-100 from embedding_service
-                        item["final_score"] = max_sim
-                        _log.info("Job %s | Deep Match Score: %s", job.id, item["final_score"])
-                        
-                    except Exception:
-                        _log.exception("Deep Match reranking failed for job=%s", job.id)
-                        item["final_score"] = item["bi_score"]
-            # Stage 3: Keep top-N above threshold
-            reranked = sorted(shortlist, key=lambda x: x.get("final_score", x["bi_score"]), reverse=True)
-            _log.info("Reranked matches: %s", [{ "id": str(i["job"].id), "score": i.get("final_score", i["bi_score"]) } for i in reranked])
-            top_matches = [
-                {"matched_job_id": item["job"].id, "match_score": item.get("final_score", item["bi_score"])}
-                for item in reranked
-            ][:_FINAL_N]
+                        job_emb = embedding_service.encode_jd(build_job_text(job))
+                        job.jd_embedding = job_emb
+                        await db.flush()
+                    except Exception as e:
+                        _log.warning("Failed to generate embedding for job %s: %s", job.id, e)
+                        continue
+                bi_score = embedding_service.get_semantic_score_from_embeddings(base_embedding, job_emb)
+                scored.append({"job": job, "score": bi_score})
 
-            # Persist results
+            # 4. Deep rerank using chunk-level similarity
+            scored.sort(key=lambda x: x["score"], reverse=True)
+            top = scored[:_SHORTLIST_N]
+
+            for item in top:
+                job = item["job"]
+                try:
+                    job_chunks = (await db.execute(
+                        select(JobChunk.chunk_embedding).where(JobChunk.job_id == job.id)
+                    )).scalars().all()
+                    job_chunks = [j for j in job_chunks if j is not None]
+
+                    if job_chunks and resume_embeddings:
+                        max_sim = max(
+                            embedding_service.get_semantic_score_from_embeddings(r, j)
+                            for r in resume_embeddings
+                            for j in job_chunks
+                        )
+                        item["score"] = max_sim
+                except Exception:
+                    pass  # keep bi_score
+
+            # 5. Persist match records with candidate_id (no duplicate Candidate rows)
+            match_data = [
+                {
+                    "candidate_id": orig_candidate.id,
+                    "matched_job_id": item["job"].id,
+                    "match_score": item["score"],
+                }
+                for item in top
+            ]
             await cross_job_match_repository.upsert_matches(
-                db, 
-                resume_id=resume_id, 
-                original_job_id=original_job_id, 
-                matches=top_matches
+                db,
+                resume_id=resume_id,
+                original_job_id=original_job_id,
+                matches=match_data,
             )
             await db.commit()
-            _log.info("Cross-job matches updated for resume_id=%s. Found %d matches.", resume_id, len(top_matches))
+            _log.info("Stored %d cross-job matches for resume_id=%s", len(match_data), resume_id)
+
+            # 6. Generate job-specific AI analysis for each match (reuse raw_text + chunks)
+            bg_processor = BackgroundProcessor(ResumeProcessor())
+            from sqlalchemy.orm.attributes import flag_modified
+            from app.v1.db.models.cross_job_matches import CrossJobMatch
+            from sqlalchemy import select as sa_select
+
+            for item in top:
+                job = item["job"]
+                try:
+                    _log.info("Generating cross-match analysis for job: %s", job.title)
+                    insights = await bg_processor.processor.generate_resume_insights(
+                        raw_text=raw_text,
+                        parsed_summary=resume.parse_summary or {},
+                        job=job,
+                        job_skills=await _get_job_skills(db, job.id),
+                        candidate_skills=_extract_skills(resume.parse_summary),
+                    )
+                    analysis_data = insights.get("analysis", {})
+
+                    # Store analysis back into the match record
+                    async with async_session_maker() as db2:
+                        match_row = (await db2.execute(
+                            sa_select(CrossJobMatch).where(
+                                CrossJobMatch.resume_id == resume_id,
+                                CrossJobMatch.matched_job_id == job.id,
+                            )
+                        )).scalars().first()
+                        if match_row:
+                            match_row.match_analysis = analysis_data
+                            flag_modified(match_row, "match_analysis")
+                            await db2.commit()
+                except Exception as e:
+                    _log.warning("Failed analysis for job %s: %s", job.id, e)
+
+            _log.info("Cross-job matching complete for resume_id=%s", resume_id)
+
+
+async def _get_job_skills(db, job_id: uuid.UUID) -> list:
+    """Load job skills for analysis."""
+    from sqlalchemy.orm import selectinload
+    from app.v1.db.models.jobs import Job
+    job = await db.scalar(
+        select(Job).options(selectinload(Job.skills)).where(Job.id == job_id)
+    )
+    return job.skills if job else []
+
+
+def _extract_skills(parse_summary: dict | None) -> list[str]:
+    """Extract skill name strings from parse_summary."""
+    if not parse_summary:
+        return []
+    skills = parse_summary.get("skills", [])
+    result = []
+    for s in skills:
+        if isinstance(s, dict):
+            text = s.get("text", "")
+        else:
+            text = str(s)
+        for part in text.split(","):
+            part = part.strip()
+            if part and part.lower() not in ("not mentioned", "null", "none"):
+                result.append(part)
+    return result
+
 
 cross_job_match_service = CrossJobMatchService()

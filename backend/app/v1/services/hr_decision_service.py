@@ -81,27 +81,47 @@ class HRDecisionService:
         if not candidate:
             raise ValueError(f"Candidate with id {candidate_id} not found")
         
-        # Check "May Be" decision limit (only 1 per candidate)
+        actual_job_id = getattr(decision_data, "job_id", None) or getattr(candidate, "applied_job_id", None)
+
+        # Check "May Be" decision limit (only 1 per candidate per job)
         if decision_data.decision == "May Be":
-            existing_may_be = await db.execute(
-                select(func.count(HrDecision.id))
-                .where(
-                    HrDecision.candidate_id == candidate_id,
-                    HrDecision.decision == "May Be"
-                )
+            query = select(func.count(HrDecision.id)).where(
+                HrDecision.candidate_id == candidate_id,
+                HrDecision.decision == "May Be"
             )
+            if actual_job_id:
+                query = query.where(HrDecision.job_id == actual_job_id)
+
+            existing_may_be = await db.execute(query)
             may_be_count = existing_may_be.scalar() or 0
             
             if may_be_count >= 1:
                 raise ValueError(
-                    "Only one 'May Be' decision is allowed per candidate. "
-                    "Candidate already has a 'May Be' decision."
+                    "Only one 'May Be' decision is allowed per candidate for a specific job."
+                )
+                
+        # Check "approve" decision limit (only 1 per candidate globally)
+        if decision_data.decision.lower() == "approve":
+            existing_approve = await db.execute(
+                select(func.count(HrDecision.id))
+                .where(
+                    HrDecision.candidate_id == candidate_id,
+                    func.lower(HrDecision.decision) == "approve"
+                )
+            )
+            approve_count = existing_approve.scalar() or 0
+            
+            if approve_count >= 1:
+                raise ValueError(
+                    "This candidate has already been approved for a role. "
+                    "Only one approval is allowed per candidate across all jobs."
                 )
         
         # Create the decision
         hr_decision = HrDecision(
             candidate_id=candidate_id,
             stage_config_id=stage_config_id,
+            job_id=actual_job_id,
             user_id=user_id,
             decision=decision_data.decision,
             notes=decision_data.notes,
@@ -118,7 +138,14 @@ class HRDecisionService:
 
         # Trigger cross-match in background if candidate is rejected (case-insensitive)
         if decision_data.decision.lower() == "reject":
-            _trigger_cross_match_for_candidate(candidate)
+            from app.v1.db.models.cross_job_matches import CrossJobMatch
+            existing_match_count = await db.scalar(
+                select(func.count(CrossJobMatch.id)).where(CrossJobMatch.candidate_id == candidate_id)
+            )
+            if existing_match_count and existing_match_count > 0:
+                logger.info(f"Skipping cross-match for {candidate_id}: Already cross-matched before.")
+            else:
+                _trigger_cross_match_for_candidate(candidate)
         
         return HRDecisionResponse.model_validate(hr_decision)
 
@@ -173,27 +200,48 @@ class HRDecisionService:
         if not decision:
             raise ValueError(f"Decision with id {decision_id} not found")
         
+        actual_job_id = getattr(decision_data, "job_id", None) or decision.job_id
+
         # Check "May Be" decision limit if updating to "May Be"
         if decision_data.decision == "May Be" and decision.decision != "May Be":
-            existing_may_be = await db.execute(
-                select(func.count(HrDecision.id))
-                .where(
-                    HrDecision.candidate_id == decision.candidate_id,
-                    HrDecision.decision == "May Be",
-                    HrDecision.id != decision_id  # Exclude current decision
-                )
+            query = select(func.count(HrDecision.id)).where(
+                HrDecision.candidate_id == decision.candidate_id,
+                HrDecision.decision == "May Be",
+                HrDecision.id != decision_id  # Exclude current decision
             )
+            if actual_job_id:
+                query = query.where(HrDecision.job_id == actual_job_id)
+
+            existing_may_be = await db.execute(query)
             may_be_count = existing_may_be.scalar() or 0
             
             if may_be_count >= 1:
                 raise ValueError(
-                    "Only one 'May Be' decision is allowed per candidate. "
-                    "Candidate already has a 'May Be' decision."
+                    "Only one 'May Be' decision is allowed per candidate for a specific job."
+                )
+        # Check "approve" decision limit if updating to "approve"
+        if decision_data.decision.lower() == "approve" and decision.decision.lower() != "approve":
+            existing_approve = await db.execute(
+                select(func.count(HrDecision.id))
+                .where(
+                    HrDecision.candidate_id == decision.candidate_id,
+                    func.lower(HrDecision.decision) == "approve",
+                    HrDecision.id != decision_id  # Exclude current decision
+                )
+            )
+            approve_count = existing_approve.scalar() or 0
+            
+            if approve_count >= 1:
+                raise ValueError(
+                    "This candidate has already been approved for a role. "
+                    "Only one approval is allowed per candidate across all jobs."
                 )
         
         # Update decision
         decision.decision = decision_data.decision
         decision.notes = decision_data.notes
+        if getattr(decision_data, "job_id", None):
+            decision.job_id = decision_data.job_id
         
         await db.commit()
         await db.refresh(decision)
@@ -205,15 +253,22 @@ class HRDecisionService:
 
         # Trigger cross-match in background if candidate is rejected (case-insensitive)
         if decision_data.decision.lower() == "reject":
-            # We need the candidate model with resumes loaded
-            candidate_result = await db.execute(
-                select(Candidate)
-                .options(selectinload(Candidate.resumes))
-                .where(Candidate.id == decision.candidate_id)
+            from app.v1.db.models.cross_job_matches import CrossJobMatch
+            existing_match_count = await db.scalar(
+                select(func.count(CrossJobMatch.id)).where(CrossJobMatch.candidate_id == decision.candidate_id)
             )
-            candidate_to_cross_match = candidate_result.scalar_one_or_none()
-            if candidate_to_cross_match:
-                _trigger_cross_match_for_candidate(candidate_to_cross_match)
+            if existing_match_count and existing_match_count > 0:
+                logger.info(f"Skipping cross-match for {decision.candidate_id}: Already cross-matched before.")
+            else:
+                # We need the candidate model with resumes loaded
+                candidate_result = await db.execute(
+                    select(Candidate)
+                    .options(selectinload(Candidate.resumes))
+                    .where(Candidate.id == decision.candidate_id)
+                )
+                candidate_to_cross_match = candidate_result.scalar_one_or_none()
+                if candidate_to_cross_match:
+                    _trigger_cross_match_for_candidate(candidate_to_cross_match)
         
         return HRDecisionResponse.model_validate(decision)
 
@@ -267,19 +322,22 @@ class HRDecisionService:
         db: AsyncSession,
         job_id: uuid.UUID,
     ) -> "HRJobDecisionSummary":
-        """Get decision summary scoped to candidates of a specific job."""
+        """Get decision summary scoped to candidates of a specific job (including cross-matches)."""
         from app.v1.db.models.candidates import Candidate
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
         from app.v1.schemas.hr_decision import HRJobDecisionSummary
 
-        # Total candidates for this job
-        total_result = await db.execute(
-            select(func.count(Candidate.id)).where(Candidate.applied_job_id == job_id)
-        )
-        total_candidates = total_result.scalar() or 0
+        # Total native candidates
+        total_native_result = await db.execute(select(func.count(Candidate.id)).where(Candidate.applied_job_id == job_id))
+        total_native = total_native_result.scalar() or 0
+        
+        # Total cross-matched candidates
+        total_cross_result = await db.execute(select(func.count(CrossJobMatch.id)).where(CrossJobMatch.matched_job_id == job_id))
+        total_cross = total_cross_result.scalar() or 0
 
-        # Latest decision per candidate, filtered to this job's candidates
-        candidate_ids_q = select(Candidate.id).where(Candidate.applied_job_id == job_id)
+        total_candidates = total_native + total_cross
 
+        # Latest decision per candidate, filtered to decisions explicitly made for this job
         subq = (
             select(
                 HrDecision.candidate_id,
@@ -290,7 +348,15 @@ class HRDecisionService:
                     order_by=HrDecision.decided_at.desc(),
                 )
                 .label("rn"),
-            ).where(HrDecision.candidate_id.in_(candidate_ids_q))
+            ).where(
+                or_(
+                    HrDecision.job_id == job_id,
+                    # Fallback for old records that belong to natively applied candidates
+                    and_(HrDecision.job_id.is_(None), HrDecision.candidate_id.in_(
+                        select(Candidate.id).where(Candidate.applied_job_id == job_id)
+                    ))
+                )
+            )
         ).subquery()
 
         latest_decisions = await db.execute(
@@ -317,7 +383,12 @@ class HRDecisionService:
         db: AsyncSession,
         job_id: uuid.UUID,
     ) -> dict[str, int]:
-        """Count resumes for a job grouped by pass_fail status ('passed', 'failed', 'pending')."""
+        """Count resumes for a job grouped by pass_fail status, including dynamic cross-matches."""
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
+        from app.v1.db.models.jobs import Job
+        from sqlalchemy import or_, and_
+        
+        # 1. Native Resumes
         result = await db.execute(
             select(Resume.pass_fail, func.count(Resume.id))
             .join(Candidate, Resume.candidate_id == Candidate.id)
@@ -325,10 +396,25 @@ class HRDecisionService:
             .group_by(Resume.pass_fail)
         )
         counts = {row[0]: row[1] for row in result.all()}
+        
+        # 2. Cross-matched Candidates
+        job = await db.get(Job, job_id)
+        threshold = float(job.passing_threshold) if job and job.passing_threshold else 65.0
+        
+        cross_passed = await db.scalar(
+            select(func.count(CrossJobMatch.id))
+            .where(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.match_score >= threshold)
+        ) or 0
+        
+        cross_failed = await db.scalar(
+            select(func.count(CrossJobMatch.id))
+            .where(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.match_score < threshold)
+        ) or 0
+
         return {
             "job_id": job_id,
-            "passed_count": counts.get("passed", 0),
-            "failed_count": counts.get("failed", 0),
+            "passed_count": counts.get("passed", 0) + cross_passed,
+            "failed_count": counts.get("failed", 0) + cross_failed,
             "pending_count": counts.get("pending", 0),
         }
 
@@ -336,15 +422,41 @@ class HRDecisionService:
         self,
         db: AsyncSession,
     ) -> dict[str, int]:
-        """Global count of resumes grouped by pass_fail status."""
+        """Global count of resumes grouped by pass_fail status, including dynamically calculated cross-matches."""
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
+        from app.v1.db.models.jobs import Job
+        
+        # 1. Native counts
         result = await db.execute(
             select(Resume.pass_fail, func.count(Resume.id))
             .group_by(Resume.pass_fail)
         )
         counts = {row[0]: row[1] for row in result.all()}
+        
+        # 2. Cross-match global counts
+        cross_res = await db.execute(
+            select(
+                CrossJobMatch.id,
+                CrossJobMatch.match_score,
+                Job.passing_threshold
+            )
+            .join(Job, CrossJobMatch.matched_job_id == Job.id)
+            .where(CrossJobMatch.match_score.is_not(None))
+        )
+        
+        cross_passed = 0
+        cross_failed = 0
+        for row in cross_res.all():
+            score = float(row.match_score) if row.match_score is not None else 0.0
+            thresh = float(row.passing_threshold) if row.passing_threshold else 65.0
+            if score >= thresh:
+                cross_passed += 1
+            else:
+                cross_failed += 1
+
         return {
-            "passed": counts.get("passed", 0),
-            "failed": counts.get("failed", 0),
+            "passed": counts.get("passed", 0) + cross_passed,
+            "failed": counts.get("failed", 0) + cross_failed,
             "pending": counts.get("pending", 0),
         }
 
