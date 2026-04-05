@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission, get_current_user
-from app.v1.schemas.upload import ResumeStatusUpdateRequest
 from app.v1.schemas.upload import (
     JobCandidatesResponse,
     ResumeStatusResponse,
@@ -160,4 +159,6 @@ async def reanalyze_candidate(
         background_tasks=background_tasks,
     )
     return {"message": f"Background re-analysis started for candidate {candidate_id}."}
+
+
 

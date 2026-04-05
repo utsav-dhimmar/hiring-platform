@@ -104,6 +104,23 @@ def status_response_from_resume(
     candidate = getattr(resume_record, "candidate")
     file_record = getattr(resume_record, "file")
 
+    # Get version history
+    version_results = None
+    if hasattr(resume_record, "version_results") and resume_record.version_results:
+        version_results = [
+            {
+                "id": str(vr.id),
+                "resume_id": str(vr.resume_id),
+                "job_id": str(vr.job_id),
+                "job_version_number": vr.job_version_number,
+                "resume_score": float(vr.resume_score) if vr.resume_score is not None else None,
+                "pass_fail": vr.pass_fail,
+                "analysis_data": vr.analysis_data,
+                "analyzed_at": vr.analyzed_at.isoformat() if vr.analyzed_at else None,
+            }
+            for vr in resume_record.version_results
+        ]
+
     return ResumeStatusResponse(
         job_id=job_id,
         candidate_id=candidate.id,
@@ -116,6 +133,7 @@ def status_response_from_resume(
         parsed=bool(getattr(resume_record, "parsed", False)),
         processing=parse_processing_info(parse_summary),
         analysis=analysis,
+        version_results=version_results,
     )
 
 
@@ -138,6 +156,23 @@ def upload_response_from_records(
         A populated ResumeUploadResponse.
     """
     processing = parse_processing_info(getattr(resume_record, "parse_summary", None))
+    # Get version history (usually just the newly created one, if any)
+    version_results = None
+    if hasattr(resume_record, "version_results") and resume_record.version_results:
+        version_results = [
+            {
+                "id": str(vr.id),
+                "resume_id": str(vr.resume_id),
+                "job_id": str(vr.job_id),
+                "job_version_number": vr.job_version_number,
+                "resume_score": float(vr.resume_score) if vr.resume_score is not None else None,
+                "pass_fail": vr.pass_fail,
+                "analysis_data": vr.analysis_data,
+                "analyzed_at": vr.analyzed_at.isoformat() if vr.analyzed_at else None,
+            }
+            for vr in resume_record.version_results
+        ]
+
     return ResumeUploadResponse(
         message="Resume uploaded successfully. Processing started.",
         job_id=job_id,
@@ -151,6 +186,7 @@ def upload_response_from_records(
         parsed=bool(getattr(resume_record, "parsed", False)),
         processing=processing,
         analysis=None,
+        version_results=version_results,
     )
 
 

@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.hr_decisions import HrDecision
+from app.v1.db.models.resumes import Resume
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
 from app.v1.schemas.response import PaginatedData
 
@@ -44,7 +45,7 @@ class CandidateAdminService:
             dir_stmt = dir_stmt.where(Candidate.applied_version_number == jd_version)
 
         dir_stmt = dir_stmt.options(
-            selectinload(Candidate.resumes), selectinload(Candidate.hr_decisions)
+            selectinload(Candidate.resumes).selectinload(Resume.version_results), selectinload(Candidate.hr_decisions)
         )
         dir_result = await db.execute(dir_stmt)
         direct_candidates = list(dir_result.scalars().unique().all())
@@ -54,7 +55,7 @@ class CandidateAdminService:
             select(CrossJobMatch)
             .where(CrossJobMatch.matched_job_id == job_id)
             .options(
-                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results),
                 selectinload(CrossJobMatch.candidate).selectinload(
                     Candidate.hr_decisions
                 ),
@@ -165,7 +166,7 @@ class CandidateAdminService:
             dir_stmt = dir_stmt.where(search_filter)
 
         dir_stmt = dir_stmt.options(
-            selectinload(Candidate.resumes), selectinload(Candidate.hr_decisions)
+            selectinload(Candidate.resumes).selectinload(Resume.version_results), selectinload(Candidate.hr_decisions)
         )
         dir_result = await db.execute(dir_stmt)
         direct_candidates = list(dir_result.scalars().unique().all())
@@ -175,7 +176,7 @@ class CandidateAdminService:
             select(CrossJobMatch)
             .where(CrossJobMatch.matched_job_id == job_id)
             .options(
-                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results),
                 selectinload(CrossJobMatch.candidate).selectinload(
                     Candidate.hr_decisions
                 ),
@@ -268,7 +269,7 @@ class CandidateAdminService:
         # Apply paging and ordering to the same statement object
         stmt = (
             stmt.options(
-                selectinload(Candidate.resumes), selectinload(Candidate.hr_decisions)
+                selectinload(Candidate.resumes).selectinload(Resume.version_results), selectinload(Candidate.hr_decisions)
             )
             .order_by(Candidate.created_at.desc())
             .offset(skip)
@@ -403,6 +404,23 @@ class CandidateAdminService:
             max(hr_decisions, key=lambda d: d.decided_at) if hr_decisions else None
         )
 
+        # Get version history
+        version_results = None
+        if latest_resume and hasattr(latest_resume, "version_results") and latest_resume.version_results:
+            version_results = [
+                {
+                    "id": str(vr.id),
+                    "resume_id": str(vr.resume_id),
+                    "job_id": str(vr.job_id),
+                    "job_version_number": vr.job_version_number,
+                    "resume_score": float(vr.resume_score) if vr.resume_score is not None else None,
+                    "pass_fail": vr.pass_fail,
+                    "analysis_data": vr.analysis_data,
+                    "analyzed_at": vr.analyzed_at.isoformat() if vr.analyzed_at else None,
+                }
+                for vr in latest_resume.version_results
+            ]
+
         return CandidateResponse(
             id=candidate.id,
             first_name=candidate.first_name,
@@ -424,6 +442,7 @@ class CandidateAdminService:
             processing_status=processing_status,
             processing_error=processing_error,
             hr_decision=latest_decision.decision if latest_decision else None,
+            version_results=version_results,
         )
 
 

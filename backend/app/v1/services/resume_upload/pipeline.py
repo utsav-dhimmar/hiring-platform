@@ -317,6 +317,19 @@ async def run_resume_processing_pipeline(
             resume_record.pass_fail = "passed" if resume_record.resume_score >= job.passing_threshold else "failed"
             resume_record.text_hash = text_hash
 
+            # --- Save initial versioned result (NEW) ---
+            from app.v1.db.models.resume_version_results import ResumeVersionResult
+            versioned = ResumeVersionResult(
+                resume_id=resume_record.id,
+                job_id=job.id,
+                job_version_number=job.version,
+                resume_score=resume_record.resume_score,
+                pass_fail=resume_record.pass_fail,
+                analysis_data=analysis.model_dump(),
+            )
+            db.add(versioned)
+            # --- End initial versioned result save ---
+
             stage_started_at = time.perf_counter()
             for chunk_data in insights["chunk_embeddings"]:
                 await resume_upload_repository.create_resume_chunk(

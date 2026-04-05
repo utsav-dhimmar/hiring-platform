@@ -14,3 +14,4 @@ from app.v1.db.models.candidates import Candidate  # noqa: F401
 from app.v1.db.models.resumes import Resume  # noqa: F401
 from app.v1.db.models.cross_job_matches import CrossJobMatch  # noqa: F401
 from app.v1.db.models.hr_decisions import HrDecision  # noqa: F401
+from app.v1.db.models.resume_version_results import ResumeVersionResult  # noqa: F401

@@ -56,6 +56,8 @@ class ResumeUploadResponse(BaseModel):
     parsed: bool
     processing: ResumeProcessingInfo
     analysis: ResumeMatchAnalysis | None = None
+    version_results: list[dict] | None = None
+
 
 
 class ResumeStatusResponse(BaseModel):
@@ -72,6 +74,7 @@ class ResumeStatusResponse(BaseModel):
     parsed: bool
     processing: ResumeProcessingInfo
     analysis: ResumeMatchAnalysis | None = None
+    version_results: list[dict] | None = None
 
 
 class JobResumeInfoResponse(BaseModel):
@@ -133,50 +136,11 @@ class CandidateResponse(BaseModel):
     processing_status: str | None = None
     processing_error: str | None = None
     hr_decision: str | None = None
-
-
-class ResumeRead(BaseModel):
-    """Schema for reading resume data."""
-
-    id: uuid.UUID
-    candidate_id: uuid.UUID
-    file_name: str
-    file_path: str
-    file_size: int
-    content_text: str | None = None
-    extracted_info: dict | None = None
-    pass_fail: str | None = None
-    created_at: datetime
-    updated_at: datetime | None = None
+    version_results: list[dict] | None = None
 
 
 # Alias for backward compatibility
 CandidateRead = CandidateResponse
-
-
-class JobCandidatesResponse(BaseModel):
-    """Response containing a list of all candidates for a specific job."""
-
-    job_id: uuid.UUID
-    candidates: list[CandidateResponse]
-
-
-class CandidateRead(BaseModel):
-    """Schema for reading Candidate data."""
-
-    id: uuid.UUID
-    first_name: str | None = None
-    last_name: str | None = None
-    email: str | None = None
-    phone: str | None = None
-    location: str | None = None
-    linkedin_url: str | None = None
-    github_url: str | None = None
-    current_status: str | None = None
-    applied_job_id: uuid.UUID
-    created_at: datetime
-    applied_version_number: int | None = None
-    model_config = ConfigDict(from_attributes=True)
 
 
 class ResumeRead(BaseModel):
@@ -185,11 +149,18 @@ class ResumeRead(BaseModel):
     id: uuid.UUID
     candidate_id: uuid.UUID
     file_id: uuid.UUID
-    uploaded_at: datetime
     parsed: bool
+    uploaded_at: datetime
     parse_summary: dict | None = None
     resume_score: float | None = None
     pass_fail: str | None = None
     pass_threshold: float
     text_hash: str | None = None
     model_config = ConfigDict(from_attributes=True)
+
+
+class JobCandidatesResponse(BaseModel):
+    """Response containing a list of all candidates for a specific job."""
+
+    job_id: uuid.UUID
+    candidates: list[CandidateResponse]

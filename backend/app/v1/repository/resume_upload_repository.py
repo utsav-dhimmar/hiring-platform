@@ -373,6 +373,7 @@ class ResumeUploadRepository:
             .options(
                 selectinload(Resume.candidate),
                 selectinload(Resume.file),
+                selectinload(Resume.version_results),
             )
             .join(Candidate, Candidate.id == Resume.candidate_id)
             .where(
@@ -545,6 +546,7 @@ class ResumeUploadRepository:
                     select(Candidate)
                     .options(
                         selectinload(Candidate.resumes).selectinload(Resume.file),
+                        selectinload(Candidate.resumes).selectinload(Resume.version_results),
                         selectinload(Candidate.hr_decisions),
                     )
                     .where(

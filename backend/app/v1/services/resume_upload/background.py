@@ -14,7 +14,6 @@ from app.v1.repository.resume_upload_repository import resume_upload_repository
 
 from .converters import merge_processing_info
 from .processor import ResumeProcessor
-from app.v1.utils.resume_upload import extract_skill_names
 
 logger = get_logger(__name__)
 
@@ -211,6 +210,19 @@ class BackgroundProcessor:
                         else "failed"
                     )
 
+                    # --- Save versioned result (NEW) ---
+                    from app.v1.db.models.resume_version_results import ResumeVersionResult
+                    versioned = ResumeVersionResult(
+                        resume_id=resume.id,
+                        job_id=job.id,
+                        job_version_number=job.version,
+                        resume_score=match_percentage,
+                        pass_fail=resume.pass_fail,
+                        analysis_data=insights["analysis"],
+                    )
+                    db.add(versioned)
+                    # --- End versioned result save ---
+
                     # Update candidate's applied version (if candidate relation is available)
                     if hasattr(resume, "candidate") and resume.candidate:
                         resume.candidate.applied_version_number = job.version
@@ -346,6 +358,19 @@ class BackgroundProcessor:
             resume.pass_fail = (
                 "passed" if resume.resume_score >= job.passing_threshold else "failed"
             )
+
+            # --- Save versioned result (NEW) ---
+            from app.v1.db.models.resume_version_results import ResumeVersionResult
+            versioned = ResumeVersionResult(
+                resume_id=resume.id,
+                job_id=job_id,
+                job_version_number=job.version,
+                resume_score=resume.resume_score,
+                pass_fail=resume.pass_fail,
+                analysis_data=insights["analysis"],
+            )
+            db.add(versioned)
+            # --- End versioned result save ---
 
             candidate = await db.get(Candidate, candidate_id)
             if candidate:

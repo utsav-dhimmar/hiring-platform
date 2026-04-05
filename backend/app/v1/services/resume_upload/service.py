@@ -416,6 +416,23 @@ class ResumeUploadService:
                             elif "github.com" in ul and not github_url:
                                 github_url = u_str
 
+            # 4b. Get version history
+            version_results = None
+            if latest_resume and hasattr(latest_resume, "version_results") and latest_resume.version_results:
+                version_results = [
+                    {
+                        "id": str(vr.id),
+                        "resume_id": str(vr.resume_id),
+                        "job_id": str(vr.job_id),
+                        "job_version_number": vr.job_version_number,
+                        "resume_score": float(vr.resume_score) if vr.resume_score is not None else None,
+                        "pass_fail": vr.pass_fail,
+                        "analysis_data": vr.analysis_data,
+                        "analyzed_at": vr.analyzed_at.isoformat() if vr.analyzed_at else None,
+                    }
+                    for vr in latest_resume.version_results
+                ]
+
             # 5. Append response
             candidate_responses.append(
                 CandidateResponse(
@@ -439,6 +456,7 @@ class ResumeUploadService:
                     processing_status=processing_status,
                     processing_error=processing_error,
                     hr_decision=hr_decision,
+                    version_results=version_results,
                 )
             )
 
