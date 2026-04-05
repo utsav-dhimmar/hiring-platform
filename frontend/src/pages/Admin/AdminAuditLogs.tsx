@@ -9,6 +9,7 @@ import { AppPageShell, DataTable, DateDisplay, PageHeader, ErrorDisplay } from "
 import { useAdminData } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
 
 const AdminAuditLogs = () => {
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
@@ -43,14 +44,14 @@ const AdminAuditLogs = () => {
       cell: ({ row }) => <span className="font-bold text-primary">{row.original.action}</span>,
     },
     {
-      accessorKey: "user_id",
-      header: "User ID",
+      accessorKey: "user_name",
+      header: "User Name",
       cell: ({ row }) => (
         <span
           className="font-mono text-[10px] text-muted-foreground break-all max-w-[120px] block"
-          title={row.original.user_id}
+          title={row.original.user_name}
         >
-          {row.original.user_id}
+          {row.original.user_name}
         </span>
       ),
     },
@@ -100,7 +101,6 @@ const AdminAuditLogs = () => {
   );
 };
 
-// Internal Button component for column headers to avoid circular dependency or missing import
-import { Button } from "@/components/ui/button";
+
 
 export default AdminAuditLogs;

@@ -1,5 +1,4 @@
 import { Button } from "@/components/";
-import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
 import { AppPageHeader } from "@/components/shared";
 import { useNavigate } from "react-router-dom";
 
@@ -13,7 +12,6 @@ export const JobBoardHeader = () => {
   return (
     <AppPageHeader
       title="Job Board"
-      breadcrumbs={<DashboardBreadcrumbs />}
       actions={
         <Button
           className="rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm"

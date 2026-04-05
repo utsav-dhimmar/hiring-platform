@@ -21,6 +21,21 @@ const AdminSkills = () => {
     pageIndex: 0,
     pageSize: 10,
   });
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch]);
 
   const {
     data: skills,
@@ -28,12 +43,12 @@ const AdminSkills = () => {
     loading,
     error,
     fetchData: fetchSkills,
-  } = useAdminData<SkillRead>(() => adminSkillService.getAllSkills(pageIndex * pageSize, pageSize));
+  } = useAdminData<SkillRead>(() => adminSkillService.getAllSkills(pageIndex * pageSize, pageSize, debouncedSearch));
 
-  // Refetch when pagination changes
+  // Refetch when pagination or search changes
   useEffect(() => {
     fetchSkills();
-  }, [pageIndex, pageSize, fetchSkills]);
+  }, [pageIndex, pageSize, debouncedSearch, fetchSkills]);
 
   const {
     showModal: showDeleteModal,
@@ -131,6 +146,8 @@ const AdminSkills = () => {
           loading={loading}
           searchKey="name"
           searchPlaceholder="Filter skills by name..."
+          searchValue={search}
+          onSearchChange={setSearch}
           initialSorting={[{ id: "name", desc: false }]}
           isServerSide={true}
           pageIndex={pageIndex}

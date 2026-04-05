@@ -141,8 +141,10 @@ class RecentUploadRead(BaseModel):
     file_type: str | None = None
     size: int | None = None
     candidate_id: uuid.UUID | None = None
+    candidate_name: str | None = None
     job_id: uuid.UUID | None = None
     uploaded_by: uuid.UUID = Field(validation_alias="owner_id")
+    uploader_name: str | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

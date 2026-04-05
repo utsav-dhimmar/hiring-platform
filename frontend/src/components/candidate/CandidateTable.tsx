@@ -25,6 +25,7 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   onPaginationChange?: OnChangeFn<PaginationState>;
   pageCount?: number;
   passing_threshold?: number;
+  emptyMessage?: string;
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -37,6 +38,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   onPaginationChange,
   pageCount,
   passing_threshold,
+  emptyMessage = "0 applicants found",
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -91,6 +93,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
         pageSize={pagination?.pageSize}
         pageCount={pageCount}
         onPaginationChange={onPaginationChange}
+        emptyMessage={emptyMessage}
       />
     </div>
   );

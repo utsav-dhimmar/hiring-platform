@@ -25,7 +25,6 @@ import type { DepartmentRead, SkillRead } from "@/types/admin";
 import { slugify } from "@/utils/slug";
 import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
 import { AppPageShell, PageHeader } from "@/components/shared";
-import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
 
 
 export default function CreateJob() {
@@ -152,7 +151,6 @@ export default function CreateJob() {
     >
       <PageHeader
         title={isEditMode ? "Edit Job" : "Create Job"}
-        breadcrumbs={<DashboardBreadcrumbs />}
         actions={
           <Button
             variant="ghost"

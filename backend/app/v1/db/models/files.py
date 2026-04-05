@@ -95,3 +95,14 @@ class File(Base):
     candidate: Mapped["Candidate"] = relationship(
         "Candidate", back_populates="files", foreign_keys=[candidate_id]
     )
+
+    @property
+    def uploader_name(self) -> str | None:
+        return self.owner.full_name if self.owner else None
+
+    @property
+    def candidate_name(self) -> str | None:
+        if not self.candidate:
+            return None
+        names = [n for n in [self.candidate.first_name, self.candidate.last_name] if n]
+        return " ".join(names) if names else "Unknown Candidate"

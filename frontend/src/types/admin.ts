@@ -111,6 +111,7 @@ export interface UserWithRole extends UserAdminRead {
 export interface AuditLogRead {
   id: string;
   user_id: string;
+  user_name: string;
   action: string;
   target_type?: string;
   target_id?: string;
@@ -134,8 +135,10 @@ export interface RecentUploadRead {
   file_type?: string;
   size?: number;
   candidate_id?: string;
+  candidate_name?: string;
   job_id?: string;
   uploaded_by: string;
+  uploader_name?: string;
   created_at?: string;
 }
 

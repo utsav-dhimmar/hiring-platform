@@ -154,7 +154,7 @@ export const CandidateTableFilters = ({
 
       {/* Result count */}
       <span className="ml-auto text-xs text-muted-foreground font-medium">
-        {resultCount} / {totalCount} candidates
+        {resultCount} / {totalCount} applicants found
       </span>
     </div>
   );

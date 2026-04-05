@@ -30,7 +30,7 @@ export default function AppPageShell({
   className,
   contentClassName,
   width = "default",
-  gap = "default",
+  gap = "tight",
 }: AppPageShellProps) {
   return (
     <section

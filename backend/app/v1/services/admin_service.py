@@ -149,28 +149,15 @@ class AdminService:
     async def delete_skill(self, *args, **kwargs) -> None:
         return await skill_service.delete_skill(*args, **kwargs)
 
-    # Candidate Management
-    async def get_candidates_for_job(
-        self, *args, **kwargs
-    ) -> list[CandidateResponse]:
-        return await candidate_admin_service.get_candidates_for_job(
-            *args, **kwargs
-        )
-
     async def search_candidates_for_job(
         self, *args, **kwargs
     ) -> list[CandidateResponse]:
-        return await candidate_admin_service.search_candidates_for_job(
-            *args, **kwargs
-        )
+        return await candidate_admin_service.search_candidates_for_job(*args, **kwargs)
 
-    async def search_candidates(
-        self, *args, **kwargs
-    ) -> list[CandidateResponse]:
+    async def search_candidates(self, *args, **kwargs) -> list[CandidateResponse]:
         return await candidate_admin_service.search_candidates(*args, **kwargs)
 
     # Candidate evaluations removed as part of resume-screening focus.
-
 
 
 admin_service = AdminService()

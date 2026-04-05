@@ -111,9 +111,7 @@ class ResumeProcessor:
 
         if job_embedding is None:
             stage_started_at = time.perf_counter()
-            job_embedding = (
-                embedding_service.encode_jd(job_text) if job_text else None
-            )
+            job_embedding = embedding_service.encode_jd(job_text) if job_text else None
             log_stage(
                 stage="job_embedding_generated",
                 started_at=stage_started_at,
@@ -130,9 +128,7 @@ class ResumeProcessor:
                 target_dim=embedding_service.target_dim,
             )
             stage_started_at = time.perf_counter()
-            job_embedding = (
-                embedding_service.encode_jd(job_text) if job_text else None
-            )
+            job_embedding = embedding_service.encode_jd(job_text) if job_text else None
             log_stage(
                 stage="job_embedding_refreshed_dim_mismatch",
                 started_at=stage_started_at,
@@ -144,9 +140,7 @@ class ResumeProcessor:
 
         stage_started_at = time.perf_counter()
         candidate_embedding = (
-            embedding_service.encode_resume(candidate_text)
-            if candidate_text
-            else None
+            embedding_service.encode_resume(candidate_text) if candidate_text else None
         )
         log_stage(
             stage="candidate_embedding",
@@ -158,11 +152,13 @@ class ResumeProcessor:
         raw_chunks = split_into_chunks(raw_text) or [candidate_text]
         chunk_embeddings = []
         for chunk_txt in raw_chunks:
-            chunk_embeddings.append({
-                "text": chunk_txt,
-                "embedding": embedding_service.encode_resume(chunk_txt)
-            })
-            
+            chunk_embeddings.append(
+                {
+                    "text": chunk_txt,
+                    "embedding": embedding_service.encode_resume(chunk_txt),
+                }
+            )
+
         log_stage(
             stage="multi_chunk_embedding",
             started_at=stage_started_at,
@@ -181,7 +177,7 @@ class ResumeProcessor:
             if skill_text:
                 skills_to_encode.append(skill_text)
                 skill_ids.append(skill.id)
-                
+
         if skills_to_encode:
             encoded_vectors = embedding_service.encode_skills_batch(skills_to_encode)
             for sid, vec in zip(skill_ids, encoded_vectors):
@@ -213,7 +209,6 @@ class ResumeProcessor:
             job_skills=[skill.name for skill in job_skills],
             candidate_skills=candidate_skills,
             semantic_score=semantic_score,
-            candidate_info=parsed_summary,
         )
         log_stage(
             stage="llm_resume_analysis",
@@ -253,7 +248,7 @@ class ResumeProcessor:
             if skill_text:
                 skills_to_encode.append(skill_text)
                 skill_ids.append(skill.id)
-                
+
         if skills_to_encode:
             encoded_vectors = embedding_service.encode_skills_batch(skills_to_encode)
             for sid, vec in zip(skill_ids, encoded_vectors):

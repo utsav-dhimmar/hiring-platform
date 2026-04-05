@@ -19,6 +19,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [reanalyzingCandidateIds, setReanalyzingCandidateIds] = useState<string[]>([]);
+  const [jdVersion, setJdVersion] = useState<number | undefined>(undefined);
   const currentJobId = useRef<string | null>(null);
 
   const fetchData = useCallback(
@@ -43,12 +44,12 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
         currentJobId.current = id;
 
         if (isPolling) {
-          const candidatesData = await jobService.getJobCandidates(id);
+          const candidatesData = await jobService.getJobCandidates(id, jdVersion);
           setCandidates(candidatesData.data || []);
         } else {
           const [jobData, candidatesData] = await Promise.all([
             jobService.getJob(id),
-            jobService.getJobCandidates(id),
+            jobService.getJobCandidates(id, jdVersion),
           ]);
           setJob(jobData);
           setCandidates(candidatesData.data || []);
@@ -63,7 +64,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
         if (!isPolling) setLoading(false);
       }
     },
-    [jobSlug, location.state, navigate],
+    [jobSlug, location.state, navigate, jdVersion],
   );
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,6 +181,8 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
     handleReanalyzeAll,
     handleToggleStatus,
     needsReanalysis,
+    jdVersion,
+    setJdVersion,
     stats: {
       totalCandidates: decisionSummary?.total_candidates ?? candidates.length,
       approveCount: decisionSummary?.approved_count ?? 0,

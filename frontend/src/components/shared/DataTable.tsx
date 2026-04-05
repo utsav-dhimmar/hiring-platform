@@ -43,6 +43,9 @@ interface DataTableProps<TData, TValue> {
   onPaginationChange?: OnChangeFn<PaginationState>;
   isServerSide?: boolean;
   headerActions?: React.ReactNode;
+  onSearchChange?: (value: string) => void;
+  searchValue?: string;
+  emptyMessage?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -58,6 +61,9 @@ export function DataTable<TData, TValue>({
   onPaginationChange,
   isServerSide = false,
   headerActions,
+  onSearchChange,
+  searchValue,
+  emptyMessage = "No results.",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -126,8 +132,14 @@ export function DataTable<TData, TValue>({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
-              value={globalFilter ?? ""}
-              onChange={(event) => table.setGlobalFilter(event.target.value)}
+              value={searchValue ?? globalFilter ?? ""}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (onSearchChange) {
+                  onSearchChange(value);
+                }
+                table.setGlobalFilter(value);
+              }}
               className="h-10 rounded-xl border-border/70 bg-background/90 pl-9 transition-all focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -177,7 +189,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                  {emptyMessage}
                 </TableCell>
               </TableRow>
             )}

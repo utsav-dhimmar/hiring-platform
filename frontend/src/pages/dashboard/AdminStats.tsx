@@ -1,7 +1,6 @@
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
 import { useAdminData } from "@/hooks/useAdminData";
-import { DashboardBreadcrumbs } from "@/components/layout/dashboard-breadcrumbs";
 import { AppPageHeader, AppPageShell, StatCard, DataTable } from "@/components/shared";
 import {
   ArrowUpDown,
@@ -71,7 +70,6 @@ export default function AdminStats() {
     <AppPageShell width="wide">
       <AppPageHeader
         title="Platform Statistics"
-        breadcrumbs={<DashboardBreadcrumbs />}
       />
 
       {loading && dashboardData.length === 0 ? (

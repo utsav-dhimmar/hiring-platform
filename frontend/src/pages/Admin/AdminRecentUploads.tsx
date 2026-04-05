@@ -10,6 +10,7 @@ import { AppPageShell, DataTable, DateDisplay, PageHeader, ErrorDisplay } from "
 import { useAdminData } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
 
 const AdminRecentUploads = () => {
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
@@ -70,26 +71,26 @@ const AdminRecentUploads = () => {
         row.original.size ? `${(row.original.size / 1024).toFixed(1)} KB` : "N/A",
     },
     {
-      accessorKey: "uploaded_by",
+      accessorKey: "uploader_name",
       header: "Uploaded By",
       cell: ({ row }) => (
         <span
-          className="font-mono text-[10px] text-muted-foreground break-all max-w-[120px] block"
-          title={row.original.uploaded_by}
+          className="font-medium text-foreground"
+          title={row.original.uploader_name || "N/A"}
         >
-          {row.original.uploaded_by}
+          {row.original.uploader_name || "N/A"}
         </span>
       ),
     },
     {
-      accessorKey: "candidate_id",
-      header: "Candidate ID",
+      accessorKey: "candidate_name",
+      header: "Candidate",
       cell: ({ row }) => (
         <span
-          className="font-mono text-[10px] text-muted-foreground break-all max-w-[120px] block"
-          title={row.original.candidate_id || "N/A"}
+          className="font-medium text-foreground"
+          title={row.original.candidate_name || "N/A"}
         >
-          {row.original.candidate_id || "N/A"}
+          {row.original.candidate_name || "N/A"}
         </span>
       ),
     },
@@ -118,7 +119,5 @@ const AdminRecentUploads = () => {
   );
 };
 
-// Internal Button component for column headers to avoid circular dependency or missing import
-import { Button } from "@/components/ui/button";
 
 export default AdminRecentUploads;

@@ -336,8 +336,13 @@ class AdminRepository:
         @returns List of File objects ordered by creation date descending
         """
         result = await db.execute(
-            select(File).offset(skip).limit(limit).order_by(desc(File.created_at))
+            select(File)
+            .offset(skip)
+            .limit(limit)
+            .order_by(desc(File.created_at))
+            .options(selectinload(File.owner), selectinload(File.candidate))
         )
+
         return list(result.scalars().all())
 
     async def get_analytics_summary(self, db: AsyncSession) -> dict:
@@ -361,6 +366,34 @@ class AdminRepository:
         active_jobs = await db.scalar(select(func.count(Job.id)).where(Job.is_active))
         active_users = await db.scalar(
             select(func.count(User.id)).where(User.is_active)
+        )
+
+        # AI Screening Stats from Resumes
+        total_passed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail.ilike("passed"))
+            )
+            or 0
+        )
+        total_failed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail.ilike("failed"))
+            )
+            or 0
+        )
+        total_pending = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(
+                    Resume.parsed.is_(True), Resume.pass_fail.is_(None)
+                )
+            )
+            or 0
+        )
+        total_unprocessed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.parsed.is_(False))
+            )
+            or 0
         )
 
         # Subquery to pick only the most recent decision for each candidate
@@ -450,6 +483,34 @@ class AdminRepository:
 
         avg_score = await db.scalar(
             select(func.avg(Resume.resume_score)).where(Resume.resume_score.isnot(None))
+        )
+
+        # AI Screening Stats from Resumes
+        total_passed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail.ilike("passed"))
+            )
+            or 0
+        )
+        total_failed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.pass_fail.ilike("failed"))
+            )
+            or 0
+        )
+        total_pending = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(
+                    Resume.parsed.is_(True), Resume.pass_fail.is_(None)
+                )
+            )
+            or 0
+        )
+        total_unprocessed = (
+            await db.scalar(
+                select(func.count(Resume.id)).where(Resume.parsed.is_(False))
+            )
+            or 0
         )
 
         # HR Decisions and Pending stats (using the consolidated HrDecision table)

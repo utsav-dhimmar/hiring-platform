@@ -1,15 +1,11 @@
 import uuid
-from typing import Any
 
-from sqlalchemy import func, or_, select, exists
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidates import Candidate
-
-# from app.v1.db.models.job_stage_configs import JobStageConfig
-# from app.v1.db.models.hr_decisions import HrDecision
-from app.v1.schemas.job_stage import StageEvaluationRead
+from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
 from app.v1.schemas.response import PaginatedData
 
@@ -62,6 +58,7 @@ class CandidateAdminService:
                 selectinload(CrossJobMatch.candidate).selectinload(
                     Candidate.hr_decisions
                 ),
+                selectinload(CrossJobMatch.matched_job),
             )
         )
         xm_result = await db.execute(xm_stmt)
@@ -182,6 +179,7 @@ class CandidateAdminService:
                 selectinload(CrossJobMatch.candidate).selectinload(
                     Candidate.hr_decisions
                 ),
+                selectinload(CrossJobMatch.matched_job),
             )
         )
         if search_filter is not None:
@@ -350,7 +348,7 @@ class CandidateAdminService:
                         import re
 
                         link_list = [
-                            l.strip() for l in re.split(r"[;,]", links) if l.strip()
+                            link.strip() for link in re.split(r"[;,]", links) if link.strip()
                         ]
                     elif isinstance(links, list):
                         link_list = links

@@ -85,10 +85,16 @@ const jobService = {
   /**
    * Retrieves candidates for a single job.
    * @param jobId - The UUID of the job
+   * @param jdVersion - Optional JD version number to filter candidates
    * @returns Promise resolving to the list of candidates
    */
-  getJobCandidates: async (jobId: string): Promise<CandidateAnalysisResponse> => {
-    const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`);
+  getJobCandidates: async (
+    jobId: string,
+    jdVersion?: number,
+  ): Promise<CandidateAnalysisResponse> => {
+    const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {
+      params: jdVersion !== undefined ? { jd_version: jdVersion } : {},
+    });
     return response.data;
   },
 

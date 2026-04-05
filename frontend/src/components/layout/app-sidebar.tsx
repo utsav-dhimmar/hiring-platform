@@ -12,13 +12,18 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import { Logo } from "@/components/logo"
+import { cn } from "@/lib/utils"
 import {
   BriefcaseIcon,
   ShieldAlertIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react"
 import { useTheme } from "@/components/shared/theme-provider"
 
@@ -94,14 +99,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
   ]
 
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+          <SidebarMenuItem
+            className={cn(
+              "flex gap-1 px-1.5 py-1 transition-all duration-200",
+              isCollapsed
+                ? "flex-col items-center justify-center gap-4 py-4"
+                : "flex-row items-center justify-between"
+            )}
+          >
+            <SidebarMenuButton
+              size="lg"
+              className={cn(
+                "pointer-events-none data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+                isCollapsed ? "h-auto w-auto p-0" : "flex-1"
+              )}
+            >
               <Logo variant={theme === "light" ? "dark" : "light"} />
             </SidebarMenuButton>
+            <SidebarTrigger className="h-8 w-8 shrink-0 rounded-xl hover:bg-sidebar-accent">
+              {isCollapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </SidebarTrigger>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

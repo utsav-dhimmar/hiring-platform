@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button, Input } from "@/components/";
-import { FileText, RotateCw, Info } from "lucide-react";
+import { RotateCw, Info } from "lucide-react";
 import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import CandidateTable from "@/components/candidate/CandidateTable";
@@ -30,6 +30,8 @@ export default function JobCandidates() {
     handleToggleStatus,
     needsReanalysis,
     stats,
+    jdVersion,
+    setJdVersion,
   } = useJobCandidates(jobSlug);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,9 +52,11 @@ export default function JobCandidates() {
         onUploadClick={handleUploadClick}
         onToggleStatus={handleToggleStatus}
         isUploading={isUploading}
+        jdVersion={jdVersion}
+        setJdVersion={setJdVersion}
       />
 
-      {!loading && candidates?.length > 0 && (
+      {!loading && (
         <JobCandidatesStats
           totalCandidates={stats.totalCandidates}
           approveCount={stats.approveCount}
@@ -65,18 +69,10 @@ export default function JobCandidates() {
       <div className="app-surface-card p-3 sm:p-4">
         {loading ? (
           <JobCandidatesSkeleton count={5} />
-        ) : candidates?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center space-y-6 animate-in zoom-in-95 duration-700">
-            <div className="p-8 bg-muted/40 rounded-full ring-4 ring-muted/10">
-              <FileText className="h-16 w-16 text-muted-foreground/30" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-bold text-foreground">No applicants found</h3>
-            </div>
-          </div>
         ) : (
           <div className="animate-in slide-in-from-bottom-5 duration-700">
             <CandidateTable
+              emptyMessage="No candidates found for this job."
               candidates={candidates}
               passing_threshold={job?.passing_threshold}
               headerActions={
