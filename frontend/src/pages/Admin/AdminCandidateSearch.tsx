@@ -91,7 +91,7 @@ const AdminCandidateSearch = () => {
         console.error("Failed to fetch resume IDs for candidates:", err);
       }
     } else {
-      // Global search - now supports optional query to show all candidates by default
+      // Global search - optional query to show all candidates by default
       result = await adminCandidateService.searchCandidates(
         activeSearch.trim() || undefined,
         skip,
@@ -236,13 +236,6 @@ const AdminCandidateSearch = () => {
         onClose={() => setShowDetail(false)}
         candidate={selectedCandidate}
         jobId={jobId}
-      />
-
-      <CandidateAnalysisModal
-        show={showAnalysisDetails}
-        onHide={() => setShowAnalysisDetails(false)}
-        jobId={jobId || (selectedCandidate?.applied_job_id ?? undefined)}
-        resumeId={selectedResumeId}
       />
 
       <DeleteModal

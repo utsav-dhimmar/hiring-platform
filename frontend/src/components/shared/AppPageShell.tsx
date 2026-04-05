@@ -20,9 +20,9 @@ const widthClasses: Record<AppPageShellWidth, string> = {
 };
 
 const gapClasses = {
-  tight: "gap-4 md:gap-5",
-  default: "gap-5 md:gap-6",
-  loose: "gap-6 md:gap-8",
+  tight: "gap-3 md:gap-4",
+  default: "gap-4 md:gap-5",
+  loose: "gap-5 md:gap-6",
 };
 
 export default function AppPageShell({
@@ -35,7 +35,7 @@ export default function AppPageShell({
   return (
     <section
       className={cn(
-        "w-full px-3 pb-5 pt-3 sm:px-2 md:px-3.5 md:pb-3 md:pt-2 lg:px-3 lg:pb-4",
+        "w-full px-2.5 pb-4 pt-2.5 sm:px-2 md:px-3 md:pb-3 md:pt-2 lg:px-2.5 lg:pb-4",
         className,
       )}
     >

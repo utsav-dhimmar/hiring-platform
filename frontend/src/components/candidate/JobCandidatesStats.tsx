@@ -13,47 +13,68 @@ export const JobCandidatesStats = ({
   maybeCount,
   undecidedCount,
 }: JobCandidatesStatsProps) => {
+  const stats = [
+    {
+      label: "Candidates",
+      value: totalCandidates,
+      activeColor: "text-foreground",
+      labelColor: "text-muted-foreground group-hover:text-foreground",
+      hoverBg: "hover:bg-card/50",
+      hoverBorder: "border-muted-foreground/10",
+    },
+    {
+      label: "Approved",
+      value: approveCount,
+      activeColor: "text-green-600",
+      labelColor: "text-green-600/70 group-hover:text-green-600",
+      hoverBg: "hover:bg-green-500/5",
+      hoverBorder: "hover:border-green-500/20",
+    },
+    {
+      label: "Reject",
+      value: rejectCount,
+      activeColor: "text-red-600",
+      labelColor: "text-red-500/50 group-hover:text-red-500/80",
+      hoverBg: "hover:bg-red-500/5",
+      hoverBorder: "hover:border-red-500/20",
+    },
+    {
+      label: "Maybe",
+      value: maybeCount,
+      activeColor: "text-amber-600",
+      labelColor: "text-amber-600/70 group-hover:text-amber-600",
+      hoverBg: "hover:bg-amber-500/5",
+      hoverBorder: "hover:border-amber-500/20",
+    },
+    {
+      label: "Undecided",
+      value: undecidedCount,
+      activeColor: "text-slate-600",
+      labelColor: "text-slate-600/70 group-hover:text-slate-600",
+      hoverBg: "hover:bg-slate-500/5",
+      hoverBorder: "hover:border-slate-500/20",
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-center">
-      {/* Total Candidates */}
-      <div className="group p-6 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-card/50 transition-all duration-300 border-muted-foreground/10">
-        <span className="text-4xl font-black text-foreground">{totalCandidates}</span>
-        <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest group-hover:text-foreground transition-colors">
-          Candidates
-        </span>
-      </div>
-
-      {/* Approve */}
-      <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-green-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-green-500/20">
-        <span className="text-4xl font-black text-green-600">{approveCount}</span>
-        <span className="text-sm font-bold text-green-600/70 uppercase tracking-widest group-hover:text-green-600 transition-colors">
-          Approved
-        </span>
-      </div>
-
-      {/* Reject */}
-      <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-red-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-red-500/20">
-        <span className="text-4xl font-black text-red-600">{rejectCount}</span>
-        <span className="text-sm font-bold text-red-500/50 uppercase tracking-widest group-hover:text-red-500/80 transition-colors">
-          Reject
-        </span>
-      </div>
-
-      {/* Maybe */}
-      <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-amber-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-amber-500/20">
-        <span className="text-4xl font-black text-amber-600">{maybeCount}</span>
-        <span className="text-sm font-bold text-amber-600/70 uppercase tracking-widest group-hover:text-amber-600 transition-colors">
-          Maybe
-        </span>
-      </div>
-
-      {/* Undecided */}
-      <div className="group p-8 rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-2 hover:bg-slate-500/5 transition-all duration-300 border-muted-foreground/10 hover:border-slate-500/20">
-        <span className="text-4xl font-black text-slate-600">{undecidedCount}</span>
-        <span className="text-sm font-bold text-slate-600/70 uppercase tracking-widest group-hover:text-slate-600 transition-colors">
-          Undecided
-        </span>
-      </div>
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+      {stats.map((stat, index) => (
+        <div
+          key={stat.label}
+          className={`group ${index === 0 ? "p-5" : "p-6"
+            } rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-1.5 transition-all duration-300 border-muted-foreground/10 ${stat.hoverBg
+            } ${stat.hoverBorder}`}
+        >
+          <span className={`text-4xl font-black ${stat.activeColor}`}>
+            {stat.value}
+          </span>
+          <span
+            className={`text-sm font-bold uppercase tracking-widest transition-colors ${stat.labelColor}`}
+          >
+            {stat.label}
+          </span>
+        </div>
+      ))}
     </div>
   );
 };

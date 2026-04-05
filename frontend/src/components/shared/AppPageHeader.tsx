@@ -39,9 +39,9 @@ export default function AppPageHeader({
           className
         )}
       >
-        <div className={cn("px-4 py-4 flex flex-col gap-4", contentClassName)}>
+        <div className={cn("px-3.5 py-3 flex flex-col gap-3", contentClassName)}>
           {/* Navbar Layer: Title and Actions */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 flex-col sm:flex-row">
             <div className="flex items-center gap-2 overflow-hidden">
               <div className="flex flex-col min-w-0 overflow-hidden">
                 <h1
@@ -64,14 +64,14 @@ export default function AppPageHeader({
 
           {/* Supplementary Layer: Subtitle and Meta */}
           {(subtitle || meta) && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 items-center justify-center sm:items-start sm:justify-start">
               {subtitle && (
                 <p className="max-w-3xl text-sm text-muted-foreground leading-relaxed">
                   {subtitle}
                 </p>
               )}
               {meta && (
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   {meta}
                 </div>
               )}
@@ -82,7 +82,7 @@ export default function AppPageHeader({
 
       {/* Breadcrumbs Label Row */}
       {breadcrumbs && (
-        <div className="px-2 py-1.5 border-b border-border/40 bg-muted/5 mb-1">
+        <div className="px-1.5 py-1 border-b border-border/40 bg-muted/5 mb-0.5">
           <div className="hidden sm:block overflow-hidden">
             {breadcrumbs}
           </div>

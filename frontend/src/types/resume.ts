@@ -3,6 +3,7 @@
  */
 
 import type { Job } from "@/types/job";
+import type { CandidateVersionResult } from "@/types/admin";
 
 /**
  * Processing status information for a resume.
@@ -156,6 +157,14 @@ export interface CandidateResponse {
    * Falls back to created_at when not provided — render as "N/A" if both are absent.
    */
   applied_at?: string | null;
+  /**
+   * JD version number at which the candidate's resume was last analyzed.
+   */
+  applied_version_number?: number | null;
+  /**
+   * Historical screening results for previous/all JD versions.
+   */
+  version_results?: CandidateVersionResult[] | null;
 }
 
 /**

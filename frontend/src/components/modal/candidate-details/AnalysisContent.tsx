@@ -33,7 +33,7 @@ export function AnalysisContent({
     analysisOverride !== undefined ? analysisOverride : candidate.resume_analysis;
 
   return (
-    <div className="space-y-3 pb-4">
+    <div className="space-y-2 pb-2">
       {/* Summary Sections */}
       <div className="grid grid-cols-1 gap-3">
         <section className="space-y-2">
@@ -59,8 +59,8 @@ export function AnalysisContent({
       {children}
 
       {/* Skills & Extraordinary Points */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
-        <section className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1.5">
+        <section className="space-y-2">
           <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
             <AlertCircle className="h-5 w-5 text-red-500/80" />
             Missing Skills
@@ -103,7 +103,7 @@ export function AnalysisContent({
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-2">
           <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
             Extraordinary Points
           </h3>

@@ -3,13 +3,6 @@ import { AppPageHeader } from "@/components/shared";
 import { Upload } from "lucide-react";
 import type { Job } from "@/types/job";
 import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface JobCandidatesHeaderProps {
   job: Job | null;
@@ -29,8 +22,7 @@ export const JobCandidatesHeader = ({
   onUploadClick,
   isUploading,
   onToggleStatus,
-  jdVersion,
-  setJdVersion,
+
 }: JobCandidatesHeaderProps) => {
   return (
     <AppPageHeader
@@ -70,27 +62,7 @@ export const JobCandidatesHeader = ({
               v{job.version}
             </Badge>
           ) : null}
-          {job?.job_versions && job.job_versions.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Filter by JD:</span>
-              <Select
-                value={jdVersion?.toString() || "all"}
-                onValueChange={(val) => setJdVersion(val === "all" ? undefined : Number(val))}
-              >
-                <SelectTrigger className="h-8 min-w-[120px] rounded-xl">
-                  <SelectValue placeholder="All Versions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Versions</SelectItem>
-                  {job.job_versions.map((v) => (
-                    <SelectItem key={v.id} value={v.version_num.toString()}>
-                      Version {v.version_num}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+
         </>
       }
       actions={

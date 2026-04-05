@@ -153,7 +153,7 @@ export default function AdminStats() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold tracking-tight">Candidates by Job</h2>
@@ -171,7 +171,7 @@ export default function AdminStats() {
             <div className="flex flex-col gap-4">
               <h2 className="text-xl font-semibold tracking-tight">Performance Summary</h2>
               <div className="grid grid-cols-1 gap-4">
-                <div className="border rounded-2xl p-6 bg-linear-to-br from-primary/10 to-transparent border-primary/20 space-y-2">
+                <div className="border rounded-2xl p-5 bg-linear-to-br from-primary/10 to-transparent border-primary/20 space-y-1.5">
                   <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                     Average Resume Score
                   </span>
@@ -188,7 +188,7 @@ export default function AdminStats() {
                   </p>
                 </div>
 
-                <div className="border rounded-2xl p-6 bg-card/50 border-border/50 space-y-4">
+                <div className="border rounded-2xl p-5 bg-card/50 border-border/50 space-y-3">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                     Quick Stats
                   </h3>

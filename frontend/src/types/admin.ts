@@ -366,6 +366,20 @@ export interface CandidateMatchAnalysis {
 }
 
 /**
+ * Historical analysis/screening result for a candidate for a specific JD version.
+ */
+export interface CandidateVersionResult {
+  id: string;
+  resume_id: string;
+  job_id: string;
+  job_version_number: number;
+  resume_score: number | null;
+  pass_fail: string | null;
+  analysis_data: CandidateMatchAnalysis | null;
+  analyzed_at: string | null;
+}
+
+/**
  * Result of a candidate analysis/screening for a single candidate.
  */
 export interface CandidateAnalysis {
@@ -402,6 +416,10 @@ export interface CandidateAnalysis {
    * null/undefined means it has never been successfully analyzed.
    */
   applied_version_number?: number | null;
+  /**
+   * Historical screening results for previous/all JD versions.
+   */
+  version_results?: CandidateVersionResult[] | null;
 }
 
 /**

@@ -230,62 +230,72 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           const { linkedin_url, github_url } = row.original;
           const logoVariant = theme === "dark" ? "dark" : "light";
 
+          const getLinks = (raw: string | null | undefined) => {
+            if (!raw) return [];
+            return raw
+              .split(";")
+              .map((u) => u.trim())
+              .filter((u) => isValidUrl(u));
+          };
+
+          const linkedinLinks = getLinks(linkedin_url);
+          const githubLinks = getLinks(github_url);
+
+          // Merge and deduplicate links from both fields
+          const allLinks = Array.from(new Set([...linkedinLinks, ...githubLinks]));
+
+          const renderLink = (url: string, key: string) => {
+            const isGithub = url.toLowerCase().includes("github.com");
+            const isLinkedin = url.toLowerCase().includes("linkedin.com");
+
+            const type = isLinkedin ? "linkedin" : isGithub ? "github" : "linkedin";
+            const Logo = type === "linkedin" ? LinkedinLogo : GithubLogo;
+            const linkColor =
+              type === "linkedin"
+                ? "text-blue-600 hover:text-blue-800"
+                : "text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white";
+
+            return (
+              <a
+                key={key}
+                href={url.startsWith("http") ? url : `https://${url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`${type.charAt(0).toUpperCase() + type.slice(1)} Profile`}
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                  linkColor,
+                  "transition-colors",
+                )}
+              >
+                <Logo className="h-4 w-4" variant={logoVariant} />
+              </a>
+            );
+          };
+
           return (
             <div className="flex items-center gap-1">
-              {isValidUrl(linkedin_url) ? (
-                <a
-                  href={
-                    linkedin_url.startsWith("http")
-                      ? linkedin_url
-                      : `https://${linkedin_url}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="LinkedIn Profile"
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                    "text-blue-600 hover:text-blue-800 transition-colors",
-                  )}
-                >
-                  <LinkedinLogo className="h-4 w-4" variant={logoVariant} />
-                </a>
+              {allLinks.length > 0 ? (
+                allLinks.map((url, idx) => renderLink(url, `social-${idx}`))
               ) : (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled
-                  className="px-0 opacity-30"
-                >
-                  <LinkedinLogo className="h-4 w-4" variant={logoVariant} />
-                </Button>
-              )}
-
-              {isValidUrl(github_url) ? (
-                <a
-                  href={
-                    github_url.startsWith("http")
-                      ? github_url
-                      : `https://${github_url}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="GitHub Profile"
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "icon-sm" }),
-                    "text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white transition-colors",
-                  )}
-                >
-                  <GithubLogo className="h-4 w-4" variant={logoVariant} />
-                </a>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled
-                  className="px-0 opacity-30"
-                >
-                  <GithubLogo className="h-4 w-4" variant={logoVariant} />
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled
+                    className="px-0 opacity-30"
+                  >
+                    <LinkedinLogo className="h-4 w-4" variant={logoVariant} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled
+                    className="px-0 opacity-30"
+                  >
+                    <GithubLogo className="h-4 w-4" variant={logoVariant} />
+                  </Button>
+                </>
               )}
             </div>
           );
