@@ -610,6 +610,25 @@ class ResumeUploadRepository:
         """
         await db.rollback()
 
+    async def get_resume_full_text(self, db: AsyncSession, resume_id: uuid.UUID) -> str:
+        """Fetch and concatenate all raw text chunks for a specific resume.
+
+        Args:
+            db: The async database session.
+            resume_id: UUID of the resume to retrieve text for.
+
+        Returns:
+            Concatenated raw text from all chunks. Empty string if no chunks found.
+        """
+        chunks = (
+            await db.scalars(
+                select(ResumeChunk.raw_text)
+                .where(ResumeChunk.resume_id == resume_id)
+                .order_by(ResumeChunk.id.asc())
+            )
+        ).all()
+        return "\n\n".join(chunks).strip()
+
     async def refresh_file_and_resume(
         self,
         db: AsyncSession,

@@ -55,6 +55,7 @@ class ResumeJdAnalyzer:
         candidate_info: dict[str, Any],
         job_title: str,
         job_skills: list[str],
+        job_description: str | None = None,
         candidate_skills: list[str],
         semantic_score: float,
     ) -> dict[str, Any]:
@@ -65,6 +66,7 @@ class ResumeJdAnalyzer:
             candidate_info: The extracted candidate information from langextract.
             job_title: The title of the job.
             job_skills: List of skills required for the job.
+            job_description: The full text of the job description.
             candidate_skills: List of skills found in the resume.
             semantic_score: The pre-calculated semantic similarity score.
 
@@ -78,6 +80,7 @@ class ResumeJdAnalyzer:
             semantic_score=semantic_score,
             job_title=job_title,
             job_skills=json.dumps(job_skills, ensure_ascii=True),
+            job_description=job_description or "Not Provided",
             candidate_skills=json.dumps(candidate_skills, ensure_ascii=True),
             candidate_info=json.dumps(candidate_info, ensure_ascii=True),
             raw_text=raw_text,

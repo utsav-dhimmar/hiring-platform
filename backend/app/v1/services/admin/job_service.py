@@ -175,33 +175,25 @@ class JobAdminService:
             },
         )
 
-        # -----------------------------------------------------------------------
-        # AUTO MASS REFRESH ON JD UPDATE - DISABLED (per HR team request)
-        # Reason: HR prefers to manually trigger re-analysis, not automatically
-        #         on every JD update. Uncomment to re-enable in the future.
-        # -----------------------------------------------------------------------
-        # updated_fields = job_update.model_dump(exclude_unset=True)
-        # if (
-        #     ("custom_extraction_fields" in updated_fields or "jd_text" in updated_fields)
-        #     and background_tasks is not None
-        # ):
-        #     from app.v1.core.cache import cache
-        #     from app.v1.services.resume_upload.background import (
-        #         BackgroundProcessor,
-        #     )
-        #     from app.v1.services.resume_upload.processor import ResumeProcessor
-        #
-        #     # Clear cache for job embedding if JD changed
-        #     if "jd_text" in updated_fields:
-        #         await cache.delete(f"job_embedding:{job_id}")
-        #
-        #     bg_processor = BackgroundProcessor(ResumeProcessor())
-        #     # Use Celery for mass refresh to avoid blocking the main server threads with heavy LLM work
-        #     bg_processor.schedule_mass_refresh(
-        #         job_id=job_id,
-        #         full_refresh=("jd_text" in updated_fields)
-        #     )
-        # -----------------------------------------------------------------------
+        updated_fields = job_update.model_dump(exclude_unset=True)
+        if background_tasks is not None:
+            from app.v1.core.cache import cache
+            from app.v1.services.resume_upload.background import BackgroundProcessor
+            from app.v1.services.resume_upload.processor import ResumeProcessor
+
+            # Clear cache for job embedding if JD or Title changed
+            if "jd_text" in updated_fields or "title" in updated_fields:
+                await cache.delete(f"job_embedding:{job_id}")
+
+            # Only trigger mass refresh for major changes if desired, 
+            # but clearing the cache ensures the NEXT manual re-analysis is fresh.
+            if "custom_extraction_fields" in updated_fields or "jd_text" in updated_fields:
+                bg_processor = BackgroundProcessor(ResumeProcessor())
+                # Use Celery for mass refresh to avoid blocking the main server threads with heavy LLM work
+                bg_processor.schedule_mass_refresh(
+                    job_id=job_id,
+                    full_refresh=("jd_text" in updated_fields)
+                )
 
         return JobRead.model_validate(updated_job)
 

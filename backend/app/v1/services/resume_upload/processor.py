@@ -207,6 +207,7 @@ class ResumeProcessor:
             candidate_info=parsed_summary,
             job_title=getattr(job, "title", "Job Description")[:150],
             job_skills=[skill.name for skill in job_skills],
+            job_description=getattr(job, "jd_text", None),
             candidate_skills=candidate_skills,
             semantic_score=semantic_score,
         )

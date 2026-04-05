@@ -37,7 +37,8 @@ RESUME_JD_ANALYSIS_PROMPT = textwrap.dedent("""
 
     Semantic score hint: {semantic_score} (0-1 score where >0.4 is a good fit)
     Job title: {job_title}
-    Job skills: {job_skills}
+    Job description text: {job_description}
+    Job skills required tags: {job_skills}
     Candidate skills: {candidate_skills}
 
     Candidate Profile Information (Extracted JSON summarizing experience, education, etc.):

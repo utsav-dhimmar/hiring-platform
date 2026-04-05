@@ -29,21 +29,23 @@ async def run_resume_processing_pipeline(
     resume_id: uuid.UUID,
     file_path: str,
     processor: ResumeProcessor,
-    mark_failed_cb: Callable[[AsyncSession, uuid.UUID, dict | None, str], Awaitable[None]]
+    mark_failed_cb: Callable[[AsyncSession, uuid.UUID, dict | None, str], Awaitable[None]],
+    reanalyze: bool = False,
 ) -> None:
-    """Full background processing workflow for an uploaded resume.
+    """Full background processing workflow for an uploaded or re-analyzed resume.
 
-    Extracts text, normalizes data, generates embeddings, performs AI analysis,
-    and persists everything to the database.
+    Extracts text (if not re-analyzing), normalizes data, generates embeddings, 
+    performs AI match analysis, and persists results to the database.
 
     Args:
         job_id: The job ID.
         resume_id: The resume ID.
         file_path: Path to the stored resume file.
+        reanalyze: If True, skips extraction and uses stored data.
     """
     total_started_at = time.perf_counter()
     log_event(
-        event="background_started",
+        event="background_started" if not reanalyze else "reanalyze_started",
         job_id=job_id,
         resume_id=resume_id,
         file_path=file_path,
@@ -104,103 +106,125 @@ async def run_resume_processing_pipeline(
             return
 
         try:
-            stage_started_at = time.perf_counter()
-            raw_text, normalized = await run_in_resume_executor(
-                processor.process_resume,
-                file_path,
-            )
-            log_stage(
-                stage="extract_and_normalize",
-                started_at=stage_started_at,
-                job_id=job_id,
-                resume_id=resume_id,
-            )
+            raw_text = ""
+            parsed_summary = {}
+            text_hash = resume_record.text_hash
 
-            # ---- Issue #25: content-level deduplication ------
-            text_hash = hashlib.sha256(raw_text.encode()).hexdigest()
-            stage_started_at = time.perf_counter()
-            twin_resume = await resume_upload_repository.get_resume_by_text_hash_for_job(
-                db,
-                job_id=job_id,
-                text_hash=text_hash,
-                exclude_resume_id=resume_record.id,
-            )
-            if twin_resume is not None:
-                # Same text content found (e.g. pdf vs docx of same file).
-                # Copy the existing analysis instead of re-running LLM.
-                log_event(
-                    event="content_dedup_hit",
-                    job_id=job_id,
-                    resume_id=resume_id,
-                    twin_resume_id=twin_resume.id,
+            if not reanalyze:
+                stage_started_at = time.perf_counter()
+                raw_text, normalized = await run_in_resume_executor(
+                    processor.process_resume,
+                    file_path,
                 )
-                resume_record.parse_summary = twin_resume.parse_summary
-                resume_record.parsed = True
-                resume_record.resume_score = twin_resume.resume_score
-                resume_record.pass_fail = twin_resume.pass_fail
-                resume_record.text_hash = text_hash
-                await resume_upload_repository.commit(db)
                 log_stage(
-                    stage="total_dedup",
-                    started_at=total_started_at,
+                    stage="extract_and_normalize",
+                    started_at=stage_started_at,
                     job_id=job_id,
                     resume_id=resume_id,
                 )
-                return
-            # --------------------------------------------------
 
-            from app.v1.utils.text import extract_heuristic_info
-            
-            # Helper to check if a value is effectively missing
-            def is_missing(val):
-                if not val: return True
-                if isinstance(val, str) and val.strip().lower() in ("not mentioned", "null", "none"): return True
-                return False
+                # ---- Issue #25: content-level deduplication ------
+                text_hash = hashlib.sha256(raw_text.encode()).hexdigest()
+                stage_started_at = time.perf_counter()
+                twin_resume = await resume_upload_repository.get_resume_by_text_hash_for_job(
+                    db,
+                    job_id=job_id,
+                    text_hash=text_hash,
+                    exclude_resume_id=resume_record.id,
+                )
+                if twin_resume is not None:
+                    # Same text content found (e.g. pdf vs docx of same file).
+                    # Copy the existing analysis instead of re-running LLM.
+                    log_event(
+                        event="content_dedup_hit",
+                        job_id=job_id,
+                        resume_id=resume_id,
+                        twin_resume_id=twin_resume.id,
+                    )
+                    resume_record.parse_summary = twin_resume.parse_summary
+                    resume_record.parsed = True
+                    resume_record.resume_score = twin_resume.resume_score
+                    resume_record.pass_fail = twin_resume.pass_fail
+                    resume_record.text_hash = text_hash
+                    await resume_upload_repository.commit(db)
+                    log_stage(
+                        stage="total_dedup",
+                        started_at=total_started_at,
+                        job_id=job_id,
+                        resume_id=resume_id,
+                    )
+                    return
+                # --------------------------------------------------
 
-            h_info = extract_heuristic_info(raw_text)
-            
-            # Name fallback (heuristic for name is harder, but we can at least avoid 'Not mentioned')
-            parsed_name = (
-                str(normalized["name"][0]["text"]).strip()
-                if normalized.get("name") and not is_missing(normalized["name"][0]["text"])
-                else None
-            )
+                from app.v1.utils.text import extract_heuristic_info
+                
+                # Helper to check if a value is effectively missing
+                def is_missing(val):
+                    if not val: return True
+                    if isinstance(val, str) and val.strip().lower() in ("not mentioned", "null", "none"): return True
+                    return False
 
-            # Email fallback
-            parsed_email = (
-                str(normalized["email"][0]["text"]).strip()
-                if normalized.get("email") and not is_missing(normalized["email"][0]["text"])
-                else h_info.get("email")
-            )
+                h_info = extract_heuristic_info(raw_text)
+                
+                # Name fallback
+                parsed_name = (
+                    str(normalized["name"][0]["text"]).strip()
+                    if normalized.get("name") and not is_missing(normalized["name"][0]["text"])
+                    else None
+                )
 
-            # Phone fallback
-            parsed_phone = (
-                str(normalized["phone"][0]["text"]).strip()
-                if normalized.get("phone") and not is_missing(normalized["phone"][0]["text"])
-                else h_info.get("phone")
-            )
+                # Email fallback
+                parsed_email = (
+                    str(normalized["email"][0]["text"]).strip()
+                    if normalized.get("email") and not is_missing(normalized["email"][0]["text"])
+                    else h_info.get("email")
+                )
 
-            # Social Links fallback
-            if not normalized.get("links") or is_missing(normalized["links"][0]["text"]):
-                if h_info.get("links"):
-                    normalized["links"] = [{"text": link, "attributes": {}} for link in h_info["links"]]
-            
-            first_name, last_name = split_name(parsed_name)
-            parsed_summary = {
-                "name": parsed_name,
-                "email": parsed_email,
-                "phone": parsed_phone,
-                "location": normalized.get("location", []),
-                "skills": normalized.get("skills", []),
-                "experience": normalized.get("experience", []),
-                "education": normalized.get("education", []),
-                "certifications": normalized.get("certifications", []),
-                "links": normalized.get("links", []),
-                "extraordinary_highlights": normalized.get("extraordinary_highlights", []),
-                "professional_summary": normalized.get("professional_summary", []),
-                "experience_summary": normalized.get("experience_summary", []),
-            }
-            extracted_skill_names_list = extract_skill_names(normalized)
+                # Phone fallback
+                parsed_phone = (
+                    str(normalized["phone"][0]["text"]).strip()
+                    if normalized.get("phone") and not is_missing(normalized["phone"][0]["text"])
+                    else h_info.get("phone")
+                )
+
+                # Social Links fallback
+                if not normalized.get("links") or is_missing(normalized["links"][0]["text"]):
+                    if h_info.get("links"):
+                        normalized["links"] = [{"text": link, "attributes": {}} for link in h_info["links"]]
+                
+                first_name, last_name = split_name(parsed_name)
+                parsed_summary = {
+                    "name": parsed_name,
+                    "email": parsed_email,
+                    "phone": parsed_phone,
+                    "location": normalized.get("location", []),
+                    "skills": normalized.get("skills", []),
+                    "experience": normalized.get("experience", []),
+                    "education": normalized.get("education", []),
+                    "certifications": normalized.get("certifications", []),
+                    "links": normalized.get("links", []),
+                    "extraordinary_highlights": normalized.get("extraordinary_highlights", []),
+                    "professional_summary": normalized.get("professional_summary", []),
+                    "experience_summary": normalized.get("experience_summary", []),
+                }
+                extracted_skill_names_list = extract_skill_names(normalized)
+            else:
+                # RE-ANALYZE PATH: Load stored text and summary
+                logger.info("Using stored data for re-analysis of resume %s", resume_id)
+                raw_text = await resume_upload_repository.get_resume_full_text(db, resume_id)
+                if not raw_text:
+                    raise ValueError("Stored raw text not found for re-analysis.")
+                
+                # Use existing summary, stripping the old analysis
+                parsed_summary = dict(resume_record.parse_summary or {})
+                parsed_summary.pop("analysis", None)
+                parsed_summary.pop("processing", None)
+                
+                extracted_skill_names_list = parsed_summary.get("skills", [])
+                # If skills are stored as objects, extract names
+                if extracted_skill_names_list and isinstance(extracted_skill_names_list[0], dict):
+                    extracted_skill_names_list = [s.get("text", "") for s in extracted_skill_names_list]
+
             job_skills = await resume_upload_repository.get_job_skills(
                 db,
                 job_id=job_id,
@@ -230,7 +254,6 @@ async def run_resume_processing_pipeline(
                 return
             # --------------------------------------------------------------------------------
 
-            stage_started_at = time.perf_counter()
             stage_started_at = time.perf_counter()
             needs_job_embedding_update = False
             if insights["job_embedding"]:
@@ -271,16 +294,21 @@ async def run_resume_processing_pipeline(
             )
 
             stage_started_at = time.perf_counter()
-            await resume_upload_repository.update_candidate_profile(
-                db,
-                candidate=candidate,
-                first_name=first_name,
-                last_name=last_name,
-                email=parsed_email,
-                phone=parsed_phone,
-                info=parsed_summary,
-                info_embedding=insights["candidate_embedding"],
-            )
+            if not reanalyze:
+                await resume_upload_repository.update_candidate_profile(
+                    db,
+                    candidate=candidate,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=parsed_email,
+                    phone=parsed_phone,
+                    info=parsed_summary,
+                    info_embedding=insights["candidate_embedding"],
+                )
+            else:
+                # For re-analysis, we still update applied version and info embedding
+                candidate.info_embedding = insights["candidate_embedding"]
+            
             resume_record.resume_embedding = insights["candidate_embedding"]
             candidate.applied_version_number = job.version
             log_stage(
@@ -317,7 +345,7 @@ async def run_resume_processing_pipeline(
             resume_record.pass_fail = "passed" if resume_record.resume_score >= job.passing_threshold else "failed"
             resume_record.text_hash = text_hash
 
-            # --- Save initial versioned result (NEW) ---
+            # --- Save versioned result ---
             from app.v1.db.models.resume_version_results import ResumeVersionResult
             versioned = ResumeVersionResult(
                 resume_id=resume_record.id,
@@ -328,64 +356,75 @@ async def run_resume_processing_pipeline(
                 analysis_data=analysis.model_dump(),
             )
             db.add(versioned)
-            # --- End initial versioned result save ---
+            # -----------------------------
 
-            stage_started_at = time.perf_counter()
-            for chunk_data in insights["chunk_embeddings"]:
-                await resume_upload_repository.create_resume_chunk(
-                    db,
+            if not reanalyze:
+                stage_started_at = time.perf_counter()
+                for chunk_data in insights["chunk_embeddings"]:
+                    await resume_upload_repository.create_resume_chunk(
+                        db,
+                        resume_id=resume_id,
+                        parsed_json=parse_summary_with_analysis,
+                        raw_text=chunk_data["text"],
+                        chunk_embedding=chunk_data["embedding"],
+                    )
+                log_stage(
+                    stage="create_resume_chunks",
+                    started_at=stage_started_at,
+                    job_id=job_id,
                     resume_id=resume_id,
-                    parsed_json=parse_summary_with_analysis,
-                    raw_text=chunk_data["text"],
-                    chunk_embedding=chunk_data["embedding"],
+                    count=len(insights["chunk_embeddings"]),
                 )
-            log_stage(
-                stage="create_resume_chunks",
-                started_at=stage_started_at,
-                job_id=job_id,
-                resume_id=resume_id,
-                count=len(insights["chunk_embeddings"]),
-            )
+            else:
+                # Update existing chunks with new analysis (best effort)
+                from app.v1.db.models.resume_chunks import ResumeChunk
+                from sqlalchemy import update
+                await db.execute(
+                    update(ResumeChunk)
+                    .where(ResumeChunk.resume_id == resume_id)
+                    .values(parsed_json=parse_summary_with_analysis)
+                )
 
-            stage_started_at = time.perf_counter()
-            candidate_skill_records = (
-                await resume_upload_repository.sync_candidate_skills(
+            if not reanalyze:
+                stage_started_at = time.perf_counter()
+                candidate_skill_records = (
+                    await resume_upload_repository.sync_candidate_skills(
+                        db,
+                        candidate_id=candidate.id,
+                        skill_names=extracted_skill_names_list,
+                    )
+                )
+                log_stage(
+                    stage="sync_candidate_skills",
+                    started_at=stage_started_at,
+                    job_id=job_id,
+                    resume_id=resume_id,
+                    count=len(candidate_skill_records),
+                )
+
+                stage_started_at = time.perf_counter()
+                candidate_skill_embeddings = await run_in_resume_executor(
+                    processor.generate_skill_embeddings,
+                    candidate_skill_records,
+                )
+                log_stage(
+                    stage="candidate_skill_embeddings",
+                    started_at=stage_started_at,
+                    job_id=job_id,
+                    resume_id=resume_id,
+                )
+                stage_started_at = time.perf_counter()
+                await resume_upload_repository.update_skill_embeddings(
                     db,
-                    candidate_id=candidate.id,
-                    skill_names=extracted_skill_names_list,
+                    embeddings_by_skill_id=candidate_skill_embeddings,
                 )
-            )
-            log_stage(
-                stage="sync_candidate_skills",
-                started_at=stage_started_at,
-                job_id=job_id,
-                resume_id=resume_id,
-                count=len(candidate_skill_records),
-            )
-
-            stage_started_at = time.perf_counter()
-            candidate_skill_embeddings = await run_in_resume_executor(
-                processor.generate_skill_embeddings,
-                candidate_skill_records,
-            )
-            log_stage(
-                stage="candidate_skill_embeddings",
-                started_at=stage_started_at,
-                job_id=job_id,
-                resume_id=resume_id,
-            )
-            stage_started_at = time.perf_counter()
-            await resume_upload_repository.update_skill_embeddings(
-                db,
-                embeddings_by_skill_id=candidate_skill_embeddings,
-            )
-            log_stage(
-                stage="persist_candidate_skill_embeddings",
-                started_at=stage_started_at,
-                job_id=job_id,
-                resume_id=resume_id,
-                count=len(candidate_skill_embeddings),
-            )
+                log_stage(
+                    stage="persist_candidate_skill_embeddings",
+                    started_at=stage_started_at,
+                    job_id=job_id,
+                    resume_id=resume_id,
+                    count=len(candidate_skill_embeddings),
+                )
 
             stage_started_at = time.perf_counter()
             await resume_upload_repository.commit(db)
@@ -402,9 +441,6 @@ async def run_resume_processing_pipeline(
                 resume_id=resume_id,
             )
 
-            # Automatic cross-match trigger has been removed.
-            # It now triggers ONLY when HR marks a resume as 'fail' in ResumeUploadService.update_resume_status.
-            pass
         except Exception as exc:
             parse_summary_snapshot = getattr(
                 resume_record, "parse_summary", None
