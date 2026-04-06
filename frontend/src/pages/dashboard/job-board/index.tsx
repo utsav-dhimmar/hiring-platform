@@ -13,6 +13,8 @@ import { JobBoardHeader } from "@/components/job-board/JobBoardHeader";
 import { NoJobsFound } from "@/components/job-board/NoJobsFound";
 import { JobDeleteDialog } from "@/components/job-board/JobDeleteDialog";
 import { getJobColumns } from "@/components/job-board/JobColumns";
+import { JobTableFilters } from "@/components/job-board/JobTableFilters";
+import { useJobTableFilters } from "@/hooks/useJobTableFilters";
 
 /**
  * JobBoard page component for the dashboard.
@@ -33,6 +35,21 @@ export default function JobBoard() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
 
+  const {
+    titleFilter,
+    setTitleFilter,
+    statusFilter,
+    setStatusFilter,
+    departmentFilter,
+    setDepartmentFilter,
+    dateRange,
+    setDateRange,
+    departmentOptions,
+    filteredJobs,
+    hasActiveFilters,
+    clearFilters,
+    minDate
+  } = useJobTableFilters(jobs);
   /** Fetches all jobs from the API and replaces the local job list. Shows a toast on failure. */
   const fetchJobs = useCallback(async () => {
     setLoading(true);
@@ -128,12 +145,28 @@ export default function JobBoard() {
         ) : jobs.length === 0 ? (
           <NoJobsFound />
         ) : (
-          <DataTable
-            columns={columns}
-            data={jobs}
-            searchKey="title"
-            searchPlaceholder="Filter jobs by title..."
-          />
+          <div className="space-y-4">
+            <JobTableFilters
+              titleFilter={titleFilter}
+              setTitleFilter={setTitleFilter}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              departmentFilter={departmentFilter}
+              setDepartmentFilter={setDepartmentFilter}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              departmentOptions={departmentOptions}
+              hasActiveFilters={hasActiveFilters}
+              clearFilters={clearFilters}
+              resultCount={filteredJobs.length}
+              totalCount={jobs.length}
+              minDate={minDate}
+            />
+            <DataTable
+              columns={columns}
+              data={filteredJobs}
+            />
+          </div>
         )}
       </div>
 

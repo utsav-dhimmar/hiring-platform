@@ -109,11 +109,7 @@ export function JobDescriptionView({
                                   Applied
                                 </span>
                               )}
-                              {ver.version_num === job.version && (
-                                <span className="rounded-md bg-green-500 text-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider shadow-sm">
-                                  Latest
-                                </span>
-                              )}
+
                             </div>
                           </SelectItem>
                         ))}

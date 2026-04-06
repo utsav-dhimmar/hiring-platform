@@ -15,7 +15,13 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown } from "lucide-react";
 import { TableRowSkeleton } from "./SkeletonVariants";
 
 import {
@@ -28,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -202,19 +209,30 @@ export function DataTable<TData, TValue>({
         <div className="flex w-full flex-wrap items-center justify-center gap-3 sm:w-auto sm:gap-5 lg:gap-6">
           <div className="flex items-center space-x-2">
             <p className="text-sm font-medium">Rows per page</p>
-            <select
-              className="h-9 w-[70px]  rounded-xl border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 cursor-pointer"
-              value={table.getState().pagination.pageSize}
-              onChange={(e) => {
-                table.setPageSize(Number(e.target.value));
-              }}
-            >
-              {[10, 20, 30, 40, 50].map((pageSize) => (
-                <option key={pageSize} value={pageSize}>
-                  {pageSize}
-                </option>
-              ))}
-            </select>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  "inline-flex items-center gap-2 h-9 w-[75px] justify-between px-3 rounded-xl border border-input bg-background text-sm font-medium cursor-pointer transition-colors hover:bg-muted/50"
+                )}
+              >
+                {table.getState().pagination.pageSize}
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="min-w-[75px]">
+                {[10, 20, 30, 40, 50].map((pageSize) => (
+                  <DropdownMenuItem
+                    key={pageSize}
+                    onClick={() => table.setPageSize(pageSize)}
+                    className={cn(
+                      "cursor-pointer justify-center",
+                      table.getState().pagination.pageSize === pageSize && "bg-muted font-bold"
+                    )}
+                  >
+                    {pageSize}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="flex w-[100px] items-center justify-center text-sm font-medium">
             Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}

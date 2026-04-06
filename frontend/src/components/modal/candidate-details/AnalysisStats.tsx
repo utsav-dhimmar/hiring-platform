@@ -15,7 +15,7 @@ interface AnalysisStatsProps {
 
 /**
  * Compact stats bar showing the candidate's match percentage, pass/fail status
- * (pass threshold is a resume score >= 65), and the job version used for analysis.
+ * and the job version used for analysis.
  */
 export function AnalysisStats({
   candidate,
@@ -45,7 +45,7 @@ export function AnalysisStats({
 
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <span className="text-xs font-bold uppercase sm:text-sm whitespace-nowrap">
-          Pass / Fail
+          Result
         </span>
         <Badge
           variant={isPassed ? "default" : "destructive"}

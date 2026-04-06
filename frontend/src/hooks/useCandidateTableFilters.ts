@@ -5,9 +5,9 @@ import type { UnifiedCandidate } from "@/types/candidate";
 
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates: T[]) => {
   const [nameFilter, setNameFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [locationFilter, setLocationFilter] = useState<string>("all");
-  const [hrDecisionFilter, setHrDecisionFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState<string[]>([]);
+  const [hrDecisionFilter, setHrDecisionFilter] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
@@ -43,15 +43,16 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
         return false;
       }
 
-      // Status filter
-      if (statusFilter !== "all") {
+      // Status filter (multi-select)
+      if (statusFilter.length > 0) {
         const candidateStatus = c.processing_status || c.current_status || "";
-        if (candidateStatus !== statusFilter) return false;
+        if (!statusFilter.includes(candidateStatus)) return false;
       }
 
-      // Location filter
-      if (locationFilter !== "all" && (c.location || "") !== locationFilter) {
-        return false;
+      // Location filter (multi-select)
+      if (locationFilter.length > 0) {
+        const candidateLocation = c.location || "";
+        if (!locationFilter.includes(candidateLocation)) return false;
       }
 
       // Date range filter
@@ -62,11 +63,10 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
         if (dateRange.to && d > endOfDay(dateRange.to)) return false;
       }
 
-      // HR Decision filter
-      if (hrDecisionFilter !== "all") {
-        if (hrDecisionFilter === "pending") {
-          if (c.hr_decision) return false;
-        } else if (c.hr_decision?.toLocaleLowerCase() !== hrDecisionFilter.toLocaleLowerCase()) {
+      // HR Decision filter (multi-select)
+      if (hrDecisionFilter.length > 0) {
+        const decision = c.hr_decision?.toLowerCase() || "pending";
+        if (!hrDecisionFilter.includes(decision)) {
           return false;
         }
       }
@@ -77,17 +77,17 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
 
   const hasActiveFilters =
     !!nameFilter ||
-    statusFilter !== "all" ||
-    locationFilter !== "all" ||
-    hrDecisionFilter !== "all" ||
+    statusFilter.length > 0 ||
+    locationFilter.length > 0 ||
+    hrDecisionFilter.length > 0 ||
     !!dateRange?.from ||
     !!dateRange?.to;
 
   const clearFilters = () => {
     setNameFilter("");
-    setStatusFilter("all");
-    setLocationFilter("all");
-    setHrDecisionFilter("all");
+    setStatusFilter([]);
+    setLocationFilter([]);
+    setHrDecisionFilter([]);
     setDateRange({ from: undefined, to: undefined });
   };
 
