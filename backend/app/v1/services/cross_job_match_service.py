@@ -130,9 +130,16 @@ class CrossJobMatchService:
                 job = item["job"]
                 try:
                     _log.info("Generating cross-match analysis for job: %s", job.title)
+                    
+                    # Strip previous analysis/processing info from the summary
+                    # to ensure the AI generates fresh insights for the new job context.
+                    clean_summary = dict(resume.parse_summary or {})
+                    clean_summary.pop("analysis", None)
+                    clean_summary.pop("processing", None)
+
                     insights = await bg_processor.processor.generate_resume_insights(
                         raw_text=raw_text,
-                        parsed_summary=resume.parse_summary or {},
+                        parsed_summary=clean_summary,
                         job=job,
                         job_skills=await _get_job_skills(db, job.id),
                         candidate_skills=_extract_skills(resume.parse_summary),
@@ -150,6 +157,19 @@ class CrossJobMatchService:
                         if match_row:
                             match_row.match_analysis = analysis_data
                             flag_modified(match_row, "match_analysis")
+                            
+                            # Also save as a ResumeVersionResult for consistent history tracking
+                            from app.v1.db.models.resume_version_results import ResumeVersionResult
+                            versioned = ResumeVersionResult(
+                                resume_id=resume_id,
+                                job_id=job.id,
+                                job_version_number=job.version,
+                                resume_score=match_row.match_score,
+                                pass_fail="passed" if float(match_row.match_score) >= (job.passing_threshold or 65.0) else "failed",
+                                analysis_data=analysis_data,
+                            )
+                            db2.add(versioned)
+                            
                             await db2.commit()
                 except Exception as e:
                     _log.warning("Failed analysis for job %s: %s", job.id, e)

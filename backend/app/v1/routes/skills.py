@@ -18,7 +18,7 @@ from app.v1.services.admin_service import admin_service
 router = APIRouter()
 
 
-@router.get("/", response_model=PaginatedData[SkillRead])
+@router.get("", response_model=PaginatedData[SkillRead])
 async def get_all_skills(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("skills:access")),
@@ -30,7 +30,7 @@ async def get_all_skills(
     return await admin_service.get_all_skills(db=db, skip=skip, limit=limit, search=q)
 
 
-@router.post("/", response_model=SkillRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SkillRead, status_code=status.HTTP_201_CREATED)
 async def create_skill(
     *,
     db: AsyncSession = Depends(get_db),

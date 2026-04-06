@@ -77,8 +77,8 @@ class CandidateAdminService:
             # Map candidate normally
             resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id)
 
-            # Evaluate override values
-            analysis_obj = resp.resume_analysis
+            # Retrieve match analysis as object (OVERRIDE)
+            analysis_obj = None
             if xm.match_analysis:
                 try:
                     analysis_obj = ResumeMatchAnalysis.model_validate(xm.match_analysis)
@@ -102,6 +102,9 @@ class CandidateAdminService:
             resp = resp.model_copy(
                 update={
                     "applied_job_id": job_id,
+                    "applied_version_number": (
+                        xm.matched_job.version if xm.matched_job else resp.applied_version_number
+                    ),
                     "current_status": "Applied (Cross-Match)",
                     "resume_score": match_score_val,
                     "pass_fail": derived_pass_fail,
@@ -112,17 +115,8 @@ class CandidateAdminService:
 
             # Apply hr_decision filter in-memory for cross-matches if needed
             if hr_decision:
-                latest_dec = next(
-                    iter(
-                        sorted(
-                            xm.candidate.hr_decisions,
-                            key=lambda d: d.decided_at,
-                            reverse=True,
-                        )
-                    ),
-                    None,
-                )
-                if not latest_dec or latest_dec.decision != hr_decision:
+                # Use the mapped hr_decision
+                if resp.hr_decision != hr_decision:
                     continue
 
             if jd_version is not None and resp.applied_version_number != jd_version:
@@ -201,7 +195,8 @@ class CandidateAdminService:
                 continue
 
             resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id)
-            analysis_obj = resp.resume_analysis
+            
+            analysis_obj = None
             if xm.match_analysis:
                 try:
                     analysis_obj = ResumeMatchAnalysis.model_validate(xm.match_analysis)
@@ -223,6 +218,9 @@ class CandidateAdminService:
             resp = resp.model_copy(
                 update={
                     "applied_job_id": job_id,
+                    "applied_version_number": (
+                        xm.matched_job.version if xm.matched_job else resp.applied_version_number
+                    ),
                     "current_status": "Applied (Cross-Match)",
                     "resume_score": match_score_val,
                     "pass_fail": derived_pass_fail,

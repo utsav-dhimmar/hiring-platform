@@ -34,7 +34,7 @@ from app.v1.services.stage_service import stage_service
 router = APIRouter()
 
 
-@router.get("/", response_model=JobsListRead)
+@router.get("", response_model=JobsListRead)
 async def read_jobs(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("jobs:access")),
@@ -78,7 +78,7 @@ async def search_jobs(
     return await job_service.search_jobs(db=db, query=q, skip=skip, limit=limit)
 
 
-@router.post("/", response_model=JobRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=JobRead, status_code=status.HTTP_201_CREATED)
 async def create_job(
     *,
     db: AsyncSession = Depends(get_db),
