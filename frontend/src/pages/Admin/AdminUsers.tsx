@@ -15,7 +15,10 @@ import {
   ErrorDisplay,
   DataTable,
 } from "@/components/shared";
-import { CreateUserModal, DeleteModal } from "@/components/modal";
+import {
+  // CreateUserModal,
+  DeleteModal
+} from "@/components/modal";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -66,10 +69,10 @@ const AdminUsers = () => {
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedUser(null);
-  };
+  // const handleCloseModal = () => {
+  //   setShowModal(false);
+  //   setSelectedUser(null);
+  // };
 
   const columns: ColumnDef<UserAdminRead>[] = [
     {
@@ -197,12 +200,12 @@ const AdminUsers = () => {
         />
       )}
 
-      <CreateUserModal
+      {/* <CreateUserModal
         show={showModal}
         handleClose={handleCloseModal}
         onUserSaved={fetchUsers}
         user={selectedUser}
-      />
+      /> */}
 
       <DeleteModal
         show={showDeleteModal}

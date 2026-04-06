@@ -168,7 +168,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
   }, [candidates, fetchData]);
 
   const decisionSummary = job?.decision_summary;
-  console.log(decisionSummary);
+
   return {
     candidates,
     job,

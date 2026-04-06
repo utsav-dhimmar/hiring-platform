@@ -86,7 +86,7 @@ export const CandidateTableFilters = ({
           ))}
         </select>
       )}
- 
+
       {/* HR Decision dropdown */}
       <select
         value={hrDecisionFilter}
@@ -95,7 +95,7 @@ export const CandidateTableFilters = ({
       >
         <option value="all">All Decisions</option>
         <option value="approve">Approved</option>
-        <option value="maybe">Maybe</option>
+        <option value="may be">May be</option>
         <option value="reject">Rejected</option>
         <option value="pending">Pending</option>
       </select>

@@ -66,7 +66,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
       if (hrDecisionFilter !== "all") {
         if (hrDecisionFilter === "pending") {
           if (c.hr_decision) return false;
-        } else if (c.hr_decision !== hrDecisionFilter) {
+        } else if (c.hr_decision?.toLocaleLowerCase() !== hrDecisionFilter.toLocaleLowerCase()) {
           return false;
         }
       }

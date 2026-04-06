@@ -15,7 +15,7 @@ export interface UnifiedCandidate {
   pass_fail?: string | boolean | null;
   is_parsed?: boolean;
   processing_status?: string | null;
-  hr_decision?: "approve" | "reject" | "maybe" | null;
+  hr_decision?: "approve" | "reject" | "may be" | null;
   created_at: string;
   /** Explicit apply timestamp – falls back to created_at, then "N/A" */
   applied_at?: string | null;

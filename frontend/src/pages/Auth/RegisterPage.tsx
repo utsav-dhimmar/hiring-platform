@@ -28,8 +28,10 @@ import {
   Logo,
 } from "@/components";
 import { INFO } from "@/constants";
+import { useTheme } from "@/components/shared/theme-provider";
 
 const RegisterPage = () => {
+  const { theme } = useTheme()
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +68,7 @@ const RegisterPage = () => {
       <div className="flex min-h-screen flex-col bg-muted/30">
         <header className="absolute left-0 top-0 z-10 flex w-full items-center justify-center px-6 py-5 sm:px-8">
           <Link to="/" className="transition-opacity hover:opacity-80">
-            <Logo variant="dark" className="h-10" />
+            <Logo variant={theme === "dark" ? "light" : "dark"} className="h-10" />
           </Link>
         </header>
 

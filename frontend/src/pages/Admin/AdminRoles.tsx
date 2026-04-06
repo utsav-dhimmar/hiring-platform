@@ -108,7 +108,7 @@ const AdminRoles = () => {
       accessor: (perm) => (
         <>
           <code>{perm.name}</code>
-          <div className="text-muted small">{perm.description}</div>
+          <div className="text-muted-foreground text-sm">{perm.description}</div>
         </>
       ),
     },
