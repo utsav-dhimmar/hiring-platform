@@ -7,7 +7,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
-import { useTheme } from "@/components/shared/theme-provider";
 
 function scoreColor(score: number, threshold: number = 65) {
   if (score >= 80) return "bg-green-500";
@@ -35,7 +34,6 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
   renderActions,
   passing_threshold = 65,
 }: UseCandidateTableColumnsProps<T>) => {
-  const { theme } = useTheme()
   return useMemo<ColumnDef<T>[]>(
     () => [
       // 1. CANDIDATE
@@ -84,7 +82,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
 
       // 2. SCORE
       {
-        id: "score",
+        id: "result",
         accessorKey: "resume_score",
         header: ({ column }) => (
           <Button
@@ -92,7 +90,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:bg-transparent p-0 font-semibold"
           >
-            Score
+            Result
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         ),
@@ -228,7 +226,6 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         header: "Socials",
         cell: ({ row }) => {
           const { linkedin_url, github_url } = row.original;
-          const logoVariant = theme === "dark" ? "dark" : "light";
 
           const getLinks = (raw: string | null | undefined) => {
             if (!raw) return [];
@@ -281,7 +278,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   "transition-colors",
                 )}
               >
-                <Logo className="h-4 w-4" variant={logoVariant} />
+                <Logo className="h-4 w-4" />
               </a>
             );
           };
@@ -300,7 +297,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   disabled
                   className="px-0 opacity-30 pointer-events-none"
                 >
-                  <LinkedinLogo className="h-4 w-4" variant={logoVariant} />
+                  <LinkedinLogo className="h-4 w-4" />
                 </Button>
               )}
 
@@ -314,7 +311,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   disabled
                   className="px-0 opacity-30 pointer-events-none"
                 >
-                  <GithubLogo className="h-4 w-4" variant={logoVariant} />
+                  <GithubLogo className="h-4 w-4" />
                 </Button>
               )}
             </div>

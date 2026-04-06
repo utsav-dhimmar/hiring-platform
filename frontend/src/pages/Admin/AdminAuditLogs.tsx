@@ -42,14 +42,19 @@ const AdminAuditLogs = () => {
     {
       accessorKey: "action",
       header: "Action",
-      cell: ({ row }) => <span className="font-bold text-primary">{row.original.action}</span>,
+      cell: ({ row }) => {
+        let action = row.original.action;
+        action = action.replace("_", " ");
+        action = action.charAt(0).toUpperCase() + action.slice(1);
+        return <span className="font-bold text-primary">{action}</span>
+      },
     },
     {
       accessorKey: "user_name",
       header: "User Name",
       cell: ({ row }) => (
         <span
-          className="font-mono text-[10px] text-muted-foreground break-all max-w-[120px] block"
+          className="font-medium text-foreground"
           title={row.original.user_name}
         >
           {row.original.user_name}

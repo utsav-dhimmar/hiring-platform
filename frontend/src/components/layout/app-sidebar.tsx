@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
-import { Logo } from "@/components/logo"
+import { Logo, LogoIcon } from "@/components/logo"
 import { cn } from "@/lib/utils"
 import {
   BriefcaseIcon,
@@ -25,11 +25,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react"
-import { useTheme } from "@/components/shared/theme-provider"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAppSelector(selectCurrentUser)
-  const { theme } = useTheme()
   const isStaff =
     user?.role_name?.toLowerCase() === "admin" ||
     user?.role_name?.toLowerCase() === "hr"
@@ -117,11 +115,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton
               size="lg"
               className={cn(
-                "pointer-events-none data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
-                isCollapsed ? "h-auto w-auto p-0" : "flex-1"
+                "pointer-events-none data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-none",
+                isCollapsed ? "h-auto w-auto p-0 flex justify-center items-center" : "flex-1"
               )}
             >
-              <Logo variant={theme === "light" ? "dark" : "light"} />
+              {isCollapsed ? <LogoIcon /> : <Logo />}
             </SidebarMenuButton>
             <SidebarTrigger className="h-8 w-8 shrink-0 rounded-xl hover:bg-sidebar-accent">
               {isCollapsed ? (

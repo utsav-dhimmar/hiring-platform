@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import github from "@/assets/logos/svg/github.svg";
 import linkedin from "@/assets/logos/svg/linkedin.svg";
 import logo from "@/assets/logo.svg";
+import { useTheme } from "../shared/theme-provider";
+
 
 interface LogoProps {
   src: string;
@@ -15,7 +17,7 @@ export const LogoComponent = ({
   src,
   alt,
   className,
-  variant = "light",
+  variant,
 }: LogoProps) => {
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -31,14 +33,26 @@ export const LogoComponent = ({
   );
 };
 
-export const GithubLogo = (props: Omit<LogoProps, "src">) => (
-  <LogoComponent src={github} {...props} />
-);
+export const GithubLogo = (props: Omit<LogoProps, "src">) => {
+  const { theme } = useTheme();
+  const variant = props.variant || (theme === "dark" ? "light" : "light");
+  return <LogoComponent src={github} {...props} variant={variant} />;
+};
 
-export const LinkedinLogo = (props: Omit<LogoProps, "src">) => (
-  <LogoComponent src={linkedin} {...props} />
-);
+export const LinkedinLogo = (props: Omit<LogoProps, "src">) => {
+  const { theme } = useTheme();
+  const variant = props.variant || (theme === "dark" ? "light" : "light");
+  return <LogoComponent src={linkedin} {...props} variant={variant} />;
+};
+
 export const Logo = (props: Omit<LogoProps, "src">) => {
-  return <LogoComponent src={logo} {...props} />;
+  const { theme } = useTheme();
+  const variant = props.variant || (theme === "dark" ? "light" : "dark");
+  return <LogoComponent src={logo} {...props} variant={variant} />;
+};
 
+export const LogoIcon = (props: Omit<LogoProps, "src">) => {
+  const { theme } = useTheme();
+  const variant = props.variant || (theme === "dark" ? "light" : "dark");
+  return <LogoComponent src="/favicon.svg" {...props} variant={variant} />;
 };
