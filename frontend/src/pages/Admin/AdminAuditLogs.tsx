@@ -19,6 +19,7 @@ const AdminAuditLogs = () => {
 
   const {
     data: logs,
+    loading,
     error,
     fetchData,
   } = useAdminData<AuditLogRead>(() => adminAnalyticsService.getAuditLogs(0, 100));
@@ -89,6 +90,7 @@ const AdminAuditLogs = () => {
         <DataTable
           columns={columns}
           data={logs}
+          loading={loading}
           searchKey="action"
           searchPlaceholder="Filter by action..."
           initialSorting={[{ id: "created_at", desc: true }]}

@@ -91,16 +91,17 @@ export function CandidateDetailsModal({
     }
   }, [isOpen, initialTab]);
 
+  const currentJobId = jobId || (candidate as any)?.applied_job_id;
+
   useEffect(() => {
-    const targetJobId = jobId || (candidate as any)?.applied_job_id;
-    if (isOpen && targetJobId) {
-      adminJobService.getJobById(targetJobId).then((data) => {
+    if (isOpen && currentJobId) {
+      adminJobService.getJobById(currentJobId).then((data) => {
         setJob(data as unknown as Job);
       });
     } else {
       setJob(null);
     }
-  }, [isOpen, jobId, (candidate as any)?.applied_job_id]);
+  }, [isOpen, jobId, (candidate as any)?.applied_job_id, currentJobId]);
 
   useEffect(() => {
     const appliedVersion = (candidate as any)?.applied_version_number;
@@ -245,6 +246,7 @@ export function CandidateDetailsModal({
               candidate={candidate}
               showAllSkills={showAllSkills}
               setShowAllSkills={setShowAllSkills}
+              jobId={currentJobId}
             >
               {hrDecision && hrDecision.decision.toLowerCase() !== "may be" && (
                 <HrDecision decision={hrDecision} />

@@ -25,6 +25,7 @@ const AdminDepartments = () => {
   const {
     data: departments,
     total,
+    loading,
     error,
     fetchData: fetchDepartments,
   } = useAdminData<DepartmentRead>(() =>
@@ -130,6 +131,7 @@ const AdminDepartments = () => {
         <DataTable
           columns={columns}
           data={departments}
+          loading={loading}
           searchKey="name"
           searchPlaceholder="Filter departments by name..."
           initialSorting={[{ id: "name", desc: false }]}

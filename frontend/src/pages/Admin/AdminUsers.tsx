@@ -180,14 +180,13 @@ const AdminUsers = () => {
         actions={<Button onClick={handleCreateClick}>Create User</Button>}
       />
 
-      {loading ? (
-        <div className="w-full h-64 bg-muted animate-pulse rounded-2xl" />
-      ) : error ? (
+      {error && !users.length ? (
         <ErrorDisplay message={error} onRetry={fetchUsers} />
       ) : (
         <DataTable
           columns={columns}
           data={users}
+          loading={loading}
           searchKey="full_name"
           searchPlaceholder="Search users..."
           initialSorting={[

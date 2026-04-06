@@ -20,6 +20,7 @@ const AdminRecentUploads = () => {
 
   const {
     data: uploads,
+    loading,
     error,
     fetchData,
   } = useAdminData<RecentUploadRead>(() => adminAnalyticsService.getRecentUploads(0, 100));
@@ -107,6 +108,7 @@ const AdminRecentUploads = () => {
         <DataTable
           columns={columns}
           data={uploads}
+          loading={loading}
           searchKey="file_name"
           searchPlaceholder="Filter files by name..."
           initialSorting={[{ id: "created_at", desc: true }]}

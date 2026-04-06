@@ -238,11 +238,24 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
               .filter((u) => isValidUrl(u));
           };
 
-          const linkedinLinks = getLinks(linkedin_url);
-          const githubLinks = getLinks(github_url);
+          // Combine all unique valid links from both fields
+          const allLinks = Array.from(
+            new Set([...getLinks(linkedin_url), ...getLinks(github_url)]),
+          );
 
-          // Merge and deduplicate links from both fields
-          const allLinks = Array.from(new Set([...linkedinLinks, ...githubLinks]));
+          // Separate links by type
+          const liLinks = allLinks.filter((u) =>
+            u.toLowerCase().includes("linkedin.com"),
+          );
+          const ghLinks = allLinks.filter((u) =>
+            u.toLowerCase().includes("github.com"),
+          );
+          // Handle links that don't match either (fallback to linkedin as per original logic)
+          const otherLinks = allLinks.filter(
+            (u) =>
+              !u.toLowerCase().includes("linkedin.com") &&
+              !u.toLowerCase().includes("github.com"),
+          );
 
           const renderLink = (url: string, key: string) => {
             const isGithub = url.toLowerCase().includes("github.com");
@@ -275,27 +288,34 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
 
           return (
             <div className="flex items-center gap-1">
-              {allLinks.length > 0 ? (
-                allLinks.map((url, idx) => renderLink(url, `social-${idx}`))
+              {/* LinkedIn & fallback links */}
+              {liLinks.length > 0 || otherLinks.length > 0 ? (
+                [...liLinks, ...otherLinks].map((url, idx) =>
+                  renderLink(url, `li-${idx}`),
+                )
               ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled
-                    className="px-0 opacity-30"
-                  >
-                    <LinkedinLogo className="h-4 w-4" variant={logoVariant} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled
-                    className="px-0 opacity-30"
-                  >
-                    <GithubLogo className="h-4 w-4" variant={logoVariant} />
-                  </Button>
-                </>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled
+                  className="px-0 opacity-30 pointer-events-none"
+                >
+                  <LinkedinLogo className="h-4 w-4" variant={logoVariant} />
+                </Button>
+              )}
+
+              {/* GitHub links */}
+              {ghLinks.length > 0 ? (
+                ghLinks.map((url, idx) => renderLink(url, `gh-${idx}`))
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled
+                  className="px-0 opacity-30 pointer-events-none"
+                >
+                  <GithubLogo className="h-4 w-4" variant={logoVariant} />
+                </Button>
               )}
             </div>
           );

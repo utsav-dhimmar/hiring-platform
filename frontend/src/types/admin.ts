@@ -397,7 +397,7 @@ export interface CandidateAnalysis {
   is_parsed?: boolean;
   processing_status?: string;
   processing_error?: string | null;
-  hr_decision?: "approve" | "reject" | "maybe" | null;
+  hr_decision?: "approve" | "reject" | "may be" | null;
   linkedin_url?: string | null;
   github_url?: string | null;
   /**

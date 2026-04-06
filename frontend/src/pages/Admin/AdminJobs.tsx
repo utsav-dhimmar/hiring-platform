@@ -190,16 +190,13 @@ const AdminJobs = () => {
 
       />
 
-      {loading ? (
-        <div className="flex flex-col gap-4">
-          <div className="w-full h-64 bg-muted animate-pulse rounded-2xl" />
-        </div>
-      ) : error ? (
+      {error && !jobs.length ? (
         <ErrorDisplay message={error} onRetry={fetchJobs} />
       ) : (
         <DataTable
           columns={columns}
           data={jobs}
+          loading={loading}
           searchKey="title"
           searchPlaceholder="Filter jobs by title..."
           initialSorting={[

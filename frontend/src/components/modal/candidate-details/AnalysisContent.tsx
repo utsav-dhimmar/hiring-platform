@@ -14,6 +14,8 @@ interface AnalysisContentProps {
   setShowAllSkills: (show: boolean) => void;
   /** Optional override for analysis data (used for historical results) */
   analysisOverride?: CandidateMatchAnalysis | null;
+  /** Optional current job ID to match against version_results */
+  jobId?: string | null;
   children?: ReactNode;
 }
 
@@ -27,10 +29,24 @@ export function AnalysisContent({
   showAllSkills,
   setShowAllSkills,
   analysisOverride,
+  jobId,
   children,
 }: AnalysisContentProps) {
-  const analysis =
-    analysisOverride !== undefined ? analysisOverride : candidate.resume_analysis;
+  const analysis = (() => {
+    // 1. If override is explicitly provided, use it
+    if (analysisOverride !== undefined) return analysisOverride;
+
+    // 2. If jobId is provided, try to find matching analysis in version_results
+    if (jobId && candidate.version_results) {
+      const match = candidate.version_results.find(
+        (vr) => vr.job_id === jobId
+      );
+      if (match?.analysis_data) return match.analysis_data;
+    }
+
+    // 3. Fallback to top-level resume_analysis
+    return candidate.resume_analysis;
+  })();
 
   return (
     <div className="space-y-2 pb-2">
