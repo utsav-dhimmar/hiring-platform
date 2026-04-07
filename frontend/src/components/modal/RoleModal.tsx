@@ -99,7 +99,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
       setSubmitError(null);
       try {
         const permsData = await adminPermissionService.getAllPermissions();
-        setPermissions(permsData);
+        setPermissions(permsData.data);
 
         if (editRoleId) {
           const roleData = await adminRoleService.getRoleById(editRoleId);
