@@ -2,7 +2,7 @@
  * Admin page for viewing audit logs.
  * Displays a history of user actions and system events.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AuditLogRead } from "@/types/admin";
 import { AppPageShell, DataTable, DateDisplay, PageHeader, ErrorDisplay } from "@/components/shared";
@@ -16,13 +16,28 @@ const AdminAuditLogs = () => {
     pageIndex: 0,
     pageSize: 10,
   });
+  const [searchValue, setSearchValue] = useState("");
 
   const {
     data: logs,
+    total,
     loading,
     error,
     fetchData,
-  } = useAdminData<AuditLogRead>(() => adminAnalyticsService.getAuditLogs(0, 100));
+  } = useAdminData<AuditLogRead>(
+    () => adminAnalyticsService.getAuditLogs(pageIndex * pageSize, pageSize, searchValue)
+  );
+
+  // Refetch data when pagination or search changes
+  useEffect(() => {
+    fetchData();
+  }, [pageIndex, pageSize, searchValue, fetchData]);
+
+  // Handle search with pagination reset
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
 
   const columns: ColumnDef<AuditLogRead>[] = [
     {
@@ -102,6 +117,10 @@ const AdminAuditLogs = () => {
           pageIndex={pageIndex}
           pageSize={pageSize}
           onPaginationChange={setPagination}
+          onSearchChange={handleSearchChange}
+          searchValue={searchValue}
+          isServerSide={true}
+          pageCount={Math.ceil(total / pageSize)}
         />
       )}
     </AppPageShell>

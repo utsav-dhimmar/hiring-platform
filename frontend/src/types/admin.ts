@@ -7,6 +7,14 @@ import type { Job } from "@/types/job";
 import type { JobStageConfig } from "@/types/stage";
 
 /**
+ * Generic paginated response wrapper.
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+}
+
+/**
  * Base fields for a permission.
  */
 export interface PermissionBase {

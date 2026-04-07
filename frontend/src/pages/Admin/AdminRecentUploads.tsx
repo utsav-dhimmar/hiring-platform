@@ -3,7 +3,7 @@
  * Displays a list of recently uploaded resumes and documents.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { RecentUploadRead } from "@/types/admin";
 import { AppPageShell, DataTable, DateDisplay, PageHeader, ErrorDisplay } from "@/components/shared";
@@ -28,13 +28,28 @@ const AdminRecentUploads = () => {
     pageIndex: 0,
     pageSize: 10,
   });
+  const [searchValue, setSearchValue] = useState("");
 
   const {
     data: uploads,
+    total,
     loading,
     error,
     fetchData,
-  } = useAdminData<RecentUploadRead>(() => adminAnalyticsService.getRecentUploads(0, 100));
+  } = useAdminData<RecentUploadRead>(
+    () => adminAnalyticsService.getRecentUploads(pageIndex * pageSize, pageSize, searchValue)
+  );
+
+  // Refetch data when pagination or search changes
+  useEffect(() => {
+    fetchData();
+  }, [pageIndex, pageSize, searchValue, fetchData]);
+
+  // Handle search with pagination reset
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
 
   const [fileSizeUnit, setFileSizeUnit] = useState<FileSizeUnit>("auto");
 
@@ -127,6 +142,10 @@ const AdminRecentUploads = () => {
           pageIndex={pageIndex}
           pageSize={pageSize}
           onPaginationChange={setPagination}
+          onSearchChange={handleSearchChange}
+          searchValue={searchValue}
+          isServerSide={true}
+          pageCount={Math.ceil(total / pageSize)}
           tableActions={
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Unit:</span>

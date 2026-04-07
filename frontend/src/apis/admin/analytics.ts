@@ -1,5 +1,5 @@
 import apiClient from "@/apis/client";
-import type { AnalyticsSummary, AuditLogRead, HiringReport, RecentUploadRead } from "@/types/admin";
+import type { AnalyticsSummary, AuditLogRead, HiringReport, RecentUploadRead, PaginatedResponse } from "@/types/admin";
 
 const ADMIN_PATH = "/admin";
 
@@ -10,9 +10,9 @@ export const adminAnalyticsService = {
   /**
    * Get all audit logs (admin only).
    */
-  getAuditLogs: async (skip: number = 0, limit: number = 100): Promise<AuditLogRead[]> => {
-    const response = await apiClient.get<AuditLogRead[]>(`${ADMIN_PATH}/audit-logs`, {
-      params: { skip, limit },
+  getAuditLogs: async (skip: number = 0, limit: number = 100, q?: string): Promise<PaginatedResponse<AuditLogRead>> => {
+    const response = await apiClient.get<PaginatedResponse<AuditLogRead>>(`${ADMIN_PATH}/audit-logs`, {
+      params: { skip, limit, q },
     });
     return response.data;
   },
@@ -20,9 +20,9 @@ export const adminAnalyticsService = {
   /**
    * Get recent file uploads (admin only).
    */
-  getRecentUploads: async (skip: number = 0, limit: number = 50): Promise<RecentUploadRead[]> => {
-    const response = await apiClient.get<RecentUploadRead[]>(`${ADMIN_PATH}/recent-uploads`, {
-      params: { skip, limit },
+  getRecentUploads: async (skip: number = 0, limit: number = 50, q?: string): Promise<PaginatedResponse<RecentUploadRead>> => {
+    const response = await apiClient.get<PaginatedResponse<RecentUploadRead>>(`${ADMIN_PATH}/recent-uploads`, {
+      params: { skip, limit, q },
     });
     return response.data;
   },
