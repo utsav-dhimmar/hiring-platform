@@ -50,6 +50,7 @@ interface DataTableProps<TData, TValue> {
   onPaginationChange?: OnChangeFn<PaginationState>;
   isServerSide?: boolean;
   headerActions?: React.ReactNode;
+  tableActions?: React.ReactNode;
   onSearchChange?: (value: string) => void;
   searchValue?: string;
   emptyMessage?: string;
@@ -68,6 +69,7 @@ export function DataTable<TData, TValue>({
   onPaginationChange,
   isServerSide = false,
   headerActions,
+  tableActions,
   onSearchChange,
   searchValue,
   emptyMessage = "No results.",
@@ -135,20 +137,27 @@ export function DataTable<TData, TValue>({
     <div className="w-full space-y-3 sm:space-y-4">
       {searchKey && (
         <div className="flex w-full flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
-          <div className="relative w-full sm:max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={searchPlaceholder}
-              value={searchValue ?? globalFilter ?? ""}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (onSearchChange) {
-                  onSearchChange(value);
-                }
-                table.setGlobalFilter(value);
-              }}
-              className="h-10 rounded-xl border-border/70 bg-background/90 pl-9 transition-all focus:ring-2 focus:ring-primary/20"
-            />
+          <div className="flex flex-1 items-center gap-3 max-w-full sm:max-w-2xl">
+            <div className="relative flex-1 sm:max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder}
+                value={searchValue ?? globalFilter ?? ""}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (onSearchChange) {
+                    onSearchChange(value);
+                  }
+                  table.setGlobalFilter(value);
+                }}
+                className="h-10 rounded-xl border-border/70 bg-background/90 pl-9 transition-all focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            {tableActions && (
+              <div className="flex items-center gap-2">
+                {tableActions}
+              </div>
+            )}
           </div>
           {headerActions && (
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">

@@ -11,6 +11,17 @@ import { useAdminData } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { formatFileSize } from "@/utils/converters";
+
+
+export type FileSizeUnit = "auto" | "B" | "KB" | "MB";
 
 const AdminRecentUploads = () => {
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
@@ -24,6 +35,8 @@ const AdminRecentUploads = () => {
     error,
     fetchData,
   } = useAdminData<RecentUploadRead>(() => adminAnalyticsService.getRecentUploads(0, 100));
+
+  const [fileSizeUnit, setFileSizeUnit] = useState<FileSizeUnit>("auto");
 
   const columns: ColumnDef<RecentUploadRead>[] = [
     {
@@ -69,7 +82,7 @@ const AdminRecentUploads = () => {
       accessorKey: "size",
       header: "Size",
       cell: ({ row }) =>
-        row.original.size ? `${(row.original.size / 1024).toFixed(1)} KB` : "N/A",
+        row.original.size ? formatFileSize(row.original.size, fileSizeUnit) : "N/A",
     },
     {
       accessorKey: "uploader_name",
@@ -101,7 +114,6 @@ const AdminRecentUploads = () => {
   return (
     <AppPageShell width="wide">
       <PageHeader title="Recent Uploads" />
-
       {error && !uploads.length ? (
         <ErrorDisplay message={error} onRetry={fetchData} />
       ) : (
@@ -115,6 +127,24 @@ const AdminRecentUploads = () => {
           pageIndex={pageIndex}
           pageSize={pageSize}
           onPaginationChange={setPagination}
+          tableActions={
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Unit:</span>
+              <Select
+                value={fileSizeUnit}
+                onValueChange={(value) => setFileSizeUnit(value as FileSizeUnit)}
+              >
+                <SelectTrigger className="w-[90px] h-9 rounded-xl border-border/70 bg-background/90 transition-all focus:ring-2 focus:ring-primary/20">
+                  <SelectValue placeholder="Unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto</SelectItem>
+                  <SelectItem value="KB">KB</SelectItem>
+                  <SelectItem value="MB">MB</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          }
         />
       )}
     </AppPageShell>
