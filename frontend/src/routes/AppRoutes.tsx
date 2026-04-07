@@ -6,14 +6,16 @@
 
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
-import LoginPage from "@/pages/Auth/Login/LoginPage";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import PublicRoute from "@/components/auth/PublicRoute";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
-import DashboardLayout from "@/pages/dashboard/DashboardLayout";
-import JobBoard from "@/pages/dashboard/job-board";
 import RoleRoute from "@/components/auth/RoleRoute";
-import RegisterPage from "@/pages/Auth/RegisterPage";
+
+// Lazy-loaded route pages 
+const LoginPage = lazy(() => import("@/pages/Auth/Login/LoginPage"));
+const RegisterPage = lazy(() => import("@/pages/Auth/RegisterPage"));
+const DashboardLayout = lazy(() => import("@/pages/dashboard/DashboardLayout"));
+const JobBoard = lazy(() => import("@/pages/dashboard/job-board"));
 
 // Lazy-loaded route components
 const CreateJob = lazy(() => import("@/pages/dashboard/CreateJob"));
