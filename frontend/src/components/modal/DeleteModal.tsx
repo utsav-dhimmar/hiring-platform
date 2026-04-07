@@ -34,7 +34,7 @@ interface DeleteModalProps {
   /** Whether the confirm action is in progress */
   isLoading?: boolean;
   /** Error message to display (if any) */
-  error?: string | null;
+  error?: string | React.ReactNode | null;
   /** Variant for the confirm button (default: "destructive") */
   confirmVariant?: "destructive" | "default";
 }
@@ -66,7 +66,7 @@ const DeleteModal = ({
         <div>
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-3">
-              <p className="text-sm text-destructive">{error}</p>
+              <div className="text-sm text-destructive">{error}</div>
             </div>
           )}
           <p className="mb-0">{message}</p>
