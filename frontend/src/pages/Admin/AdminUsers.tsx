@@ -20,6 +20,8 @@ import {
   DeleteModal
 } from "@/components/modal";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
+import PermissionGuard from "@/components/auth/PermissionGuard";
+import { PERMISSIONS } from "@/lib/permissions";
 
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
@@ -148,23 +150,27 @@ const AdminUsers = () => {
         const user = row.original;
         return (
           <div className="flex gap-2 justify-end items-center flex-nowrap">
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              onClick={() => handleEditClick(user)}
-            >
-              Edit
-            </Button>
-            {user.full_name !== "System Admin" && (
+            <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 className="shrink-0"
-                onClick={() => handleDeleteClick(user)}
+                onClick={() => handleEditClick(user)}
               >
-                Delete
+                Edit
               </Button>
+            </PermissionGuard>
+            {user.full_name !== "System Admin" && (
+              <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => handleDeleteClick(user)}
+                >
+                  Delete
+                </Button>
+              </PermissionGuard>
             )}
           </div>
         );
@@ -176,8 +182,11 @@ const AdminUsers = () => {
     <AppPageShell width="wide">
       <PageHeader
         title="User Management"
-
-        actions={<Button onClick={handleCreateClick}>Create User</Button>}
+        actions={
+          <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
+            <Button onClick={handleCreateClick}>Create User</Button>
+          </PermissionGuard>
+        }
       />
 
       {error && !users.length ? (

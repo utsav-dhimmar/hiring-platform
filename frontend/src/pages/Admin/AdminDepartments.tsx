@@ -12,6 +12,8 @@ import { Edit2, Trash2Icon, ArrowUpDown, AlertCircle } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
 import { Badge } from "@/components/ui/badge";
+import PermissionGuard from "@/components/auth/PermissionGuard";
+import { PERMISSIONS } from "@/lib/permissions";
 
 const AdminDepartments = () => {
   const toast = useToast();
@@ -144,22 +146,26 @@ const AdminDepartments = () => {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex gap-2 justify-end">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleEditClick(row.original)}
-            className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleDeleteClick(row.original)}
-            className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors"
-          >
-            <Trash2Icon className="h-4 w-4" />
-          </Button>
+          <PermissionGuard permissions={PERMISSIONS.DEPARTMENTS_MANAGE} hideWhenDenied>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEditClick(row.original)}
+              className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+          </PermissionGuard>
+          <PermissionGuard permissions={PERMISSIONS.DEPARTMENTS_MANAGE} hideWhenDenied>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteClick(row.original)}
+              className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors"
+            >
+              <Trash2Icon className="h-4 w-4" />
+            </Button>
+          </PermissionGuard>
         </div>
       ),
     },
@@ -171,9 +177,11 @@ const AdminDepartments = () => {
         title="Department Management"
 
         actions={
-          <Button onClick={handleCreateClick} className="rounded-xl px-6">
-            Create Department
-          </Button>
+          <PermissionGuard permissions={PERMISSIONS.DEPARTMENTS_MANAGE} hideWhenDenied>
+            <Button onClick={handleCreateClick} className="rounded-xl px-6">
+              Create Department
+            </Button>
+          </PermissionGuard>
         }
       />
 

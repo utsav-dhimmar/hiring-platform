@@ -21,6 +21,8 @@ import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import { Edit2, Users, ArrowUpDown, Trash2Icon } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
+import PermissionGuard from "@/components/auth/PermissionGuard";
+import { PERMISSIONS } from "@/lib/permissions";
 
 const AdminJobs = () => {
   const navigate = useNavigate();
@@ -64,7 +66,7 @@ const AdminJobs = () => {
 
 
   const handleViewCandidates = (jobId: string) => {
-    navigate(`/admin/jobs/${jobId}/candidates`);
+    navigate(`/dashboard/admin/jobs/${jobId}/candidates`);
   };
 
   const handleToggleStatus = async (job: JobRead) => {
@@ -104,13 +106,15 @@ const AdminJobs = () => {
       accessorKey: "is_active",
       header: "Status",
       cell: ({ row }) => (
-        <button
-          onClick={() => handleToggleStatus(row.original)}
-          className="hover:opacity-80 transition-opacity cursor-pointer flex"
-          title={`Click to ${row.original.is_active ? "deactivate" : "activate"}`}
-        >
-          <StatusBadge status={row.original.is_active} />
-        </button>
+        <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+          <button
+            onClick={() => handleToggleStatus(row.original)}
+            className="hover:opacity-80 transition-opacity cursor-pointer flex"
+            title={`Click to ${row.original.is_active ? "deactivate" : "activate"}`}
+          >
+            <StatusBadge status={row.original.is_active} />
+          </button>
+        </PermissionGuard>
       ),
     },
     {
@@ -143,40 +147,46 @@ const AdminJobs = () => {
         const job = row.original;
         return (
           <div className="flex items-center gap-2 justify-end">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
-              title="Edit Job"
-              onClick={() => navigate(`/dashboard/jobs/${job.id}/edit`, {
-                state: {
-                  jobId: job.id
-                }
-              })}
-            >
-              <Edit2 className="h-4 w-4" />
-              <span className="sr-only">Edit Job</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
-              title="Delete Job"
-              onClick={() => handleDeleteClick(job)}
-            >
-              <Trash2Icon className="h-4 w-4" />
-              <span className="sr-only">Delete Job</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-9 w-9 rounded-xl hover:bg-blue-500/10 hover:text-blue-500 transition-all"
-              title="View Candidates"
-              onClick={() => handleViewCandidates(job.id)}
-            >
-              <Users className="h-4 w-4" />
-              <span className="sr-only">View Candidates</span>
-            </Button>
+            <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+                title="Edit Job"
+                onClick={() => navigate(`/dashboard/jobs/${job.id}/edit`, {
+                  state: {
+                    jobId: job.id
+                  }
+                })}
+              >
+                <Edit2 className="h-4 w-4" />
+                <span className="sr-only">Edit Job</span>
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
+                title="Delete Job"
+                onClick={() => handleDeleteClick(job)}
+              >
+                <Trash2Icon className="h-4 w-4" />
+                <span className="sr-only">Delete Job</span>
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard permissions={PERMISSIONS.CANDIDATES_ACCESS} hideWhenDenied>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 rounded-xl hover:bg-blue-500/10 hover:text-blue-500 transition-all"
+                title="View Candidates"
+                onClick={() => handleViewCandidates(job.id)}
+              >
+                <Users className="h-4 w-4" />
+                <span className="sr-only">View Candidates</span>
+              </Button>
+            </PermissionGuard>
           </div>
         );
       },
