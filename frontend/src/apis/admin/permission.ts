@@ -1,5 +1,5 @@
 import apiClient from "@/apis/client";
-import type { PermissionCreate, PermissionRead } from "@/types/admin";
+import type { PaginatedResponse, PermissionCreate, PermissionRead } from "@/types/admin";
 
 const ADMIN_PATH = "/admin";
 
@@ -10,8 +10,8 @@ export const adminPermissionService = {
   /**
    * Get all permissions (admin only).
    */
-  getAllPermissions: async (skip: number = 0, limit: number = 100): Promise<PermissionRead[]> => {
-    const response = await apiClient.get<PermissionRead[]>(`${ADMIN_PATH}/permissions`, {
+  getAllPermissions: async (skip: number = 0, limit: number = 100): Promise<PaginatedResponse<PermissionRead>> => {
+    const response = await apiClient.get<PaginatedResponse<PermissionRead>>(`${ADMIN_PATH}/permissions`, {
       params: { skip, limit },
     });
     return response.data;

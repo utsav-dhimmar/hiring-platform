@@ -1,5 +1,5 @@
 import apiClient from "@/apis/client";
-import type { RoleCreate, RoleRead, RoleUpdate, RoleWithPermissions } from "@/types/admin";
+import type { PaginatedResponse, RoleCreate, RoleRead, RoleUpdate, RoleWithPermissions } from "@/types/admin";
 
 const ADMIN_PATH = "/admin";
 
@@ -10,8 +10,8 @@ export const adminRoleService = {
   /**
    * Get all roles (admin only).
    */
-  getAllRoles: async (skip: number = 0, limit: number = 100): Promise<RoleRead[]> => {
-    const response = await apiClient.get<RoleRead[]>(`${ADMIN_PATH}/roles`, {
+  getAllRoles: async (skip: number = 0, limit: number = 100): Promise<PaginatedResponse<RoleRead>> => {
+    const response = await apiClient.get<PaginatedResponse<RoleRead>>(`${ADMIN_PATH}/roles`, {
       params: { skip, limit },
     });
     return response.data;

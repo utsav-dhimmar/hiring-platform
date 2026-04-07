@@ -24,8 +24,8 @@ const AdminRoles = () => {
 
   const fetchAll = useCallback(async () => {
     const [roles, permissions] = await Promise.all([
-      adminRoleService.getAllRoles(),
-      adminPermissionService.getAllPermissions(),
+      (await adminRoleService.getAllRoles()).data,
+      (await adminPermissionService.getAllPermissions()).data,
     ]);
     return { roles, permissions };
   }, []);
