@@ -7,8 +7,9 @@ import { adminDepartmentService } from "@/apis/admin/service";
 import type { DepartmentRead } from "@/types/admin";
 import { AppPageShell, PageHeader, useToast, DataTable, ErrorDisplay } from "@/components/shared";
 import { CreateDepartmentModal, DeleteModal } from "@/components/modal";
-import { useAdminData, useDeleteConfirmation } from "@/hooks";
+import { useAdminData } from "@/hooks";
 import { Edit2, Trash2Icon, ArrowUpDown, AlertCircle } from "lucide-react";
+import { extractErrorMessage } from "@/utils/error";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
 import { Badge } from "@/components/ui/badge";
@@ -38,22 +39,31 @@ const AdminDepartments = () => {
     fetchDepartments();
   }, [pageIndex, pageSize, fetchDepartments]);
 
-  const {
-    showModal: showDeleteModal,
-    handleDeleteClick,
-    handleClose: handleCloseDelete,
-    handleConfirm: handleConfirmDelete,
-    isDeleting,
-    error: deleteError,
-    message: deleteMessage,
-  } = useDeleteConfirmation<DepartmentRead>({
-    deleteFn: (id) => adminDepartmentService.deleteDepartment(id as string),
-    onSuccess: () => {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<DepartmentRead | null>(null);
+
+  /**
+   * Performs immediate deletion of a department.
+   * If failure occurs, displays reason in a modal.
+   */
+  const handleDeleteClick = async (dept: DepartmentRead) => {
+    try {
+      setDeletingId(dept.id);
+      setDeleteError(null);
+      await adminDepartmentService.deleteDepartment(dept.id);
       fetchDepartments();
       toast.success("Department deleted successfully");
-    },
-    itemTitle: (dept) => `department "${dept.name}"`,
-  });
+    } catch (err) {
+      const errMsg = extractErrorMessage(err);
+      setDeleteError(errMsg);
+      setItemToDelete(dept);
+      setShowDeleteModal(true);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleCreateClick = () => {
     setSelectedDepartment(null);
@@ -62,7 +72,6 @@ const AdminDepartments = () => {
 
   /**
    * Parses the backend error message to extract job names if the department is in use.
-   * Current Backend Response Format: "... ACTIVE Job(s): ['Job A', 'Job B'] ..."
    */
   const renderFormattedError = (error: string | null) => {
     if (!error) return null;
@@ -92,19 +101,19 @@ const AdminDepartments = () => {
       .filter(Boolean);
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 font-medium">
         <div className="flex items-start gap-2 text-destructive">
           <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-          <p className="text-sm font-medium">{mainMessage}</p>
+          <p className="text-sm font-semibold">{mainMessage}</p>
         </div>
         <div className="flex flex-wrap gap-2 pl-6">
           {jobNames.map((job, idx) => (
-            <Badge key={idx} variant="outline">
+            <Badge key={idx} variant="outline" className="border-destructive/30 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-colors">
               {job}
             </Badge>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground pl-6">
+        <p className="text-xs text-muted-foreground pl-6 italic">
           Please deactivate or remove this department from these jobs before deleting.
         </p>
       </div>
@@ -157,6 +166,7 @@ const AdminDepartments = () => {
             size="icon"
             onClick={() => handleDeleteClick(row.original)}
             className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors"
+            isLoading={deletingId === row.original.id}
           >
             <Trash2Icon className="h-4 w-4" />
           </Button>
@@ -204,13 +214,13 @@ const AdminDepartments = () => {
 
       <DeleteModal
         show={showDeleteModal}
-        handleClose={handleCloseDelete}
-        handleConfirm={handleConfirmDelete}
-        title="Delete Department"
-        message={deleteMessage}
-        isLoading={isDeleting}
+        handleClose={() => setShowDeleteModal(false)}
+        handleConfirm={() => {}} // Not used as we delete before opening modal
+        title="Delete Department Error"
+        message={itemToDelete ? `Unable to delete department "${itemToDelete.name}"` : ""}
+        isLoading={false}
         error={renderFormattedError(deleteError)}
-        showFooterButtons={!deleteError}
+        showFooterButtons={false}
       />
     </AppPageShell>
   );

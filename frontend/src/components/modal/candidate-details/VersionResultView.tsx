@@ -27,21 +27,25 @@ interface VersionResultEntry {
  */
 export function VersionResultView({
   candidate,
+  job,
   showAllSkills,
   setShowAllSkills
 }: VersionResultViewProps) {
 
   const results = useMemo(() => {
     // Get version results from backend 
-    const apiResults = (candidate as any).version_results || [];
+    const rawResults = (candidate as any).version_results || [];
 
-    // Map to local UI format
-    const list: VersionResultEntry[] = apiResults.map((vr: any) => ({
-      version: vr.job_version_number,
-      score: vr.resume_score || 0,
-      analysis: vr.analysis_data,
-      timestamp: vr.analyzed_at || (candidate as any).created_at
-    }));
+    // Filter by current job_id to avoid showing versions from other jobs
+    // We also map it to our internal UI format
+    const list: VersionResultEntry[] = rawResults
+      .filter((vr: any) => !job || vr.job_id === job.id)
+      .map((vr: any) => ({
+        version: vr.job_version_number,
+        score: vr.resume_score || 0,
+        analysis: vr.analysis_data,
+        timestamp: vr.analyzed_at || (candidate as any).created_at
+      }));
 
     // Ensure the currently applied version is present 
     const currentVersion = (candidate as any).applied_version_number;
@@ -66,8 +70,19 @@ export function VersionResultView({
       });
     }
 
-    return list.sort((a, b) => b.version - a.version);
-  }, [candidate]);
+    // Final deduplication to ensure each version number appears only once
+    const dedupedMap = new Map<number, VersionResultEntry>();
+    list.forEach((item) => {
+      const existing = dedupedMap.get(item.version);
+      // Keep the one that has analysis data if available
+      if (!existing || (!existing.analysis && item.analysis)) {
+        dedupedMap.set(item.version, item);
+      }
+    });
+
+    const finalResults = Array.from(dedupedMap.values());
+    return finalResults.sort((a, b) => b.version - a.version);
+  }, [candidate, job]);
 
   const [selectedVersion, setSelectedVersion] = useState(String(results[0].version));
 

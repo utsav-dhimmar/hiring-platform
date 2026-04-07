@@ -1,13 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 import { crossMatchApi } from "@/apis/crossMatch";
-import { Loader2, Search, ExternalLink, RefreshCw, Compass } from "lucide-react";
+import { Loader2, Search, ExternalLink, RefreshCw, Compass, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { CrossJobMatchRead } from "@/types/crossMatch";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "@/utils/slug";
-
+import { capitalize } from "@/lib/utils";
 interface CrossMatchViewProps {
   resumeId?: string;
   candidateId?: string;
@@ -25,6 +32,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
   const [loading, setLoading] = useState(true);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "passed" | "failed">("all");
   const navigate = useNavigate();
 
   const fetchMatches = useCallback(async () => {
@@ -98,6 +106,12 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     navigate(`/dashboard/jobs/${slugify(jobTitle)}/candidates`, { state: { jobId } });
   };
 
+  const filteredMatches = matches.filter((match) => {
+    if (statusFilter === "all") return true;
+    const isPassed = match.match_score >= (match.matched_job?.passing_threshold ?? 65);
+    return statusFilter === "passed" ? isPassed : !isPassed;
+  });
+
   if (!resumeId) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center bg-muted/10 rounded-2xl border border-dashed border-muted-foreground/20">
@@ -122,23 +136,43 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
             Identify matches for this candidate across other open active positions.
           </p>
         </div>
-        <Button
-          onClick={handleTrigger}
-          disabled={isDiscovering}
-          className="rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-md active:scale-95"
-        >
-          {isDiscovering ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Scanning...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Cross Job Match
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => value && setStatusFilter(value)}
+          >
+            <SelectTrigger className="w-[110px] h-10 rounded-xl" size="sm">
+              {/* <Filter className="mr-2 h-3.5 w-3.5" /> */}
+              <SelectValue placeholder="Filter">
+                {/* {statusFilter === "all" ? "All Results" : capitalize(statusFilter)} */}
+                {capitalize(statusFilter)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Results</SelectItem>
+              <SelectItem value="passed">Passed</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            onClick={handleTrigger}
+            disabled={isDiscovering}
+            className="rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-md active:scale-95 whitespace-nowrap"
+          >
+            {isDiscovering ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Scanning...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {matches.length > 0 ? "Re-Cross Job Match" : "Cross Job Match"}
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {isDiscovering && (
@@ -160,58 +194,65 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
         </div>
       ) : matches.length > 0 ? (
         <div className="max-h-[400px] w-full rounded-2xl border border-border bg-muted/5 p-4 overflow-y-auto custom-scrollbar">
-          <div className="grid gap-4">
-            {matches.map((match) => (
-              <div
-                key={match.matched_job_id}
-                className="group p-4 bg-card hover:bg-muted/40 border border-border rounded-xl transition-all duration-300 flex items-center justify-between"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground group-hover:text-primary transition-colors">
-                      {match.matched_job?.title || "Unknown Job"}
-                    </span>
-                    <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
-                      {match.matched_job?.department_name || "N/A"}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-600 rounded-full"
-                          style={{ width: `${match.match_score}%` }}
-                        />
-                      </div>
-                      <span className="font-black text-blue-600 tracking-tight">{(match.match_score)}% Match</span>
+          {filteredMatches.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredMatches.map((match) => (
+                <div
+                  key={match.matched_job_id}
+                  className="group p-4 bg-card hover:bg-muted/40 border border-border rounded-xl transition-all duration-300 flex items-center justify-between"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-foreground group-hover:text-primary transition-colors">
+                        {match.matched_job?.title || "Unknown Job"}
+                      </span>
+                      <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
+                        {match.matched_job?.department_name || "N/A"}
+                      </Badge>
                     </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-600 rounded-full"
+                            style={{ width: `${match.match_score}%` }}
+                          />
+                        </div>
+                        <span className="font-black text-blue-600 tracking-tight">{(match.match_score)}% Match</span>
+                      </div>
 
-                    <Badge
-                      variant="secondary"
-                      className={`
+                      <Badge
+                        variant="secondary"
+                        className={`
                         text-[10px] h-4.5 px-2 font-black border-none transition-all
                         ${match.match_score >= (match.matched_job?.passing_threshold ?? 65)
-                          ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20"
-                          : "bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/20"
-                        }
+                            ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20"
+                            : "bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/20"
+                          }
                       `}
-                    >
-                      {match.match_score >= (match.matched_job?.passing_threshold ?? 65) ? "PASSED" : "FAILED"}
-                    </Badge>
+                      >
+                        {match.match_score >= (match.matched_job?.passing_threshold ?? 65) ? "PASSED" : "FAILED"}
+                      </Badge>
+                    </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-lg h-9 hover:bg-primary/10 hover:text-primary border border-border"
+                    onClick={() => handleGoToJob(match.matched_job?.title || "", match.matched_job_id)}
+                  >
+                    View Job
+                    <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-lg h-9 hover:bg-primary/10 hover:text-primary border border-border"
-                  onClick={() => handleGoToJob(match.matched_job?.title || "", match.matched_job_id)}
-                >
-                  View Job
-                  <ExternalLink className="ml-2 h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Filter className="h-8 w-8 text-muted-foreground/20 mb-2" />
+              <p className="text-sm text-muted-foreground">No matches found for the "{statusFilter}" filter.</p>
+            </div>
+          )}
         </div>
       ) : !isDiscovering && (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/5 rounded-2xl border border-dashed border-border">

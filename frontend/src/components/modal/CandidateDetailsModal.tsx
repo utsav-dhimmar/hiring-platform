@@ -21,7 +21,7 @@ import {
 // Sub-components
 import { CandidateHeader } from "@/components/modal/candidate-details/CandidateHeader";
 import { AnalysisStats } from "@/components/modal/candidate-details/AnalysisStats";
-import { AnalysisTabs } from "@/components/modal/candidate-details/AnalysisTabs";
+import { AnalysisTabs, type AnalysisTab } from "@/components/modal/candidate-details/AnalysisTabs";
 import { AnalysisContent } from "@/components/modal/candidate-details/AnalysisContent";
 import { DecisionHistory } from "@/components/modal/candidate-details/DecisionHistory";
 import { JobDescriptionView } from "@/components/modal/candidate-details/JobDescriptionView";
@@ -40,7 +40,7 @@ interface CandidateDetailsModalProps {
   candidate: CandidateResponse | CandidateAnalysis | null;
   jobId?: string;
   onDecisionSubmitted?: () => void | Promise<void>;
-  initialTab?: "analysis" | "jd" | "discovery" | "version-result";
+  initialTab?: AnalysisTab;
   passing_threshold?: number;
 }
 
@@ -72,7 +72,7 @@ export function CandidateDetailsModal({
   const [job, setJob] = useState<Job | null>(null);
   const [selectedVersionData, setSelectedVersionData] =
     useState<JobVersionDetail | null>(null);
-  const [activeTab, setActiveTab] = useState<"analysis" | "jd" | "discovery" | "version-result">(initialTab);
+  const [activeTab, setActiveTab] = useState<AnalysisTab>(initialTab);
   const [isLoadingVersion, setIsLoadingVersion] = useState(false);
 
   const form = useForm<CandidateDecisionFormValues>({
@@ -264,7 +264,7 @@ export function CandidateDetailsModal({
                 undefined
               }
             />
-          ) : activeTab === "discovery" ? (
+          ) : activeTab === "cross-job-match" ? (
             <CrossMatchView
               resumeId={(candidate as CandidateAnalysis)?.resume_id}
               candidateId={candidate.id}

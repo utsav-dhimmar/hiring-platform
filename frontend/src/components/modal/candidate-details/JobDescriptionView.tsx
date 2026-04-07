@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { FileText, History, AlertCircle } from "lucide-react";
 import type { Job, JobVersionDetail } from "@/types/job";
+import { DateDisplay } from "@/components/shared";
 
 /**
  * Props for {@link JobDescriptionView}.
@@ -59,9 +60,7 @@ export function JobDescriptionView({
                   <span className="h-0.75 w-0.75 bg-muted-foreground/40 rounded-full" />
                   <span>
                     Updated{" "}
-                    {new Date(
-                      selectedVersionData.created_at,
-                    ).toLocaleDateString()}
+                    <DateDisplay date={selectedVersionData.created_at} className="text-xs" />
                   </span>
                 </div>
               </div>

@@ -36,7 +36,7 @@ export default function JobCandidates() {
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
-  const [modalInitialTab, setModalInitialTab] = useState<"analysis" | "jd" | "discovery">("analysis");
+  const [modalInitialTab, setModalInitialTab] = useState<"analysis" | "jd" | "cross-job-match">("analysis");
 
   const handleUploadClick = () => {
     if (!job?.is_active) return;

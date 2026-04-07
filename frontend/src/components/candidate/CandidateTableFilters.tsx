@@ -266,6 +266,10 @@ export const CandidateTableFilters = ({
               onSelect={setDateRange}
               numberOfMonths={1}
               disabled={{ after: new Date(), before: minDate }}
+              buttonVariant="ghost"
+              captionLayout="label"
+            // hidden={{ before: minDate }}
+
             />
           </PopoverContent>
         </Popover>

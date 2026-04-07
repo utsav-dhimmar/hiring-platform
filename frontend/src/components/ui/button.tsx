@@ -53,12 +53,18 @@ function Button({
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn("relative", buttonVariants({ variant, size, className }))}
       disabled={isLoading || props.disabled}
       {...props}
     >
-      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      {children}
+      <span className={cn("flex items-center justify-center gap-2", isLoading && "opacity-0 invisible")}>
+        {children}
+      </span>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
+      )}
     </ButtonPrimitive>
   );
 }
