@@ -6,9 +6,11 @@ import uuid
 from typing import Any
 
 from fastapi import HTTPException, status
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.models.departments import Department
+from app.v1.db.models.jobs import Job
 from app.v1.repository.department_repository import department_repository
 from app.v1.schemas.department import DepartmentCreate, DepartmentRead, DepartmentUpdate
 from app.v1.schemas.response import PaginatedData
@@ -109,8 +111,35 @@ class DepartmentService:
     async def delete_department(
         self, db: AsyncSession, admin_user_id: uuid.UUID, department_id: uuid.UUID
     ) -> None:
-        """Delete a department."""
-        await self.get_department_by_id(db=db, department_id=department_id)
+        """Delete a department only if it is not used in any active job."""
+        department = await self.get_department_by_id(db=db, department_id=department_id)
+
+        active_jobs_stmt = (
+            select(Job.title)
+            .where(Job.department_id == department_id, Job.is_active.is_(True))
+            .limit(5)
+        )
+        active_jobs_result = await db.execute(active_jobs_stmt)
+        active_job_titles = [row[0] for row in active_jobs_result.fetchall()]
+
+        active_jobs_count_stmt = select(func.count(Job.id)).where(
+            Job.department_id == department_id,
+            Job.is_active.is_(True),
+        )
+        active_jobs_count = await db.scalar(active_jobs_count_stmt) or 0
+
+        if active_jobs_count > 0:
+            jobs_text = ", ".join(active_job_titles)
+            if active_jobs_count > 5:
+                jobs_text += " and others"
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Cannot delete department '{department.name}' because it is being used in {active_jobs_count} active job(s): [{jobs_text}]. "
+                    "Please deactivate or reassign those jobs first."
+                ),
+            )
+
         await department_repository.crud.delete(db=db, id=department_id)
         await audit_service.log_action(
             db=db,

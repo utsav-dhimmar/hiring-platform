@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.models.audit_logs import AuditLog
 from app.v1.repository.admin_repository import admin_repository
 from app.v1.schemas.admin import AuditLogRead
+from app.v1.schemas.response import PaginatedData
 
 
 class AuditService:
@@ -41,8 +42,8 @@ class AuditService:
         await admin_repository.create_audit_log(db=db, audit_log=audit_log)
 
     async def get_audit_logs(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> list[AuditLogRead]:
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, q: str | None = None
+    ) -> PaginatedData[AuditLogRead]:
         """
         Retrieve all audit logs with pagination.
 
@@ -52,9 +53,13 @@ class AuditService:
         @returns List of AuditLog objects
         """
         logs = await admin_repository.get_audit_logs(
-            db=db, skip=skip, limit=limit
+            db=db, skip=skip, limit=limit, q=q
         )
-        return [AuditLogRead.model_validate(log) for log in logs]
+        total = await admin_repository.count_all_audit_logs(db=db, q=q)
+        return PaginatedData[AuditLogRead](
+            data=[AuditLogRead.model_validate(log) for log in logs],
+            total=total,
+        )
 
 
 audit_service = AuditService()

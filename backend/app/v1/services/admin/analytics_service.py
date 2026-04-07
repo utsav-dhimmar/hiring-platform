@@ -3,7 +3,8 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.repository.admin_repository import admin_repository
-from app.v1.schemas.admin import AnalyticsSummary, HiringReport
+from app.v1.schemas.admin import AnalyticsSummary, HiringReport, RecentUploadRead
+from app.v1.schemas.response import PaginatedData
 
 
 class AnalyticsService:
@@ -12,8 +13,8 @@ class AnalyticsService:
     """
 
     async def get_recent_uploads(
-        self, db: AsyncSession, skip: int = 0, limit: int = 50
-    ) -> list[Any]:
+        self, db: AsyncSession, skip: int = 0, limit: int = 50, q: str | None = None
+    ) -> PaginatedData[RecentUploadRead]:
         """
         Retrieve recent file uploads.
 
@@ -22,8 +23,13 @@ class AnalyticsService:
         @param limit - Maximum number of records to return
         @returns List of File objects
         """
-        return await admin_repository.get_recent_uploads(
-            db=db, skip=skip, limit=limit
+        uploads = await admin_repository.get_recent_uploads(
+            db=db, skip=skip, limit=limit, q=q
+        )
+        total = await admin_repository.count_recent_uploads(db=db, q=q)
+        return PaginatedData[RecentUploadRead](
+            data=[RecentUploadRead.model_validate(upload) for upload in uploads],
+            total=total,
         )
 
     async def get_analytics_summary(self, db: AsyncSession) -> AnalyticsSummary:

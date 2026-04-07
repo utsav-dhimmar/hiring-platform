@@ -47,6 +47,10 @@ class AdminRepository:
         )
         return list(result.scalars().all())
 
+    async def count_all_users(self, db: AsyncSession) -> int:
+        """Get total number of users."""
+        return await db.scalar(select(func.count(User.id))) or 0
+
     async def get_user_by_id(self, db: AsyncSession, user_id: uuid.UUID) -> User | None:
         """
         Retrieve a user by their unique identifier.
@@ -112,6 +116,15 @@ class AdminRepository:
 
         result = await db.execute(stmt.offset(skip).limit(limit).order_by(Role.name))
         return list(result.scalars().all())
+
+    async def count_all_roles(
+        self, db: AsyncSession, search: str | None = None
+    ) -> int:
+        """Get total number of roles with optional search by name."""
+        stmt = select(func.count(Role.id))
+        if search:
+            stmt = stmt.where(Role.name.ilike(f"%{search}%"))
+        return await db.scalar(stmt) or 0
 
     async def get_role_by_id(self, db: AsyncSession, role_id: uuid.UUID) -> Role | None:
         """
@@ -196,6 +209,10 @@ class AdminRepository:
         )
         return list(result.scalars().all())
 
+    async def count_all_permissions(self, db: AsyncSession) -> int:
+        """Get total number of permissions."""
+        return await db.scalar(select(func.count(Permission.id))) or 0
+
     async def get_permission_by_id(
         self, db: AsyncSession, permission_id: uuid.UUID
     ) -> Permission | None:
@@ -267,7 +284,7 @@ class AdminRepository:
         return await self.get_role_by_id(db, role.id)
 
     async def get_audit_logs(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, q: str | None = None
     ) -> list[AuditLog]:
         """
         Retrieve all audit logs with pagination and user names.
@@ -277,14 +294,19 @@ class AdminRepository:
         @param limit - Maximum number of records to return
         @returns List of AuditLog objects ordered by creation date descending
         """
-        result = await db.execute(
-            select(AuditLog)
-            .options(selectinload(AuditLog.user))
-            .offset(skip)
-            .limit(limit)
-            .order_by(desc(AuditLog.created_at))
-        )
+        stmt = select(AuditLog).options(selectinload(AuditLog.user))
+        if q:
+            stmt = stmt.where(AuditLog.action.ilike(f"%{q}%"))
+        stmt = stmt.offset(skip).limit(limit).order_by(desc(AuditLog.created_at))
+        result = await db.execute(stmt)
         return list(result.scalars().all())
+
+    async def count_all_audit_logs(self, db: AsyncSession, q: str | None = None) -> int:
+        """Get total number of audit logs, optionally filtered by action."""
+        stmt = select(func.count(AuditLog.id))
+        if q:
+            stmt = stmt.where(AuditLog.action.ilike(f"%{q}%"))
+        return await db.scalar(stmt) or 0
 
     async def get_audit_logs_by_user(
         self,
@@ -325,7 +347,7 @@ class AdminRepository:
         return audit_log
 
     async def get_recent_uploads(
-        self, db: AsyncSession, skip: int = 0, limit: int = 50
+        self, db: AsyncSession, skip: int = 0, limit: int = 50, q: str | None = None
     ) -> list[File]:
         """
         Retrieve recent file uploads.
@@ -335,15 +357,19 @@ class AdminRepository:
         @param limit - Maximum number of records to return
         @returns List of File objects ordered by creation date descending
         """
-        result = await db.execute(
-            select(File)
-            .offset(skip)
-            .limit(limit)
-            .order_by(desc(File.created_at))
-            .options(selectinload(File.owner), selectinload(File.candidate))
-        )
-
+        stmt = select(File).options(selectinload(File.owner), selectinload(File.candidate))
+        if q:
+            stmt = stmt.where(File.file_name.ilike(f"%{q}%"))
+        stmt = stmt.offset(skip).limit(limit).order_by(desc(File.created_at))
+        result = await db.execute(stmt)
         return list(result.scalars().all())
+
+    async def count_recent_uploads(self, db: AsyncSession, q: str | None = None) -> int:
+        """Get total number of uploaded files, optionally filtered by file name."""
+        stmt = select(func.count(File.id))
+        if q:
+            stmt = stmt.where(File.file_name.ilike(f"%{q}%"))
+        return await db.scalar(stmt) or 0
 
     async def get_analytics_summary(self, db: AsyncSession) -> dict:
         """

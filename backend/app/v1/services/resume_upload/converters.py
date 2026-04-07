@@ -106,7 +106,8 @@ def status_response_from_resume(
 
     # Get version history
     version_results = None
-    if hasattr(resume_record, "version_results") and resume_record.version_results:
+    loaded_version_results = getattr(resume_record, "__dict__", {}).get("version_results")
+    if loaded_version_results:
         version_results = [
             {
                 "id": str(vr.id),
@@ -118,7 +119,7 @@ def status_response_from_resume(
                 "analysis_data": vr.analysis_data,
                 "analyzed_at": vr.analyzed_at.isoformat() if vr.analyzed_at else None,
             }
-            for vr in resume_record.version_results
+            for vr in loaded_version_results
         ]
 
     return ResumeStatusResponse(
@@ -158,7 +159,8 @@ def upload_response_from_records(
     processing = parse_processing_info(getattr(resume_record, "parse_summary", None))
     # Get version history (usually just the newly created one, if any)
     version_results = None
-    if hasattr(resume_record, "version_results") and resume_record.version_results:
+    loaded_version_results = getattr(resume_record, "__dict__", {}).get("version_results")
+    if loaded_version_results:
         version_results = [
             {
                 "id": str(vr.id),
@@ -170,7 +172,7 @@ def upload_response_from_records(
                 "analysis_data": vr.analysis_data,
                 "analyzed_at": vr.analyzed_at.isoformat() if vr.analyzed_at else None,
             }
-            for vr in resume_record.version_results
+            for vr in loaded_version_results
         ]
 
     return ResumeUploadResponse(

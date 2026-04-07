@@ -31,6 +31,7 @@ from app.v1.schemas.job_stage import (
     StageTemplateRead,
     StageTemplateUpdate,
 )
+from app.v1.schemas.response import PaginatedData
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
 from app.v1.services.stage_service import stage_service
@@ -47,7 +48,7 @@ audit logs, analytics, and hiring reports. All endpoints require admin authentic
 """
 
 
-@router.get("/users", response_model=list[UserAdminRead])
+@router.get("/users", response_model=PaginatedData[UserAdminRead])
 async def get_all_users(
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("users:read")),
@@ -109,7 +110,7 @@ async def delete_user(
     )
 
 
-@router.get("/roles", response_model=list[RoleRead])
+@router.get("/roles", response_model=PaginatedData[RoleRead])
 async def get_all_roles(
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("roles:read")),
@@ -174,7 +175,7 @@ async def delete_role(
     )
 
 
-@router.get("/permissions", response_model=list[PermissionRead])
+@router.get("/permissions", response_model=PaginatedData[PermissionRead])
 async def get_all_permissions(
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("permissions:read")),
@@ -218,26 +219,30 @@ async def delete_permission(
     )
 
 
-@router.get("/audit-logs", response_model=list[AuditLogRead])
+
+@router.get("/audit-logs", response_model=PaginatedData[AuditLogRead])
 async def get_audit_logs(
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("audit:read")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
-    """Get all audit logs."""
-    return await admin_service.get_audit_logs(db=db, skip=skip, limit=limit)
+    """Get all audit logs, optionally filtered by action."""
+    return await admin_service.get_audit_logs(db=db, skip=skip, limit=limit, q=q)
 
 
-@router.get("/recent-uploads", response_model=list[RecentUploadRead])
+
+@router.get("/recent-uploads", response_model=PaginatedData[RecentUploadRead])
 async def get_recent_uploads(
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("files:read")),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
+    q: str | None = Query(None),
 ) -> Any:
-    """Get recent file uploads."""
-    return await admin_service.get_recent_uploads(db=db, skip=skip, limit=limit)
+    """Get recent file uploads, optionally filtered by file name."""
+    return await admin_service.get_recent_uploads(db=db, skip=skip, limit=limit, q=q)
 
 
 @router.get("/analytics", response_model=AnalyticsSummary)

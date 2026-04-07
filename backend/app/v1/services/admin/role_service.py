@@ -6,7 +6,14 @@ from app.v1.core.logging import get_logger
 from app.v1.db.models.permissions import Permission
 from app.v1.db.models.roles import Role
 from app.v1.repository.admin_repository import admin_repository
-from app.v1.schemas.admin import PermissionCreate, RoleCreate, RoleUpdate
+from app.v1.schemas.admin import (
+    PermissionCreate,
+    PermissionRead,
+    RoleCreate,
+    RoleRead,
+    RoleUpdate,
+)
+from app.v1.schemas.response import PaginatedData
 from app.v1.services.admin.audit_service import audit_service
 
 logger = get_logger(__name__)
@@ -18,12 +25,17 @@ class RoleService:
 
     async def get_all_roles(
         self, db: AsyncSession, skip: int = 0, limit: int = 100, search: str | None = None
-    ) -> list[Role]:
+    ) -> PaginatedData[RoleRead]:
         """
         Retrieve all roles with pagination and optional search by name.
         """
-        return await admin_repository.get_all_roles(
+        roles = await admin_repository.get_all_roles(
             db=db, skip=skip, limit=limit, search=search
+        )
+        total = await admin_repository.count_all_roles(db=db, search=search)
+        return PaginatedData[RoleRead](
+            data=[RoleRead.model_validate(role) for role in roles],
+            total=total,
         )
 
     async def get_role_by_id(
@@ -202,7 +214,7 @@ class RoleService:
 
     async def get_all_permissions(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> list[Permission]:
+    ) -> PaginatedData[PermissionRead]:
         """
         Retrieve all permissions with pagination.
 
@@ -211,8 +223,13 @@ class RoleService:
         @param limit - Maximum number of records to return
         @returns List of Permission objects
         """
-        return await admin_repository.get_all_permissions(
+        permissions = await admin_repository.get_all_permissions(
             db=db, skip=skip, limit=limit
+        )
+        total = await admin_repository.count_all_permissions(db=db)
+        return PaginatedData[PermissionRead](
+            data=[PermissionRead.model_validate(permission) for permission in permissions],
+            total=total,
         )
 
     async def create_permission(
