@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Filter, X, Calendar as CalendarIcon, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { cn, capitalize } from "@/lib/utils";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import {
@@ -77,7 +77,7 @@ export const JobTableFilters = ({
           {statusFilter.length === 0
             ? "All Statuses"
             : statusFilter.length === 1
-              ? statusFilter[0].charAt(0).toUpperCase() + statusFilter[0].slice(1)
+              ? capitalize(statusFilter[0])
               : `${statusFilter.length} statuses`}
           <ChevronDown className="h-3.5 w-3.5 opacity-60" />
         </DropdownMenuTrigger>
@@ -98,7 +98,7 @@ export const JobTableFilters = ({
                   )
                 }
               >
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {capitalize(s)}
               </DropdownMenuCheckboxItem>
             ))}
             {statusFilter.length > 0 && (
@@ -202,7 +202,7 @@ export const JobTableFilters = ({
               defaultMonth={dateRange?.from}
               selected={dateRange}
               onSelect={setDateRange}
-              numberOfMonths={2}
+              numberOfMonths={1}
               disabled={{ after: new Date(), before: minDate }}
             />
           </PopoverContent>

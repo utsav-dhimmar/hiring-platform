@@ -1,11 +1,14 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Loader2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  // Loader2
+} from "lucide-react";
 import { DateDisplay, StatusBadge } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
-import { cn } from "@/lib/utils";
+import { cn, capitalize, toTitleCase } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
 
 function scoreColor(score: number, threshold: number = 65) {
@@ -158,33 +161,33 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
       },
 
       // 3. STATUS
-      {
-        id: "status",
-        accessorKey: "processing_status",
-        header: "Status",
-        cell: ({ row }) => {
-          const c = row.original;
-          const status = c.processing_status || c.current_status;
-          if (status === "processing" || status === "queued") {
-            return (
-              <Badge
-                variant="secondary"
-                className="inline-flex items-center gap-1 rounded-lg"
-              >
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Processing
-              </Badge>
-            );
-          }
-          if (!status)
-            return <span className="text-muted-foreground text-sm">N/A</span>;
-          return (
-            <StatusBadge
-              status={status === "failed" ? "failed" : "completed"}
-            />
-          );
-        },
-      },
+      // {
+      //   id: "status",
+      //   accessorKey: "processing_status",
+      //   header: "Status",
+      //   cell: ({ row }) => {
+      //     const c = row.original;
+      //     const status = c.processing_status || c.current_status;
+      //     if (status === "processing" || status === "queued") {
+      //       return (
+      //         <Badge
+      //           variant="secondary"
+      //           className="inline-flex items-center gap-1 rounded-lg"
+      //         >
+      //           <Loader2 className="h-3 w-3 animate-spin" />
+      //           Processing
+      //         </Badge>
+      //       );
+      //     }
+      //     if (!status)
+      //       return <span className="text-muted-foreground text-sm">N/A</span>;
+      //     return (
+      //       <StatusBadge
+      //         status={status === "failed" ? "failed" : "completed"}
+      //       />
+      //     );
+      //   },
+      // },
 
       // 4. SCREENING DECISION
       {
@@ -271,7 +274,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                 href={url.startsWith("http") ? url : `https://${url}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title={`${type.charAt(0).toUpperCase() + type.slice(1)} Profile`}
+                title={`${capitalize(type)} Profile`}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon-sm" }),
                   linkColor,
@@ -350,9 +353,13 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           const loc = row.original.location;
           if (!loc)
             return <span className="text-muted-foreground text-sm">N/A</span>;
-          const truncatedLoc = loc.length > 20 ? `${loc.slice(0, 18)}...` : loc;
+          
+          // Normalize to Title Case
+          const normalized = toTitleCase(loc.trim());
+
+          const truncatedLoc = normalized.length > 20 ? `${normalized.slice(0, 18)}...` : normalized;
           return (
-            <div className="flex items-center gap-1.5 text-sm" title={loc}>
+            <div className="flex items-center gap-1.5 text-sm" title={normalized}>
               <span>{truncatedLoc}</span>
             </div>
           );

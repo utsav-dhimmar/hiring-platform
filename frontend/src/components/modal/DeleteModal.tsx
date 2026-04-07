@@ -31,6 +31,8 @@ interface DeleteModalProps {
   confirmButtonText?: string;
   /** Text for the cancel button (default: "Cancel") */
   cancelButtonText?: string;
+  /** Whether to show the footer buttons (Delete/Cancel) or just a Close button (default: true) */
+  showFooterButtons?: boolean;
   /** Whether the confirm action is in progress */
   isLoading?: boolean;
   /** Error message to display (if any) */
@@ -50,6 +52,7 @@ const DeleteModal = ({
   message,
   confirmButtonText = "Delete",
   cancelButtonText = "Cancel",
+  showFooterButtons = true,
   isLoading = false,
   error = null,
   confirmVariant = "destructive",
@@ -69,15 +72,24 @@ const DeleteModal = ({
               <div className="text-sm text-destructive">{error}</div>
             </div>
           )}
-          <p className="mb-0">{message}</p>
+          {showFooterButtons && <p className="mb-0">{message}</p>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-            {cancelButtonText}
-          </Button>
-          <Button variant={confirmVariant} onClick={handleConfirm} isLoading={isLoading}>
-            {confirmButtonText}
-          </Button>
+          {showFooterButtons && (
+            <>
+              <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+                {cancelButtonText}
+              </Button>
+              <Button variant={confirmVariant} onClick={handleConfirm} isLoading={isLoading}>
+                {confirmButtonText}
+              </Button>
+
+
+              {/* <Button variant="outline" onClick={handleClose}>
+                Close
+              </Button> */}
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

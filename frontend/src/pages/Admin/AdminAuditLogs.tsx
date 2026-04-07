@@ -10,6 +10,7 @@ import { useAdminData } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import { toTitleCase } from "@/lib/utils";
 
 const AdminAuditLogs = () => {
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
@@ -58,9 +59,7 @@ const AdminAuditLogs = () => {
       accessorKey: "action",
       header: "Action",
       cell: ({ row }) => {
-        let action = row.original.action;
-        action = action.replace("_", " ");
-        action = action.charAt(0).toUpperCase() + action.slice(1);
+        const action = toTitleCase(row.original.action);
         return <span className="font-bold text-primary">{action}</span>
       },
     },

@@ -85,18 +85,17 @@ const AdminSkills = () => {
     if (!jobMatch) return error;
 
     // Get skill delete main message
-    const mainMessage = error.split("ACTIVE Job(s):")[0].trim();
-    // job name ['a','b']
+    const mainMessage = error.split(/active job\(s\):/i)[0].trim();
+    // job name [a, b]
     const jobNamesStr = jobMatch[1];
 
 
-    // Simple parser for Python-style list string: ['a', 'b']
+    // Simple parser for comma-separated job names: [Job A, Job B]
     const jobNames = jobNamesStr
       .split(",")
       .map((name) => {
         let trimmed = name.trim();
-        // remove quotes 
-        // 'Backend developer' -> Backend developer
+        // remove quotes if they exist (for robustness)
         if (
           (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
           (trimmed.startsWith('"') && trimmed.endsWith('"'))
@@ -230,6 +229,7 @@ const AdminSkills = () => {
         message={deleteMessage}
         isLoading={isDeleting}
         error={renderFormattedError(deleteError)}
+        showFooterButtons={!deleteError}
       />
     </AppPageShell>
   );

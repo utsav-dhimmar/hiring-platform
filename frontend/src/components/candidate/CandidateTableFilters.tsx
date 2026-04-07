@@ -39,15 +39,15 @@ interface CandidateTableFiltersProps {
 export const CandidateTableFilters = ({
   nameFilter,
   setNameFilter,
-  statusFilter,
-  setStatusFilter,
+  // statusFilter,
+  // setStatusFilter,
   locationFilter,
   setLocationFilter,
   dateRange,
   setDateRange,
   hrDecisionFilter,
   setHrDecisionFilter,
-  statusOptions,
+  // statusOptions,
   locationOptions,
   hasActiveFilters,
   clearFilters,
@@ -70,7 +70,7 @@ export const CandidateTableFilters = ({
       </div>
 
       {/* Status dropdown */}
-      <DropdownMenu>
+      {/* <DropdownMenu>
         <DropdownMenuTrigger
           className={cn(
             "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
@@ -82,7 +82,7 @@ export const CandidateTableFilters = ({
           {statusFilter.length === 0
             ? "All Statuses"
             : statusFilter.length === 1
-              ? statusFilter[0].charAt(0).toUpperCase() + statusFilter[0].slice(1)
+              ? capitalize(statusFilter[0])
               : `${statusFilter.length} statuses`}
           <ChevronDown className="h-3.5 w-3.5 opacity-60" />
         </DropdownMenuTrigger>
@@ -103,7 +103,7 @@ export const CandidateTableFilters = ({
                   )
                 }
               >
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {capitalize(s)}
               </DropdownMenuCheckboxItem>
             ))}
             {statusFilter.length > 0 && (
@@ -119,7 +119,7 @@ export const CandidateTableFilters = ({
             )}
           </DropdownMenuGroup>
         </DropdownMenuContent>
-      </DropdownMenu>
+      </DropdownMenu> */}
 
       {/* Location dropdown */}
       {locationOptions.length > 0 && (
@@ -264,7 +264,7 @@ export const CandidateTableFilters = ({
               defaultMonth={dateRange?.from}
               selected={dateRange}
               onSelect={setDateRange}
-              numberOfMonths={2}
+              numberOfMonths={1}
               disabled={{ after: new Date(), before: minDate }}
             />
           </PopoverContent>

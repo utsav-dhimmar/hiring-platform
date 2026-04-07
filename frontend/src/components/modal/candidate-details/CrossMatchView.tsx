@@ -135,7 +135,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           ) : (
             <>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Relaunch Discovery
+              Cross Job Match
             </>
           )}
         </Button>
@@ -218,7 +218,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           <Compass className="h-12 w-12 text-muted-foreground/20 mb-4" />
           <h4 className="font-bold text-foreground">No matches found yet</h4>
           <p className="text-sm text-muted-foreground max-w-sm mt-1">
-            Click "Relaunch Discovery" to scan this candidate against all active jobs.
+            Click "Cross Job Match" to scan this candidate against all active jobs.
           </p>
         </div>
       )}

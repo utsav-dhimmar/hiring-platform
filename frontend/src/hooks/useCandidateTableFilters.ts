@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { startOfDay, endOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import type { UnifiedCandidate } from "@/types/candidate";
+import { toTitleCase } from "@/lib/utils";
 
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates: T[]) => {
   const [nameFilter, setNameFilter] = useState("");
@@ -25,7 +26,11 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
   const locationOptions = useMemo(() => {
     const set = new Set<string>();
     candidates.forEach((c) => {
-      if (c.location) set.add(c.location);
+      if (c.location) {
+        // Normalize to Title Case for display consistency
+        const normalized = toTitleCase(c.location.trim());
+        if (normalized) set.add(normalized);
+      }
     });
     return Array.from(set).sort();
   }, [candidates]);
@@ -62,10 +67,13 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
         if (!statusFilter.includes(candidateStatus)) return false;
       }
 
-      // Location filter (multi-select)
+      // Location filter (multi-select) - Case-insensitive comparison
       if (locationFilter.length > 0) {
-        const candidateLocation = c.location || "";
-        if (!locationFilter.includes(candidateLocation)) return false;
+        const candidateLocation = (c.location || "").trim().toLowerCase();
+        const isMatched = locationFilter.some(
+          (filterLoc) => filterLoc.toLowerCase() === candidateLocation
+        );
+        if (!isMatched) return false;
       }
 
       // Date range filter

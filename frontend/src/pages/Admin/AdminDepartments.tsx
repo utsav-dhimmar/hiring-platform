@@ -8,9 +8,10 @@ import type { DepartmentRead } from "@/types/admin";
 import { AppPageShell, PageHeader, useToast, DataTable, ErrorDisplay } from "@/components/shared";
 import { CreateDepartmentModal, DeleteModal } from "@/components/modal";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
-import { Edit2, Trash2Icon, ArrowUpDown } from "lucide-react";
+import { Edit2, Trash2Icon, ArrowUpDown, AlertCircle } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
+import { Badge } from "@/components/ui/badge";
 
 const AdminDepartments = () => {
   const toast = useToast();
@@ -57,6 +58,57 @@ const AdminDepartments = () => {
   const handleCreateClick = () => {
     setSelectedDepartment(null);
     setShowModal(true);
+  };
+
+  /**
+   * Parses the backend error message to extract job names if the department is in use.
+   * Current Backend Response Format: "... ACTIVE Job(s): ['Job A', 'Job B'] ..."
+   */
+  const renderFormattedError = (error: string | null) => {
+    if (!error) return null;
+
+    // Get job names
+    const jobMatch = error.match(/active job\(s\): \[(.*?)\]/i);
+    if (!jobMatch) return error;
+
+    // Get department delete main message
+    const mainMessage = error.split(/active job\(s\):/i)[0].trim();
+    const jobNamesStr = jobMatch[1];
+
+    // Simple parser for comma-separated job names: [Job A, Job B]
+    const jobNames = jobNamesStr
+      .split(",")
+      .map((name) => {
+        let trimmed = name.trim();
+        // remove quotes if they exist (for robustness)
+        if (
+          (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+          (trimmed.startsWith('"') && trimmed.endsWith('"'))
+        ) {
+          return trimmed.slice(1, -1);
+        }
+        return trimmed;
+      })
+      .filter(Boolean);
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start gap-2 text-destructive">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <p className="text-sm font-medium">{mainMessage}</p>
+        </div>
+        <div className="flex flex-wrap gap-2 pl-6">
+          {jobNames.map((job, idx) => (
+            <Badge key={idx} variant="outline">
+              {job}
+            </Badge>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground pl-6">
+          Please deactivate or remove this department from these jobs before deleting.
+        </p>
+      </div>
+    );
   };
 
   const handleEditClick = (dept: DepartmentRead) => {
@@ -157,7 +209,8 @@ const AdminDepartments = () => {
         title="Delete Department"
         message={deleteMessage}
         isLoading={isDeleting}
-        error={deleteError}
+        error={renderFormattedError(deleteError)}
+        showFooterButtons={!deleteError}
       />
     </AppPageShell>
   );
