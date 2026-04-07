@@ -22,8 +22,8 @@ interface CandidateSearchTableProps {
   pagination: PaginationState;
   onPaginationChange: OnChangeFn<PaginationState>;
   onShowMore: (candidate: CandidateResponse) => void;
-  onShowAnalysisDetails: (candidate: CandidateResponse) => void;
-  onDelete: (candidate: CandidateResponse) => void;
+  // onShowAnalysisDetails: (candidate: CandidateResponse) => void;
+  // onDelete: (candidate: CandidateResponse) => void;
 }
 
 const CandidateSearchTable = ({
@@ -32,7 +32,6 @@ const CandidateSearchTable = ({
   pagination,
   onPaginationChange,
   onShowMore,
-  onShowAnalysisDetails,
 }: CandidateSearchTableProps): ReactElement => {
   return (
     <CandidateTable

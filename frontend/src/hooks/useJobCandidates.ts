@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import jobService from "@/apis/job";
 import { toast } from "sonner";
@@ -169,6 +169,12 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
 
   const decisionSummary = job?.decision_summary;
 
+  const minDate = useMemo(() => {
+    if (candidates.length === 0) return new Date();
+    const dates = candidates.map((c) => new Date(c.created_at).getTime());
+    return new Date(Math.min(...dates));
+  }, [candidates]);
+
   return {
     candidates,
     job,
@@ -190,5 +196,6 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
       maybeCount: decisionSummary?.maybe_count ?? 0,
       undecidedCount: decisionSummary?.undecided_count ?? candidates.length,
     },
+    minDate,
   };
 };

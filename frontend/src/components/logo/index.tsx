@@ -35,13 +35,13 @@ export const LogoComponent = ({
 
 export const GithubLogo = (props: Omit<LogoProps, "src">) => {
   const { theme } = useTheme();
-  const variant = props.variant || (theme === "dark" ? "light" : "light");
+  const variant = props.variant || (theme === "dark" ? "dark" : "light");
   return <LogoComponent src={github} {...props} variant={variant} />;
 };
 
 export const LinkedinLogo = (props: Omit<LogoProps, "src">) => {
   const { theme } = useTheme();
-  const variant = props.variant || (theme === "dark" ? "light" : "light");
+  const variant = props.variant || (theme === "dark" ? "dark" : "light");
   return <LogoComponent src={linkedin} {...props} variant={variant} />;
 };
 

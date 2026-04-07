@@ -46,7 +46,7 @@ const JobSearch = ({ onResultsFound, onClear, onError, onSearching }: JobSearchP
     onSearching(true);
     try {
       const results = await jobService.searchJobs(query);
-      onResultsFound(results);
+      onResultsFound(results.data);
     } catch (error) {
       console.error("Failed to search jobs:", error);
       onError("Failed to search jobs. Please try again.");

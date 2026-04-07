@@ -142,7 +142,7 @@ export interface CandidateResponse {
   /** Error message if processing failed */
   processing_error: string | null;
   /** Current HR screening decision, if one has been made */
-  hr_decision?: "approve" | "reject" | "maybe" | null;
+  hr_decision?: "approve" | "reject" | "may be" | null;
   /** ID of the job the candidate applied for */
   applied_job_id?: string | null;
   /** ID of the associated resume record */

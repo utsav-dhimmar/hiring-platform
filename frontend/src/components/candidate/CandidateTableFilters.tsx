@@ -33,6 +33,7 @@ interface CandidateTableFiltersProps {
   clearFilters: () => void;
   resultCount: number;
   totalCount: number;
+  minDate: Date;
 }
 
 export const CandidateTableFilters = ({
@@ -52,7 +53,9 @@ export const CandidateTableFilters = ({
   clearFilters,
   resultCount,
   totalCount,
+  minDate
 }: CandidateTableFiltersProps) => {
+
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/30 rounded-2xl border border-muted-foreground/10 ">
       {/* Name / email search */}
@@ -262,7 +265,7 @@ export const CandidateTableFilters = ({
               selected={dateRange}
               onSelect={setDateRange}
               numberOfMonths={2}
-              disabled={{ after: new Date() }}
+              disabled={{ after: new Date(), before: minDate }}
             />
           </PopoverContent>
         </Popover>

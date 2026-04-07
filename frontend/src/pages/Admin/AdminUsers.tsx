@@ -27,8 +27,8 @@ import { Button } from "@/components";
 
 const AdminUsers = () => {
   const toast = useToast();
-  const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserAdminRead | null>(null);
+  const [_showModal, setShowModal] = useState(false);
+  const [_selectedUser, setSelectedUser] = useState<UserAdminRead | null>(null);
 
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,

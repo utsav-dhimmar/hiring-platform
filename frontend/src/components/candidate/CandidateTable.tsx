@@ -53,9 +53,11 @@ export function CandidateTable<T extends UnifiedCandidate>({
     setDateRange,
     statusOptions,
     locationOptions,
+    minDate,
     filteredCandidates,
     hasActiveFilters,
     clearFilters,
+
   } = useCandidateTableFilters(candidates);
 
   const columns = useCandidateTableColumns({
@@ -82,6 +84,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
         clearFilters={clearFilters}
         resultCount={filteredCandidates.length}
         totalCount={total != null && total !== candidates.length ? total : candidates.length}
+        minDate={minDate}
       />
 
       <DataTable

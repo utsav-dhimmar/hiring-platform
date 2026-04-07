@@ -30,6 +30,19 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
     return Array.from(set).sort();
   }, [candidates]);
 
+  const minDate = useMemo(() => {
+    if (candidates.length === 0) return new Date();
+    let min = new Date();
+    candidates.forEach((c) => {
+      const d = c.applied_at || c.created_at;
+      if (d) {
+        const date = new Date(d);
+        if (date < min) min = date;
+      }
+    });
+    return min;
+  }, [candidates]);
+
   const filteredCandidates = useMemo(() => {
     return candidates.filter((c) => {
       // Name / email filter
@@ -104,6 +117,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
     setDateRange,
     statusOptions,
     locationOptions,
+    minDate,
     filteredCandidates,
     hasActiveFilters,
     clearFilters,
