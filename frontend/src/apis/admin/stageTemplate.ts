@@ -2,7 +2,7 @@ import apiClient from "@/apis/client";
 import type { StageTemplateCreate, StageTemplateUpdate } from "@/types/admin";
 import type { StageTemplate } from "@/types/stage";
 
-const ADMIN_PATH = "/admin";
+const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
 /**
  * Stage Template Management APIs (Admin only)

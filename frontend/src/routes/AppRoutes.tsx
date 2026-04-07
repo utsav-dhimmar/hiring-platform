@@ -168,15 +168,8 @@ const AppRoutes = () => {
               }
             />
           </Route>
-          <Route
-            path="candidates"
-            element={
-              <RoleRoute allowedRoles={["admin", "hr"]} requiredPermissions={["jobs:access"]}>
-                <AdminCandidateSearch />
-              </RoleRoute>
-            }
-          />
         </Route>
+
 
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />

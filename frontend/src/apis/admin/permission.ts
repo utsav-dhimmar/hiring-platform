@@ -1,7 +1,7 @@
 import apiClient from "@/apis/client";
 import type { PaginatedResponse, PermissionCreate, PermissionRead } from "@/types/admin";
 
-const ADMIN_PATH = "/admin";
+const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
 /**
  * Permission Management APIs

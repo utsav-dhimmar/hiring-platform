@@ -74,8 +74,33 @@ export function AnalysisContent({
 
       {children}
 
+      {/* Custom Extractions */}
+      {analysis?.custom_extractions &&
+        Object.keys(analysis.custom_extractions).length > 0 && (
+          <section className="space-y-2 pt-2">
+            <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground px-1">
+              Custom Information
+            </h3>
+            <ul className="flex flex-col gap-1.5 px-2 pb-1 list-none">
+              {Object.entries(analysis.custom_extractions).map(([key, value]) => (
+                <li
+                  key={key}
+                  className="flex items-baseline gap-2 group"
+                >
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                    {key}:
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {String(value || "N/A")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
       {/* Skills & Extraordinary Points */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
         <section className="space-y-2">
           <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
             <AlertCircle className="h-5 w-5 text-red-500/80" />

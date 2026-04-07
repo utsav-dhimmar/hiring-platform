@@ -1,7 +1,7 @@
 import apiClient from "@/apis/client";
 import type { UserAdminCreate, UserAdminRead, UserAdminUpdate } from "@/types/admin";
 
-const ADMIN_PATH = "/admin";
+const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
 /**
  * User Management APIs

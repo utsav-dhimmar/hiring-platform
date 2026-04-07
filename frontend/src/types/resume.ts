@@ -33,6 +33,8 @@ export interface ResumeMatchAnalysis {
   missing_skills: MissingSkill[];
   /** Notable qualifications beyond job requirements */
   extraordinary_points: string[];
+  /** Custom data extracted from the resume (e.g. Notice Period) */
+  custom_extractions?: Record<string, any> | null;
 }
 
 /**
