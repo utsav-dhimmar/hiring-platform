@@ -117,7 +117,20 @@ const AppRoutes = () => {
           <Route
             path="admin"
             element={
-              <RoleRoute requiredPermissions={PERMISSIONS.ADMIN_ACCESS}>
+              <RoleRoute
+                requiredPermissions={[
+                  PERMISSIONS.ADMIN_ACCESS,
+                  PERMISSIONS.ANALYTICS_READ,
+                  PERMISSIONS.AUDIT_READ,
+                  PERMISSIONS.CANDIDATES_ACCESS,
+                  PERMISSIONS.DEPARTMENTS_ACCESS,
+                  PERMISSIONS.FILES_READ,
+                  PERMISSIONS.JOBS_ACCESS,
+                  PERMISSIONS.ROLES_READ,
+                  PERMISSIONS.SKILLS_ACCESS,
+                  PERMISSIONS.USERS_READ,
+                ]}
+              >
                 <Outlet />
               </RoleRoute>
             }
