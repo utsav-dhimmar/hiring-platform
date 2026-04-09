@@ -45,6 +45,33 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         )}
       />
 
+      {/* Vacancy */}
+      <FormField
+        control={control}
+        name="vacancy"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-md font-semibold text-foreground">
+              Vacancy
+            </FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min="1"
+                placeholder="e.g. 5"
+                className="h-10 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                value={field.value !== null && field.value !== undefined ? field.value : ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  field.onChange(val ? parseInt(val, 10) : null);
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
       {/* Department */}
       <FormField
         control={control}

@@ -43,6 +43,7 @@ export default function CreateJob() {
     resolver: zodResolver(jobCreateSchema) as any,
     defaultValues: {
       title: "",
+      vacancy: undefined,
       department_id: "",
       jd_text: "",
       is_active: true,
@@ -100,6 +101,7 @@ export default function CreateJob() {
               setJobId(id);
               form.reset({
                 title: jobData.title,
+                vacancy: jobData.vacancy || undefined,
                 department_id: jobData.department_id || "",
                 jd_text: jobData.jd_text || "",
                 is_active: jobData.is_active ?? true,

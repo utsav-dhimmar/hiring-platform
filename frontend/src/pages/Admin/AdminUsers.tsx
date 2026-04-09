@@ -180,7 +180,7 @@ const AdminUsers = () => {
       header: "Role Name",
       cell: ({ row }) => (
         <small
-          className="text-muted-foreground truncate block max-w-[100px]"
+          className="font-semibold"
           title={row.original.role_name || "N/A"}
         >
           {row.original.role_name || "N/A"}

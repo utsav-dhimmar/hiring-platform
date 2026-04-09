@@ -62,7 +62,15 @@ export const getJobColumns = ({
               </Badge>
             )}
           </div>
-          <span className="text-sm text-muted-foreground">{row.original.department?.name}</span>
+          <div className="flex items-center gap-2">
+
+            <span className="text-sm text-muted-foreground">{row.original.department?.name || "No Department"}</span>
+            <Badge variant="outline" className="text-xs font-normal h-5 px-1.5 rounded-md text-muted-foreground border-muted-foreground/20">
+              {row.original.vacancy != null ? <span>  {row.original.vacancy} Openings</span>
+                : (<span>No Openings</span>)
+              }
+            </Badge>
+          </div>
         </div>
       ),
     },

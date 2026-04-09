@@ -83,6 +83,7 @@ export interface Job {
   total_candidates: number;
   current_session_candidates: number;
   activity_sessions?: JobActivitySession[] | null;
+  vacancy: number | null;
 }
 
 /**

@@ -139,6 +139,8 @@ export type SkillUpdateFormValues = z.infer<typeof skillUpdateSchema>;
 export const jobCreateSchema = z.object({
   /** Job title (minimum 3 characters) */
   title: z.string().min(3, "Job title must be at least 3 characters long"),
+  /** Number of open vacancies */
+  vacancy: z.number().int().min(0, "Vacancy must be at least 0").optional().nullable(),
   /** UUID of the department this job belongs to */
   department_id: z.string().uuid("Please select a valid department").optional().or(z.literal("")),
   /** Job description text (minimum 20 characters) */
@@ -171,6 +173,8 @@ export type JobCreateFormValues = z.infer<typeof jobCreateSchema>;
 export const jobUpdateSchema = z.object({
   /** Job title */
   title: z.string().min(3, "Job title must be at least 3 characters long").optional(),
+  /** Number of open vacancies */
+  vacancy: z.number().int().min(0, "Vacancy must be at least 0").optional().nullable(),
   /** UUID of the department */
   department_id: z.string().uuid("Please select a valid department").optional().or(z.literal("")),
   /** Job description text */

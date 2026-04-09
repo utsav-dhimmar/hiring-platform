@@ -63,10 +63,10 @@ const AdminRoles = () => {
     itemTitle: (perm) => `permission "${perm.name}"`,
   });
 
-  const handleCreateRole = () => {
-    setEditingRoleId(null);
-    setShowRoleModal(true);
-  };
+  // const handleCreateRole = () => {
+  //   setEditingRoleId(null);
+  //   setShowRoleModal(true);
+  // };
 
   const handleEditRole = (roleId: string) => {
     setEditingRoleId(roleId);
@@ -94,7 +94,7 @@ const AdminRoles = () => {
                   size="sm"
                   className="me-2"
                   onClick={() => handleEditRole(role.id)}
-                  disabled={currentUser.role_id === role.id && currentUser.role_name?.toLowerCase() !== "admin"}
+                  disabled={currentUser.role_id === role.id && currentUser.role_name?.toLowerCase() !== "superadmin"}
                 >
                   Edit
                 </Button>
@@ -104,7 +104,7 @@ const AdminRoles = () => {
                   variant="destructive"
                   size="sm"
                   onClick={() => roleDelete.handleDeleteClick(role)}
-                  disabled={currentUser.role_id === role.id && currentUser.role_name?.toLowerCase() !== "admin"}
+                  disabled={currentUser.role_id === role.id && currentUser.role_name?.toLowerCase() !== "superadmin"}
                 >
                   Delete
                 </Button>
