@@ -113,3 +113,29 @@ class JobsListRead(BaseModel):
     total: int
     global_decision_summary: dict | None = None
     global_screening_summary: dict | None = None
+
+class JobActivitySession(BaseModel):
+    """
+    Schema for a single job activation session.
+    Represents a period where the job was active.
+    """
+
+    session_id: int
+    start_date: datetime
+    end_date: datetime | None = None
+    candidate_count: int
+    is_current: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JobActivityHistoryResponse(BaseModel):
+    """
+    Response schema for job activity history.
+    """
+
+    job_id: uuid.UUID
+    total_candidates: int
+    sessions: list[JobActivitySession]
+
+    model_config = ConfigDict(from_attributes=True)
