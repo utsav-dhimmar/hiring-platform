@@ -3,7 +3,7 @@
  * Displays all users with ability to create new users.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { adminUserService } from "@/apis/admin/service";
 import type { UserAdminRead } from "@/types/admin";
 import {
@@ -23,6 +23,8 @@ import {
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
+import { UserTableFilters } from "./components/UserTableFilters";
+import { useUserTableFilters } from "@/hooks/useUserTableFilters";
 
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
@@ -37,13 +39,51 @@ const AdminUsers = () => {
     pageIndex: 0,
     pageSize: 10,
   });
-
   const {
     data: users,
+    total,
     loading,
     error,
     fetchData: fetchUsers,
-  } = useAdminData<UserAdminRead>(() => adminUserService.getAllUsers(0, 100));
+  } = useAdminData<UserAdminRead>(() => adminUserService.getAllUsers(pageIndex * pageSize, pageSize, debouncedSearch));
+
+  const {
+    searchFilter,
+    setSearchFilter,
+    statusFilter,
+    setStatusFilter,
+    roleFilter,
+    setRoleFilter,
+    dateRange,
+    setDateRange,
+    roleOptions,
+    filteredUsers,
+    hasActiveFilters,
+    clearFilters,
+    minDate,
+  } = useUserTableFilters(users);
+
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchFilter);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchFilter]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch]);
+
+
+
+  // Refetch when pagination or search changes
+  useEffect(() => {
+    fetchUsers();
+  }, [pageIndex, pageSize, debouncedSearch, fetchUsers]);
 
   const {
     showModal: showDeleteModal,
@@ -119,15 +159,27 @@ const AdminUsers = () => {
       ),
       cell: ({ row }) => <StatusBadge status={row.original.is_active} />,
     },
+    // {
+    //   accessorKey: "role_id",
+    //   header: "Role ID",
+    //   cell: ({ row }) => (
+    //     <small
+    //       className="text-muted-foreground truncate block max-w-[100px]"
+    //       title={row.original.role_id}
+    //     >
+    //       {row.original.role_id}
+    //     </small>
+    //   ),
+    // },
     {
-      accessorKey: "role_id",
-      header: "Role ID",
+      accessorKey: "role_name",
+      header: "Role Name",
       cell: ({ row }) => (
         <small
           className="text-muted-foreground truncate block max-w-[100px]"
-          title={row.original.role_id}
+          title={row.original.role_name || "N/A"}
         >
-          {row.original.role_id}
+          {row.original.role_name || "N/A"}
         </small>
       ),
     },
@@ -147,6 +199,7 @@ const AdminUsers = () => {
     },
     {
       id: "actions",
+      header: () => <div className="text-right pr-2">Actions</div>,
       cell: ({ row }) => {
         const user = row.original;
         return (
@@ -193,20 +246,38 @@ const AdminUsers = () => {
       {error && !users.length ? (
         <ErrorDisplay message={error} onRetry={fetchUsers} />
       ) : (
-        <DataTable
-          columns={columns}
-          data={users}
-          loading={loading}
-          searchKey="full_name"
-          searchPlaceholder="Search users..."
-          initialSorting={[
-            { id: "is_active", desc: true },
-            { id: "created_at", desc: true },
-          ]}
-          pageIndex={pageIndex}
-          pageSize={pageSize}
-          onPaginationChange={setPagination}
-        />
+        <div className="space-y-4">
+          <UserTableFilters
+            searchFilter={searchFilter}
+            setSearchFilter={setSearchFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            roleFilter={roleFilter}
+            setRoleFilter={setRoleFilter}
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            roleOptions={roleOptions}
+            hasActiveFilters={hasActiveFilters}
+            clearFilters={clearFilters}
+            resultCount={filteredUsers.length}
+            totalCount={total}
+            minDate={minDate}
+          />
+          <DataTable
+            columns={columns}
+            data={filteredUsers}
+            loading={loading}
+            initialSorting={[
+              { id: "is_active", desc: true },
+              { id: "created_at", desc: true },
+            ]}
+            isServerSide={true}
+            pageIndex={pageIndex}
+            pageSize={pageSize}
+            pageCount={Math.ceil((total || 0) / pageSize)}
+            onPaginationChange={setPagination}
+          />
+        </div>
       )}
 
       <CreateUserModal

@@ -13,11 +13,12 @@ export const adminUserService = {
   getAllUsers: async (
     skip: number = 0,
     limit: number = 100,
+    search?: string,
   ): Promise<{ data: UserAdminRead[]; total: number }> => {
     const response = await apiClient.get<{ data: UserAdminRead[]; total: number }>(
       `${ADMIN_PATH}/users`,
       {
-        params: { skip, limit },
+        params: { skip, limit, q: search },
       },
     );
     return response.data;
