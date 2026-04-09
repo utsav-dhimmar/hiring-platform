@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     _env_file: Path = Path(__file__).resolve().parents[4] / ".env"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_env_file),
         env_ignore_empty=True,
         extra="ignore",
     )

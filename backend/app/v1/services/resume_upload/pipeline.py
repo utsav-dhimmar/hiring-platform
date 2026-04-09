@@ -187,6 +187,17 @@ async def run_resume_processing_pipeline(
                     else h_info.get("phone")
                 )
 
+                # Location fallback
+                parsed_location = None
+                for loc_item in normalized.get("location", []):
+                    if isinstance(loc_item, dict):
+                        loc_text = str(loc_item.get("text") or loc_item.get("location") or "").strip()
+                    else:
+                        loc_text = str(loc_item).strip()
+                    if not is_missing(loc_text):
+                        parsed_location = loc_text
+                        break
+
                 # Social Links fallback
                 if not normalized.get("links") or is_missing(normalized["links"][0]["text"]):
                     if h_info.get("links"):
@@ -302,6 +313,7 @@ async def run_resume_processing_pipeline(
                     last_name=last_name,
                     email=parsed_email,
                     phone=parsed_phone,
+                    location=parsed_location,
                     info=parsed_summary,
                     info_embedding=insights["candidate_embedding"],
                 )

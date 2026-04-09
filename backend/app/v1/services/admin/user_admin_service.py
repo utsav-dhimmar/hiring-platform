@@ -18,7 +18,7 @@ class UserAdminService:
     """
 
     async def get_all_users(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, q: str | None = None
     ) -> PaginatedData[UserAdminRead]:
         """
         Retrieve all users with pagination.
@@ -28,8 +28,10 @@ class UserAdminService:
         @param limit - Maximum number of records to return
         @returns List of User objects
         """
-        users = await admin_repository.get_all_users(db=db, skip=skip, limit=limit)
-        total = await admin_repository.count_all_users(db=db)
+        users = await admin_repository.get_all_users(
+            db=db, skip=skip, limit=limit, search=q
+        )
+        total = await admin_repository.count_all_users(db=db, search=q)
         return PaginatedData[UserAdminRead](
             data=[UserAdminRead.model_validate(user) for user in users],
             total=total,

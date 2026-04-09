@@ -291,6 +291,7 @@ class ResumeUploadRepository:
         last_name: str | None = None,
         email: str | None = None,
         phone: str | None = None,
+        location: str | None = None,
         info: dict[str, object],
         info_embedding: list[float] | None = None,
     ) -> Candidate:
@@ -325,6 +326,9 @@ class ResumeUploadRepository:
 
         if phone and not candidate.phone:
             candidate.phone = phone
+
+        if location is not None:
+            candidate.location = location
 
         candidate.info = info
         candidate.info_embedding = info_embedding

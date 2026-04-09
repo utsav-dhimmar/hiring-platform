@@ -291,8 +291,8 @@ class ResumeUploadService:
             )
 
             # 2. Setup defaults
-            location = None
-            if candidate.info and isinstance(candidate.info, dict):
+            location = candidate.location
+            if not location and candidate.info and isinstance(candidate.info, dict):
                 loc_val = candidate.info.get("location")
                 if isinstance(loc_val, str) and loc_val.strip().lower() not in (
                     "not mentioned",

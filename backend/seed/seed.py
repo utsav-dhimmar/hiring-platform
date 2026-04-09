@@ -9,7 +9,11 @@ from app.v1.core.security import hash_password
 from app.v1.db import Permission, Role, User
 from app.v1.db.session import async_session_maker, init_db
 
-ADMIN_ROLE_NAME = os.getenv("ADMIN_ROLE_NAME", "admin")
+SUPERADMIN_ROLE_NAME = "superadmin"
+HR_ADMIN_ROLE_NAME = "hr_admin"
+HR_USER_ROLE_NAME = "hr_user"
+
+ADMIN_ROLE_NAME = os.getenv("ADMIN_ROLE_NAME", SUPERADMIN_ROLE_NAME)
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 ADMIN_FULL_NAME = os.getenv("ADMIN_FULL_NAME", "System Admin")
@@ -24,6 +28,8 @@ DEFAULT_PERMISSIONS = [
     {"name": "permissions:manage", "description": "Create and delete permissions."},
     {"name": "jobs:access", "description": "View jobs list and details."},
     {"name": "jobs:manage", "description": "Create, update, and delete jobs."},
+    {"name": "candidates:access", "description": "View candidate lists and candidate details."},
+    {"name": "candidates:decide", "description": "Approve, reject, and update HR decisions for candidates."},
     {"name": "skills:access", "description": "View skills list and details."},
     {"name": "skills:manage", "description": "Create, update, and delete skills."},
     {"name": "departments:access", "description": "View departments list and details."},
@@ -32,6 +38,34 @@ DEFAULT_PERMISSIONS = [
     {"name": "files:read", "description": "View uploaded files and resumes."},
     {"name": "analytics:read", "description": "View hiring analytics and reports."},
 ]
+
+ROLE_PERMISSION_NAMES: dict[str, set[str]] = {
+    SUPERADMIN_ROLE_NAME: {perm["name"] for perm in DEFAULT_PERMISSIONS},
+    HR_ADMIN_ROLE_NAME: {
+        "admin:access",
+        "users:read",
+        "users:manage",
+        "roles:read",
+        "roles:manage",
+        "permissions:read",
+        "permissions:manage",
+        "jobs:access",
+        "jobs:manage",
+        "candidates:access",
+        "candidates:decide",
+        "skills:access",
+        "skills:manage",
+        "departments:access",
+        "departments:manage",
+        "files:read",
+        "analytics:read",
+    },
+    HR_USER_ROLE_NAME: {
+        "jobs:access",
+        "candidates:access",
+        "candidates:decide",
+    },
+}
 
 
 def utc_now() -> datetime:
@@ -65,19 +99,24 @@ async def ensure_permissions(session) -> list[Permission]:
     return list(all_perms)
 
 
-async def ensure_admin_role(session, permissions: list[Permission]) -> Role:
+async def ensure_role(
+    session,
+    role_name: str,
+    permission_names: set[str],
+    permissions_by_name: dict[str, Permission],
+) -> Role:
     now = utc_now()
     role = (
         await session.execute(
             select(Role)
-            .where(Role.name == ADMIN_ROLE_NAME)
+            .where(Role.name == role_name)
             .options(selectinload(Role.permissions)),
         )
     ).scalar_one_or_none()
 
     if not role:
         role = Role(
-            name=ADMIN_ROLE_NAME,
+            name=role_name,
             created_at=now,
             updated_at=now,
         )
@@ -87,13 +126,40 @@ async def ensure_admin_role(session, permissions: list[Permission]) -> Role:
     else:
         role.updated_at = now
 
-    existing_permission_ids = {permission.id for permission in role.permissions}
-    for permission in permissions:
-        if permission.id not in existing_permission_ids:
-            role.permissions.append(permission)
+    role.permissions = [
+        permissions_by_name[name]
+        for name in sorted(permission_names)
+        if name in permissions_by_name
+    ]
 
     await session.flush()
     return role
+
+
+async def ensure_default_roles(
+    session,
+    permissions_by_name: dict[str, Permission],
+) -> dict[str, Role]:
+    roles: dict[str, Role] = {}
+
+    for role_name, permission_names in ROLE_PERMISSION_NAMES.items():
+        role = await ensure_role(
+            session=session,
+            role_name=role_name,
+            permission_names=permission_names,
+            permissions_by_name=permissions_by_name,
+        )
+        roles[role_name] = role
+
+    if ADMIN_ROLE_NAME not in roles:
+        roles[ADMIN_ROLE_NAME] = await ensure_role(
+            session=session,
+            role_name=ADMIN_ROLE_NAME,
+            permission_names=ROLE_PERMISSION_NAMES[SUPERADMIN_ROLE_NAME],
+            permissions_by_name=permissions_by_name,
+        )
+
+    return roles
 
 
 async def ensure_admin_user(session, role: Role) -> User:
@@ -132,13 +198,16 @@ async def main():
 
     async with async_session_maker() as session:
         permissions = await ensure_permissions(session)
-        role = await ensure_admin_role(session, permissions)
+        permissions_by_name = {permission.name: permission for permission in permissions}
+        roles = await ensure_default_roles(session, permissions_by_name)
+        role = roles.get(ADMIN_ROLE_NAME, roles[SUPERADMIN_ROLE_NAME])
         user = await ensure_admin_user(session, role)
         await session.commit()
 
         print(f"Admin user ready: {user.email}")
         print(f"Role: {role.name}")
         print(f"Permissions synced: {len(role.permissions)}")
+        print("Default roles synced: superadmin, hr_admin, hr_user")
 
 
 if __name__ == "__main__":

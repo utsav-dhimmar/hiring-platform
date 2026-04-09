@@ -32,7 +32,11 @@ class AdminRepository:
     """
 
     async def get_all_users(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
+        self,
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+        search: str | None = None,
     ) -> list[User]:
         """
         Retrieve all users with pagination.
@@ -42,14 +46,27 @@ class AdminRepository:
         @param limit - Maximum number of records to return
         @returns List of User objects ordered by creation date descending
         """
-        result = await db.execute(
-            select(User).offset(skip).limit(limit).order_by(desc(User.created_at))
-        )
+        stmt = select(User)
+        if search:
+            search_term = f"%{search}%"
+            stmt = stmt.where(
+                User.email.ilike(search_term) | User.full_name.ilike(search_term)
+            )
+
+        result = await db.execute(stmt.offset(skip).limit(limit).order_by(desc(User.created_at)))
         return list(result.scalars().all())
 
-    async def count_all_users(self, db: AsyncSession) -> int:
+    async def count_all_users(
+        self, db: AsyncSession, search: str | None = None
+    ) -> int:
         """Get total number of users."""
-        return await db.scalar(select(func.count(User.id))) or 0
+        stmt = select(func.count(User.id))
+        if search:
+            search_term = f"%{search}%"
+            stmt = stmt.where(
+                User.email.ilike(search_term) | User.full_name.ilike(search_term)
+            )
+        return await db.scalar(stmt) or 0
 
     async def get_user_by_id(self, db: AsyncSession, user_id: uuid.UUID) -> User | None:
         """

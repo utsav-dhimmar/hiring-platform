@@ -68,6 +68,11 @@ class Candidate(Base):
         nullable=True,
     )
 
+    location: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
     # FOREIGN KEY
     applied_job_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

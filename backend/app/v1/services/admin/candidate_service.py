@@ -297,7 +297,7 @@ class CandidateAdminService:
         pass_fail = None
         processing_status = None
         processing_error = None
-        location = None
+        location = candidate.location
         linkedin_url = None
         github_url = None
 

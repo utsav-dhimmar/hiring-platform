@@ -54,9 +54,10 @@ async def get_all_users(
     admin: UserRead = Depends(check_permission("users:read")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
     """Get all users."""
-    return await admin_service.get_all_users(db=db, skip=skip, limit=limit)
+    return await admin_service.get_all_users(db=db, skip=skip, limit=limit, q=q)
 
 
 @router.post(
