@@ -15,7 +15,7 @@ export const adminDepartmentService = {
     limit = 100,
   ): Promise<{ data: DepartmentRead[]; total: number }> => {
     const response = await apiClient.get<{ data: DepartmentRead[]; total: number }>(
-      "/departments/",
+      "/departments",
       {
         params: { skip, limit },
       },

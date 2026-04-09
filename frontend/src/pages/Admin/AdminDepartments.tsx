@@ -32,8 +32,9 @@ const AdminDepartments = () => {
     loading,
     error,
     fetchData: fetchDepartments,
-  } = useAdminData<DepartmentRead>(() =>
-    adminDepartmentService.getAllDepartments(pageIndex * pageSize, pageSize),
+  } = useAdminData<DepartmentRead>(
+    () => adminDepartmentService.getAllDepartments(pageIndex * pageSize, pageSize),
+    { fetchOnMount: false }
   );
 
   // Refetch when pagination changes

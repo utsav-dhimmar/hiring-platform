@@ -46,7 +46,10 @@ const AdminUsers = () => {
     loading,
     error,
     fetchData: fetchUsers,
-  } = useAdminData<UserAdminRead>(() => adminUserService.getAllUsers(pageIndex * pageSize, pageSize, debouncedSearch));
+  } = useAdminData<UserAdminRead>(
+    () => adminUserService.getAllUsers(pageIndex * pageSize, pageSize, debouncedSearch),
+    { fetchOnMount: false }
+  );
 
   const {
     searchFilter,

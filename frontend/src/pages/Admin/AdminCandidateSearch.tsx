@@ -107,7 +107,10 @@ const AdminCandidateSearch = () => {
     loading,
     error,
     fetchData: fetchCandidates,
-  } = useAdminData<CandidateResponse>(fetchCandidatesFn);
+  } = useAdminData<CandidateResponse>(
+    fetchCandidatesFn,
+    { fetchOnMount: false }
+  );
 
   const fetchJob = useCallback(async () => {
     if (!jobId) return;

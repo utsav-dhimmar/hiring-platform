@@ -47,7 +47,10 @@ const AdminSkills = () => {
     loading,
     error,
     fetchData: fetchSkills,
-  } = useAdminData<SkillRead>(() => adminSkillService.getAllSkills(pageIndex * pageSize, pageSize, debouncedSearch));
+  } = useAdminData<SkillRead>(
+    () => adminSkillService.getAllSkills(pageIndex * pageSize, pageSize, debouncedSearch),
+    { fetchOnMount: false }
+  );
 
   // Refetch when pagination or search changes
   useEffect(() => {

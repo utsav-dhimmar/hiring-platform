@@ -26,7 +26,8 @@ const AdminAuditLogs = () => {
     error,
     fetchData,
   } = useAdminData<AuditLogRead>(
-    () => adminAnalyticsService.getAuditLogs(pageIndex * pageSize, pageSize, searchValue)
+    () => adminAnalyticsService.getAuditLogs(pageIndex * pageSize, pageSize, searchValue),
+    { fetchOnMount: false }
   );
 
   // Refetch data when pagination or search changes
