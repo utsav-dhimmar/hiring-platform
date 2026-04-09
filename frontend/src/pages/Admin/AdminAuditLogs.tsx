@@ -120,7 +120,9 @@ const AdminAuditLogs = () => {
           searchValue={searchValue}
           isServerSide={true}
           pageCount={Math.ceil(total / pageSize)}
+          totalRecords={total}
         />
+
       )}
     </AppPageShell>
   );

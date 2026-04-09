@@ -146,7 +146,9 @@ const AdminRecentUploads = () => {
           searchValue={searchValue}
           isServerSide={true}
           pageCount={Math.ceil(total / pageSize)}
+          totalRecords={total}
           tableActions={
+
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Unit:</span>
               <Select

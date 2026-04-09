@@ -35,6 +35,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -54,7 +56,9 @@ interface DataTableProps<TData, TValue> {
   onSearchChange?: (value: string) => void;
   searchValue?: string;
   emptyMessage?: string;
+  totalRecords?: number;
 }
+
 
 export function DataTable<TData, TValue>({
   columns,
@@ -73,7 +77,9 @@ export function DataTable<TData, TValue>({
   onSearchChange,
   searchValue,
   emptyMessage = "No results.",
+  totalRecords,
 }: DataTableProps<TData, TValue>) {
+
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -159,12 +165,24 @@ export function DataTable<TData, TValue>({
               </div>
             )}
           </div>
-          {headerActions && (
+          {(headerActions || totalRecords !== undefined) && (
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
               {headerActions}
+              {totalRecords !== undefined && (
+                <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                  <Badge
+                    variant="secondary"
+                    className="h-9 px-4 rounded-xl text-xs font-semibold bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-all flex items-center gap-1.5"
+                  >
+                    <span className="opacity-70 font-medium">Total</span>
+                    <span className="text-sm">{totalRecords.toLocaleString()}</span>
+                  </Badge>
+                </div>
+              )}
             </div>
           )}
         </div>
+
       )}
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-background/70 backdrop-blur-sm">
         <Table>

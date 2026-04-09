@@ -54,7 +54,7 @@ const AdminSkills = () => {
     fetchSkills();
   }, [pageIndex, pageSize, debouncedSearch, fetchSkills]);
 
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [_deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<SkillRead | null>(null);
@@ -224,7 +224,9 @@ const AdminSkills = () => {
           pageSize={pageSize}
           pageCount={Math.ceil(total / pageSize)}
           onPaginationChange={setPagination}
+          totalRecords={total}
         />
+
       )}
 
       <CreateSkillModal

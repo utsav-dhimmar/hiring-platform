@@ -41,7 +41,7 @@ const AdminDepartments = () => {
     fetchDepartments();
   }, [pageIndex, pageSize, fetchDepartments]);
 
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [_deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<DepartmentRead | null>(null);
@@ -209,7 +209,9 @@ const AdminDepartments = () => {
           pageSize={pageSize}
           pageCount={Math.ceil(total / pageSize)}
           onPaginationChange={setPagination}
+          totalRecords={total}
         />
+
       )}
 
       <CreateDepartmentModal
