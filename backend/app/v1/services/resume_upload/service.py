@@ -133,8 +133,8 @@ class ResumeUploadService:
         candidate = await resume_upload_repository.create_candidate(
             db,
             job_id=job_id,
-            email=f"pending_{UUIDHelper.generate_uuid7()}@example.com",
-            first_name="Processing",
+            email=None,
+            first_name="Parsing...",
             last_name="",
         )
         log_stage(

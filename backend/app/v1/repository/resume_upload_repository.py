@@ -309,11 +309,20 @@ class ResumeUploadRepository:
         Returns:
             The updated candidate object.
         """
-        candidate.first_name = first_name or candidate.first_name
-        candidate.last_name = last_name or candidate.last_name
+        if first_name is not None and first_name != "Parsing...":
+            candidate.first_name = first_name
+        elif first_name is None and candidate.first_name == "Parsing...":
+            candidate.first_name = None
 
-        if email and (not candidate.email or "pending_" in candidate.email):
+        if last_name is not None:
+            candidate.last_name = last_name
+
+        if email:
             candidate.email = email
+        elif email is None and (candidate.email is None or "pending_" in (candidate.email or "")):
+            # Clear placeholder or keep as None if no new email found
+            candidate.email = None
+
         if phone and not candidate.phone:
             candidate.phone = phone
 
