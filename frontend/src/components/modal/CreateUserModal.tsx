@@ -130,7 +130,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
 
   return (
     <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit User" : "Create New User"}</DialogTitle>
         </DialogHeader>
@@ -147,7 +147,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter full name" {...field} />
+                      <Input placeholder="Enter full name" {...field} disabled />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -175,7 +175,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {!isEditMode ? (
+              {/* {!isEditMode ? (
                 <FormField
                   control={control}
                   name="password"
@@ -199,7 +199,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
                     Passwords must be reset via forgot password or a dedicated endpoint.
                   </p>
                 </FormItem>
-              )}
+              )} */}
 
               <FormField
                 control={control}
@@ -213,8 +213,10 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
                       disabled={fetchingRoles}
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a role">
+                            {roles.find((r) => r.id === field.value)?.name || user?.role_name}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

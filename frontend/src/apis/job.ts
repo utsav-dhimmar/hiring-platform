@@ -12,14 +12,14 @@ const jobService = {
   /**
    * Retrieves a list of job postings.
    * @param skip - Number of records to skip for pagination (default: 0)
-   * @param limit - Maximum number of records to return (default: 100)
+   * @param limit - Maximum number of records to return (default: 10)
    * @returns Promise resolving to an array of job postings
    * @example
    * ```ts
-   * const jobs = await jobService.getJobs(0, 50);
+   * const jobs = await jobService.getJobs(0, 10);
    * ```
    */
-  getJobs: async (skip = 0, limit = 100): Promise<JobsListResponse> => {
+  getJobs: async (skip = 0, limit = 10): Promise<JobsListResponse> => {
     const response = await client.get<JobsListResponse>("/jobs/", {
       params: { skip, limit },
     });

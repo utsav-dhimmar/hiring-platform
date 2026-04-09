@@ -29,6 +29,7 @@ import { useUserTableFilters } from "@/hooks/useUserTableFilters";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components";
+import { useAuth } from "@/store/hooks";
 
 const AdminUsers = () => {
   const toast = useToast();
@@ -64,7 +65,7 @@ const AdminUsers = () => {
   } = useUserTableFilters(users);
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
-
+  const { user: currentUser } = useAuth();
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -203,30 +204,34 @@ const AdminUsers = () => {
       cell: ({ row }) => {
         const user = row.original;
         return (
-          <div className="flex gap-2 justify-end items-center flex-nowrap">
+          (currentUser && < div className="flex gap-2 justify-end items-center flex-nowrap" >
             <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
               <Button
                 variant="outline"
                 size="sm"
                 className="shrink-0"
                 onClick={() => handleEditClick(user)}
+                disabled={currentUser && currentUser.id === user.id}
               >
                 Edit
               </Button>
             </PermissionGuard>
-            {user.full_name !== "System Admin" && (
-              <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="shrink-0"
-                  onClick={() => handleDeleteClick(user)}
-                >
-                  Delete
-                </Button>
-              </PermissionGuard>
-            )}
-          </div>
+            {
+              user.full_name !== "System Admin" && (
+                <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => handleDeleteClick(user)}
+                    disabled={currentUser && currentUser.id === user.id}
+                  >
+                    Delete
+                  </Button>
+                </PermissionGuard>
+              )
+            }
+          </div >)
         );
       },
     },

@@ -31,7 +31,7 @@ export function JobActivityModal({ isOpen, onOpenChange, job }: JobActivityModal
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
             <Clock className="h-5 w-5 text-primary" />
@@ -60,7 +60,7 @@ export function JobActivityModal({ isOpen, onOpenChange, job }: JobActivityModal
             </div>
           </div>
 
-          <div className="rounded-xl border overflow-hidden">
+          <div className="rounded-xl border overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>

@@ -16,6 +16,7 @@ import { getJobColumns } from "@/components/job-board/JobColumns";
 import { JobTableFilters } from "@/components/job-board/JobTableFilters";
 import { useJobTableFilters } from "@/hooks/useJobTableFilters";
 import { JobActivityModal } from "@/components/job-board/JobActivityModal";
+import type { PaginationState } from "@tanstack/react-table";
 
 /**
  * JobBoard page component for the dashboard.
@@ -37,7 +38,11 @@ export default function JobBoard() {
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [selectedJobForActivity, setSelectedJobForActivity] = useState<Job | null>(null);
-
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [total, setTotal] = useState(0);
   const {
     titleFilter,
     setTitleFilter,
@@ -57,8 +62,11 @@ export default function JobBoard() {
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await jobService.getJobs();
+      const skip = pagination.pageIndex * pagination.pageSize;
+      const limit = pagination.pageSize;
+      const response = await jobService.getJobs(skip, limit);
       setJobs(response.data);
+      setTotal(response.total);
     } catch (error) {
       console.error("Failed to fetch jobs:", error);
       const errorMessage = extractErrorMessage(error, "Failed to load jobs.");
@@ -66,10 +74,11 @@ export default function JobBoard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.pageIndex, pagination.pageSize]);
 
   useEffect(() => {
     fetchJobs();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [fetchJobs]);
 
   /** Opens the delete-confirmation dialog for the given job. */
@@ -172,6 +181,12 @@ export default function JobBoard() {
             <DataTable
               columns={columns}
               data={filteredJobs}
+              pageSize={pagination.pageSize}
+              pageCount={Math.ceil(total / pagination.pageSize)}
+              onPaginationChange={setPagination}
+              totalRecords={total}
+              loading={loading}
+              isServerSide={true}
             />
           </div>
         )}

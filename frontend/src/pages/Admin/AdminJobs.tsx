@@ -1,234 +1,207 @@
-/**
- * Admin page for managing job postings.
- * Displays all jobs with ability to create, edit, and delete.
- */
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { adminJobService } from "@/apis/admin/service";
-import type { JobRead } from "@/types/admin";
-import {
-  AppPageShell,
-  DateDisplay,
-  PageHeader,
-  StatusBadge,
-  SkillsBadgeList,
-  useToast,
-  ErrorDisplay,
-  DataTable,
-} from "@/components/shared";
-import { DeleteModal } from "@/components/modal";
-import { useAdminData, useDeleteConfirmation } from "@/hooks";
-import { Edit2, Users, ArrowUpDown, Trash2Icon } from "lucide-react";
-import type { ColumnDef, PaginationState } from "@tanstack/react-table";
-import { Button } from "@/components";
-import PermissionGuard from "@/components/auth/PermissionGuard";
-import { PERMISSIONS } from "@/lib/permissions";
+import { AppPageShell, DataTable } from "@/components/shared";
+import type { Job } from "@/types/job";
+import { extractErrorMessage } from "@/utils/error";
+import { slugify } from "@/utils/slug";
+import type { PaginationState } from "@tanstack/react-table";
 
+// Sub-components
+import { JobSkeleton } from "@/components/job-board/JobSkeleton";
+import { JobBoardHeader } from "@/components/job-board/JobBoardHeader";
+import { NoJobsFound } from "@/components/job-board/NoJobsFound";
+import { JobDeleteDialog } from "@/components/job-board/JobDeleteDialog";
+import { getJobColumns } from "@/components/job-board/JobColumns";
+import { JobTableFilters } from "@/components/job-board/JobTableFilters";
+import { useJobTableFilters } from "@/hooks/useJobTableFilters";
+import { JobActivityModal } from "@/components/job-board/JobActivityModal";
+
+/**
+ * AdminJobs page component.
+ * Mirrored from the dashboard job-board to provide consistent experience with filtration.
+ * Uses server-side pagination for better performance with large datasets.
+ */
 const AdminJobs = () => {
   const navigate = useNavigate();
-  const toast = useToast();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [loadingJobId, setLoadingJobId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [selectedJobForActivity, setSelectedJobForActivity] = useState<Job | null>(null);
 
-
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+  const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
 
   const {
-    data: jobs,
-    total,
-    loading,
-    error,
-    fetchData: fetchJobs,
-  } = useAdminData<JobRead>(() => adminJobService.getAllJobs(pageIndex * pageSize, pageSize));
+    titleFilter,
+    setTitleFilter,
+    statusFilter,
+    setStatusFilter,
+    departmentFilter,
+    setDepartmentFilter,
+    dateRange,
+    setDateRange,
+    departmentOptions,
+    filteredJobs,
+    hasActiveFilters,
+    clearFilters,
+    minDate
+  } = useJobTableFilters(jobs);
 
-  // Refetch when pagination changes
+  /** Fetches jobs using the admin service with current pagination. */
+  const fetchJobs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const skip = pagination.pageIndex * pagination.pageSize;
+      const limit = pagination.pageSize;
+      const response = await adminJobService.getAllJobs(skip, limit);
+      setJobs(response.data as unknown as Job[]);
+      setTotal(response.total);
+    } catch (error) {
+      console.error("Failed to fetch jobs:", error);
+      const errorMessage = extractErrorMessage(error, "Failed to load jobs.");
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.pageIndex, pagination.pageSize]);
+
   useEffect(() => {
     fetchJobs();
-  }, [pageIndex, pageSize, fetchJobs]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [fetchJobs]);
 
-  const {
-    showModal: showDeleteModal,
-    handleDeleteClick,
-    handleClose: handleCloseDelete,
-    handleConfirm: handleConfirmDelete,
-    isDeleting,
-    error: deleteError,
-    message: deleteMessage,
-  } = useDeleteConfirmation<JobRead>({
-    deleteFn: (id) => adminJobService.deleteJob(id as string),
-    onSuccess: () => {
-      fetchJobs();
-      toast.success("Job deleted successfully");
-    },
-    itemTitle: (job) => `job "${job.title}"`,
-  });
-
-
-  const handleViewCandidates = (jobId: string) => {
-    navigate(`/dashboard/admin/jobs/${jobId}/candidates`);
+  /** Opens the delete-confirmation dialog for the given job. */
+  const handleDeleteClick = (job: Job) => {
+    setJobToDelete(job);
+    setIsDeleteDialogOpen(true);
   };
 
-  const handleToggleStatus = async (job: JobRead) => {
+  /** Deletes the selected job via the admin API, refreshes the list, and closes the dialog. */
+  const handleDeleteConfirm = async () => {
+    if (!jobToDelete) return;
+
     try {
-      await adminJobService.updateJob(job.id, { is_active: !job.is_active });
-      toast.success(`Job ${!job.is_active ? "activated" : "deactivated"} successfully`);
+      await adminJobService.deleteJob(jobToDelete.id);
+      toast.success("Job deleted successfully");
       fetchJobs();
     } catch (error) {
-      console.error("Failed to toggle job status:", error);
-      toast.error("Failed to update job status");
+      console.error("Failed to delete job:", error);
+      const errorMessage = extractErrorMessage(error, "Failed to delete job.");
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setJobToDelete(null);
     }
   };
 
-  const columns: ColumnDef<JobRead>[] = [
-    {
-      accessorKey: "title",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent p-0 font-semibold"
-        >
-          Title
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-lg">{row.original.title}</span>
-          <span className="text-sm text-muted-foreground">
-            {row.original.department?.name || row.original.department_name || "N/A"}
-          </span>
-        </div>
-      ),
+  /** Toggles `is_active` for a job via admin service and refreshes the list on success. */
+  const handleToggleStatus = useCallback(
+    async (job: Job) => {
+      try {
+        await adminJobService.updateJob(job.id, { is_active: !job.is_active });
+        toast.success(`Job ${!job.is_active ? "activated" : "deactivated"} successfully`);
+        fetchJobs();
+      } catch (error) {
+        console.error("Failed to toggle job status:", error);
+        const errorMessage = extractErrorMessage(error, "Failed to update job status");
+        toast.error(errorMessage);
+      }
     },
-    {
-      accessorKey: "is_active",
-      header: "Status",
-      cell: ({ row }) => (
-        <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
-          <button
-            onClick={() => handleToggleStatus(row.original)}
-            className="hover:opacity-80 transition-opacity cursor-pointer flex"
-            title={`Click to ${row.original.is_active ? "deactivate" : "activate"}`}
-          >
-            <StatusBadge status={row.original.is_active} />
-          </button>
-        </PermissionGuard>
-      ),
-    },
-    {
-      accessorKey: "skills",
-      header: "Skills",
-      cell: ({ row }) => (
-        <div className="max-w-[200px]">
-          <SkillsBadgeList skills={row.original.skills} maxVisible={2} />
-        </div>
-      ),
-    },
-    {
-      accessorKey: "created_at",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent p-0 font-semibold"
-        >
-          Created At
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => <DateDisplay date={row.original.created_at} showTime={false} />,
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => {
-        const job = row.original;
-        return (
-          <div className="flex items-center gap-2 justify-end">
-            <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
-                title="Edit Job"
-                onClick={() => navigate(`/dashboard/jobs/${job.id}/edit`, {
-                  state: {
-                    jobId: job.id
-                  }
-                })}
-              >
-                <Edit2 className="h-4 w-4" />
-                <span className="sr-only">Edit Job</span>
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
-                title="Delete Job"
-                onClick={() => handleDeleteClick(job)}
-              >
-                <Trash2Icon className="h-4 w-4" />
-                <span className="sr-only">Delete Job</span>
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard permissions={PERMISSIONS.CANDIDATES_ACCESS} hideWhenDenied>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-xl hover:bg-blue-500/10 hover:text-blue-500 transition-all"
-                title="View Candidates"
-                onClick={() => handleViewCandidates(job.id)}
-              >
-                <Users className="h-4 w-4" />
-                <span className="sr-only">View Candidates</span>
-              </Button>
-            </PermissionGuard>
-          </div>
-        );
-      },
-    },
-  ];
+    [fetchJobs],
+  );
+
+  /** Memoized column definitions. */
+  const columns = useMemo(
+    () =>
+      getJobColumns({
+        onToggleStatus: handleToggleStatus,
+        onDelete: handleDeleteClick,
+        onEdit: (job) => {
+          setLoadingJobId(job.id);
+          const slug = slugify(job.title);
+          navigate(`/dashboard/jobs/${slug}/edit`, { state: { jobId: job.id } });
+        },
+        onCandidates: (job) => {
+          const slug = slugify(job.title);
+          navigate(`/dashboard/jobs/${slug}/candidates`, {
+            state: { jobId: job.id },
+          });
+        },
+        onViewSessions: (job) => {
+          setSelectedJobForActivity(job);
+          setIsActivityModalOpen(true);
+        },
+        loadingJobId,
+      }),
+    [navigate, handleToggleStatus, loadingJobId],
+  );
 
   return (
     <AppPageShell width="wide">
-      <PageHeader
-        title="Job Management"
+      <JobBoardHeader />
 
+      <div className="app-surface-card p-3 sm:p-4">
+        {loading && jobs.length === 0 ? (
+          <div className="flex flex-col gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <JobSkeleton key={i} />
+            ))}
+          </div>
+        ) : jobs.length === 0 ? (
+          <NoJobsFound />
+        ) : (
+          <div className="space-y-4">
+            <JobTableFilters
+              titleFilter={titleFilter}
+              setTitleFilter={setTitleFilter}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              departmentFilter={departmentFilter}
+              setDepartmentFilter={setDepartmentFilter}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              departmentOptions={departmentOptions}
+              hasActiveFilters={hasActiveFilters}
+              clearFilters={clearFilters}
+              resultCount={filteredJobs.length}
+              totalCount={total}
+              minDate={minDate}
+            />
+            <DataTable
+              columns={columns}
+              data={filteredJobs}
+              loading={loading}
+              isServerSide={true}
+              pageIndex={pagination.pageIndex}
+              pageSize={pagination.pageSize}
+              pageCount={Math.ceil(total / pagination.pageSize)}
+              onPaginationChange={setPagination}
+              totalRecords={total}
+            />
+          </div>
+        )}
+      </div>
+
+      <JobDeleteDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        job={jobToDelete}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setIsDeleteDialogOpen(false)}
       />
 
-      {error && !jobs.length ? (
-        <ErrorDisplay message={error} onRetry={fetchJobs} />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={jobs}
-          loading={loading}
-          searchKey="title"
-          searchPlaceholder="Filter jobs by title..."
-          initialSorting={[
-            { id: "title", desc: false },
-            { id: "created_at", desc: true },
-          ]}
-          isServerSide={true}
-          pageIndex={pageIndex}
-          pageSize={pageSize}
-          pageCount={Math.ceil(total / pageSize)}
-          onPaginationChange={setPagination}
-        />
-      )}
-
-      <DeleteModal
-        show={showDeleteModal}
-        handleClose={handleCloseDelete}
-        handleConfirm={handleConfirmDelete}
-        title="Delete Job"
-        message={deleteMessage}
-        isLoading={isDeleting}
-        error={deleteError}
+      <JobActivityModal
+        isOpen={isActivityModalOpen}
+        onOpenChange={setIsActivityModalOpen}
+        job={selectedJobForActivity}
       />
     </AppPageShell>
   );

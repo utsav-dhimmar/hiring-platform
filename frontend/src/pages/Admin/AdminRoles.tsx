@@ -18,6 +18,7 @@ import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
+import { useAuth } from "@/store/hooks";
 
 const AdminRoles = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -47,6 +48,7 @@ const AdminRoles = () => {
 
   const roles = combinedData[0]?.roles || [];
   const permissions = combinedData[0]?.permissions || [];
+  const { user: currentUser } = useAuth();
 
   // Two separate delete hooks for clarity.
   const roleDelete = useDeleteConfirmation<RoleRead>({
@@ -84,25 +86,31 @@ const AdminRoles = () => {
       header: "Actions",
       accessor: (role) => (
         <>
-          <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
-            <Button
-              variant="outline"
-              size="sm"
-              className="me-2"
-              onClick={() => handleEditRole(role.id)}
-            >
-              Edit
-            </Button>
-          </PermissionGuard>
-          <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => roleDelete.handleDeleteClick(role)}
-            >
-              Delete
-            </Button>
-          </PermissionGuard>
+          {currentUser &&
+            <>
+              <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="me-2"
+                  onClick={() => handleEditRole(role.id)}
+                  disabled={currentUser.role_id === role.id && currentUser.role_name?.toLowerCase() !== "admin"}
+                >
+                  Edit
+                </Button>
+              </PermissionGuard>
+              <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => roleDelete.handleDeleteClick(role)}
+                  disabled={currentUser.role_id === role.id && currentUser.role_name?.toLowerCase() !== "admin"}
+                >
+                  Delete
+                </Button>
+              </PermissionGuard>
+            </>
+          }
         </>
       ),
     },
