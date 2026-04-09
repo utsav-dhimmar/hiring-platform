@@ -23,11 +23,12 @@ const apiClient = axios.create({
 
 /**
  * Request interceptor that adds JWT token to outgoing requests.
- * Retrieves token from localStorage and includes it in Authorization header.
+ * Retrieves token from localStorage or sessionStorage depending on the implementation and includes it in Authorization header.
  */
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    // const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -92,7 +93,8 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem("refreshToken");
+      // const refreshToken = localStorage.getItem("refreshToken");
+      const refreshToken = sessionStorage.getItem("refreshToken");
 
       if (!refreshToken) {
         store.dispatch(logout());
