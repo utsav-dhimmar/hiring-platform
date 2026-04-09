@@ -6,7 +6,6 @@ import type { Job } from "@/types/job";
 import { cn } from "@/lib/utils";
 import { PERMISSIONS } from "@/lib/permissions";
 
-const UPLOAD_PERMISSION = "candidate:upload"; // temp fix
 
 interface JobCandidatesHeaderProps {
   job: Job | null;
@@ -80,7 +79,7 @@ export const JobCandidatesHeader = ({
           >
             Info
           </Button>
-          <PermissionGuard permissions={UPLOAD_PERMISSION} hideWhenDenied>
+          <PermissionGuard permissions={PERMISSIONS.CANDIDATES_ACCESS} hideWhenDenied>
             <Button
               variant="outline"
               onClick={onUploadClick}

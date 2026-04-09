@@ -31,7 +31,7 @@ export function JobActivityModal({ isOpen, onOpenChange, job }: JobActivityModal
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-hidden overflow-x-hidden">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
             <Clock className="h-5 w-5 text-primary" />
@@ -64,7 +64,7 @@ export function JobActivityModal({ isOpen, onOpenChange, job }: JobActivityModal
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="w-[100px]">Session ID</TableHead>
+                  <TableHead className="w-[100px]">ID</TableHead>
                   <TableHead>Period</TableHead>
                   <TableHead className="text-right">Candidates</TableHead>
                   <TableHead className="w-[100px] text-center">Status</TableHead>

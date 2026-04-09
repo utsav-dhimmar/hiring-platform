@@ -70,14 +70,15 @@ export const getJobColumns = ({
       accessorKey: "is_active",
       header: ({ column }) => {
         return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold"
-          >
-            Status
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied={true}>
+            <Button
+              variant="ghost"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              className="hover:bg-transparent p-0 font-semibold"
+            >
+              Status
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button></PermissionGuard>
         );
       },
       cell: ({ row }) => (
@@ -120,10 +121,11 @@ export const getJobColumns = ({
     },
     {
       accessorKey: "activity_sessions",
-      header: "Activity",
+      header: "Activity | Candidates",
       cell: ({ row }) => {
         const sessions = row.original.activity_sessions || [];
-        const displaySessions = sessions.slice(-3).reverse(); // Show last 3 sessions
+        const displaySessions = sessions.slice(0, 3) // Show last 3 sessions // use -3 and reverse() if reverse needed
+
         const remainingCount = sessions.length - 3;
 
         if (sessions.length === 0) {

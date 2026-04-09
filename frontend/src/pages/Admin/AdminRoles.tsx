@@ -147,18 +147,18 @@ const AdminRoles = () => {
       <PageHeader
         title="Role & Permission Management"
 
-        actions={
-          <>
-            <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
-              <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
-                Create Permission
-              </Button>
-            </PermissionGuard>
-            <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
-              <Button onClick={handleCreateRole}>Create Role</Button>
-            </PermissionGuard>
-          </>
-        }
+      /*actions={
+        <>
+          <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
+            <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
+              Create Permission
+            </Button>
+          </PermissionGuard>
+          <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+            <Button onClick={handleCreateRole}>Create Role</Button>
+          </PermissionGuard>
+        </>
+      }*/
       />
 
       <div className="flex flex-col gap-8">

@@ -38,7 +38,7 @@ const AdminRecentUploads = () => {
     fetchData,
   } = useAdminData<RecentUploadRead>(
     () => adminAnalyticsService.getRecentUploads(pageIndex * pageSize, pageSize, searchValue),
-    { fetchOnMount: true },
+    { fetchOnMount: false },
 
   );
 
