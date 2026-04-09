@@ -94,6 +94,7 @@ class JobRepository:
             job_id=job.id,
             version_number=1,
             title=job.title,
+            vacancy=job.vacancy,
             jd_text=job.jd_text,
             jd_json=job.jd_json,
             jd_embedding=job.jd_embedding,
@@ -125,6 +126,7 @@ class JobRepository:
             k in payload
             for k in [
                 "title",
+                "vacancy",
                 "department_id",
                 "jd_text",
                 "jd_json",
@@ -164,6 +166,7 @@ class JobRepository:
                 job_id=job.id,
                 version_number=job.version,
                 title=job.title,
+                vacancy=job.vacancy,
                 jd_text=job.jd_text,
                 jd_json=job.jd_json,
                 jd_embedding=job.jd_embedding,

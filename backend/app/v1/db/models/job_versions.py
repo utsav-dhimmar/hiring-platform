@@ -60,6 +60,11 @@ class JobVersion(Base):
         nullable=False,
     )
 
+    vacancy: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
     jd_text: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,

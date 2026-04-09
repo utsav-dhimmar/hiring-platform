@@ -17,6 +17,7 @@ class JobBase(BaseModel):
     """
 
     title: str
+    vacancy: int | None = None
     department_id: uuid.UUID | None = None
     jd_text: str | None = None
     jd_json: dict | None = None
@@ -39,6 +40,7 @@ class JobUpdate(BaseModel):
     """
 
     title: str | None = None
+    vacancy: int | None = None
     department_id: uuid.UUID | None = None
     jd_text: str | None = None
     jd_json: dict | None = None
@@ -75,6 +77,7 @@ class JobVersionRead(BaseModel):
     job_id: uuid.UUID
     version_number: int
     title: str
+    vacancy: int | None = None
     jd_text: str | None = None
     jd_json: dict | None = None
     custom_extraction_fields: list[str] | None = None

@@ -58,6 +58,11 @@ class Job(Base):
         nullable=False,
     )
 
+    vacancy: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
     # DEPARTMENT FK (replaces plain text department column)
     department_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),

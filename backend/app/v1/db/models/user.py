@@ -96,3 +96,7 @@ class User(Base):
     role = relationship("Role", back_populates="users")
     jobs: Mapped[list["Job"]] = relationship("Job", back_populates="creator")
     files: Mapped[list["File"]] = relationship("File", back_populates="owner")
+
+    @property
+    def role_name(self) -> str | None:
+        return self.role.name if self.role else None

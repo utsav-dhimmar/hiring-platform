@@ -96,6 +96,7 @@ class UserAdminRead(BaseModel):
     email: EmailStr
     is_active: bool
     role_id: uuid.UUID
+    role_name: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

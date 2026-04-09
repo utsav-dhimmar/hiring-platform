@@ -8,7 +8,7 @@ role management, permission management, audit logs, and analytics reporting.
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import desc, func, or_, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -46,11 +46,15 @@ class AdminRepository:
         @param limit - Maximum number of records to return
         @returns List of User objects ordered by creation date descending
         """
-        stmt = select(User)
+        stmt = select(User).options(selectinload(User.role))
         if search:
             search_term = f"%{search}%"
-            stmt = stmt.where(
-                User.email.ilike(search_term) | User.full_name.ilike(search_term)
+            stmt = stmt.join(Role, User.role_id == Role.id).where(
+                or_(
+                    User.email.ilike(search_term),
+                    User.full_name.ilike(search_term),
+                    Role.name.ilike(search_term),
+                )
             )
 
         result = await db.execute(stmt.offset(skip).limit(limit).order_by(desc(User.created_at)))
@@ -63,8 +67,12 @@ class AdminRepository:
         stmt = select(func.count(User.id))
         if search:
             search_term = f"%{search}%"
-            stmt = stmt.where(
-                User.email.ilike(search_term) | User.full_name.ilike(search_term)
+            stmt = stmt.select_from(User).join(Role, User.role_id == Role.id).where(
+                or_(
+                    User.email.ilike(search_term),
+                    User.full_name.ilike(search_term),
+                    Role.name.ilike(search_term),
+                )
             )
         return await db.scalar(stmt) or 0
 
@@ -76,7 +84,9 @@ class AdminRepository:
         @param user_id - Unique identifier of the user
         @returns User object if found, None otherwise
         """
-        return await db.get(User, user_id)
+        stmt = select(User).options(selectinload(User.role)).where(User.id == user_id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def get_user_by_email(self, db: AsyncSession, email: str) -> User | None:
         """
