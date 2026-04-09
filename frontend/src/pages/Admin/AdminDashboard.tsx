@@ -65,13 +65,13 @@ const AdminDashboard = () => {
       <div className="mb-6 space-y-4">
         <h2 className="text-xl font-semibold">Analytics Overview</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-          <StatCard label="Total Users" value={analytics?.total_users ?? 0} loading={loading} />
+          {/* <StatCard label="Total Users" value={analytics?.total_users ?? 0} loading={loading} /> */}
           <StatCard label="Active Users" value={analytics?.active_users ?? 0} loading={loading} />
           <StatCard label="Total Roles" value={analytics?.total_roles ?? 0} loading={loading} />
           <StatCard label="Total Jobs" value={analytics?.total_jobs ?? 0} loading={loading} />
           <StatCard label="Active Jobs" value={analytics?.active_jobs ?? 0} loading={loading} />
           <StatCard label="Total Candidates" value={analytics?.total_candidates ?? 0} loading={loading} />
-          <StatCard label="Total Resumes" value={analytics?.total_resumes ?? 0} loading={loading} />
+          {/* <StatCard label="Total Resumes" value={analytics?.total_resumes ?? 0} loading={loading} /> */}
         </div>
       </div>
 
@@ -83,26 +83,26 @@ const AdminDashboard = () => {
             value={report?.resumes_uploaded_last_30_days ?? 0}
             loading={loading}
           />
-          <StatCard
+          {/* <StatCard
             label="Passed"
             value={report?.total_passed ?? 0}
             loading={loading}
-          />
+          /> */}
           {/* <StatCard
             label="Failed"
             value={report?.total_failed ?? 0}
             loading={loading}
           /> */}
-          <StatCard
+          {/* <StatCard
             label="Pending"
             value={report?.total_pending ?? 0}
             loading={loading}
-          />
-          <StatCard
+          /> */}
+          {/* <StatCard
             label="Unprocessed"
             value={report?.total_unprocessed ?? 0}
             loading={loading}
-          />
+          /> */}
           <StatCard
             label="HR Decided"
             value={report?.hr_decided_count ?? 0}

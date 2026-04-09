@@ -116,7 +116,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
         try {
           setFetchingRoles(true);
           const data = await adminRoleService.getAllRoles();
-          setRoles(data);
+          setRoles(data.data);
         } catch (err) {
           console.error("Failed to fetch roles:", err);
           setSubmitError("Failed to load roles. Please try again.");

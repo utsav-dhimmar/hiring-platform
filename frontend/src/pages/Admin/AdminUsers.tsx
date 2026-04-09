@@ -16,6 +16,7 @@ import {
   DataTable,
 } from "@/components/shared";
 import {
+  CreateUserModal,
   // CreateUserModal,
   DeleteModal
 } from "@/components/modal";
@@ -27,8 +28,8 @@ import { Button } from "@/components";
 
 const AdminUsers = () => {
   const toast = useToast();
-  const [_showModal, setShowModal] = useState(false);
-  const [_selectedUser, setSelectedUser] = useState<UserAdminRead | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserAdminRead | null>(null);
 
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -69,10 +70,10 @@ const AdminUsers = () => {
     setShowModal(true);
   };
 
-  // const handleCloseModal = () => {
-  //   setShowModal(false);
-  //   setSelectedUser(null);
-  // };
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedUser(null);
+  };
 
   const columns: ColumnDef<UserAdminRead>[] = [
     {
@@ -199,12 +200,12 @@ const AdminUsers = () => {
         />
       )}
 
-      {/* <CreateUserModal
+      <CreateUserModal
         show={showModal}
         handleClose={handleCloseModal}
         onUserSaved={fetchUsers}
         user={selectedUser}
-      /> */}
+      />
 
       <DeleteModal
         show={showDeleteModal}
