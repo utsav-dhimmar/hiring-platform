@@ -39,10 +39,11 @@ class JobAdminService:
             job_read.automated_screening_summary = (
                 await hr_decision_service.get_job_screening_summary(db, job.id)
             )
-            # Add total and current session counts
-            stats = await self._calculate_job_activity_stats(db, job.id, include_sessions=False)
+            # Add total and current session counts (Enabled session history for list view)
+            stats = await self._calculate_job_activity_stats(db, job.id, include_sessions=True)
             job_read.total_candidates = stats["total_candidates"]
             job_read.current_session_candidates = stats["current_session_count"]
+            job_read.activity_sessions = stats["sessions"]
             
             job_reads.append(job_read)
 
@@ -71,10 +72,11 @@ class JobAdminService:
             job_read.automated_screening_summary = (
                 await hr_decision_service.get_job_screening_summary(db, job.id)
             )
-            # Add total and current session counts
-            stats = await self._calculate_job_activity_stats(db, job.id, include_sessions=False)
+            # Add total and current session counts (Enabled session history for search view)
+            stats = await self._calculate_job_activity_stats(db, job.id, include_sessions=True)
             job_read.total_candidates = stats["total_candidates"]
             job_read.current_session_candidates = stats["current_session_count"]
+            job_read.activity_sessions = stats["sessions"]
 
             job_reads.append(job_read)
 
@@ -179,6 +181,10 @@ class JobAdminService:
             job_update.skill_ids = valid_skill_ids
 
         updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
+        
+        updated_fields_map = job_update.model_dump(exclude_unset=True)
+        
+        # Log general update
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
@@ -186,11 +192,23 @@ class JobAdminService:
             target_type="job",
             target_id=job_id,
             details={
-                "updated_fields": list(job_update.model_dump(exclude_unset=True).keys())
+                "updated_fields": list(updated_fields_map.keys())
             },
         )
 
-        updated_fields = job_update.model_dump(exclude_unset=True)
+        # CRITICAL: If is_active was changed, log a specific update_job_status action
+        # so that the session reconstruction logic (which looks for this action) picks it up.
+        if "is_active" in updated_fields_map:
+            await audit_service.log_action(
+                db=db,
+                user_id=admin_user_id,
+                action="update_job_status",
+                target_type="job",
+                target_id=job_id,
+                details={"is_active": updated_fields_map["is_active"]},
+            )
+
+        updated_fields = updated_fields_map # Maintain compatibility with existing variable name below
         if background_tasks is not None:
             from app.v1.core.cache import cache
             from app.v1.services.resume_upload.background import BackgroundProcessor
