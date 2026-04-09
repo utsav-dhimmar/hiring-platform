@@ -9,11 +9,10 @@ from app.v1.schemas.job import (
     JobUpdate,
     JobRead,
     JobsListRead,
-    JobStatusUpdate,
+    JobActivityHistoryResponse,
+    JobActivitySession,
 )
 from app.v1.services.admin.audit_service import audit_service
-from app.v1.services.admin.department_service import department_service
-from app.v1.services.admin.skill_service import skill_service
 from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.skill_service import skill_service
 from fastapi import HTTPException, status
@@ -262,6 +261,113 @@ class JobAdminService:
             action="delete_job",
             target_type="job",
             target_id=job_id,
+        )
+
+
+    async def get_job_activity_history(
+        self, db: AsyncSession, job_id: uuid.UUID
+    ) -> JobActivityHistoryResponse:
+        """
+        Reconstruct job activation sessions and count candidates for each.
+        """
+        from sqlalchemy import select, and_, func
+        from app.v1.db.models.audit_logs import AuditLog
+        from app.v1.db.models.candidates import Candidate
+
+        # 1. Verify job existence and get creation time
+        job = await job_repository.get(db=db, id=job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found.",
+            )
+
+        # 2. Get status update audit logs
+        stmt = (
+            select(AuditLog)
+            .where(
+                and_(
+                    AuditLog.target_id == job_id,
+                    AuditLog.target_type == "job",
+                    AuditLog.action == "update_job_status",
+                )
+            )
+            .order_by(AuditLog.created_at.asc())
+        )
+        result = await db.execute(stmt)
+        logs = result.scalars().all()
+
+        # 3. Reconstruct sessions
+        # Logic: Job starts active at job.created_at.
+        # Each 'is_active=False' log ends a session.
+        # Each 'is_active=True' log starts a new session.
+        sessions_data = []
+        current_start = job.created_at
+        last_state = True  # Assuming job starts active
+        session_counter = 1
+
+        for log in logs:
+            is_active_val = log.details.get("is_active")
+            if is_active_val is None:
+                continue
+
+            if last_state and not is_active_val:
+                # Session closed
+                sessions_data.append(
+                    {
+                        "session_id": session_counter,
+                        "start_date": current_start,
+                        "end_date": log.created_at,
+                        "is_current": False,
+                    }
+                )
+                session_counter += 1
+                last_state = False
+            elif not last_state and is_active_val:
+                # New session starts
+                current_start = log.created_at
+                last_state = True
+
+        # Current session (if still active)
+        if last_state:
+            sessions_data.append(
+                {
+                    "session_id": session_counter,
+                    "start_date": current_start,
+                    "end_date": None,
+                    "is_current": True,
+                }
+            )
+
+        # 4. Count candidates per session
+        from app.v1.schemas.job import JobActivitySession
+        
+        final_sessions = []
+        for s in sessions_data:
+            count_stmt = select(func.count(Candidate.id)).where(
+                and_(
+                    Candidate.applied_job_id == job_id,
+                    Candidate.created_at >= s["start_date"],
+                )
+            )
+            if s["end_date"]:
+                count_stmt = count_stmt.where(Candidate.created_at <= s["end_date"])
+
+            count_res = await db.execute(count_stmt)
+            s["candidate_count"] = count_res.scalar() or 0
+            final_sessions.append(JobActivitySession(**s))
+
+        # Total native candidates
+        total_stmt = select(func.count(Candidate.id)).where(
+            Candidate.applied_job_id == job_id
+        )
+        total_res = await db.execute(total_stmt)
+        total_candidates = total_res.scalar() or 0
+
+        return JobActivityHistoryResponse(
+            job_id=job_id,
+            total_candidates=total_candidates,
+            sessions=final_sessions,
         )
 
 

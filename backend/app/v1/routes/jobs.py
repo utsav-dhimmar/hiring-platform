@@ -17,6 +17,7 @@ from app.v1.schemas.job import (
     JobStatusUpdate,
     JobsListRead,
     JobUpdate,
+    JobActivityHistoryResponse,
 )
 from app.v1.schemas.job_stage import (
     JobStageConfigCreate,
@@ -172,6 +173,19 @@ async def update_job_status(
     return await admin_service.update_job_status(
         db=db, admin_user_id=user.id, job_id=job_id, status_in=status_in
     )
+
+
+@router.get("/{job_id}/activity-history", response_model=JobActivityHistoryResponse)
+async def get_job_activity_history(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:access")),
+) -> Any:
+    """
+    Get the activity history for a specific job.
+    Shows activation sessions and candidate counts per session.
+    """
+    return await admin_service.get_job_activity_history(db=db, job_id=job_id)
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
