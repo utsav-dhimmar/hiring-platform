@@ -55,7 +55,7 @@ export const getJobColumns = ({
       cell: ({ row }) => (
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-lg">{row.getValue("title")}</span>
+            <span className="font-bold text-md">{row.getValue("title")}</span>
             {row.original.version && (
               <Badge variant="secondary" className="text-xs font-normal h-5 px-1.5 rounded-md">
                 v{row.original.version}

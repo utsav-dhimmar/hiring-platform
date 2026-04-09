@@ -14,12 +14,20 @@ function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
       {...props}
     >
       <CheckboxPrimitive.Indicator
-        data-slot="checkbox-indicator"
-        className="flex items-center justify-center text-current"
-      >
-        <CheckIcon className="size-3.5 data-[state=indeterminate]:hidden" />
-        <MinusIcon className="size-3.5 data-[state=checked]:hidden" />
-      </CheckboxPrimitive.Indicator>
+        render={(indicatorProps, state) => (
+          <div
+            {...indicatorProps}
+            data-slot="checkbox-indicator"
+            className="flex items-center justify-center text-current"
+          >
+            {state.indeterminate ? (
+              <MinusIcon className="size-3.5" />
+            ) : (
+              <CheckIcon className="size-3.5" />
+            )}
+          </div>
+        )}
+      />
     </CheckboxPrimitive.Root>
   );
 }

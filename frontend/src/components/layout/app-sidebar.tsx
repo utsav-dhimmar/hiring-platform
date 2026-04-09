@@ -31,6 +31,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAppSelector(selectCurrentUser)
   const userPermissions = user?.permissions ?? []
 
+  const canSeeAdminNav = hasAnyPermission(userPermissions, [
+    PERMISSIONS.ADMIN_ACCESS,
+    PERMISSIONS.ANALYTICS_READ,
+    PERMISSIONS.AUDIT_READ,
+    PERMISSIONS.CANDIDATES_ACCESS,
+    PERMISSIONS.DEPARTMENTS_ACCESS,
+    PERMISSIONS.FILES_READ,
+    PERMISSIONS.JOBS_ACCESS,
+    PERMISSIONS.ROLES_READ,
+    PERMISSIONS.SKILLS_ACCESS,
+    PERMISSIONS.USERS_READ,
+  ])
+
   const navRecruitment = [
     {
       title: "Recruitment",
@@ -42,17 +55,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: "Job Board",
           url: "/dashboard/jobs",
           permission: PERMISSIONS.JOBS_ACCESS,
+          // Hide from Platform if available in System (Admin) section
+          hideIfAdmin: true, 
         },
         // {
         //   title: "Candidates",
         //   url: "/dashboard/candidates",
         //   permission: PERMISSIONS.CANDIDATES_ACCESS,
+        //   hideIfAdmin: true,
         // },
       ],
     },
   ].map((section) => ({
     ...section,
-    items: section.items.filter((item) => hasPermissions(userPermissions, item.permission)),
+    items: section.items.filter((item: any) => {
+      const hasPerm = hasPermissions(userPermissions, item.permission);
+      if (!hasPerm) return false;
+      
+      // Deduplicate: If it's an admin-redundant link and user can see admin nav, hide it here
+      if (item.hideIfAdmin && canSeeAdminNav) return false;
+      
+      return true;
+    }),
   })).filter((section) => section.items.length > 0)
 
   const navAdmin = [
@@ -114,18 +138,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     items: section.items.filter((item) => hasPermissions(userPermissions, item.permission)),
   })).filter((section) => section.items.length > 0)
 
-  const canSeeAdminNav = hasAnyPermission(userPermissions, [
-    PERMISSIONS.ADMIN_ACCESS,
-    PERMISSIONS.ANALYTICS_READ,
-    PERMISSIONS.AUDIT_READ,
-    PERMISSIONS.CANDIDATES_ACCESS,
-    PERMISSIONS.DEPARTMENTS_ACCESS,
-    PERMISSIONS.FILES_READ,
-    PERMISSIONS.JOBS_ACCESS,
-    PERMISSIONS.ROLES_READ,
-    PERMISSIONS.SKILLS_ACCESS,
-    PERMISSIONS.USERS_READ,
-  ])
 
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"

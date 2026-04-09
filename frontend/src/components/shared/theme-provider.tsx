@@ -49,6 +49,29 @@ export function ThemeProvider({
         root.classList.add(theme)
     }, [theme])
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement
+            if (
+                target.tagName === "INPUT" ||
+                target.tagName === "TEXTAREA" ||
+                target.isContentEditable
+            ) {
+                return
+            }
+
+            if (e.key.toLowerCase() === "d") {
+                const newTheme = theme === "dark" ? "light" : "dark"
+                // update state and session storage
+                sessionStorage.setItem(storageKey, newTheme)
+                setTheme(newTheme)
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown)
+        return () => window.removeEventListener("keydown", handleKeyDown)
+    }, [theme, storageKey])
+
     const value = {
         theme,
         setTheme: (theme: Theme) => {

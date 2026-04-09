@@ -25,6 +25,10 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  Field,
+  FieldContent,
+  FieldLabel,
+  FieldDescription,
 } from "@/components";
 import { useFormModal } from "@/hooks";
 import { roleCreateSchema, type RoleCreateFormValues } from "@/schemas/admin";
@@ -183,15 +187,15 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
                   {permissions.map((permission) => {
                     const isChecked = selectedPermissionIds.includes(permission.id);
                     return (
-                      <div
+                      <Field
                         key={permission.id}
+                        orientation="horizontal"
                         className={cn(
-                          "flex items-start gap-3 p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer group",
+                          "items-start gap-3 p-3 rounded-xl border-2 transition-all duration-200",
                           isChecked
                             ? "bg-primary/5 border-primary shadow-sm"
                             : "bg-background/50 border-transparent hover:border-muted-foreground/20",
                         )}
-                        onClick={() => togglePermission(permission.id)}
                       >
                         <Checkbox
                           id={`perm-${permission.id}`}
@@ -199,20 +203,21 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
                           onCheckedChange={() => togglePermission(permission.id)}
                           className="mt-0.5"
                         />
-                        <div className="space-y-1 select-none">
-                          <p
+                        <FieldContent>
+                          <FieldLabel
+                            htmlFor={`perm-${permission.id}`}
                             className={cn(
-                              "text-sm font-bold leading-none transition-colors",
-                              isChecked ? "text-primary" : "text-foreground group-hover:text-primary/80",
+                              "text-sm font-bold leading-none transition-colors cursor-pointer",
+                              isChecked ? "text-primary" : "text-foreground",
                             )}
                           >
                             {permission.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-medium">
+                          </FieldLabel>
+                          <FieldDescription className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-medium">
                             {permission.description}
-                          </p>
-                        </div>
-                      </div>
+                          </FieldDescription>
+                        </FieldContent>
+                      </Field>
                     );
                   })}
                 </div>
