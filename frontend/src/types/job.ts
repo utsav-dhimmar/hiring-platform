@@ -9,6 +9,14 @@ export interface JobDecisionSummary {
   undecided_count: number;
 }
 
+export interface JobActivitySession {
+  session_id: number;
+  start_date: string;
+  end_date: string | null;
+  candidate_count: number;
+  is_current: boolean;
+}
+
 /**
  * Minimal job version metadata returned by the backend.
  */
@@ -71,6 +79,10 @@ export interface Job {
   created_at: string;
   /** Skills linked to the job */
   skills: { id: string; name: string; description: string | null }[];
+
+  total_candidates: number;
+  current_session_candidates: number;
+  activity_sessions?: JobActivitySession[] | null;
 }
 
 /**

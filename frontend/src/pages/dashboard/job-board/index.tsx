@@ -15,6 +15,7 @@ import { JobDeleteDialog } from "@/components/job-board/JobDeleteDialog";
 import { getJobColumns } from "@/components/job-board/JobColumns";
 import { JobTableFilters } from "@/components/job-board/JobTableFilters";
 import { useJobTableFilters } from "@/hooks/useJobTableFilters";
+import { JobActivityModal } from "@/components/job-board/JobActivityModal";
 
 /**
  * JobBoard page component for the dashboard.
@@ -34,6 +35,8 @@ export default function JobBoard() {
   const [loadingJobId, setLoadingJobId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [selectedJobForActivity, setSelectedJobForActivity] = useState<Job | null>(null);
 
   const {
     titleFilter,
@@ -126,6 +129,10 @@ export default function JobBoard() {
             state: { jobId: job.id },
           });
         },
+        onViewSessions: (job) => {
+          setSelectedJobForActivity(job);
+          setIsActivityModalOpen(true);
+        },
         loadingJobId,
       }),
     [navigate, handleToggleStatus, loadingJobId],
@@ -176,6 +183,12 @@ export default function JobBoard() {
         job={jobToDelete}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setIsDeleteDialogOpen(false)}
+      />
+
+      <JobActivityModal
+        isOpen={isActivityModalOpen}
+        onOpenChange={setIsActivityModalOpen}
+        job={selectedJobForActivity}
       />
     </AppPageShell>
   );

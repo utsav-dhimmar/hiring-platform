@@ -16,6 +16,7 @@ interface ColumnHandlers {
   onDelete: (job: Job) => void;
   onEdit: (job: Job) => void;
   onCandidates: (job: Job) => void;
+  onViewSessions: (job: Job) => void;
   loadingJobId?: string | null;
 }
 
@@ -34,6 +35,7 @@ export const getJobColumns = ({
   onDelete,
   onEdit,
   onCandidates,
+  onViewSessions,
   loadingJobId,
 }: ColumnHandlers): ColumnDef<Job>[] => [
     {
@@ -117,10 +119,64 @@ export const getJobColumns = ({
       cell: ({ row }) => <DateDisplay date={row.getValue("created_at")} showIcon />,
     },
     {
+      accessorKey: "activity_sessions",
+      header: "Activity",
+      cell: ({ row }) => {
+        const sessions = row.original.activity_sessions || [];
+        const displaySessions = sessions.slice(-3).reverse(); // Show last 3 sessions
+        const remainingCount = sessions.length - 3;
+
+        if (sessions.length === 0) {
+          return <span className="text-xs text-muted-foreground italic">No sessions</span>;
+        }
+
+        return (
+          <div className="flex flex-col gap-1.5 min-w-[140px]">
+            {displaySessions.map((s) => (
+              <div key={s.session_id} className="flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1 overflow-hidden">
+                  <Badge variant="outline" className="h-5 px-1 py-0 text-[10px] font-mono leading-none border-primary/20 bg-primary/5">
+                    #{s.session_id}
+                  </Badge>
+                  <span className="truncate text-muted-foreground italic">
+                    {s.is_current ? "Current" : new Date(s.start_date).toLocaleDateString("en-GB", { day: '2-digit', month: '2-digit' })}
+                  </span>
+                </div>
+                <Badge variant="secondary" className="h-5 px-1 py-0 text-[10px] font-medium leading-none whitespace-nowrap">
+                  {s.candidate_count} cand.
+                </Badge>
+              </div>
+            ))}
+            {remainingCount > 0 && (
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs text-primary font-semibold hover:no-underline flex justify-start w-fit group"
+                onClick={() => onViewSessions(row.original)}
+              >
+                + {remainingCount} more
+                <span className="ml-1 opacity-100 group-hover:translate-x-1 transition-transform">→</span>
+              </Button>
+            )}
+            {sessions.length <= 3 && sessions.length > 0 && (
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-[10px] text-muted-foreground/60 hover:text-primary transition-colors font-medium hover:no-underline flex justify-start w-fit"
+                onClick={() => onViewSessions(row.original)}
+              >
+                View details
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "skills",
       header: "Skills",
       cell: ({ row }) => (
-        <div className="max-w-[200px]">
+        <div className="max-w-[150px]">
           <SkillsBadgeList skills={row.original.skills} maxVisible={2} />
         </div>
       ),
