@@ -1,8 +1,12 @@
 import { Button, Badge, Switch, Label } from "@/components/";
 import { AppPageHeader } from "@/components/shared";
+import PermissionGuard from "@/components/auth/PermissionGuard";
 import { Upload } from "lucide-react";
 import type { Job } from "@/types/job";
 import { cn } from "@/lib/utils";
+import { PERMISSIONS } from "@/lib/permissions";
+
+const UPLOAD_PERMISSION = "candidate:upload"; // temp fix
 
 interface JobCandidatesHeaderProps {
   job: Job | null;
@@ -35,23 +39,25 @@ export const JobCandidatesHeader = ({
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Status:</span>
             {job ? (
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={job.is_active}
-                  onCheckedChange={onToggleStatus}
-                  id={`status-${job.id}`}
-                  size="sm"
-                />
-                <Label
-                  htmlFor={`status-${job.id}`}
-                  className={cn(
-                    "cursor-pointer text-sm font-medium transition-colors",
-                    job.is_active ? "text-primary" : "text-muted-foreground",
-                  )}
-                >
-                  {job.is_active ? "Active" : "Inactive"}
-                </Label>
-              </div>
+              <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={job.is_active}
+                    onCheckedChange={onToggleStatus}
+                    id={`status-${job.id}`}
+                    size="sm"
+                  />
+                  <Label
+                    htmlFor={`status-${job.id}`}
+                    className={cn(
+                      "cursor-pointer text-sm font-medium transition-colors",
+                      job.is_active ? "text-primary" : "text-muted-foreground",
+                    )}
+                  >
+                    {job.is_active ? "Active" : "Inactive"}
+                  </Label>
+                </div>
+              </PermissionGuard>
             ) : null}
           </div>
           {job?.version != null ? (
@@ -74,15 +80,17 @@ export const JobCandidatesHeader = ({
           >
             Info
           </Button>
-          <Button
-            variant="outline"
-            onClick={onUploadClick}
-            disabled={isUploading || !job?.is_active}
-            title={!job?.is_active ? "Resume upload is disabled for inactive jobs" : undefined}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            {isUploading ? "Uploading..." : "Upload Resumes"}
-          </Button>
+          <PermissionGuard permissions={UPLOAD_PERMISSION} hideWhenDenied>
+            <Button
+              variant="outline"
+              onClick={onUploadClick}
+              disabled={isUploading || !job?.is_active}
+              title={!job?.is_active ? "Resume upload is disabled for inactive jobs" : undefined}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {isUploading ? "Uploading..." : "Upload Resumes"}
+            </Button>
+          </PermissionGuard>
         </>
       }
     />

@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import PublicRoute from "@/components/auth/PublicRoute";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import RoleRoute from "@/components/auth/RoleRoute";
+import { PERMISSIONS } from "@/lib/permissions";
 
 // Lazy-loaded route pages 
 const LoginPage = lazy(() => import("@/pages/Auth/Login/LoginPage"));
@@ -32,7 +33,6 @@ const AdminJobs = lazy(() => import("@/pages/Admin/AdminJobs"));
 const AdminCandidateSearch = lazy(() => import("@/pages/Admin/AdminCandidateSearch"));
 const AdminSkills = lazy(() => import("@/pages/Admin/AdminSkills"));
 const AdminDepartments = lazy(() => import("@/pages/Admin/AdminDepartments"));
-const AdminStats = lazy(() => import("@/pages/dashboard/AdminStats"));
 
 /**
  * Main routing component for the application.
@@ -79,25 +79,73 @@ const AppRoutes = () => {
           }
         >
           <Route index element={<Navigate to="jobs" replace />} />
-          <Route path="jobs" element={<JobBoard />} />
-          <Route path="jobs/new" element={<CreateJob />} />
-          <Route path="jobs/:jobSlug/edit" element={<CreateJob />} />
-          <Route path="jobs/:jobSlug/candidates" element={<JobCandidates />} />
+          <Route
+            path="jobs"
+            element={
+              <RoleRoute requiredPermissions={PERMISSIONS.JOBS_ACCESS}>
+                <JobBoard />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="jobs/new"
+            element={
+              <RoleRoute requiredPermissions={PERMISSIONS.JOBS_MANAGE}>
+                <CreateJob />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="jobs/:jobSlug/edit"
+            element={
+              <RoleRoute requiredPermissions={PERMISSIONS.JOBS_MANAGE}>
+                <CreateJob />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="jobs/:jobSlug/candidates"
+            element={
+              <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
+                <JobCandidates />
+              </RoleRoute>
+            }
+          />
           <Route path="profile" element={<ProfilePage />} />
           {/* Admin Routes */}
           <Route
             path="admin"
             element={
-              <RoleRoute allowedRoles={["admin", "hr"]} requiredPermissions={["admin:access"]}>
+              <RoleRoute
+                requiredPermissions={[
+                  PERMISSIONS.ADMIN_ACCESS,
+                  PERMISSIONS.ANALYTICS_READ,
+                  PERMISSIONS.AUDIT_READ,
+                  PERMISSIONS.CANDIDATES_ACCESS,
+                  PERMISSIONS.DEPARTMENTS_ACCESS,
+                  PERMISSIONS.FILES_READ,
+                  PERMISSIONS.JOBS_ACCESS,
+                  PERMISSIONS.ROLES_READ,
+                  PERMISSIONS.SKILLS_ACCESS,
+                  PERMISSIONS.USERS_READ,
+                ]}
+              >
                 <Outlet />
               </RoleRoute>
             }
           >
-            <Route index element={<AdminDashboard />} />
+            <Route
+              index
+              element={
+                <RoleRoute requiredPermissions={PERMISSIONS.ANALYTICS_READ}>
+                  <AdminDashboard />
+                </RoleRoute>
+              }
+            />
             <Route
               path="users"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["users:read"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.USERS_READ}>
                   <AdminUsers />
                 </RoleRoute>
               }
@@ -105,7 +153,7 @@ const AppRoutes = () => {
             <Route
               path="roles"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["roles:read"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.ROLES_READ}>
                   <AdminRoles />
                 </RoleRoute>
               }
@@ -113,7 +161,7 @@ const AppRoutes = () => {
             <Route
               path="audit-logs"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["audit:read"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.AUDIT_READ}>
                   <AdminAuditLogs />
                 </RoleRoute>
               }
@@ -121,16 +169,15 @@ const AppRoutes = () => {
             <Route
               path="recent-uploads"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["files:read"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.FILES_READ}>
                   <AdminRecentUploads />
                 </RoleRoute>
               }
             />
-            <Route path="stats" element={<AdminStats />} />
             <Route
               path="jobs"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.JOBS_ACCESS}>
                   <AdminJobs />
                 </RoleRoute>
               }
@@ -138,7 +185,7 @@ const AppRoutes = () => {
             <Route
               path="jobs/:jobId/candidates"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
                   <AdminCandidateSearch />
                 </RoleRoute>
               }
@@ -146,7 +193,7 @@ const AppRoutes = () => {
             <Route
               path="skills"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["skills:access"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.SKILLS_ACCESS}>
                   <AdminSkills />
                 </RoleRoute>
               }
@@ -154,7 +201,7 @@ const AppRoutes = () => {
             <Route
               path="departments"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["departments:access"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.DEPARTMENTS_ACCESS}>
                   <AdminDepartments />
                 </RoleRoute>
               }
@@ -162,7 +209,7 @@ const AppRoutes = () => {
             {/* <Route
               path="candidates"
               element={
-                <RoleRoute allowedRoles={[]} requiredPermissions={["jobs:access"]}>
+                <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
                   <AdminCandidateSearch />
                 </RoleRoute>
               }

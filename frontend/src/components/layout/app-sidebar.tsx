@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useAppSelector } from "@/store/hooks"
 import { selectCurrentUser } from "@/store/slices/authSlice"
+import { hasAnyPermission, hasPermissions, PERMISSIONS } from "@/lib/permissions"
 import {
   Sidebar,
   SidebarContent,
@@ -28,9 +29,7 @@ import {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = useAppSelector(selectCurrentUser)
-  const isStaff =
-    user?.role_name?.toLowerCase() === "admin" ||
-    user?.role_name?.toLowerCase() === "hr"
+  const userPermissions = user?.permissions ?? []
 
   const navRecruitment = [
     {
@@ -42,14 +41,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {
           title: "Job Board",
           url: "/dashboard/jobs",
+          permission: PERMISSIONS.JOBS_ACCESS,
         },
-        {
-          title: "Candidates",
-          url: "/dashboard/candidates",
-        },
+        // {
+        //   title: "Candidates",
+        //   url: "/dashboard/candidates",
+        //   permission: PERMISSIONS.CANDIDATES_ACCESS,
+        // },
       ],
     },
-  ]
+  ].map((section) => ({
+    ...section,
+    items: section.items.filter((item) => hasPermissions(userPermissions, item.permission)),
+  })).filter((section) => section.items.length > 0)
 
   const navAdmin = [
     {
@@ -60,42 +64,68 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {
           title: "Dashboard",
           url: "/dashboard/admin",
+          permission: PERMISSIONS.ANALYTICS_READ,
         },
         {
           title: "Users",
           url: "/dashboard/admin/users",
+          permission: PERMISSIONS.USERS_READ,
         },
         {
           title: "Roles",
           url: "/dashboard/admin/roles",
+          permission: PERMISSIONS.ROLES_READ,
         },
         {
           title: "Jobs",
           url: "/dashboard/admin/jobs",
+          permission: PERMISSIONS.JOBS_ACCESS,
         },
-        {
-          title: "Candidates",
-          url: "/dashboard/admin/candidates",
-        },
+        // {
+        //   title: "Candidates",
+        //   url: "/dashboard/admin/candidates",
+        //   permission: PERMISSIONS.CANDIDATES_ACCESS,
+        // },
         {
           title: "Skills",
           url: "/dashboard/admin/skills",
+          permission: PERMISSIONS.SKILLS_ACCESS,
         },
         {
           title: "Departments",
           url: "/dashboard/admin/departments",
+          permission: PERMISSIONS.DEPARTMENTS_ACCESS,
         },
         {
           title: "Audit Logs",
           url: "/dashboard/admin/audit-logs",
+          permission: PERMISSIONS.AUDIT_READ,
         },
         {
           title: "Recent Uploads",
           url: "/dashboard/admin/recent-uploads",
+          permission: PERMISSIONS.FILES_READ,
         },
+
       ],
     },
-  ]
+  ].map((section) => ({
+    ...section,
+    items: section.items.filter((item) => hasPermissions(userPermissions, item.permission)),
+  })).filter((section) => section.items.length > 0)
+
+  const canSeeAdminNav = hasAnyPermission(userPermissions, [
+    PERMISSIONS.ADMIN_ACCESS,
+    PERMISSIONS.ANALYTICS_READ,
+    PERMISSIONS.AUDIT_READ,
+    PERMISSIONS.CANDIDATES_ACCESS,
+    PERMISSIONS.DEPARTMENTS_ACCESS,
+    PERMISSIONS.FILES_READ,
+    PERMISSIONS.JOBS_ACCESS,
+    PERMISSIONS.ROLES_READ,
+    PERMISSIONS.SKILLS_ACCESS,
+    PERMISSIONS.USERS_READ,
+  ])
 
   const { state } = useSidebar()
   const isCollapsed = state === "collapsed"
@@ -133,7 +163,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navRecruitment} label="Platform" />
-        {isStaff && <NavMain items={navAdmin} label="System" />}
+        {canSeeAdminNav && <NavMain items={navAdmin} label="System" />}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

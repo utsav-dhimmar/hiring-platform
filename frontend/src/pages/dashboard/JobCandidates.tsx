@@ -9,8 +9,12 @@ import { useJobCandidates } from "@/hooks/useJobCandidates";
 import { JobCandidatesSkeleton } from "@/components/candidate/JobCandidatesSkeleton";
 import { JobCandidatesStats } from "@/components/candidate/JobCandidatesStats";
 import { JobCandidatesHeader } from "@/components/candidate/JobCandidatesHeader";
+import PermissionGuard from "@/components/auth/PermissionGuard";
 import type { CandidateAnalysis } from "@/types/admin";
 import { AppPageShell } from "@/components/shared";
+import { PERMISSIONS } from "@/lib/permissions";
+
+const UPLOAD_PERMISSION = "candidate:upload";
 
 export default function JobCandidates() {
   const { jobSlug } = useParams<{ jobSlug: string }>();
@@ -76,55 +80,59 @@ export default function JobCandidates() {
               candidates={candidates}
               passing_threshold={job?.passing_threshold}
               headerActions={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-amber-300 hover:bg-amber-500/10 text-amber-600 hover:text-amber-700 font-semibold transition-all flex items-center gap-2 h-10 rounded-xl"
-                  onClick={handleReanalyzeAll}
-                  disabled={candidates.filter(needsReanalysis).length === 0}
-                  title={
-                    candidates.filter(needsReanalysis).length === 0
-                      ? "All candidates are analyzed with the latest JD version"
-                      : `Re-analyze ${candidates.filter(needsReanalysis).length} candidate(s) that need it`
-                  }
-                >
-                  <RotateCw className="h-4 w-4" />
-                  Reanalyze All
-                </Button>
+                <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-amber-300 hover:bg-amber-500/10 text-amber-600 hover:text-amber-700 font-semibold transition-all flex items-center gap-2 h-10 rounded-xl"
+                    onClick={handleReanalyzeAll}
+                    disabled={candidates.filter(needsReanalysis).length === 0}
+                    title={
+                      candidates.filter(needsReanalysis).length === 0
+                        ? "All candidates are analyzed with the latest JD version"
+                        : `Re-analyze ${candidates.filter(needsReanalysis).length} candidate(s) that need it`
+                    }
+                  >
+                    <RotateCw className="h-4 w-4" />
+                    Reanalyze All
+                  </Button>
+                </PermissionGuard>
               }
               renderActions={(candidate) => (
                 <div className="flex items-center gap-2 justify-end">
-                  <HoverCard>
-                    <HoverCardTrigger
-                      render={(props) => (
-                        <Button
-                          {...props}
-                          variant="ghost"
-                          size="sm"
-                          className="h-9 w-9 p-0 rounded-xl border border-amber-300 hover:bg-amber-500/10 transition-all duration-300 flex items-center justify-center shrink-0"
-                          onClick={(e) => {
-                            if (props.onClick) props.onClick(e);
-                            handleReanalyzeCandidate(candidate.id);
-                          }}
-                          isLoading={reanalyzingCandidateIds.includes(candidate.id)}
-                          disabled={
-                            !needsReanalysis(candidate) ||
-                            reanalyzingCandidateIds.includes(candidate.id)
-                          }
-                          title={
-                            !needsReanalysis(candidate)
-                              ? "Already analyzed with the latest JD version"
-                              : "Re-analyze with the latest JD version"
-                          }
-                        >
-                          <RotateCw className="h-4 w-4 text-amber-600 shrink-0" />
-                        </Button>
-                      )}
-                    />
-                    <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-                      <div className="text-sm font-semibold text-amber-700">Reanalyze</div>
-                    </HoverCardContent>
-                  </HoverCard>
+                  <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+                    <HoverCard>
+                      <HoverCardTrigger
+                        render={(props) => (
+                          <Button
+                            {...props}
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 w-9 p-0 rounded-xl border border-amber-300 hover:bg-amber-500/10 transition-all duration-300 flex items-center justify-center shrink-0"
+                            onClick={(e) => {
+                              if (props.onClick) props.onClick(e);
+                              handleReanalyzeCandidate(candidate.id);
+                            }}
+                            isLoading={reanalyzingCandidateIds.includes(candidate.id)}
+                            disabled={
+                              !needsReanalysis(candidate) ||
+                              reanalyzingCandidateIds.includes(candidate.id)
+                            }
+                            title={
+                              !needsReanalysis(candidate)
+                                ? "Already analyzed with the latest JD version"
+                                : "Re-analyze with the latest JD version"
+                            }
+                          >
+                            <RotateCw className="h-4 w-4 text-amber-600 shrink-0" />
+                          </Button>
+                        )}
+                      />
+                      <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                        <div className="text-sm font-semibold text-amber-700">Reanalyze</div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </PermissionGuard>
                   <HoverCard>
                     <HoverCardTrigger
                       render={(props) => (
@@ -171,14 +179,16 @@ export default function JobCandidates() {
         job={job}
       />
 
-      <Input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        multiple
-        accept=".pdf,.doc,.docx"
-        onChange={handleFileChange}
-      />
+      <PermissionGuard permissions={UPLOAD_PERMISSION} hideWhenDenied>
+        <Input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          multiple
+          accept=".pdf,.doc,.docx"
+          onChange={handleFileChange}
+        />
+      </PermissionGuard>
     </AppPageShell>
   );
 }

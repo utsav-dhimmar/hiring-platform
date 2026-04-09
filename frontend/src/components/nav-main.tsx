@@ -35,6 +35,9 @@ export function NavMain({
   label?: string
 }) {
   const location = useLocation()
+  if (items.length === 0) {
+    return null
+  }
 
   return (
     <SidebarGroup>

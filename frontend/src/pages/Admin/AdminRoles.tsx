@@ -16,6 +16,8 @@ import {
 import { CreatePermissionModal, DeleteModal, RoleModal } from "@/components/modal";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import { Button } from "@/components/ui/button";
+import PermissionGuard from "@/components/auth/PermissionGuard";
+import { PERMISSIONS } from "@/lib/permissions";
 
 const AdminRoles = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -82,21 +84,25 @@ const AdminRoles = () => {
       header: "Actions",
       accessor: (role) => (
         <>
-          <Button
-            variant="outline"
-            size="sm"
-            className="me-2"
-            onClick={() => handleEditRole(role.id)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => roleDelete.handleDeleteClick(role)}
-          >
-            Delete
-          </Button>
+          <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+            <Button
+              variant="outline"
+              size="sm"
+              className="me-2"
+              onClick={() => handleEditRole(role.id)}
+            >
+              Edit
+            </Button>
+          </PermissionGuard>
+          <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => roleDelete.handleDeleteClick(role)}
+            >
+              Delete
+            </Button>
+          </PermissionGuard>
         </>
       ),
     },
@@ -115,13 +121,15 @@ const AdminRoles = () => {
     {
       header: "Actions",
       accessor: (perm) => (
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => permissionDelete.handleDeleteClick(perm)}
-        >
-          Delete
-        </Button>
+        <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => permissionDelete.handleDeleteClick(perm)}
+          >
+            Delete
+          </Button>
+        </PermissionGuard>
       ),
     },
   ];
@@ -133,10 +141,14 @@ const AdminRoles = () => {
 
         actions={
           <>
-            <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
-              Create Permission
-            </Button>
-            <Button onClick={handleCreateRole}>Create Role</Button>
+            <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
+              <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
+                Create Permission
+              </Button>
+            </PermissionGuard>
+            <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+              <Button onClick={handleCreateRole}>Create Role</Button>
+            </PermissionGuard>
           </>
         }
       />

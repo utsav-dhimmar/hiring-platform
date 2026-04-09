@@ -3,6 +3,9 @@ import { resumeService } from "@/apis/resume";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/shared";
 import { extractErrorMessage } from "@/utils/error";
+import PermissionGuard from "@/components/auth/PermissionGuard";
+
+const UPLOAD_PERMISSION = "candidate:upload"; // temp fix
 
 /**
  * Props for the QuickResumeUpload component.
@@ -83,27 +86,29 @@ const QuickResumeUpload: React.FC<QuickResumeUploadProps> = ({
   };
 
   return (
-    <div className={`quick-resume-upload inline-flex ${className}`}>
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        onChange={handleFileChange}
-        accept=".pdf,.doc,.docx"
-        disabled={disabled || isUploading}
-      />
-      <Button
-        variant={variant}
-        size={size}
-        isLoading={isUploading}
-        onClick={handleButtonClick}
-        disabled={disabled}
-        className="whitespace-nowrap"
-        title="Quick upload resume for this job"
-      >
-        {label}
-      </Button>
-    </div>
+    <PermissionGuard permissions={UPLOAD_PERMISSION} hideWhenDenied>
+      <div className={`quick-resume-upload inline-flex ${className}`}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleFileChange}
+          accept=".pdf,.doc,.docx"
+          disabled={disabled || isUploading}
+        />
+        <Button
+          variant={variant}
+          size={size}
+          isLoading={isUploading}
+          onClick={handleButtonClick}
+          disabled={disabled}
+          className="whitespace-nowrap"
+          title="Quick upload resume for this job"
+        >
+          {label}
+        </Button>
+      </div>
+    </PermissionGuard>
   );
 };
 

@@ -2,9 +2,11 @@ import { Button, Badge, Label, Switch } from "@/components/";
 import { cn } from "@/lib/utils";
 import { DateDisplay, SkillsBadgeList } from "@/components/shared";
 import type { Job } from "@/types/job";
+import PermissionGuard from "@/components/auth/PermissionGuard";
 import { Edit2, Users, ArrowUpDown, Trash2Icon } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { PERMISSIONS } from "@/lib/permissions";
 
 /**
  * Row-level action callbacks consumed by {@link getJobColumns}.
@@ -77,23 +79,25 @@ export const getJobColumns = ({
         );
       },
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <Switch
-            checked={row.original.is_active}
-            onCheckedChange={() => onToggleStatus(row.original)}
-            id={`status-${row.original.id}`}
-            size="sm"
-          />
-          <Label
-            htmlFor={`status-${row.original.id}`}
-            className={cn(
-              "text-sm font-medium transition-colors cursor-pointer",
-              row.original.is_active ? "text-primary" : "text-muted-foreground",
-            )}
-          >
-            {row.original.is_active ? "Active" : "Inactive"}
-          </Label>
-        </div>
+        <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={row.original.is_active}
+              onCheckedChange={() => onToggleStatus(row.original)}
+              id={`status-${row.original.id}`}
+              size="sm"
+            />
+            <Label
+              htmlFor={`status-${row.original.id}`}
+              className={cn(
+                "text-sm font-medium transition-colors cursor-pointer",
+                row.original.is_active ? "text-primary" : "text-muted-foreground",
+              )}
+            >
+              {row.original.is_active ? "Active" : "Inactive"}
+            </Label>
+          </div>
+        </PermissionGuard>
       ),
     },
     {
@@ -126,65 +130,70 @@ export const getJobColumns = ({
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <HoverCard>
-            <HoverCardTrigger
-              render={(props) => (
-                <Button
-                  {...props}
-                  variant="outline"
-                  size="sm"
-                  className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
-                  onClick={() => onEdit(row.original)}
-                  title="Edit Job"
-                  isLoading={loadingJobId === row.original.id}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-              )}
-            />
-            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-              <div className="text-sm font-semibold text-primary"> Edit Job</div>
-            </HoverCardContent>
-          </HoverCard>
-          <HoverCard>
-            <HoverCardTrigger
-              render={(props) => (
-                <Button
-                  {...props}
-                  variant="outline"
-                  size="sm"
-                  className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
-                  onClick={() => onDelete(row.original)}
-                  title="Delete Job"
-                >
-                  <Trash2Icon className="h-4 w-4" />
-                </Button>
-              )}
-            />
-            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-              <div className="text-sm font-semibold text-destructive"> Delete Job</div>
-            </HoverCardContent>
-          </HoverCard>
-          <HoverCard>
-            <HoverCardTrigger
-              render={(props) => (
-                <Button
-                  {...props}
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 rounded-xl hover:bg-blue-500/10 hover:text-blue-500 transition-all"
-
-                  onClick={() => onCandidates(row.original)}
-                  title="View Candidates"
-                >
-                  <Users className="h-4 w-4" />
-                </Button>
-              )}
-            />
-            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-              <div className="text-sm font-semibold text-blue-500"> View Candidates</div>
-            </HoverCardContent>
-          </HoverCard>
+          <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+            <HoverCard>
+              <HoverCardTrigger
+                render={(props) => (
+                  <Button
+                    {...props}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+                    onClick={() => onEdit(row.original)}
+                    title="Edit Job"
+                    isLoading={loadingJobId === row.original.id}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                )}
+              />
+              <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                <div className="text-sm font-semibold text-primary"> Edit Job</div>
+              </HoverCardContent>
+            </HoverCard>
+          </PermissionGuard>
+          <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+            <HoverCard>
+              <HoverCardTrigger
+                render={(props) => (
+                  <Button
+                    {...props}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
+                    onClick={() => onDelete(row.original)}
+                    title="Delete Job"
+                  >
+                    <Trash2Icon className="h-4 w-4" />
+                  </Button>
+                )}
+              />
+              <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                <div className="text-sm font-semibold text-destructive"> Delete Job</div>
+              </HoverCardContent>
+            </HoverCard>
+          </PermissionGuard>
+          <PermissionGuard permissions={PERMISSIONS.CANDIDATES_ACCESS} hideWhenDenied>
+            <HoverCard>
+              <HoverCardTrigger
+                render={(props) => (
+                  <Button
+                    {...props}
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 rounded-xl hover:bg-blue-500/10 hover:text-blue-500 transition-all"
+                    onClick={() => onCandidates(row.original)}
+                    title="View Candidates"
+                  >
+                    <Users className="h-4 w-4" />
+                  </Button>
+                )}
+              />
+              <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                <div className="text-sm font-semibold text-blue-500"> View Candidates</div>
+              </HoverCardContent>
+            </HoverCard>
+          </PermissionGuard>
         </div>
       ),
     },

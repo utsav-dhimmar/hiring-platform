@@ -30,6 +30,8 @@ import { FeedbackDialog } from "@/components/modal/candidate-details/FeedbackDia
 import { ActionButtons } from "@/components/modal/candidate-details/ActionButtons";
 import { CrossMatchView } from "@/components/modal/candidate-details/CrossMatchView";
 import { VersionResultView } from "@/components/modal/candidate-details/VersionResultView";
+import PermissionGuard from "@/components/auth/PermissionGuard";
+import { PERMISSIONS } from "@/lib/permissions";
 
 /**
  * Props for {@link CandidateDetailsModal}.
@@ -281,12 +283,14 @@ export function CandidateDetailsModal({
         </div>
 
         {canTakeDecision && (
-          <ActionButtons
-            onAction={handleAction}
-            showMaybeButton={
-              !hrDecision || hrDecision.decision.toLowerCase() !== "may be"
-            }
-          />
+          <PermissionGuard permissions={PERMISSIONS.CANDIDATES_DECIDE} hideWhenDenied>
+            <ActionButtons
+              onAction={handleAction}
+              showMaybeButton={
+                !hrDecision || hrDecision.decision.toLowerCase() !== "may be"
+              }
+            />
+          </PermissionGuard>
         )}
       </DialogContent>
 
