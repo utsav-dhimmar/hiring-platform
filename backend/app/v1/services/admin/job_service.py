@@ -39,6 +39,11 @@ class JobAdminService:
             job_read.automated_screening_summary = (
                 await hr_decision_service.get_job_screening_summary(db, job.id)
             )
+            # Add total and current session counts
+            stats = await self._calculate_job_activity_stats(db, job.id, include_sessions=False)
+            job_read.total_candidates = stats["total_candidates"]
+            job_read.current_session_candidates = stats["current_session_count"]
+            
             job_reads.append(job_read)
 
         return JobsListRead(
@@ -66,6 +71,11 @@ class JobAdminService:
             job_read.automated_screening_summary = (
                 await hr_decision_service.get_job_screening_summary(db, job.id)
             )
+            # Add total and current session counts
+            stats = await self._calculate_job_activity_stats(db, job.id, include_sessions=False)
+            job_read.total_candidates = stats["total_candidates"]
+            job_read.current_session_candidates = stats["current_session_count"]
+
             job_reads.append(job_read)
 
         return JobsListRead(
@@ -87,7 +97,13 @@ class JobAdminService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Job not found.",
             )
-        return JobRead.model_validate(job)
+        job_read = JobRead.model_validate(job)
+        # Populate activity history for detailed view
+        stats = await self._calculate_job_activity_stats(db, job_id, include_sessions=True)
+        job_read.total_candidates = stats["total_candidates"]
+        job_read.current_session_candidates = stats["current_session_count"]
+        job_read.activity_sessions = stats["sessions"]
+        return job_read
 
     async def get_job_version(self, db: AsyncSession, version_id: uuid.UUID) -> Any:
         """Get a specific job version snapshot by its unique ID."""
@@ -270,6 +286,23 @@ class JobAdminService:
         """
         Reconstruct job activation sessions and count candidates for each.
         """
+        stats = await self._calculate_job_activity_stats(db, job_id, include_sessions=True)
+        return JobActivityHistoryResponse(
+            job_id=job_id,
+            total_candidates=stats["total_candidates"],
+            sessions=stats["sessions"],
+        )
+
+    async def _calculate_job_activity_stats(
+        self, db: AsyncSession, job_id: uuid.UUID, include_sessions: bool = True
+    ) -> dict[str, Any]:
+        """
+        Helper to calculate total candidates and session breakdown for a job.
+        
+        Returns:
+            A dictionary with 'total_candidates', 'current_session_count', 
+            and 'sessions' (list of JobActivitySession).
+        """
         from sqlalchemy import select, and_, func
         from app.v1.db.models.audit_logs import AuditLog
         from app.v1.db.models.candidates import Candidate
@@ -282,7 +315,14 @@ class JobAdminService:
                 detail="Job not found.",
             )
 
-        # 2. Get status update audit logs
+        # 2. Get total candidates
+        total_stmt = select(func.count(Candidate.id)).where(
+            Candidate.applied_job_id == job_id
+        )
+        total_res = await db.execute(total_stmt)
+        total_candidates = total_res.scalar() or 0
+
+        # 3. Get status update audit logs
         stmt = (
             select(AuditLog)
             .where(
@@ -297,10 +337,7 @@ class JobAdminService:
         result = await db.execute(stmt)
         logs = result.scalars().all()
 
-        # 3. Reconstruct sessions
-        # Logic: Job starts active at job.created_at.
-        # Each 'is_active=False' log ends a session.
-        # Each 'is_active=True' log starts a new session.
+        # 4. Reconstruct sessions
         sessions_data = []
         current_start = job.created_at
         last_state = True  # Assuming job starts active
@@ -339,11 +376,17 @@ class JobAdminService:
                 }
             )
 
-        # 4. Count candidates per session
+        # 5. Calculate counts for sessions
+        final_sessions = []
+        current_session_count = 0
         from app.v1.schemas.job import JobActivitySession
         
-        final_sessions = []
         for s in sessions_data:
+            # Skip candidate counting for session if we only need the current session count 
+            # and this is not the current one.
+            if not include_sessions and not s["is_current"]:
+                continue
+
             count_stmt = select(func.count(Candidate.id)).where(
                 and_(
                     Candidate.applied_job_id == job_id,
@@ -354,21 +397,20 @@ class JobAdminService:
                 count_stmt = count_stmt.where(Candidate.created_at <= s["end_date"])
 
             count_res = await db.execute(count_stmt)
-            s["candidate_count"] = count_res.scalar() or 0
-            final_sessions.append(JobActivitySession(**s))
+            count_val = count_res.scalar() or 0
+            s["candidate_count"] = count_val
+            
+            if s["is_current"]:
+                current_session_count = count_val
+            
+            if include_sessions:
+                final_sessions.append(JobActivitySession(**s))
 
-        # Total native candidates
-        total_stmt = select(func.count(Candidate.id)).where(
-            Candidate.applied_job_id == job_id
-        )
-        total_res = await db.execute(total_stmt)
-        total_candidates = total_res.scalar() or 0
-
-        return JobActivityHistoryResponse(
-            job_id=job_id,
-            total_candidates=total_candidates,
-            sessions=final_sessions,
-        )
+        return {
+            "total_candidates": total_candidates,
+            "current_session_count": current_session_count,
+            "sessions": final_sessions,
+        }
 
 
 job_admin_service = JobAdminService()

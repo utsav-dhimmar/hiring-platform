@@ -100,6 +100,9 @@ class JobRead(JobBase):
     stages: list[JobStageConfigRead] = []
     decision_summary: dict | None = None
     automated_screening_summary: dict | None = None
+    total_candidates: int | None = None
+    current_session_candidates: int | None = None
+    activity_sessions: list[JobActivitySession] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
