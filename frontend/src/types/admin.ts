@@ -302,6 +302,18 @@ export interface DepartmentRead extends DepartmentBase {
 }
 
 /**
+ * Location Management Types
+ */
+
+/**
+ * Location returned from read operations.
+ */
+export interface LocationRead {
+  id: string;
+  name: string;
+}
+
+/**
  * Stage Template Management Types
  */
 

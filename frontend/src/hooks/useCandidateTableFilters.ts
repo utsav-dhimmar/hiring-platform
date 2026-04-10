@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { startOfDay, endOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import type { UnifiedCandidate } from "@/types/candidate";
 import { toTitleCase } from "@/lib/utils";
+import { adminLocationService } from "@/apis/admin/location";
 
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   candidates: T[],
@@ -21,6 +22,27 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     from: undefined,
     to: undefined,
   });
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [locationSearch, setLocationSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const fetchLocations = async () => {
+        try {
+          const response = await adminLocationService.getAllLocations(0, 500, locationSearch);
+          const names = response.data.map((loc) => toTitleCase(loc.name.trim()));
+          // Ensure unique and sorted names
+          const uniqueNames = Array.from(new Set(names)).sort();
+          setLocationOptions(uniqueNames);
+        } catch (error) {
+          console.error("Failed to fetch locations for filter:", error);
+        }
+      };
+      fetchLocations();
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(handler);
+  }, [locationSearch]);
 
   const statusOptions = useMemo(() => {
     const set = new Set<string>();
@@ -31,17 +53,6 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     return Array.from(set).sort();
   }, [candidates]);
 
-  const locationOptions = useMemo(() => {
-    const set = new Set<string>();
-    candidates.forEach((c) => {
-      if (c.location) {
-        // Normalize to Title Case for display consistency
-        const normalized = toTitleCase(c.location.trim());
-        if (normalized) set.add(normalized);
-      }
-    });
-    return Array.from(set).sort();
-  }, [candidates]);
 
   const jobOptions = useMemo(() => {
     const set = new Set<string>();
@@ -154,6 +165,8 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     statusOptions,
     locationOptions,
     jobOptions,
+    locationSearch,
+    setLocationSearch,
     minDate,
     filteredCandidates,
     hasActiveFilters,

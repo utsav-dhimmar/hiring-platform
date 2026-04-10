@@ -32,6 +32,8 @@ interface CandidateTableFiltersProps {
   setHrDecisionFilter: (value: string[]) => void;
   statusOptions: string[];
   locationOptions: string[];
+  locationSearch: string;
+  setLocationSearch: (value: string) => void;
   jobOptions: string[];
   hasActiveFilters: boolean;
   clearFilters: () => void;
@@ -56,6 +58,8 @@ export const CandidateTableFilters = ({
   setHrDecisionFilter,
   // statusOptions,
   locationOptions,
+  locationSearch,
+  setLocationSearch,
   jobOptions,
   hasActiveFilters,
   clearFilters,
@@ -185,58 +189,74 @@ export const CandidateTableFilters = ({
       </DropdownMenu> */}
 
       {/* Location dropdown */}
-      {locationOptions.length > 0 && (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className={cn(
-              "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
-              locationFilter.length > 0
-                ? "border-primary/40 bg-primary/5 text-foreground"
-                : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-            )}
-          >
-            {locationFilter.length === 0
-              ? "All Locations"
-              : locationFilter.length === 1
-                ? locationFilter[0]
-                : `${locationFilter.length} locations`}
-            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[160px]">
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className={cn(
+            "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+            locationFilter.length > 0
+              ? "border-primary/40 bg-primary/5 text-foreground"
+              : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          )}
+        >
+          {locationFilter.length === 0
+            ? "All Locations"
+            : locationFilter.length === 1
+              ? locationFilter[0]
+              : `${locationFilter.length} locations`}
+          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-[200px] p-2">
+          <div className="px-1 pb-2">
+            <div className="relative">
+              <Input
+                placeholder="Search locations..."
+                value={locationSearch}
+                onChange={(e) => setLocationSearch(e.target.value)}
+                className="h-9 rounded-xl text-xs pl-2"
+                onKeyDown={(e) => e.stopPropagation()} // Prevent closing on space
+              />
+            </div>
+          </div>
+          <DropdownMenuSeparator />
+          <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Location</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {locationOptions.map((l) => (
-                <DropdownMenuCheckboxItem
-                  key={l}
-                  checked={locationFilter.includes(l)}
-                  onSelect={(e) => e.preventDefault()}
-                  onClick={() =>
-                    setLocationFilter(
-                      locationFilter.includes(l)
-                        ? locationFilter.filter((v) => v !== l)
-                        : [...locationFilter, l]
-                    )
-                  }
-                >
-                  {l}
-                </DropdownMenuCheckboxItem>
-              ))}
-              {locationFilter.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
+              {locationOptions.length === 0 ? (
+                <div className="px-2 py-4 text-xs text-center text-muted-foreground">
+                  not found "{locationSearch}"
+                </div>
+              ) : (
+                locationOptions.map((l) => (
                   <DropdownMenuCheckboxItem
-                    checked={false}
-                    onClick={() => setLocationFilter([])}
+                    key={l}
+                    checked={locationFilter.includes(l)}
+                    onSelect={(e) => e.preventDefault()}
+                    onClick={() =>
+                      setLocationFilter(
+                        locationFilter.includes(l)
+                          ? locationFilter.filter((v) => v !== l)
+                          : [...locationFilter, l]
+                      )
+                    }
                   >
-                    Clear locations
+                    {l}
                   </DropdownMenuCheckboxItem>
-                </>
+                ))
               )}
             </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+          </div>
+          {locationFilter.length > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={false}
+                onClick={() => setLocationFilter([])}
+              >
+                Clear locations
+              </DropdownMenuCheckboxItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* HR Decision multi-select dropdown */}
       <DropdownMenu>
