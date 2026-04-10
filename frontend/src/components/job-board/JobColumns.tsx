@@ -135,49 +135,58 @@ export const getJobColumns = ({
         const displaySessions = sessions.slice(0, 3) // Show last 3 sessions // use -3 and reverse() if reverse needed
 
         const remainingCount = sessions.length - 3;
-
-        if (sessions.length === 0) {
-          return <span className="text-xs text-muted-foreground italic">No sessions</span>;
-        }
+        const totalCandidates = row.original.total_candidates || 0;
 
         return (
           <div className="flex flex-col gap-1.5 min-w-[140px]">
-            {displaySessions.map((s) => (
-              <div key={s.session_id} className="flex items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-1 overflow-hidden">
-                  {displaySessions.length > 1 && <Badge variant="outline" className="h-5 px-1 py-0 text-[10px] leading-none border-primary/20 bg-primary/5">
-                    #{s.session_id}
-                  </Badge>}
-                  <span className="truncate">
-                    <DateDisplay date={s.start_date} />
-                  </span>
-                </div>
-                <Badge variant="secondary" className="h-5 px-1 py-0 text-[10px] font-medium leading-none whitespace-nowrap">
-                  {s.candidate_count} cand.
-                </Badge>
-              </div>
-            ))}
-            {remainingCount > 0 && (
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs text-primary font-semibold hover:no-underline flex justify-start w-fit group"
-                onClick={() => onViewSessions(row.original)}
-              >
-                + {remainingCount} more
-                <span className="ml-1 opacity-100 group-hover:translate-x-1 transition-transform">→</span>
-              </Button>
+            {sessions.length === 0 ? (
+              <span className="text-xs text-muted-foreground italic">No sessions</span>
+            ) : (
+              <>
+                {displaySessions.map((s) => (
+                  <div key={s.session_id} className="flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-1 overflow-hidden">
+                      {displaySessions.length > 1 && <Badge variant="outline" className="h-5 px-1 py-0 text-[10px] leading-none border-primary/20 bg-primary/5">
+                        #{s.session_id}
+                      </Badge>}
+                      <span className="truncate">
+                        <DateDisplay date={s.start_date} />
+                      </span>
+                    </div>
+                    <Badge variant="secondary" className="h-5 px-1 py-0 text-[10px] font-medium leading-none whitespace-nowrap">
+                      {s.candidate_count} cand.
+                    </Badge>
+                  </div>
+                ))}
+                {remainingCount > 0 && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs text-primary font-semibold hover:no-underline flex justify-start w-fit group"
+                    onClick={() => onViewSessions(row.original)}
+                  >
+                    + {remainingCount} more
+                    <span className="ml-1 opacity-100 group-hover:translate-x-1 transition-transform">→</span>
+                  </Button>
+                )}
+                {sessions.length <= 3 && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-[10px] hover:text-primary transition-colors font-medium hover:no-underline flex justify-start w-fit"
+                    onClick={() => onViewSessions(row.original)}
+                  >
+                    View details
+                  </Button>
+                )}
+              </>
             )}
-            {sessions.length <= 3 && sessions.length > 0 && (
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-[10px]  hover:text-primary transition-colors font-medium hover:no-underline flex justify-start w-fit"
-                onClick={() => onViewSessions(row.original)}
-              >
-                View details
-              </Button>
-            )}
+
+            <div className="flex items-center gap-1.5 pt-1.5 mt-0.5 border-t border-border/40">
+              <span className="text-[13px] font-semibold text-muted-foreground">
+                Total candidates: <span className="font-bold text-foreground">{totalCandidates}</span>
+              </span>
+            </div>
           </div>
         );
       },

@@ -254,6 +254,33 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         },
       },
 
+      // CURRENT STAGE
+      {
+        id: "current_stage",
+        accessorKey: "current_stage",
+        header: "Stage",
+        cell: ({ row }) => {
+          const stage = row.original.current_stage;
+          if (!stage) {
+            return (
+              <span className="text-muted-foreground text-sm italic font-medium">N/A</span>
+            );
+          }
+
+          return (
+            <div className="flex flex-col gap-1 min-w-[120px]">
+              <span className="font-semibold text-sm text-foreground truncate max-w-[150px]" title={stage.template_name}>
+                {stage.template_name}
+              </span>
+              <StatusBadge
+                status={stage.status}
+                className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
+              />
+            </div>
+          );
+        },
+      },
+
       // 5. SOCIALS
       {
         id: "socials",

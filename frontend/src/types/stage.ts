@@ -64,3 +64,16 @@ export interface StageEvaluation {
   /** Timestamp when the evaluation was completed */
   completed_at?: string | null;
 }
+
+/**
+ * Minimal summary of a stage for embedding in candidate responses.
+ */
+export interface CandidateStageSummary {
+  stage_id: string;
+  template_name: string;
+  status: StageStatus | string;
+  order: number;
+  job_id?: string | null;
+  job_name?: string | null;
+  completed_at?: string | null;
+}

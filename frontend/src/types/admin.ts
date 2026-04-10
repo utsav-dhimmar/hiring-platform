@@ -4,7 +4,7 @@
  */
 
 import type { Job } from "@/types/job";
-import type { JobStageConfig } from "@/types/stage";
+import type { JobStageConfig, CandidateStageSummary } from "@/types/stage";
 
 /**
  * Generic paginated response wrapper.
@@ -441,6 +441,14 @@ export interface CandidateAnalysis {
    * Historical screening results for previous/all JD versions.
    */
   version_results?: CandidateVersionResult[] | null;
+  /**
+   * Current recruitment stage information.
+   */
+  current_stage?: CandidateStageSummary | null;
+  /**
+   * Full recruitment pipeline for this candidate.
+   */
+  pipeline?: CandidateStageSummary[] | null;
 }
 
 /**

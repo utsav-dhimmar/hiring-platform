@@ -140,21 +140,22 @@ export const jobCreateSchema = z.object({
   /** Job title (minimum 3 characters) */
   title: z.string().min(3, "Job title must be at least 3 characters long"),
   /** Number of open vacancies */
-  vacancy: z.number().int().min(0, "Vacancy must be at least 0").optional().nullable(),
+  vacancy: z.number({
+    error: "Vacancy is required",
+
+  }).int().positive().min(1, "Vacancy must be at least 1"),
   /** UUID of the department this job belongs to */
-  department_id: z.string().uuid("Please select a valid department").optional().or(z.literal("")),
+  department_id: z.string().uuid("Please select a valid department"),
   /** Job description text (minimum 20 characters) */
   jd_text: z
     .string()
-    .min(20, "Job description must be at least 20 characters long")
-    .optional()
-    .or(z.literal("")),
+    .min(20, "Job description must be at least 20 characters long"),
   /** Whether the job is active by default */
   is_active: z.boolean().default(true),
   /** Threshold score (0-100) for considering a candidate as 'passed' */
   passing_threshold: z.number().min(0).max(100).default(65),
   /** Array of skill UUIDs required for this job */
-  skill_ids: z.array(z.string().uuid("Invalid skill ID")).default([]),
+  skill_ids: z.array(z.string().uuid("Invalid skill ID")),
   /** Optional custom extraction fields used during resume parsing */
   custom_extraction_fields: z.array(z.string()).optional().default([]),
 });
@@ -174,15 +175,16 @@ export const jobUpdateSchema = z.object({
   /** Job title */
   title: z.string().min(3, "Job title must be at least 3 characters long").optional(),
   /** Number of open vacancies */
-  vacancy: z.number().int().min(0, "Vacancy must be at least 0").optional().nullable(),
+  vacancy: z.number({
+    error: "Vacancy is required",
+  }).int().min(1, "Vacancy must be at least 1"),
   /** UUID of the department */
-  department_id: z.string().uuid("Please select a valid department").optional().or(z.literal("")),
+  department_id: z.string().uuid("Please select a valid department").optional(),
   /** Job description text */
   jd_text: z
     .string()
     .min(20, "Job description must be at least 20 characters long")
-    .optional()
-    .or(z.literal("")),
+    .optional(),
   /** Whether the job is active */
   is_active: z.boolean().optional(),
   /** Threshold score (0-100) */

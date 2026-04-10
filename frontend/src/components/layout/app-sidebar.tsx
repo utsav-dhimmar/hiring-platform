@@ -130,7 +130,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       ],
     },
     {
-      title: "Master Data",
+      title: "Skill & Department",
       url: "/dashboard/admin/skills",
       icon: Database,
       items: [
