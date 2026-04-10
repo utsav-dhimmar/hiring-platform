@@ -25,10 +25,12 @@ class JobAdminService:
     """
 
     async def get_all_jobs(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, query: str | None = None
     ) -> JobsListRead:
         """Get all jobs with pagination and global dashboard summaries."""
-        result = await job_repository.get_multi(db=db, skip=skip, limit=limit)
+        result = await job_repository.get_multi(
+            db=db, skip=skip, limit=limit, query=query
+        )
 
         from app.v1.services.hr_decision_service import hr_decision_service
 
@@ -39,6 +41,10 @@ class JobAdminService:
             job_read.automated_screening_summary = (
                 await hr_decision_service.get_job_screening_summary(db, job.id)
             )
+            # Add per-job decision summary (Attaching for dashboard parity)
+            decision_summary = await hr_decision_service.get_job_decision_summary(db, job.id)
+            job_read.decision_summary = decision_summary.model_dump()
+
             # Add total and current session counts (Enabled session history for list view)
             stats = await self._calculate_job_activity_stats(db, job.id, include_sessions=True)
             job_read.total_candidates = stats["total_candidates"]
@@ -69,9 +75,14 @@ class JobAdminService:
         job_reads = []
         for job in result["data"]:
             job_read = JobRead.model_validate(job)
+            # Add per-job automated screening summary
             job_read.automated_screening_summary = (
                 await hr_decision_service.get_job_screening_summary(db, job.id)
             )
+            # Add per-job decision summary (Attaching for search results parity)
+            decision_summary = await hr_decision_service.get_job_decision_summary(db, job.id)
+            job_read.decision_summary = decision_summary.model_dump()
+
             # Add total and current session counts (Enabled session history for search view)
             stats = await self._calculate_job_activity_stats(db, job.id, include_sessions=True)
             job_read.total_candidates = stats["total_candidates"]
@@ -321,9 +332,10 @@ class JobAdminService:
             A dictionary with 'total_candidates', 'current_session_count', 
             and 'sessions' (list of JobActivitySession).
         """
-        from sqlalchemy import select, and_, func
+        from sqlalchemy import select, and_, func, or_
         from app.v1.db.models.audit_logs import AuditLog
         from app.v1.db.models.candidates import Candidate
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
 
         # 1. Verify job existence and get creation time
         job = await job_repository.get(db=db, id=job_id)
@@ -333,12 +345,18 @@ class JobAdminService:
                 detail="Job not found.",
             )
 
-        # 2. Get total candidates
-        total_stmt = select(func.count(Candidate.id)).where(
+        # 2. Get total candidates (Native Applied + AI Cross-matched)
+        native_count_stmt = select(func.count(Candidate.id)).where(
             Candidate.applied_job_id == job_id
         )
-        total_res = await db.execute(total_stmt)
-        total_candidates = total_res.scalar() or 0
+        matched_count_stmt = select(func.count(CrossJobMatch.id)).where(
+            CrossJobMatch.matched_job_id == job_id
+        )
+        
+        native_res = await db.execute(native_count_stmt)
+        matched_res = await db.execute(matched_count_stmt)
+        
+        total_candidates = (native_res.scalar() or 0) + (matched_res.scalar() or 0)
 
         # 3. Get status update audit logs
         stmt = (
@@ -405,17 +423,30 @@ class JobAdminService:
             if not include_sessions and not s["is_current"]:
                 continue
 
-            count_stmt = select(func.count(Candidate.id)).where(
+            # Count native applicants in this session
+            native_stmt = select(func.count(Candidate.id)).where(
                 and_(
                     Candidate.applied_job_id == job_id,
                     Candidate.created_at >= s["start_date"],
                 )
             )
             if s["end_date"]:
-                count_stmt = count_stmt.where(Candidate.created_at <= s["end_date"])
+                native_stmt = native_stmt.where(Candidate.created_at <= s["end_date"])
 
-            count_res = await db.execute(count_stmt)
-            count_val = count_res.scalar() or 0
+            # Count AI cross-matches in this session
+            matched_stmt = select(func.count(CrossJobMatch.id)).where(
+                and_(
+                    CrossJobMatch.matched_job_id == job_id,
+                    CrossJobMatch.created_at >= s["start_date"],
+                )
+            )
+            if s["end_date"]:
+                matched_stmt = matched_stmt.where(CrossJobMatch.created_at <= s["end_date"])
+
+            native_res = await db.execute(native_stmt)
+            matched_res = await db.execute(matched_stmt)
+            
+            count_val = (native_res.scalar() or 0) + (matched_res.scalar() or 0)
             s["candidate_count"] = count_val
             
             if s["is_current"]:

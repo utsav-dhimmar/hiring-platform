@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.db.models.resumes import Resume
+from app.v1.db.models.resume_version_results import ResumeVersionResult
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
 from app.v1.schemas.response import PaginatedData
 
@@ -45,7 +46,9 @@ class CandidateAdminService:
             dir_stmt = dir_stmt.where(Candidate.applied_version_number == jd_version)
 
         dir_stmt = dir_stmt.options(
-            selectinload(Candidate.resumes).selectinload(Resume.version_results), selectinload(Candidate.hr_decisions)
+            selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
+            selectinload(Candidate.hr_decisions),
+            selectinload(Candidate.applied_job),
         )
         dir_result = await db.execute(dir_stmt)
         direct_candidates = list(dir_result.scalars().unique().all())
@@ -55,7 +58,7 @@ class CandidateAdminService:
             select(CrossJobMatch)
             .where(CrossJobMatch.matched_job_id == job_id)
             .options(
-                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
                 selectinload(CrossJobMatch.candidate).selectinload(
                     Candidate.hr_decisions
                 ),
@@ -102,6 +105,8 @@ class CandidateAdminService:
             resp = resp.model_copy(
                 update={
                     "applied_job_id": job_id,
+                    "job_id": job_id,
+                    "job_name": xm.matched_job.title if xm.matched_job else None,
                     "applied_version_number": (
                         xm.matched_job.version if xm.matched_job else resp.applied_version_number
                     ),
@@ -160,7 +165,9 @@ class CandidateAdminService:
             dir_stmt = dir_stmt.where(search_filter)
 
         dir_stmt = dir_stmt.options(
-            selectinload(Candidate.resumes).selectinload(Resume.version_results), selectinload(Candidate.hr_decisions)
+            selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
+            selectinload(Candidate.hr_decisions),
+            selectinload(Candidate.applied_job),
         )
         dir_result = await db.execute(dir_stmt)
         direct_candidates = list(dir_result.scalars().unique().all())
@@ -170,7 +177,7 @@ class CandidateAdminService:
             select(CrossJobMatch)
             .where(CrossJobMatch.matched_job_id == job_id)
             .options(
-                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
                 selectinload(CrossJobMatch.candidate).selectinload(
                     Candidate.hr_decisions
                 ),
@@ -218,6 +225,8 @@ class CandidateAdminService:
             resp = resp.model_copy(
                 update={
                     "applied_job_id": job_id,
+                    "job_id": job_id,
+                    "job_name": xm.matched_job.title if xm.matched_job else None,
                     "applied_version_number": (
                         xm.matched_job.version if xm.matched_job else resp.applied_version_number
                     ),
@@ -267,7 +276,9 @@ class CandidateAdminService:
         # Apply paging and ordering to the same statement object
         stmt = (
             stmt.options(
-                selectinload(Candidate.resumes).selectinload(Resume.version_results), selectinload(Candidate.hr_decisions)
+                selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
+                selectinload(Candidate.hr_decisions),
+                selectinload(Candidate.applied_job),
             )
             .order_by(Candidate.created_at.desc())
             .offset(skip)
@@ -410,6 +421,7 @@ class CandidateAdminService:
                     "id": str(vr.id),
                     "resume_id": str(vr.resume_id),
                     "job_id": str(vr.job_id),
+                    "job_name": vr.job.title if vr.job else None,
                     "job_version_number": vr.job_version_number,
                     "resume_score": float(vr.resume_score) if vr.resume_score is not None else None,
                     "pass_fail": vr.pass_fail,
@@ -431,6 +443,8 @@ class CandidateAdminService:
             current_status=candidate.current_status,
             applied_job_id=candidate.applied_job_id,
             applied_version_number=candidate.applied_version_number,
+            job_id=candidate.applied_job_id,
+            job_name=candidate.applied_job.title if candidate.applied_job else None,
             resume_id=latest_resume.id if latest_resume else None,
             created_at=candidate.created_at,
             resume_analysis=analysis,

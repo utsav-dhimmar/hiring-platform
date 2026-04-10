@@ -200,14 +200,64 @@ async def main():
         permissions = await ensure_permissions(session)
         permissions_by_name = {permission.name: permission for permission in permissions}
         roles = await ensure_default_roles(session, permissions_by_name)
-        role = roles.get(ADMIN_ROLE_NAME, roles[SUPERADMIN_ROLE_NAME])
-        user = await ensure_admin_user(session, role)
+        
+        # 1. Ensure Superadmin
+        superadmin_role = roles.get(ADMIN_ROLE_NAME, roles[SUPERADMIN_ROLE_NAME])
+        admin_user = await ensure_admin_user(session, superadmin_role)
+        
+        # 2. Ensure HR Admin User
+        hr_admin_role = roles[HR_ADMIN_ROLE_NAME]
+        hr_admin_user = await ensure_user_with_role(
+            session, 
+            email="hr_admin@example.com", 
+            full_name="HR Administrator", 
+            password="admin123", 
+            role=hr_admin_role
+        )
+        
+        # 3. Ensure HR User
+        hr_user_role = roles[HR_USER_ROLE_NAME]
+        hr_user_user = await ensure_user_with_role(
+            session, 
+            email="hr_user@example.com", 
+            full_name="HR Specialist", 
+            password="admin123", 
+            role=hr_user_role
+        )
+        
         await session.commit()
 
-        print(f"Admin user ready: {user.email}")
-        print(f"Role: {role.name}")
-        print(f"Permissions synced: {len(role.permissions)}")
-        print("Default roles synced: superadmin, hr_admin, hr_user")
+        print(f"Superadmin ready:  {admin_user.email}")
+        print(f"HR Admin ready:    {hr_admin_user.email}")
+        print(f"HR User ready:     {hr_user_user.email}")
+        print("Default roles and users synced successfully.")
+
+
+async def ensure_user_with_role(session, email, full_name, password, role) -> User:
+    """Helper to ensure a user exists with a specific email and role."""
+    from sqlalchemy import select
+    now = utc_now()
+    user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    
+    if user:
+        user.full_name = full_name
+        user.password_hash = hash_password(password)
+        user.role_id = role.id
+        user.updated_at = now
+    else:
+        user = User(
+            email=email,
+            full_name=full_name,
+            password_hash=hash_password(password),
+            role_id=role.id,
+            is_active=True,
+            created_at=now,
+            updated_at=now
+        )
+        session.add(user)
+    
+    await session.flush()
+    return user
 
 
 if __name__ == "__main__":

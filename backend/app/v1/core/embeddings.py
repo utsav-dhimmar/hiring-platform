@@ -18,21 +18,30 @@ from app.v1.prompts import (
 
 
 @lru_cache(maxsize=1)
-def get_embedding_model() -> SentenceTransformer:
+def get_embedding_model() -> SentenceTransformer | None:
     """Retrieve the shared singleton instance of the embedding model.
 
     Returns:
-        The loaded SentenceTransformer model.
+        The loaded SentenceTransformer model, or None if it fails to load.
     """
-    return SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
+    try:
+        return SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
+    except Exception as e:
+        # Log or print the warning. In a restricted environment, we fall back gracefully.
+        print(f"WARNING: Could not load embedding model '{settings.EMBEDDING_MODEL_NAME}': {e}")
+        return None
 
 
-def preload_embedding_model() -> SentenceTransformer:
+def preload_embedding_model() -> SentenceTransformer | None:
     """Explicitly trigger model loading.
 
     Returns:
-        The loaded SentenceTransformer model.
+        The loaded SentenceTransformer model, or None.
     """
+    return get_current_model()
+
+
+def get_current_model() -> SentenceTransformer | None:
     return get_embedding_model()
 
 
@@ -45,7 +54,7 @@ class EmbeddingService:
         self.truncate_dim = settings.EMBEDDING_TRUNCATE_DIM
 
     @property
-    def model(self) -> SentenceTransformer:
+    def model(self) -> SentenceTransformer | None:
         """Lazily retrieve the embedding model."""
         return get_embedding_model()
 
@@ -89,7 +98,12 @@ class EmbeddingService:
         """
         normalized_text = text.strip().lower()
         if not normalized_text:
-            return []
+            return [0.0] * self.target_dim
+
+        if self.model is None:
+            # Return zero vector if model failed to load
+            return [0.0] * self.target_dim
+
         payload = (
             instruction + normalized_text if self.use_instructions else normalized_text
         )

@@ -21,7 +21,9 @@ class JobRepository:
     Repository class for handling Job database operations.
     """
 
-    async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100):
+    async def get_multi(
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, query: str | None = None
+    ):
         """
         Retrieve multiple job records with pagination.
 
@@ -29,11 +31,20 @@ class JobRepository:
             db (AsyncSession): Database session.
             skip (int): Number of records to skip.
             limit (int): Maximum number of records to return.
+            query (str | None): Optional search query for job title.
 
         Returns:
             dict[str, object]: A dictionary containing the jobs and total count.
         """
-        total = await db.scalar(select(func.count()).select_from(Job))
+        search_filter = None
+        if query:
+            search_filter = Job.title.ilike(f"%{query}%")
+
+        total_stmt = select(func.count()).select_from(Job)
+        if search_filter is not None:
+            total_stmt = total_stmt.where(search_filter)
+        total = await db.scalar(total_stmt)
+
         stmt = (
             select(Job)
             .options(
@@ -42,9 +53,11 @@ class JobRepository:
                 selectinload(Job.department),
                 selectinload(Job.versions),
             )
-            .offset(skip)
-            .limit(limit)
         )
+        if search_filter is not None:
+            stmt = stmt.where(search_filter)
+
+        stmt = stmt.offset(skip).limit(limit)
         result = await db.execute(stmt)
         return {
             "data": list(result.scalars().unique().all()),

@@ -41,6 +41,7 @@ async def read_jobs(
     user: UserRead = Depends(check_permission("jobs:access")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
     """
     Retrieve a list of jobs with pagination.
@@ -53,7 +54,7 @@ async def read_jobs(
     Returns:
         Any: A list of jobs.
     """
-    return await job_service.get_jobs(db=db, skip=skip, limit=limit)
+    return await job_service.get_jobs(db=db, skip=skip, limit=limit, query=q)
 
 
 @router.get("/search", response_model=JobsListRead)

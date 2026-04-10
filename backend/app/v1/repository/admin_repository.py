@@ -8,7 +8,7 @@ role management, permission management, audit logs, and analytics reporting.
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import desc, func, or_, select
+from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +21,7 @@ from app.v1.db.models.permissions import Permission
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.roles import Role
 from app.v1.db.models.user import User
+from app.v1.db.models.cross_job_matches import CrossJobMatch
 
 
 class AdminRepository:
@@ -409,7 +410,10 @@ class AdminRepository:
         total_roles = await db.scalar(select(func.count(Role.id)))
         total_permissions = await db.scalar(select(func.count(Permission.id)))
         total_jobs = await db.scalar(select(func.count(Job.id)))
-        total_candidates = await db.scalar(select(func.count(Candidate.id)))
+        total_candidates_native = await db.scalar(select(func.count(Candidate.id))) or 0
+        total_candidates_matched = await db.scalar(select(func.count(CrossJobMatch.id))) or 0
+        total_candidates = total_candidates_native + total_candidates_matched
+        
         total_resumes = (
             await db.scalar(
                 select(func.count(Resume.id)).where(Resume.pass_fail.isnot(None))
@@ -437,7 +441,10 @@ class AdminRepository:
         total_pending = (
             await db.scalar(
                 select(func.count(Resume.id)).where(
-                    Resume.parsed.is_(True), Resume.pass_fail.is_(None)
+                    or_(
+                        and_(Resume.parsed.is_(True), Resume.pass_fail.is_(None)),
+                        Resume.pass_fail.ilike("pending")
+                    )
                 )
             )
             or 0
@@ -522,7 +529,9 @@ class AdminRepository:
         active_jobs = (
             await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0
         )
-        total_candidates = await db.scalar(select(func.count(Candidate.id))) or 0
+        total_candidates_native = await db.scalar(select(func.count(Candidate.id))) or 0
+        total_candidates_matched = await db.scalar(select(func.count(CrossJobMatch.id))) or 0
+        total_candidates = total_candidates_native + total_candidates_matched
 
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         resumes_last_30_days = (
@@ -554,7 +563,10 @@ class AdminRepository:
         total_pending = (
             await db.scalar(
                 select(func.count(Resume.id)).where(
-                    Resume.parsed.is_(True), Resume.pass_fail.is_(None)
+                    or_(
+                        and_(Resume.parsed.is_(True), Resume.pass_fail.is_(None)),
+                        Resume.pass_fail.ilike("pending")
+                    )
                 )
             )
             or 0
@@ -580,7 +592,7 @@ class AdminRepository:
 
         candidates_by_job = []
         for job in jobs:
-            count = (
+            native_count = (
                 await db.scalar(
                     select(func.count(Candidate.id)).where(
                         Candidate.applied_job_id == job.id
@@ -588,12 +600,21 @@ class AdminRepository:
                 )
                 or 0
             )
+            matched_count = (
+                await db.scalar(
+                    select(func.count(CrossJobMatch.id)).where(
+                        CrossJobMatch.matched_job_id == job.id
+                    )
+                )
+                or 0
+            )
+            
             candidates_by_job.append(
                 {
                     "job_id": str(job.id),
                     "job_title": job.title,
                     "department": job.department.name if job.department else None,
-                    "candidate_count": count,
+                    "candidate_count": native_count + matched_count,
                 }
             )
 

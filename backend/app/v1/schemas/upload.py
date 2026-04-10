@@ -136,6 +136,8 @@ class CandidateResponse(BaseModel):
     processing_status: str | None = None
     processing_error: str | None = None
     hr_decision: str | None = None
+    job_id: uuid.UUID | None = None
+    job_name: str | None = None
     version_results: list[dict] | None = None
 
 

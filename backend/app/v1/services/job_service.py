@@ -12,12 +12,17 @@ class JobService:
     Service class for handling Job-related operations.
     """
 
-    async def get_jobs(self, db: AsyncSession, skip: int = 0, limit: int = 100):
+    async def get_jobs(
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, query: str | None = None
+    ):
         """
         Retrieve a list of jobs with pagination and global summaries.
         """
         from app.v1.services.admin.job_service import job_admin_service
-        return await job_admin_service.get_all_jobs(db=db, skip=skip, limit=limit)
+
+        return await job_admin_service.get_all_jobs(
+            db=db, skip=skip, limit=limit, query=query
+        )
 
     async def search_jobs(
         self, db: AsyncSession, query: str, skip: int = 0, limit: int = 100
