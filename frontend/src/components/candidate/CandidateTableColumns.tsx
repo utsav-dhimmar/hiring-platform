@@ -10,7 +10,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import { cn, capitalize, toTitleCase } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
-
+import { Link } from "react-router-dom";
+import { slugify } from "@/utils/slug";
 function scoreColor(score: number, threshold: number = 65) {
   if (score >= 80) return "bg-green-500";
   if (score >= threshold) return "bg-yellow-500";
@@ -31,11 +32,13 @@ function isValidUrl(url: string | null | undefined): url is string {
 interface UseCandidateTableColumnsProps<T extends UnifiedCandidate> {
   renderActions?: (candidate: T) => React.ReactNode;
   passing_threshold?: number;
+  showJobContext?: boolean;
 }
 
 export const useCandidateTableColumns = <T extends UnifiedCandidate>({
   renderActions,
   passing_threshold = 65,
+  showJobContext = false,
 }: UseCandidateTableColumnsProps<T>) => {
   return useMemo<ColumnDef<T>[]>(
     () => [
@@ -72,16 +75,44 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   fullName
                 )}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                 {c.email || "N/A"}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                 {c.phone || "N/A"}
               </span>
             </div>
           );
         },
       },
+      // 1.5 JOB CONTEXT (Conditional)
+      ...(showJobContext
+        ? [
+          {
+            id: "job_context",
+            accessorKey: "applied_job_id",
+            header: "Job",
+            cell: ({ row }: { row: { original: T } }) => {
+              const jobId = row.original.applied_job_id;
+              const jobName = row.original.job_name
+              if (!jobId || !jobName) return <span className="text-muted-foreground text-sm font-medium italic">N/A</span>;
+              const slug = slugify(jobName);
+              return (
+                <div className="flex items-center gap-1.5 max-w-[200px]" title={jobName}>
+
+                  <Link
+                    to={`/dashboard/jobs/${slug}/candidates`}
+                    state={{ state: { jobId: jobId } }}
+                    className="text-primary font-medium hover:underline truncate capitalize"
+                  >
+                    {jobName}
+                  </Link>
+                </div>
+              );
+            },
+          } as ColumnDef<T>,
+        ]
+        : []),
 
       // 2. SCORE
       {
@@ -353,7 +384,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           const loc = row.original.location;
           if (!loc)
             return <span className="text-muted-foreground text-sm">N/A</span>;
-          
+
           // Normalize to Title Case
           const normalized = toTitleCase(loc.trim());
 

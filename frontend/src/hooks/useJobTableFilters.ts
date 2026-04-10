@@ -27,10 +27,7 @@ export const useJobTableFilters = (jobs: Job[]) => {
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((j) => {
-      // Title search
-      if (titleFilter && !j.title.toLowerCase().includes(titleFilter.toLowerCase())) {
-        return false;
-      }
+      // Title search is handled server-side via the 'q' parameter.
 
       // Status filter
       if (statusFilter.length > 0) {

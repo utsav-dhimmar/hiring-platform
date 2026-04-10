@@ -55,13 +55,29 @@ const AdminJobs = () => {
     minDate
   } = useJobTableFilters(jobs);
 
+  const [debouncedTitle, setDebouncedTitle] = useState(titleFilter);
+
+  // Debounce title filter changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTitle(titleFilter);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [titleFilter]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedTitle]);
+
   /** Fetches jobs using the admin service with current pagination. */
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
       const skip = pagination.pageIndex * pagination.pageSize;
       const limit = pagination.pageSize;
-      const response = await adminJobService.getAllJobs(skip, limit);
+      const response = await adminJobService.getAllJobs(skip, limit, debouncedTitle);
       setJobs(response.data as unknown as Job[]);
       setTotal(response.total);
     } catch (error) {
@@ -71,7 +87,7 @@ const AdminJobs = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.pageIndex, pagination.pageSize]);
+  }, [pagination.pageIndex, pagination.pageSize, debouncedTitle]);
 
   useEffect(() => {
     fetchJobs();

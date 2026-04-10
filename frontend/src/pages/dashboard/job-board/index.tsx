@@ -58,13 +58,29 @@ export default function JobBoard() {
     clearFilters,
     minDate
   } = useJobTableFilters(jobs);
+
+  const [debouncedTitle, setDebouncedTitle] = useState(titleFilter);
+
+  // Debounce title filter changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTitle(titleFilter);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [titleFilter]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedTitle]);
   /** Fetches all jobs from the API and replaces the local job list. Shows a toast on failure. */
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
       const skip = pagination.pageIndex * pagination.pageSize;
       const limit = pagination.pageSize;
-      const response = await jobService.getJobs(skip, limit);
+      const response = await jobService.getJobs(skip, limit, debouncedTitle);
       setJobs(response.data);
       setTotal(response.total);
     } catch (error) {
@@ -74,7 +90,7 @@ export default function JobBoard() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.pageIndex, pagination.pageSize]);
+  }, [pagination.pageIndex, pagination.pageSize, debouncedTitle]);
 
   useEffect(() => {
     fetchJobs();

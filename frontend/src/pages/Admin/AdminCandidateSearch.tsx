@@ -11,7 +11,6 @@ import {
   AppPageShell,
   ErrorDisplay,
   PageHeader,
-  CandidateSearchForm,
   JobSummaryCard,
   // useToast,
 } from "@/components/shared";
@@ -128,20 +127,23 @@ const AdminCandidateSearch = () => {
     }
   }, [jobId, fetchJob]);
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActiveSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [activeSearch]);
+
+  // Refetch when pagination or search changes
   useEffect(() => {
     fetchCandidates();
-  }, [
-    fetchCandidates,
-    pagination.pageIndex,
-    pagination.pageSize,
-    activeSearch,
-  ]);
-
-  const handleSearch = (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-    setActiveSearch(searchQuery);
-  };
+  }, [pagination.pageIndex, pagination.pageSize, activeSearch, fetchCandidates]);
 
   const handleShowMore = (candidate: CandidateResponse) => {
     setSelectedCandidate(candidate);
@@ -206,13 +208,6 @@ const AdminCandidateSearch = () => {
 
       {job && <JobSummaryCard job={job} />}
 
-      <CandidateSearchForm
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        handleSearch={handleSearch}
-        loading={loading}
-      />
-
       {error ? (
         <ErrorDisplay message={error} onRetry={fetchCandidates} />
       ) : loading && candidates.length === 0 ? (
@@ -227,6 +222,9 @@ const AdminCandidateSearch = () => {
             pagination={pagination}
             onPaginationChange={setPagination}
             onShowMore={handleShowMore}
+            nameFilter={searchQuery}
+            onNameFilterChange={setSearchQuery}
+            showJobContext={!jobId}
             // onShowAnalysisDetails={handleShowAnalysisDetails}
             // onDelete={handleDeleteClick}
           />

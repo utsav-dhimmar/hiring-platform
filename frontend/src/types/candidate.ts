@@ -21,4 +21,7 @@ export interface UnifiedCandidate {
   applied_at?: string | null;
   /** Location extracted from resume */
   location?: string | null;
+  /** ID of the job the candidate applied for */
+  applied_job_id?: string | null;
+  job_name?: string | null;
 }

@@ -23,12 +23,16 @@ interface CandidateTableFiltersProps {
   setStatusFilter: (value: string[]) => void;
   locationFilter: string[];
   setLocationFilter: (value: string[]) => void;
+  jobFilter: string[];
+  setJobFilter: (value: string[]) => void;
+  showJobContext?: boolean;
   dateRange: DateRange | undefined;
   setDateRange: (range: DateRange | undefined) => void;
   hrDecisionFilter: string[];
   setHrDecisionFilter: (value: string[]) => void;
   statusOptions: string[];
   locationOptions: string[];
+  jobOptions: string[];
   hasActiveFilters: boolean;
   clearFilters: () => void;
   resultCount: number;
@@ -43,12 +47,16 @@ export const CandidateTableFilters = ({
   // setStatusFilter,
   locationFilter,
   setLocationFilter,
+  jobFilter,
+  setJobFilter,
+  showJobContext = false,
   dateRange,
   setDateRange,
   hrDecisionFilter,
   setHrDecisionFilter,
   // statusOptions,
   locationOptions,
+  jobOptions,
   hasActiveFilters,
   clearFilters,
   resultCount,
@@ -68,6 +76,61 @@ export const CandidateTableFilters = ({
         />
         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
       </div>
+
+      {/* Job dropdown */}
+      {showJobContext && jobOptions.length > 1 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+              jobFilter.length > 0
+                ? "border-primary/40 bg-primary/5 text-foreground"
+                : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            )}
+          >
+            <span className=" max-w-[150px] truncate ">
+              {jobFilter.length === 0
+                ? "All Jobs"
+                : jobFilter.length === 1
+                  ? jobFilter[0]
+                  : `${jobFilter.length} Jobs`}</span>
+            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-w-[250px]">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Job Title</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {jobOptions.map((j) => (
+                <DropdownMenuCheckboxItem
+                  key={j}
+                  checked={jobFilter.includes(j)}
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() =>
+                    setJobFilter(
+                      jobFilter.includes(j)
+                        ? jobFilter.filter((v) => v !== j)
+                        : [...jobFilter, j]
+                    )
+                  }
+                >
+                  {j}
+                </DropdownMenuCheckboxItem>
+              ))}
+              {jobFilter.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={false}
+                    onClick={() => setJobFilter([])}
+                  >
+                    Clear jobs
+                  </DropdownMenuCheckboxItem>
+                </>
+              )}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       {/* Status dropdown */}
       {/* <DropdownMenu>

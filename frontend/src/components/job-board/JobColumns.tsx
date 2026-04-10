@@ -53,7 +53,7 @@ export const getJobColumns = ({
         );
       },
       cell: ({ row }) => (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="font-bold text-md">{row.getValue("title")}</span>
             {row.original.version && (
@@ -129,7 +129,7 @@ export const getJobColumns = ({
     },
     {
       accessorKey: "activity_sessions",
-      header: "Activity | Candidates",
+      header: "Hiring Activity",
       cell: ({ row }) => {
         const sessions = row.original.activity_sessions || [];
         const displaySessions = sessions.slice(0, 3) // Show last 3 sessions // use -3 and reverse() if reverse needed
@@ -145,11 +145,11 @@ export const getJobColumns = ({
             {displaySessions.map((s) => (
               <div key={s.session_id} className="flex items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-1 overflow-hidden">
-                  <Badge variant="outline" className="h-5 px-1 py-0 text-[10px] font-mono leading-none border-primary/20 bg-primary/5">
+                  {displaySessions.length > 1 && <Badge variant="outline" className="h-5 px-1 py-0 text-[10px] leading-none border-primary/20 bg-primary/5">
                     #{s.session_id}
-                  </Badge>
-                  <span className="truncate text-muted-foreground italic">
-                    {s.is_current ? "Current" : new Date(s.start_date).toLocaleDateString("en-GB", { day: '2-digit', month: '2-digit' })}
+                  </Badge>}
+                  <span className="truncate">
+                    <DateDisplay date={s.start_date} />
                   </span>
                 </div>
                 <Badge variant="secondary" className="h-5 px-1 py-0 text-[10px] font-medium leading-none whitespace-nowrap">
@@ -172,7 +172,7 @@ export const getJobColumns = ({
               <Button
                 variant="link"
                 size="sm"
-                className="h-auto p-0 text-[10px] text-muted-foreground/60 hover:text-primary transition-colors font-medium hover:no-underline flex justify-start w-fit"
+                className="h-auto p-0 text-[10px]  hover:text-primary transition-colors font-medium hover:no-underline flex justify-start w-fit"
                 onClick={() => onViewSessions(row.original)}
               >
                 View details

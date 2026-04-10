@@ -22,6 +22,9 @@ interface CandidateSearchTableProps {
   pagination: PaginationState;
   onPaginationChange: OnChangeFn<PaginationState>;
   onShowMore: (candidate: CandidateResponse) => void;
+  nameFilter?: string;
+  onNameFilterChange?: (value: string) => void;
+  showJobContext?: boolean;
   // onShowAnalysisDetails: (candidate: CandidateResponse) => void;
   // onDelete: (candidate: CandidateResponse) => void;
 }
@@ -32,6 +35,9 @@ const CandidateSearchTable = ({
   pagination,
   onPaginationChange,
   onShowMore,
+  nameFilter,
+  onNameFilterChange,
+  showJobContext = false,
 }: CandidateSearchTableProps): ReactElement => {
   return (
     <CandidateTable
@@ -41,6 +47,9 @@ const CandidateSearchTable = ({
       pagination={pagination}
       onPaginationChange={onPaginationChange}
       pageCount={Math.ceil(total / pagination.pageSize)}
+      nameFilter={nameFilter}
+      onNameFilterChange={onNameFilterChange}
+      showJobContext={showJobContext}
       renderActions={(candidate) => (
         <div className="flex items-center gap-2">
           <HoverCard>

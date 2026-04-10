@@ -4,11 +4,19 @@ import type { DateRange } from "react-day-picker";
 import type { UnifiedCandidate } from "@/types/candidate";
 import { toTitleCase } from "@/lib/utils";
 
-export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates: T[]) => {
-  const [nameFilter, setNameFilter] = useState("");
+export const useCandidateTableFilters = <T extends UnifiedCandidate>(
+  candidates: T[],
+  externalNameFilter?: string,
+  onNameFilterChange?: (val: string) => void
+) => {
+  const [internalNameFilter, setInternalNameFilter] = useState("");
+
+  const nameFilter = externalNameFilter !== undefined ? externalNameFilter : internalNameFilter;
+  const setNameFilter = onNameFilterChange !== undefined ? onNameFilterChange : setInternalNameFilter;
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState<string[]>([]);
   const [hrDecisionFilter, setHrDecisionFilter] = useState<string[]>([]);
+  const [jobFilter, setJobFilter] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
@@ -30,6 +38,16 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
         // Normalize to Title Case for display consistency
         const normalized = toTitleCase(c.location.trim());
         if (normalized) set.add(normalized);
+      }
+    });
+    return Array.from(set).sort();
+  }, [candidates]);
+
+  const jobOptions = useMemo(() => {
+    const set = new Set<string>();
+    candidates.forEach((c) => {
+      if (c.job_name) {
+        set.add(c.job_name.trim());
       }
     });
     return Array.from(set).sort();
@@ -76,6 +94,12 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
         if (!isMatched) return false;
       }
 
+      // Job filter (multi-select)
+      if (jobFilter.length > 0) {
+        const candidateJob = (c.job_name || "").trim();
+        if (!jobFilter.includes(candidateJob)) return false;
+      }
+
       // Date range filter
       const rawDate = c.applied_at || c.created_at;
       if (rawDate && (dateRange?.from || dateRange?.to)) {
@@ -94,13 +118,14 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
 
       return true;
     });
-  }, [candidates, nameFilter, statusFilter, locationFilter, hrDecisionFilter, dateRange]);
+  }, [candidates, nameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange]);
 
   const hasActiveFilters =
     !!nameFilter ||
     statusFilter.length > 0 ||
     locationFilter.length > 0 ||
     hrDecisionFilter.length > 0 ||
+    jobFilter.length > 0 ||
     !!dateRange?.from ||
     !!dateRange?.to;
 
@@ -109,6 +134,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
     setStatusFilter([]);
     setLocationFilter([]);
     setHrDecisionFilter([]);
+    setJobFilter([]);
     setDateRange({ from: undefined, to: undefined });
   };
 
@@ -121,10 +147,13 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(candidates:
     setLocationFilter,
     hrDecisionFilter,
     setHrDecisionFilter,
+    jobFilter,
+    setJobFilter,
     dateRange,
     setDateRange,
     statusOptions,
     locationOptions,
+    jobOptions,
     minDate,
     filteredCandidates,
     hasActiveFilters,

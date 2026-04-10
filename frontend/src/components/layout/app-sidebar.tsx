@@ -25,6 +25,9 @@ import {
   ShieldAlertIcon,
   PanelLeftClose,
   PanelLeftOpen,
+  LayoutDashboard,
+  Users,
+  Database,
 } from "lucide-react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -56,14 +59,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard/jobs",
           permission: PERMISSIONS.JOBS_ACCESS,
           // Hide from Platform if available in System (Admin) section
-          hideIfAdmin: true, 
+          hideIfAdmin: true,
         },
-        // {
-        //   title: "Candidates",
-        //   url: "/dashboard/candidates",
-        //   permission: PERMISSIONS.CANDIDATES_ACCESS,
-        //   hideIfAdmin: true,
-        // },
+        {
+          title: "Candidates",
+          url: "/dashboard/candidates",
+          permission: PERMISSIONS.CANDIDATES_ACCESS,
+          hideIfAdmin: true,
+        },
       ],
     },
   ].map((section) => ({
@@ -71,25 +74,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     items: section.items.filter((item: any) => {
       const hasPerm = hasPermissions(userPermissions, item.permission);
       if (!hasPerm) return false;
-      
+
       // Deduplicate: If it's an admin-redundant link and user can see admin nav, hide it here
       if (item.hideIfAdmin && canSeeAdminNav) return false;
-      
+
       return true;
     }),
   })).filter((section) => section.items.length > 0)
 
   const navAdmin = [
     {
-      title: "Administration",
+      title: "Overview",
       url: "/dashboard/admin",
-      icon: ShieldAlertIcon,
+      icon: LayoutDashboard,
       items: [
         {
           title: "Dashboard",
           url: "/dashboard/admin",
           permission: PERMISSIONS.ANALYTICS_READ,
         },
+      ],
+    },
+    {
+      title: "Access Control",
+      url: "/dashboard/admin/users",
+      icon: Users,
+      items: [
         {
           title: "Users",
           url: "/dashboard/admin/users",
@@ -100,16 +110,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard/admin/roles",
           permission: PERMISSIONS.ROLES_READ,
         },
+      ],
+    },
+    {
+      title: "Recruitment",
+      url: "/dashboard/admin/jobs",
+      icon: BriefcaseIcon,
+      items: [
         {
           title: "Jobs",
           url: "/dashboard/admin/jobs",
           permission: PERMISSIONS.JOBS_ACCESS,
         },
-        // {
-        //   title: "Candidates",
-        //   url: "/dashboard/admin/candidates",
-        //   permission: PERMISSIONS.CANDIDATES_ACCESS,
-        // },
+        {
+          title: "Candidates",
+          url: "/dashboard/admin/candidates",
+          permission: PERMISSIONS.CANDIDATES_ACCESS,
+        },
+      ],
+    },
+    {
+      title: "Master Data",
+      url: "/dashboard/admin/skills",
+      icon: Database,
+      items: [
         {
           title: "Skills",
           url: "/dashboard/admin/skills",
@@ -120,6 +144,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard/admin/departments",
           permission: PERMISSIONS.DEPARTMENTS_ACCESS,
         },
+      ],
+    },
+    {
+      title: "Security & Logs",
+      url: "/dashboard/admin/audit-logs",
+      icon: ShieldAlertIcon,
+      items: [
         {
           title: "Audit Logs",
           url: "/dashboard/admin/audit-logs",
@@ -130,7 +161,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard/admin/recent-uploads",
           permission: PERMISSIONS.FILES_READ,
         },
-
       ],
     },
   ].map((section) => ({

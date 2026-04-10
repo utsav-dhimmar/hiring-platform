@@ -24,9 +24,10 @@ export const adminJobService = {
   getAllJobs: async (
     skip: number = 0,
     limit: number = 100,
+    q?: string,
   ): Promise<{ data: JobRead[]; total: number }> => {
     const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs", {
-      params: { skip, limit },
+      params: { skip, limit, ...(q ? { q } : {}) },
     });
     return response.data;
   },

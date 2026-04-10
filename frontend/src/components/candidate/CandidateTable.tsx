@@ -26,6 +26,9 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   pageCount?: number;
   passing_threshold?: number;
   emptyMessage?: string;
+  nameFilter?: string;
+  onNameFilterChange?: (value: string) => void;
+  showJobContext?: boolean;
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -39,6 +42,9 @@ export function CandidateTable<T extends UnifiedCandidate>({
   pageCount,
   passing_threshold,
   emptyMessage = "0 applicants found",
+  nameFilter: externalNameFilter,
+  onNameFilterChange,
+  showJobContext = false,
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -49,20 +55,24 @@ export function CandidateTable<T extends UnifiedCandidate>({
     setLocationFilter,
     hrDecisionFilter,
     setHrDecisionFilter,
+    jobFilter,
+    setJobFilter,
     dateRange,
     setDateRange,
     statusOptions,
     locationOptions,
+    jobOptions,
     minDate,
     filteredCandidates,
     hasActiveFilters,
     clearFilters,
 
-  } = useCandidateTableFilters(candidates);
+  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange);
 
   const columns = useCandidateTableColumns({
     renderActions,
     passing_threshold,
+    showJobContext,
   });
 
   return (
@@ -74,12 +84,16 @@ export function CandidateTable<T extends UnifiedCandidate>({
         setStatusFilter={setStatusFilter}
         locationFilter={locationFilter}
         setLocationFilter={setLocationFilter}
+        jobFilter={jobFilter}
+        setJobFilter={setJobFilter}
+        showJobContext={showJobContext}
         dateRange={dateRange}
         setDateRange={setDateRange}
         hrDecisionFilter={hrDecisionFilter}
         setHrDecisionFilter={setHrDecisionFilter}
         statusOptions={statusOptions}
         locationOptions={locationOptions}
+        jobOptions={jobOptions}
         hasActiveFilters={hasActiveFilters}
         clearFilters={clearFilters}
         resultCount={filteredCandidates.length}

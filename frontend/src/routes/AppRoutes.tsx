@@ -206,14 +206,14 @@ const AppRoutes = () => {
                 </RoleRoute>
               }
             />
-            {/* <Route
+            <Route
               path="candidates"
               element={
                 <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
                   <AdminCandidateSearch />
                 </RoleRoute>
               }
-            /> */}
+            />
           </Route>
         </Route>
 
