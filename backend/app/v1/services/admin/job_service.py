@@ -15,6 +15,7 @@ from app.v1.schemas.job import (
 from app.v1.services.admin.audit_service import audit_service
 from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.skill_service import skill_service
+from app.v1.services.user_service import user_service
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -297,13 +298,23 @@ class JobAdminService:
     async def delete_job(
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_id: uuid.UUID
     ) -> None:
-        """Delete a job."""
+        """Force-delete a job (hr_admin and superadmin only)."""
+        current_user = await user_service.get_user_by_id(db=db, user_id=admin_user_id)
+        role_name = (current_user.role_name or "").lower()
+        is_super_admin = "admin:all" in current_user.permissions
+        allowed_roles = {"hr_admin", "superadmin", "super_admin"}
+        if not is_super_admin and role_name not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only HR Admin or Super Admin can force delete jobs.",
+            )
+
         await self.get_job_by_id(db=db, job_id=job_id)
-        await job_repository.delete(db=db, id=job_id)
+        await job_repository.force_delete(db=db, id=job_id)
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
-            action="delete_job",
+            action="force_delete_job",
             target_type="job",
             target_id=job_id,
         )
