@@ -8,10 +8,22 @@ from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.v1.db.models.candidates import Candidate
+from app.v1.db.models.candidate_skills import candidate_skills
+from app.v1.db.models.cover_letters import CoverLetter
+from app.v1.db.models.cross_job_matches import CrossJobMatch
+from app.v1.db.models.files import File as FileRecord
+from app.v1.db.models.hr_decisions import HrDecision
+from app.v1.db.models.interviews import Interview
 from app.v1.db.models.job_chunks import JobChunk
 from app.v1.db.models.job_skills import job_skills
 from app.v1.db.models.job_stage_configs import JobStageConfig
 from app.v1.db.models.jobs import Job
+from app.v1.db.models.recordings import Recording
+from app.v1.db.models.resume_chunks import ResumeChunk
+from app.v1.db.models.resume_version_results import ResumeVersionResult
+from app.v1.db.models.resumes import Resume
+from app.v1.db.models.transcripts import Transcript
 from app.v1.schemas.job import JobCreate, JobUpdate
 from app.v1.db.models.job_versions import JobVersion
 
@@ -196,12 +208,68 @@ class JobRepository:
         return updated_job
 
     async def delete(self, db: AsyncSession, id: uuid.UUID) -> None:
-        """Delete a job by id."""
-        job = await self.get(db=db, id=id)
-        if job is None:
+        """Force-delete a job and all dependent records by id."""
+        await self.force_delete(db=db, id=id)
+
+    async def force_delete(self, db: AsyncSession, id: uuid.UUID) -> None:
+        """Force-delete a job and its related candidate pipeline data."""
+        job_exists = await db.scalar(select(Job.id).where(Job.id == id))
+        if job_exists is None:
             return
 
-        await db.delete(job)
+        candidate_ids_subquery = select(Candidate.id).where(Candidate.applied_job_id == id)
+        resume_ids_subquery = select(Resume.id).where(
+            Resume.candidate_id.in_(candidate_ids_subquery)
+        )
+        interview_ids_subquery = select(Interview.id).where(
+            Interview.candidate_id.in_(candidate_ids_subquery)
+        )
+
+        # Remove deepest dependencies first, then delete parents.
+        await db.execute(delete(ResumeChunk).where(ResumeChunk.resume_id.in_(resume_ids_subquery)))
+        await db.execute(
+            delete(ResumeVersionResult).where(
+                (ResumeVersionResult.job_id == id)
+                | (ResumeVersionResult.resume_id.in_(resume_ids_subquery))
+            )
+        )
+        await db.execute(
+            delete(CrossJobMatch).where(
+                (CrossJobMatch.original_job_id == id)
+                | (CrossJobMatch.matched_job_id == id)
+                | (CrossJobMatch.candidate_id.in_(candidate_ids_subquery))
+                | (CrossJobMatch.resume_id.in_(resume_ids_subquery))
+            )
+        )
+        await db.execute(delete(Transcript).where(Transcript.interview_id.in_(interview_ids_subquery)))
+        await db.execute(delete(Recording).where(Recording.interview_id.in_(interview_ids_subquery)))
+        await db.execute(
+            delete(HrDecision).where(
+                (HrDecision.job_id == id) | (HrDecision.candidate_id.in_(candidate_ids_subquery))
+            )
+        )
+        await db.execute(delete(CoverLetter).where(CoverLetter.candidate_id.in_(candidate_ids_subquery)))
+        await db.execute(
+            delete(candidate_skills).where(
+                candidate_skills.c.candidate_id.in_(candidate_ids_subquery)
+            )
+        )
+        await db.execute(
+            delete(Interview).where(
+                (Interview.job_id == id) | (Interview.candidate_id.in_(candidate_ids_subquery))
+            )
+        )
+        await db.execute(delete(Resume).where(Resume.candidate_id.in_(candidate_ids_subquery)))
+        await db.execute(delete(FileRecord).where(FileRecord.candidate_id.in_(candidate_ids_subquery)))
+        await db.execute(delete(Candidate).where(Candidate.applied_job_id == id))
+
+        # Remove job-owned records.
+        await db.execute(delete(job_skills).where(job_skills.c.job_id == id))
+        await db.execute(delete(JobStageConfig).where(JobStageConfig.job_id == id))
+        await db.execute(delete(JobChunk).where(JobChunk.job_id == id))
+        await db.execute(delete(JobVersion).where(JobVersion.job_id == id))
+        await db.execute(delete(Job).where(Job.id == id))
+
         await db.commit()
 
     async def search(
