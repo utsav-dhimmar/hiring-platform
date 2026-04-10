@@ -13,6 +13,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from app.v1.schemas.job import JobRead
+from app.v1.schemas.candidate_stage import CandidateStageSummary
 
 
 class ResumeProcessingInfo(BaseModel):
@@ -138,7 +139,10 @@ class CandidateResponse(BaseModel):
     hr_decision: str | None = None
     job_id: uuid.UUID | None = None
     job_name: str | None = None
+    is_cross_match: bool = False
     version_results: list[dict] | None = None
+    current_stage: CandidateStageSummary | None = None
+    pipeline: list[CandidateStageSummary] | None = None
 
 
 # Alias for backward compatibility

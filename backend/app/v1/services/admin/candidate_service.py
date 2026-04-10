@@ -8,8 +8,11 @@ from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.resume_version_results import ResumeVersionResult
+from app.v1.db.models.candidate_stages import CandidateStage
+from app.v1.db.models.job_stage_configs import JobStageConfig
 from app.v1.schemas.upload import CandidateResponse, ResumeMatchAnalysis
 from app.v1.schemas.response import PaginatedData
+from app.v1.schemas.candidate_stage import CandidateStageSummary
 
 
 class CandidateAdminService:
@@ -49,6 +52,7 @@ class CandidateAdminService:
             selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
             selectinload(Candidate.hr_decisions),
             selectinload(Candidate.applied_job),
+            selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
         )
         dir_result = await db.execute(dir_stmt)
         direct_candidates = list(dir_result.scalars().unique().all())
@@ -59,9 +63,8 @@ class CandidateAdminService:
             .where(CrossJobMatch.matched_job_id == job_id)
             .options(
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
-                selectinload(CrossJobMatch.candidate).selectinload(
-                    Candidate.hr_decisions
-                ),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.hr_decisions),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
                 selectinload(CrossJobMatch.matched_job),
             )
         )
@@ -104,13 +107,9 @@ class CandidateAdminService:
             # Override with cross-match data securely via model_copy
             resp = resp.model_copy(
                 update={
-                    "applied_job_id": job_id,
-                    "job_id": job_id,
-                    "job_name": xm.matched_job.title if xm.matched_job else None,
                     "applied_version_number": (
                         xm.matched_job.version if xm.matched_job else resp.applied_version_number
                     ),
-                    "current_status": "Applied (Cross-Match)",
                     "resume_score": match_score_val,
                     "pass_fail": derived_pass_fail,
                     "resume_analysis": analysis_obj,
@@ -168,6 +167,7 @@ class CandidateAdminService:
             selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
             selectinload(Candidate.hr_decisions),
             selectinload(Candidate.applied_job),
+            selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
         )
         dir_result = await db.execute(dir_stmt)
         direct_candidates = list(dir_result.scalars().unique().all())
@@ -178,9 +178,8 @@ class CandidateAdminService:
             .where(CrossJobMatch.matched_job_id == job_id)
             .options(
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
-                selectinload(CrossJobMatch.candidate).selectinload(
-                    Candidate.hr_decisions
-                ),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.hr_decisions),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
                 selectinload(CrossJobMatch.matched_job),
             )
         )
@@ -224,13 +223,9 @@ class CandidateAdminService:
 
             resp = resp.model_copy(
                 update={
-                    "applied_job_id": job_id,
-                    "job_id": job_id,
-                    "job_name": xm.matched_job.title if xm.matched_job else None,
                     "applied_version_number": (
                         xm.matched_job.version if xm.matched_job else resp.applied_version_number
                     ),
-                    "current_status": "Applied (Cross-Match)",
                     "resume_score": match_score_val,
                     "pass_fail": derived_pass_fail,
                     "resume_analysis": analysis_obj,
@@ -279,6 +274,7 @@ class CandidateAdminService:
                 selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
                 selectinload(Candidate.hr_decisions),
                 selectinload(Candidate.applied_job),
+                selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
             )
             .order_by(Candidate.created_at.desc())
             .offset(skip)
@@ -431,6 +427,63 @@ class CandidateAdminService:
                 for vr in latest_resume.version_results
             ]
 
+        # Get pipeline and current stage
+        pipeline = []
+        candidate_stages = getattr(candidate, "stages", [])
+        
+        # Filter by target_job_id if provided (for cross-matches or specific job views)
+        # Fallback to candidate's native applied_job_id for global search context
+        effective_filter_job_id = target_job_id or candidate.applied_job_id
+        if effective_filter_job_id:
+            candidate_stages = [
+                cs for cs in candidate_stages 
+                if cs.job_stage and cs.job_stage.job_id == effective_filter_job_id
+            ]
+        
+        # Ordered by stage order
+        def _map_stage(cs) -> CandidateStageSummary:
+            return CandidateStageSummary(
+                stage_id=cs.id,
+                template_name=cs.job_stage.template.name if cs.job_stage and cs.job_stage.template else "Unknown",
+                status=cs.status,
+                order=cs.job_stage.stage_order if cs.job_stage else 0,
+                job_id=cs.job_stage.job_id if cs.job_stage else None,
+                job_name=cs.job_stage.job.title if cs.job_stage and cs.job_stage.job else None,
+                completed_at=cs.completed_at
+            )
+
+        pipeline = [_map_stage(cs) for cs in sorted(candidate_stages, key=lambda x: x.job_stage.stage_order if x.job_stage else 0)]
+        
+        current_stage = None
+        for cs in candidate_stages:
+            if cs.status == "active":
+                current_stage = _map_stage(cs)
+        
+        # If no active stage found, use the last one (completed/failed) or None
+        if not current_stage and pipeline:
+            current_stage = pipeline[-1]
+
+        # Job Context Overrides
+        mapping_job_id = target_job_id or candidate.applied_job_id
+        mapping_job_name = None
+        is_cross_match = False
+        
+        if target_job_id:
+            # It's a cross-match if target_job_id is different from the original application
+            if str(candidate.applied_job_id) != str(target_job_id):
+                is_cross_match = True
+
+            # Try to find the job title from candidate's relationships
+            if candidate.applied_job and candidate.applied_job.id == target_job_id:
+                mapping_job_name = candidate.applied_job.title
+            elif latest_resume and hasattr(latest_resume, "version_results"):
+                for vr in latest_resume.version_results:
+                    if vr.job_id == target_job_id:
+                        mapping_job_name = vr.job.title if vr.job else None
+                        break
+        else:
+            mapping_job_name = candidate.applied_job.title if candidate.applied_job else None
+
         return CandidateResponse(
             id=candidate.id,
             first_name=candidate.first_name,
@@ -440,11 +493,12 @@ class CandidateAdminService:
             location=location,
             linkedin_url=linkedin_url,
             github_url=github_url,
-            current_status=candidate.current_status,
+            current_status=current_stage.template_name if current_stage else candidate.current_status,
             applied_job_id=candidate.applied_job_id,
             applied_version_number=candidate.applied_version_number,
-            job_id=candidate.applied_job_id,
-            job_name=candidate.applied_job.title if candidate.applied_job else None,
+            job_id=mapping_job_id,
+            job_name=mapping_job_name,
+            is_cross_match=is_cross_match,
             resume_id=latest_resume.id if latest_resume else None,
             created_at=candidate.created_at,
             resume_analysis=analysis,
@@ -455,6 +509,8 @@ class CandidateAdminService:
             processing_error=processing_error,
             hr_decision=latest_decision.decision if latest_decision else None,
             version_results=version_results,
+            current_stage=current_stage,
+            pipeline=pipeline,
         )
 
 

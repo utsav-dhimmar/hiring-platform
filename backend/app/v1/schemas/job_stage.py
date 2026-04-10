@@ -64,6 +64,14 @@ class JobStageConfigCreate(JobStageConfigBase):
     template_id: uuid.UUID = Field(..., description="ID of the template to use")
 
 
+class JobStageBulkCreate(BaseModel):
+    """Schema for bulk adding stages to a job."""
+
+    stages: list[JobStageConfigCreate] = Field(
+        ..., min_length=1, description="List of stages to configure"
+    )
+
+
 class JobStageConfigUpdate(BaseModel):
     """Schema for updating a job-specific stage configuration."""
 
