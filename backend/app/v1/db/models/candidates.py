@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, ForeignKey, Numeric, Text, Integer
@@ -15,6 +15,7 @@ from app.v1.utils.uuid import UUIDHelper
 if TYPE_CHECKING:
     from app.v1.db.models.files import File
     from app.v1.db.models.jobs import Job
+    from app.v1.db.models.locations import Location
     from app.v1.db.models.resumes import Resume
     from app.v1.db.models.hr_decisions import HrDecision
 
@@ -68,8 +69,10 @@ class Candidate(Base):
         nullable=True,
     )
 
-    location: Mapped[str | None] = mapped_column(
-        Text,
+    # LOCATION FK (replaces plain text location column)
+    location_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("locations.id", ondelete="SET NULL"),
         nullable=True,
     )
 
@@ -117,6 +120,17 @@ class Candidate(Base):
     applied_job: Mapped["Job"] = relationship(
         "Job", back_populates="candidates", foreign_keys=[applied_job_id]
     )
+    location_rel: Mapped[Optional["Location"]] = relationship(
+        "Location",
+        back_populates="candidates",
+        foreign_keys=[location_id],
+        lazy="joined",
+    )
     resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="candidate")
     files: Mapped[list["File"]] = relationship("File", back_populates="candidate")
     hr_decisions: Mapped[list["HrDecision"]] = relationship("HrDecision", back_populates="candidate")
+
+    @property
+    def location_name(self) -> str | None:
+        """Return the location name for convenience (used in serialisation)."""
+        return self.location_rel.name if self.location_rel else None

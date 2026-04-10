@@ -23,6 +23,7 @@ from app.v1.db.models.jobs import Job
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.skills import Skill
+from app.v1.db.models.locations import Location
 from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.db.models.interviews import Interview
 from app.v1.db.models.cross_job_matches import CrossJobMatch
@@ -328,7 +329,19 @@ class ResumeUploadRepository:
             candidate.phone = phone
 
         if location is not None:
-            candidate.location = location
+            # Normalize and get-or-create Location row
+            loc_name = location.strip().title()
+            if loc_name and loc_name.lower() not in ("not mentioned", "null", "none"):
+                loc_obj = await db.scalar(
+                    select(Location).where(func.lower(Location.name) == loc_name.lower())
+                )
+                if loc_obj is None:
+                    loc_obj = Location(name=loc_name)
+                    db.add(loc_obj)
+                    await db.flush()
+                candidate.location_id = loc_obj.id
+            else:
+                candidate.location_id = None
 
         candidate.info = info
         candidate.info_embedding = info_embedding
