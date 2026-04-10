@@ -20,6 +20,7 @@ from app.v1.schemas.hr_decision import (
 )
 from app.v1.core.logging import get_logger
 from sqlalchemy import or_, and_
+from app.v1.services.candidate_stage_service import candidate_stage_service
 
 logger = get_logger(__name__)
 
@@ -142,6 +143,31 @@ class HRDecisionService:
             f"by user {user_id}"
         )
 
+        # Trigger stage advancement in the pipeline
+        if decision_data.decision.lower() in ["approve", "reject"]:
+            from app.v1.db.models.candidate_stages import CandidateStage
+            from app.v1.db.models.job_stage_configs import JobStageConfig
+
+            # 1. Find the candidate stage to advance
+            cs_stmt = select(CandidateStage).where(CandidateStage.candidate_id == candidate_id)
+            if stage_config_id:
+                cs_stmt = cs_stmt.where(CandidateStage.job_stage_id == stage_config_id)
+            else:
+                # Fallback: Find the currently active stage for this job
+                cs_stmt = (
+                    cs_stmt.join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
+                    .where(JobStageConfig.job_id == actual_job_id)
+                    .where(CandidateStage.status == "active")
+                )
+            
+            cs_res = await db.execute(cs_stmt)
+            cs_to_advance = cs_res.scalar_one_or_none()
+
+            if cs_to_advance:
+                success = decision_data.decision.lower() == "approve"
+                await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_advance.id, success=success)
+                await db.commit()
+
         # Trigger cross-match in background if candidate is rejected (case-insensitive)
         if decision_data.decision.lower() == "reject":
             from app.v1.db.models.cross_job_matches import CrossJobMatch
@@ -263,6 +289,29 @@ class HRDecisionService:
             f"Updated HR decision {decision_id} to {decision_data.decision} "
             f"by user {user_id}"
         )
+
+        # Trigger stage advancement in the pipeline if it hasn't happened yet
+        if decision_data.decision.lower() in ["approve", "reject"] and decision.decision.lower() not in ["approve", "reject"]:
+            from app.v1.db.models.candidate_stages import CandidateStage
+            from app.v1.db.models.job_stage_configs import JobStageConfig
+
+            cs_stmt = select(CandidateStage).where(CandidateStage.candidate_id == decision.candidate_id)
+            if decision.stage_config_id:
+                cs_stmt = cs_stmt.where(CandidateStage.job_stage_id == decision.stage_config_id)
+            else:
+                cs_stmt = (
+                    cs_stmt.join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
+                    .where(JobStageConfig.job_id == actual_job_id)
+                    .where(CandidateStage.status == "active")
+                )
+            
+            cs_res = await db.execute(cs_stmt)
+            cs_to_advance = cs_res.scalar_one_or_none()
+
+            if cs_to_advance:
+                success = decision_data.decision.lower() == "approve"
+                await candidate_stage_service.advance_candidate(db, decision.candidate_id, cs_to_advance.id, success=success)
+                await db.commit()
 
         # Trigger cross-match in background if candidate is rejected (case-insensitive)
         if decision_data.decision.lower() == "reject":

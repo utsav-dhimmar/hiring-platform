@@ -52,5 +52,10 @@ class StageService:
     ) -> list[JobStageConfig]:
         return await job_stage_service.setup_default_stages(*args, **kwargs)
 
+    async def bulk_setup_job_stages(
+        self, *args, **kwargs
+    ) -> list[JobStageConfig]:
+        return await job_stage_service.bulk_add_stages_to_job(*args, **kwargs)
+
 
 stage_service = StageService()

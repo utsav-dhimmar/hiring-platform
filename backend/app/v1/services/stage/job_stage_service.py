@@ -140,4 +140,37 @@ class JobStageService:
 
         return created_stages
 
+    async def bulk_add_stages_to_job(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+        stages_in: list[JobStageConfigCreate],
+    ) -> list[JobStageConfig]:
+        """Overwrite all existing stages for a job with a new list."""
+        # 1. Clear existing
+        await stage_repository.clear_job_stages(db, job_id)
+
+        # 2. Add new ones
+        configs = []
+        for s in stages_in:
+            template = await stage_repository.get_template_by_id(db, s.template_id)
+            if not template:
+                 raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Stage template with ID {s.template_id} not found",
+                )
+            configs.append(JobStageConfig(
+                job_id=job_id,
+                template_id=s.template_id,
+                stage_order=s.stage_order,
+                config=s.config or template.default_config,
+                is_mandatory=s.is_mandatory
+            ))
+        
+        db.add_all(configs)
+        await db.commit()
+        
+        # 3. Return refreshed list
+        return await stage_repository.get_job_stages(db, job_id)
+
 job_stage_service = JobStageService()

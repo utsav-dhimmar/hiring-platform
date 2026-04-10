@@ -9,6 +9,7 @@ from app.v1.core.embeddings import embedding_service
 from app.v1.utils.text import build_job_text
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.job_chunks import JobChunk
+from app.v1.services.candidate_stage_service import candidate_stage_service
 
 _log = logging.getLogger(__name__)
 
@@ -119,6 +120,16 @@ class CrossJobMatchService:
             )
             await db.commit()
             _log.info("Stored %d cross-job matches for resume_id=%s", len(match_data), resume_id)
+
+            # 5.5 Initiate hiring pipelines for all matched jobs
+            for item in top:
+                try:
+                    await candidate_stage_service.initiate_candidate_pipeline(
+                        db, orig_candidate.id, item["job"].id
+                    )
+                except Exception as e:
+                    _log.warning("Failed to initiate pipeline for job %s: %s", item["job"].id, e)
+            await db.commit()
 
             # 6. Generate job-specific AI analysis for each match (reuse raw_text + chunks)
             bg_processor = BackgroundProcessor(ResumeProcessor())

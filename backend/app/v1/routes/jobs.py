@@ -24,6 +24,7 @@ from app.v1.schemas.job_stage import (
     JobStageConfigRead,
     JobStageConfigUpdate,
     JobStageReorder,
+    JobStageBulkCreate,
 )
 from app.v1.schemas.upload import JobResumesResponse
 from app.v1.schemas.user import UserRead
@@ -267,4 +268,21 @@ async def reorder_job_stages(
     """Bulk update the order of stages for a job."""
     return await stage_service.reorder_job_stages(
         db=db, job_id=job_id, stage_ids=reorder_in.stage_ids
+    )
+
+
+@router.post("/{job_id}/stages/bulk", response_model=list[JobStageConfigRead])
+async def bulk_setup_job_stages(
+    job_id: uuid.UUID,
+    *,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:manage")),
+    bulk_in: JobStageBulkCreate,
+) -> Any:
+    """
+    Setup/Overwrite the entire recruitment pipeline for a job in one go.
+    Warning: This replaces all existing stages for the job.
+    """
+    return await stage_service.bulk_setup_job_stages(
+        db=db, job_id=job_id, stages_in=bulk_in.stages
     )

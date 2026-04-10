@@ -37,6 +37,7 @@ from .converters import (
 )
 from .logging import logger as _log, log_event, log_stage
 from .processor import ResumeProcessor
+from app.v1.services.candidate_stage_service import candidate_stage_service
 
 
 class ResumeUploadService:
@@ -137,6 +138,9 @@ class ResumeUploadService:
             first_name="Parsing...",
             last_name="",
         )
+        # Initialize hiring pipeline stages
+        await candidate_stage_service.initiate_candidate_pipeline(db, candidate.id, job_id)
+
         log_stage(
             stage="upload_create_placeholder_candidate",
             started_at=stage_started_at,

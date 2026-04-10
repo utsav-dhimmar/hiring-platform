@@ -13,6 +13,7 @@ from app.v1.utils.uuid import UUIDHelper
 if TYPE_CHECKING:
     from app.v1.db.models.jobs import Job
     from app.v1.db.models.stage_templates import StageTemplate
+    from app.v1.db.models.candidate_stages import CandidateStage
 
 
 class JobStageConfig(Base):
@@ -82,4 +83,7 @@ class JobStageConfig(Base):
     )
     template: Mapped["StageTemplate"] = relationship(
         "StageTemplate", foreign_keys=[template_id]
+    )
+    candidate_stages: Mapped[list["CandidateStage"]] = relationship(
+        "CandidateStage", back_populates="job_stage", cascade="all, delete-orphan"
     )

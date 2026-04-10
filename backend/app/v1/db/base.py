@@ -15,3 +15,6 @@ from app.v1.db.models.resumes import Resume  # noqa: F401
 from app.v1.db.models.cross_job_matches import CrossJobMatch  # noqa: F401
 from app.v1.db.models.hr_decisions import HrDecision  # noqa: F401
 from app.v1.db.models.resume_version_results import ResumeVersionResult  # noqa: F401
+from app.v1.db.models.stage_templates import StageTemplate  # noqa: F401
+from app.v1.db.models.job_stage_configs import JobStageConfig  # noqa: F401
+from app.v1.db.models.candidate_stages import CandidateStage  # noqa: F401
