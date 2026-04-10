@@ -28,10 +28,11 @@ async def get_all_departments(
     user: UserRead = Depends(check_permission("departments:access")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
     """Get all departments with pagination."""
     return await department_service.get_all_departments(
-        db=db, skip=skip, limit=limit
+        db=db, skip=skip, limit=limit, q=q
     )
 
 

@@ -6,7 +6,7 @@ import uuid
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.models.departments import Department
@@ -23,15 +23,29 @@ class DepartmentService:
     """
 
     async def get_all_departments(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, q: str | None = None
     ) -> PaginatedData[DepartmentRead]:
         """Get all departments with pagination."""
-        result = await department_repository.crud.get_multi(
-            db=db, offset=skip, limit=limit
-        )
+        stmt = select(Department)
+        count_stmt = select(func.count(Department.id))
+
+        if q:
+            search_filter = or_(
+                Department.name.ilike(f"%{q}%"),
+                Department.description.ilike(f"%{q}%"),
+            )
+            stmt = stmt.where(search_filter)
+            count_stmt = count_stmt.where(search_filter)
+
+        stmt = stmt.offset(skip).limit(limit)
+
+        result = await db.execute(stmt)
+        departments = result.scalars().all()
+        total = await db.scalar(count_stmt) or 0
+
         return PaginatedData[DepartmentRead](
-            data=[DepartmentRead.model_validate(d) for d in result["data"]],
-            total=result.get("total_count", 0),
+            data=[DepartmentRead.model_validate(d) for d in departments],
+            total=total,
         )
 
     async def get_department_by_id(
