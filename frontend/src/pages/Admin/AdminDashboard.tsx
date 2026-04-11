@@ -5,7 +5,10 @@
 
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
-import { AdminDataTable, AppPageShell, PageHeader, StatCard, type Column } from "@/components/shared";
+import AdminDataTable, { type Column } from "@/components/shared/AdminDataTable";
+import AppPageShell from "@/components/shared/AppPageShell";
+import PageHeader from "@/components/shared/PageHeader";
+import StatCard from "@/components/shared/StatCard";
 import { useAdminData } from "@/hooks";
 
 

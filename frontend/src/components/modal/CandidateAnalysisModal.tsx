@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
-import { ErrorDisplay } from "@/components/shared";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 

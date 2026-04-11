@@ -1,6 +1,7 @@
 import { Button, Badge, Label, Switch } from "@/components/";
 import { cn } from "@/lib/utils";
-import { DateDisplay, SkillsBadgeList } from "@/components/shared";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import SkillsBadgeList from "@/components/shared/SkillsBadgeList";
 import type { Job } from "@/types/job";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { Edit2, Users, ArrowUpDown, Trash2Icon } from "lucide-react";

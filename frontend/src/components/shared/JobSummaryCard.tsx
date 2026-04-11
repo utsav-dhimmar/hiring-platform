@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import type { JobRead } from "@/types/admin";
-import { StatusBadge, SkillsBadgeList } from "@/components/shared";
+import StatusBadge from "@/components/shared/StatusBadge";
+import SkillsBadgeList from "@/components/shared/SkillsBadgeList";
 import { Card } from "../ui/card";
 
 interface JobSummaryCardProps {

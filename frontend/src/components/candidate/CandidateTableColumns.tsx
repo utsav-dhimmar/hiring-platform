@@ -4,7 +4,8 @@ import {
   ArrowUpDown,
   // Loader2
 } from "lucide-react";
-import { DateDisplay, StatusBadge } from "@/components/shared";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import StatusBadge from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";

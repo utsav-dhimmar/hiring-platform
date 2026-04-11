@@ -1,4 +1,4 @@
-import { ErrorDisplay } from "@/components/shared";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import type { SkillRead } from "@/types/admin";
 import { Button } from "../ui/button";
 

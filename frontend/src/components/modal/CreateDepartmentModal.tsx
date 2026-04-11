@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { useFormModal } from "@/hooks";
 import { departmentCreateSchema, type DepartmentCreateFormValues } from "@/schemas/admin";
-import { ErrorDisplay } from "@/components/shared";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 
 interface CreateDepartmentModalProps {
   show: boolean;

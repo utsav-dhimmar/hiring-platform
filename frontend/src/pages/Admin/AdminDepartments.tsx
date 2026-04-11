@@ -5,7 +5,11 @@
 import { useState, useEffect } from "react";
 import { adminDepartmentService } from "@/apis/admin/service";
 import type { DepartmentRead } from "@/types/admin";
-import { AppPageShell, PageHeader, useToast, DataTable, ErrorDisplay } from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import PageHeader from "@/components/shared/PageHeader";
+import { useToast } from "@/components/shared/ToastProvider";
+import { DataTable } from "@/components/shared/DataTable";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import { CreateDepartmentModal, DeleteModal } from "@/components/modal";
 import { useAdminData } from "@/hooks";
 import { Edit2, Trash2Icon, ArrowUpDown, AlertCircle } from "lucide-react";

@@ -6,7 +6,11 @@
 import { useState, useEffect } from "react";
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { RecentUploadRead } from "@/types/admin";
-import { AppPageShell, DataTable, DateDisplay, PageHeader, ErrorDisplay } from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { DataTable } from "@/components/shared/DataTable";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import PageHeader from "@/components/shared/PageHeader";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import { useAdminData } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";

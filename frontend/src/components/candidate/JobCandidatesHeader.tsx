@@ -1,5 +1,5 @@
 import { Button, Badge, Switch, Label } from "@/components/";
-import { AppPageHeader } from "@/components/shared";
+import AppPageHeader from "@/components/shared/AppPageHeader";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { Upload } from "lucide-react";
 import type { Job } from "@/types/job";

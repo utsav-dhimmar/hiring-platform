@@ -1,7 +1,10 @@
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
 import { useAdminData } from "@/hooks/useAdminData";
-import { AppPageHeader, AppPageShell, StatCard, DataTable } from "@/components/shared";
+import AppPageHeader from "@/components/shared/AppPageHeader";
+import AppPageShell from "@/components/shared/AppPageShell";
+import StatCard from "@/components/shared/StatCard";
+import { DataTable } from "@/components/shared/DataTable";
 import {
   ArrowUpDown,
 } from "lucide-react";

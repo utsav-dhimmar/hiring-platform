@@ -5,7 +5,7 @@
 
 import { BrowserRouter as Router } from "react-router-dom";
 import AppRoutes from "@/routes/AppRoutes";
-import { ToastProvider } from "@/components/shared";
+import { ToastProvider } from "@/components/shared/ToastProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 function App() {

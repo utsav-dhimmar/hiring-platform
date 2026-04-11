@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Mail, User, ShieldCheck, Calendar } from "lucide-react";
-import { AppPageShell, PageHeader } from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import PageHeader from "@/components/shared/PageHeader";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<UserRead | null>(null);

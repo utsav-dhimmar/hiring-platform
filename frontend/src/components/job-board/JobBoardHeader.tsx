@@ -1,5 +1,5 @@
 import { Button } from "@/components/";
-import { AppPageHeader } from "@/components/shared";
+import AppPageHeader from "@/components/shared/AppPageHeader";
 import { useNavigate } from "react-router-dom";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";

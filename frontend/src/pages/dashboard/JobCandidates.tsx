@@ -11,7 +11,8 @@ import { JobCandidatesStats } from "@/components/candidate/JobCandidatesStats";
 import { JobCandidatesHeader } from "@/components/candidate/JobCandidatesHeader";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import type { CandidateAnalysis } from "@/types/admin";
-import { AppPageShell, CandidatesDistributionChart } from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { CandidatesDistributionChart } from "@/components/shared/BarChart";
 import { PERMISSIONS } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 

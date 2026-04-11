@@ -4,9 +4,10 @@
  */
 
 import React, { type ReactNode } from "react";
-import { ErrorDisplay, Pagination } from "@/components/shared";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import Pagination from "@/components/shared/Pagination";
 
-import { TableRowSkeleton } from "@/components/shared";
+import { TableRowSkeleton } from "@/components/shared/SkeletonVariants";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,

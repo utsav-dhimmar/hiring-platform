@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { adminJobService } from "@/apis/admin/service";
-import { AppPageShell, DataTable } from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { DataTable } from "@/components/shared/DataTable";
 import type { Job } from "@/types/job";
 import { extractErrorMessage } from "@/utils/error";
 import { slugify } from "@/utils/slug";
@@ -164,7 +165,7 @@ const AdminJobs = () => {
     <AppPageShell width="wide">
       <JobBoardHeader />
 
-      <div className="app-surface-card p-3 sm:p-4">
+      <div className="">
         {loading && jobs.length === 0 ? (
           <div className="flex flex-col gap-4">
             {Array.from({ length: 4 }).map((_, i) => (

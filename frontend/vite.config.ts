@@ -13,7 +13,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  envDir: path.resolve(__dirname, ".."), // bcause .env is in the root directory
+  envDir: path.resolve(__dirname, ".."), // because .env is in the root directory
   server: {
     proxy: {
       "/api": {

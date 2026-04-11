@@ -6,13 +6,10 @@
 import { useCallback, useState } from "react";
 import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
 import type { PermissionRead, RoleRead } from "@/types/admin";
-import {
-  AdminDataTable,
-  AppPageShell,
-  DateDisplay,
-  PageHeader,
-  type Column,
-} from "@/components/shared";
+import AdminDataTable, { type Column } from "@/components/shared/AdminDataTable";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import PageHeader from "@/components/shared/PageHeader";
 import { CreatePermissionModal, DeleteModal, RoleModal } from "@/components/modal";
 import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import { Button } from "@/components/ui/button";

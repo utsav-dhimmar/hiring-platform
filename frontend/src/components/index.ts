@@ -24,14 +24,14 @@ export {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-export { Logo } from "@/components/shared";
+export { Logo } from "@/components/logo";
 export { Badge } from "@/components/ui/badge";
+export { Skeleton } from "@/components/ui/skeleton";
 export {
-  Skeleton,
   TextSkeleton,
   TableRowSkeleton,
   CardSkeleton,
-} from "@/components/shared";
+} from "@/components/shared/SkeletonVariants";
 export { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
 export { Checkbox } from "@/components/ui/checkbox";
 export {

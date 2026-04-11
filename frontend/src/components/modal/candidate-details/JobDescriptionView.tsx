@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { FileText, History, AlertCircle } from "lucide-react";
 import type { Job, JobVersionDetail } from "@/types/job";
-import { DateDisplay } from "@/components/shared";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 
 /**
  * Props for {@link JobDescriptionView}.

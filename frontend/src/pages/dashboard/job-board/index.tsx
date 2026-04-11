@@ -1,5 +1,6 @@
 import jobService from "@/apis/job";
-import { AppPageShell, DataTable } from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { DataTable } from "@/components/shared/DataTable";
 import type { Job } from "@/types/job";
 import { extractErrorMessage } from "@/utils/error";
 import { useCallback, useEffect, useState, useMemo } from "react";
@@ -167,7 +168,7 @@ export default function JobBoard() {
     <AppPageShell width="wide">
       <JobBoardHeader />
 
-      <div className="app-surface-card p-3 sm:p-4">
+      <div className="app-surface-card">
         {loading ? (
           <div className="flex flex-col gap-4">
             {Array.from({ length: 4 }).map((_, i) => (

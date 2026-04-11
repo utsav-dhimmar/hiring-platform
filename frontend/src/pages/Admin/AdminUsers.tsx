@@ -6,15 +6,13 @@
 import { useState, useEffect } from "react";
 import { adminUserService } from "@/apis/admin/service";
 import type { UserAdminRead } from "@/types/admin";
-import {
-  AppPageShell,
-  DateDisplay,
-  PageHeader,
-  StatusBadge,
-  useToast,
-  ErrorDisplay,
-  DataTable,
-} from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import PageHeader from "@/components/shared/PageHeader";
+import StatusBadge from "@/components/shared/StatusBadge";
+import { useToast } from "@/components/shared/ToastProvider";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import { DataTable } from "@/components/shared/DataTable";
 import {
   CreateUserModal,
   // CreateUserModal,

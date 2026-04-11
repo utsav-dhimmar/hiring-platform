@@ -24,10 +24,10 @@ import {
 } from "@/components/ui/dialog";
 import { useFormModal } from "@/hooks";
 import { permissionCreateSchema, type PermissionCreateFormValues } from "@/schemas/admin";
-import { ErrorDisplay } from "@/components/shared";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 
 /**
- * Props for the CreatePermissionModal component.
+ * Props for the CreatePermissionModalProps component.
  */
 interface CreatePermissionModalProps {
   /** Controls visibility of the modal */

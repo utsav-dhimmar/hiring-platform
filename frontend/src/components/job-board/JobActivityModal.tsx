@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components";
-import { DateDisplay } from "@/components/shared";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 import type { Job } from "@/types/job";
 import { Users, Clock, Calendar } from "lucide-react";
 

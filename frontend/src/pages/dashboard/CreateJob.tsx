@@ -24,7 +24,8 @@ import { adminSkillService } from "@/apis/admin/skill";
 import type { DepartmentRead, SkillRead } from "@/types/admin";
 import { slugify } from "@/utils/slug";
 import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
-import { AppPageShell, PageHeader } from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import PageHeader from "@/components/shared/PageHeader";
 
 
 export default function CreateJob() {

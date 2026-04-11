@@ -7,13 +7,10 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { adminCandidateService, adminJobService } from "@/apis/admin/service";
 import type { JobRead } from "@/types/admin";
 import type { CandidateResponse } from "@/types/resume";
-import {
-  AppPageShell,
-  ErrorDisplay,
-  PageHeader,
-  JobSummaryCard,
-  // useToast,
-} from "@/components/shared";
+import AppPageShell from "@/components/shared/AppPageShell";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import PageHeader from "@/components/shared/PageHeader";
+import JobSummaryCard from "@/components/shared/JobSummaryCard";
 import CandidateSearchTable from "@/components/candidate/CandidateSearchTable";
 import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
 import {
