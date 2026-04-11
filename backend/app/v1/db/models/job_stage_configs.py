@@ -44,7 +44,7 @@ class JobStageConfig(Base):
     # FOREIGN KEYS
     job_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("jobs.id"),
+        ForeignKey("jobs.id", ondelete="CASCADE"),
         nullable=False,
     )
 

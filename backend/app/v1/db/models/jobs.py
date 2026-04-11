@@ -87,10 +87,10 @@ class Job(Base):
     )
 
     # FOREIGN KEY
-    created_by: Mapped[uuid.UUID] = mapped_column(
+    created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=False,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # TIMESTAMPS
@@ -129,7 +129,7 @@ class Job(Base):
         "User", back_populates="jobs", foreign_keys=[created_by]
     )
     candidates: Mapped[list["Candidate"]] = relationship(
-        "Candidate", back_populates="applied_job"
+        "Candidate", back_populates="applied_job", cascade="all, delete-orphan"
     )
     versions: Mapped[list["JobVersion"]] = relationship(
         "JobVersion",

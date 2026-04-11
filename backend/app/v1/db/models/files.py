@@ -42,10 +42,10 @@ class File(Base):
     )
 
     # FOREIGN KEYS
-    owner_id: Mapped[uuid.UUID] = mapped_column(
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=False,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     candidate_id: Mapped[uuid.UUID] = mapped_column(
