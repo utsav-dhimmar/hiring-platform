@@ -406,7 +406,16 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
       {
         id: "location",
         accessorKey: "location",
-        header: "Location",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="hover:bg-transparent p-0 font-semibold"
+          >
+            Location
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
         cell: ({ row }) => {
           const loc = row.original.location;
           if (!loc)
