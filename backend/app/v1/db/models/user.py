@@ -75,9 +75,10 @@ class User(Base):
     )
 
     # FOREIGN KEY
-    role_id: Mapped[uuid.UUID] = mapped_column(
+    role_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("roles.id"),
+        ForeignKey("roles.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # TIMESTAMPS

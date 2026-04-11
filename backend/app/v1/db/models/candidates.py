@@ -10,6 +10,7 @@ from sqlalchemy.sql import func
 
 from app.v1.core.config import settings
 from app.v1.db.base import Base
+from app.v1.db.models.candidate_skills import candidate_skills
 from app.v1.utils.uuid import UUIDHelper
 
 if TYPE_CHECKING:
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from app.v1.db.models.resumes import Resume
     from app.v1.db.models.hr_decisions import HrDecision
     from app.v1.db.models.candidate_stages import CandidateStage
+    from app.v1.db.models.skills import Skill
 
 
 class Candidate(Base):
@@ -127,10 +129,11 @@ class Candidate(Base):
         foreign_keys=[location_id],
         lazy="joined",
     )
-    resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="candidate")
-    files: Mapped[list["File"]] = relationship("File", back_populates="candidate")
-    hr_decisions: Mapped[list["HrDecision"]] = relationship("HrDecision", back_populates="candidate")
+    resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="candidate", cascade="all, delete-orphan")
+    files: Mapped[list["File"]] = relationship("File", back_populates="candidate", cascade="all, delete-orphan")
+    hr_decisions: Mapped[list["HrDecision"]] = relationship("HrDecision", back_populates="candidate", cascade="all, delete-orphan")
     stages: Mapped[list["CandidateStage"]] = relationship("CandidateStage", back_populates="candidate", cascade="all, delete-orphan")
+    skills: Mapped[list["Skill"]] = relationship("Skill", secondary=candidate_skills)
 
     @property
     def location_name(self) -> str | None:
