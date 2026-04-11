@@ -26,6 +26,8 @@ interface JobTableFiltersProps {
   dateRange: DateRange | undefined;
   setDateRange: (range: DateRange | undefined) => void;
   departmentOptions: string[];
+  departmentSearch: string;
+  setDepartmentSearch: (value: string) => void;
   hasActiveFilters: boolean;
   clearFilters: () => void;
   resultCount: number;
@@ -43,6 +45,8 @@ export const JobTableFilters = ({
   dateRange,
   setDateRange,
   departmentOptions,
+  departmentSearch,
+  setDepartmentSearch,
   hasActiveFilters,
   clearFilters,
   resultCount,
@@ -134,38 +138,56 @@ export const JobTableFilters = ({
                 : `${departmentFilter.length} departments`}
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[180px]">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Department</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {departmentOptions.map((d) => (
+          <DropdownMenuContent align="start" className="min-w-[200px] p-2">
+            <div className="px-1 pb-2">
+              <div className="relative">
+                <Input
+                  placeholder="Search departments..."
+                  value={departmentSearch}
+                  onChange={(e) => setDepartmentSearch(e.target.value)}
+                  className="h-9 rounded-xl text-xs pl-2"
+                  onKeyDown={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+            <DropdownMenuSeparator />
+            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+              <DropdownMenuGroup>
+                {departmentOptions.length === 0 ? (
+                  <div className="px-2 py-4 text-xs text-center text-muted-foreground">
+                    not found "{departmentSearch}"
+                  </div>
+                ) : (
+                  departmentOptions.map((d) => (
+                    <DropdownMenuCheckboxItem
+                      key={d}
+                      checked={departmentFilter.includes(d)}
+                      onSelect={(e) => e.preventDefault()}
+                      onClick={() =>
+                        setDepartmentFilter(
+                          departmentFilter.includes(d)
+                            ? departmentFilter.filter((v) => v !== d)
+                            : [...departmentFilter, d]
+                        )
+                      }
+                    >
+                      {d}
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
+              </DropdownMenuGroup>
+            </div>
+            {departmentFilter.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
                 <DropdownMenuCheckboxItem
-                  key={d}
-                  checked={departmentFilter.includes(d)}
-                  onSelect={(e) => e.preventDefault()}
-                  onClick={() =>
-                    setDepartmentFilter(
-                      departmentFilter.includes(d)
-                        ? departmentFilter.filter((v) => v !== d)
-                        : [...departmentFilter, d]
-                    )
-                  }
+                  checked={false}
+                  onClick={() => setDepartmentFilter([])}
                 >
-                  {d}
+                  Clear departments
                 </DropdownMenuCheckboxItem>
-              ))}
-              {departmentFilter.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={false}
-                    onClick={() => setDepartmentFilter([])}
-                  >
-                    Clear departments
-                  </DropdownMenuCheckboxItem>
-                </>
-              )}
-            </DropdownMenuGroup>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -210,22 +232,24 @@ export const JobTableFilters = ({
       </div>
 
       {/* Clear Button */}
-      {hasActiveFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-9 px-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-destructive/5 transition-all"
-          onClick={clearFilters}
-        >
-          <X className="h-3.5 w-3.5 mr-1.5" />
-          Clear
-        </Button>
-      )}
+      {
+        hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 px-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-destructive/5 transition-all"
+            onClick={clearFilters}
+          >
+            <X className="h-3.5 w-3.5 mr-1.5" />
+            Clear
+          </Button>
+        )
+      }
 
       {/* Result Count */}
       <span className="ml-auto text-xs text-muted-foreground font-medium bg-muted/20 px-2.5 py-1 rounded-full border border-muted-foreground/10">
         {resultCount} / {totalCount} jobs found
       </span>
-    </div>
+    </div >
   );
 };

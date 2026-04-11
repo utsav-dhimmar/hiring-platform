@@ -54,6 +54,8 @@ export default function JobBoard() {
     dateRange,
     setDateRange,
     departmentOptions,
+    departmentSearch,
+    setDepartmentSearch,
     filteredJobs,
     hasActiveFilters,
     clearFilters,
@@ -189,6 +191,8 @@ export default function JobBoard() {
               dateRange={dateRange}
               setDateRange={setDateRange}
               departmentOptions={departmentOptions}
+              departmentSearch={departmentSearch}
+              setDepartmentSearch={setDepartmentSearch}
               hasActiveFilters={hasActiveFilters}
               clearFilters={clearFilters}
               resultCount={filteredJobs.length}

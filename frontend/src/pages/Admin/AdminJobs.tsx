@@ -50,6 +50,8 @@ const AdminJobs = () => {
     dateRange,
     setDateRange,
     departmentOptions,
+    departmentSearch,
+    setDepartmentSearch,
     filteredJobs,
     hasActiveFilters,
     clearFilters,
@@ -186,6 +188,8 @@ const AdminJobs = () => {
               dateRange={dateRange}
               setDateRange={setDateRange}
               departmentOptions={departmentOptions}
+              departmentSearch={departmentSearch}
+              setDepartmentSearch={setDepartmentSearch}
               hasActiveFilters={hasActiveFilters}
               clearFilters={clearFilters}
               resultCount={filteredJobs.length}

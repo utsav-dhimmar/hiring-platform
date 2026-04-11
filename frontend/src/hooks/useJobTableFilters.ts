@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { startOfDay, endOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import type { Job } from "@/types/job";
+import { adminDepartmentService } from "@/apis/admin/department";
 
 export const useJobTableFilters = (jobs: Job[]) => {
   const [titleFilter, setTitleFilter] = useState("");
@@ -11,19 +12,32 @@ export const useJobTableFilters = (jobs: Job[]) => {
     from: undefined,
     to: undefined,
   });
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [departmentSearch, setDepartmentSearch] = useState("");
+
   const minDate = useMemo(() => {
     if (jobs.length === 0) return new Date();
     const dates = jobs.map((job) => new Date(job.created_at).getTime());
     return new Date(Math.min(...dates));
   }, [jobs]);
-  const departmentOptions = useMemo(() => {
-    const set = new Set<string>();
-    jobs.forEach((j) => {
-      if (j.department?.name) set.add(j.department.name);
-      else if (j.department_name) set.add(j.department_name);
-    });
-    return Array.from(set).sort();
-  }, [jobs]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const fetchDepartments = async () => {
+        try {
+          const response = await adminDepartmentService.getAllDepartments(0, 500, departmentSearch);
+          const names = response.data.map((dept) => dept.name.trim());
+          const uniqueNames = Array.from(new Set(names)).sort();
+          setDepartmentOptions(uniqueNames);
+        } catch (error) {
+          console.error("Failed to fetch departments for filter:", error);
+        }
+      };
+      fetchDepartments();
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [departmentSearch]);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((j) => {
@@ -76,6 +90,8 @@ export const useJobTableFilters = (jobs: Job[]) => {
     dateRange,
     setDateRange,
     departmentOptions,
+    departmentSearch,
+    setDepartmentSearch,
     filteredJobs,
     hasActiveFilters,
     clearFilters,
