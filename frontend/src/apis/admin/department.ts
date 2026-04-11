@@ -9,15 +9,17 @@ export const adminDepartmentService = {
    * Retrieves all departments with optional pagination.
    * @param skip - Number of records to skip (default: 0)
    * @param limit - Maximum number of records to return (default: 100)
+   * @param search - Search query
    */
   getAllDepartments: async (
     skip = 0,
     limit = 100,
+    search?: string,
   ): Promise<{ data: DepartmentRead[]; total: number }> => {
     const response = await apiClient.get<{ data: DepartmentRead[]; total: number }>(
       "/departments",
       {
-        params: { skip, limit },
+        params: { skip, limit, q: search },
       },
     );
     return response.data;

@@ -23,8 +23,8 @@ import { cn } from "@/lib/utils"
 import {
   BriefcaseIcon,
   ShieldAlertIcon,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronRight,
+  ChevronLeft,
   LayoutDashboard,
   Users,
   Database,
@@ -195,9 +195,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
             <SidebarTrigger className="h-8 w-8 shrink-0 rounded-xl hover:bg-sidebar-accent">
               {isCollapsed ? (
-                <PanelLeftOpen className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
               ) : (
-                <PanelLeftClose className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" />
               )}
             </SidebarTrigger>
           </SidebarMenuItem>

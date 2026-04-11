@@ -9,6 +9,7 @@ export const adminSkillService = {
    * Get all skills with pagination.
    * @param skip - Number of records to skip
    * @param limit - Maximum number of records to return
+   * @param search - Search query
    * @returns Promise resolving to skills and total count
    */
   getAllSkills: async (

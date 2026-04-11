@@ -117,9 +117,6 @@ const RegisterPage = () => {
               <CardTitle className="text-3xl font-extrabold tracking-tight">
                 Create Account
               </CardTitle>
-              <CardDescription className="text-muted-foreground text-base">
-                Join our platform and start hiring
-              </CardDescription>
             </CardHeader>
             <CardContent className="px-8 pb-5">
               {error && (

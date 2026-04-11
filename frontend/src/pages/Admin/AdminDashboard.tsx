@@ -3,18 +3,12 @@
  * Displays analytics summary and hiring reports for administrators.
  */
 
-// import { useMemo } from "react";
-// import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { adminAnalyticsService } from "@/apis/admin/service";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
 import { AdminDataTable, AppPageShell, PageHeader, StatCard, type Column } from "@/components/shared";
 import { useAdminData } from "@/hooks";
-// import type { ChartConfig } from "@/components/ui/chart";
-// import {
-//   ChartContainer,
-//   ChartTooltip,
-//   ChartTooltipContent,
-// } from "@/components/ui/chart";
+
+
 
 const AdminDashboard = () => {
   const {
@@ -36,21 +30,6 @@ const AdminDashboard = () => {
   const analytics = dashboardData[0]?.analytics;
   const report = dashboardData[0]?.report;
 
-  // const chartData = useMemo(() => [
-  //   { label: "Resumes", count: report?.resumes_uploaded_last_30_days ?? 0 },
-  //   { label: "Passed", count: report?.total_passed ?? 0 },
-  //   { label: "Pending", count: report?.total_pending ?? 0 },
-  //   // { label: "Unprocessed", count: report?.total_unprocessed ?? 0 },
-  //   { label: "HR Decided", count: report?.hr_decided_count ?? 0 },
-  //   { label: "No Action", count: report?.pending_count ?? 0 },
-  // ], [report]);
-
-  // const chartConfig = {
-  //   count: {
-  //     label: "Candidates",
-  //     color: "#3b82f6",
-  //   },
-  // } satisfies ChartConfig;
 
   const jobColumns: Column<any>[] = [
     { header: "Job Title", accessor: "job_title" },
@@ -114,39 +93,6 @@ const AdminDashboard = () => {
             loading={loading}
           />
         </div>
-
-        {/* <div className="app-surface-card p-5">
-          <h3 className="text-lg font-medium mb-6">Hiring Report Analytics</h3>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart accessibilityLayer data={chartData}>
-              <CartesianGrid vertical={false} strokeOpacity={0.1} />
-              <XAxis
-                dataKey="label"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={10}
-
-              />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
-              />
-              <Bar
-                dataKey="count"
-                fill="var(--color-count)"
-                radius={[4, 4, 0, 0]}
-                barSize={45}
-              />
-            </BarChart>
-          </ChartContainer>
-        </div> */}
-
         <div className="app-surface-card p-4 sm:p-5">
           <h3 className="mb-3">Candidates by Job</h3>
           <AdminDataTable

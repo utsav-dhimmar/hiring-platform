@@ -25,7 +25,8 @@ const AdminDepartments = () => {
     pageIndex: 0,
     pageSize: 10,
   });
-
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const {
     data: departments,
     total,
@@ -33,14 +34,31 @@ const AdminDepartments = () => {
     error,
     fetchData: fetchDepartments,
   } = useAdminData<DepartmentRead>(
-    () => adminDepartmentService.getAllDepartments(pageIndex * pageSize, pageSize),
+    () => adminDepartmentService.getAllDepartments(pageIndex * pageSize, pageSize, debouncedSearch),
     { fetchOnMount: false }
   );
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch]);
+
 
   // Refetch when pagination changes
   useEffect(() => {
     fetchDepartments();
-  }, [pageIndex, pageSize, fetchDepartments]);
+  }, [pageIndex, pageSize, fetchDepartments, debouncedSearch]);
+
+
+
 
   const [_deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -203,6 +221,8 @@ const AdminDepartments = () => {
           data={departments}
           loading={loading}
           searchKey="name"
+          searchValue={search}
+          onSearchChange={setSearch}
           searchPlaceholder="Filter departments by name..."
           initialSorting={[{ id: "name", desc: false }]}
           isServerSide={true}

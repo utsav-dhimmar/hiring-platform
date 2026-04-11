@@ -27,3 +27,4 @@ export {
 } from "@/components/shared/SkeletonVariants";
 export { DataTable } from "@/components/shared/DataTable";
 export { ToastProvider, useToast } from "@/components/shared/ToastProvider";
+export { CandidatesDistributionChart } from "@/components/shared/BarChart";
