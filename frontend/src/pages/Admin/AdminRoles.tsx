@@ -44,7 +44,7 @@ const AdminRoles = () => {
   );
 
   const roles = combinedData[0]?.roles || [];
-  const permissions = combinedData[0]?.permissions || [];
+  // const permissions = combinedData[0]?.permissions || [];
   const { user: currentUser } = useAuth();
 
   // Two separate delete hooks for clarity.
@@ -60,10 +60,10 @@ const AdminRoles = () => {
     itemTitle: (perm) => `permission "${perm.name}"`,
   });
 
-  // const handleCreateRole = () => {
-  //   setEditingRoleId(null);
-  //   setShowRoleModal(true);
-  // };
+  const handleCreateRole = () => {
+    setEditingRoleId(null);
+    setShowRoleModal(true);
+  };
 
   const handleEditRole = (roleId: string) => {
     setEditingRoleId(roleId);
@@ -91,7 +91,7 @@ const AdminRoles = () => {
                   size="sm"
                   className="me-2"
                   onClick={() => handleEditRole(role.id)}
-                  disabled={currentUser.role_id === role.id && currentUser.role_name?.toLowerCase() !== "superadmin"}
+                  disabled={currentUser.role_id === role.id}
                 >
                   Edit
                 </Button>
@@ -101,7 +101,7 @@ const AdminRoles = () => {
                   variant="destructive"
                   size="sm"
                   onClick={() => roleDelete.handleDeleteClick(role)}
-                  disabled={currentUser.role_id === role.id && currentUser.role_name?.toLowerCase() !== "superadmin"}
+                  disabled={currentUser.role_id === role.id}
                 >
                   Delete
                 </Button>
@@ -113,49 +113,49 @@ const AdminRoles = () => {
     },
   ];
 
-  const permissionColumns: Column<PermissionRead>[] = [
-    {
-      header: "Name",
-      accessor: (perm) => (
-        <>
-          <code>{perm.name}</code>
-          <div className="text-muted-foreground text-sm">{perm.description}</div>
-        </>
-      ),
-    },
-    {
-      header: "Actions",
-      accessor: (perm) => (
-        <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => permissionDelete.handleDeleteClick(perm)}
-          >
-            Delete
-          </Button>
-        </PermissionGuard>
-      ),
-    },
-  ];
+  // const permissionColumns: Column<PermissionRead>[] = [
+  //   {
+  //     header: "Name",
+  //     accessor: (perm) => (
+  //       <>
+  //         <code>{perm.name}</code>
+  //         <div className="text-muted-foreground text-sm">{perm.description}</div>
+  //       </>
+  //     ),
+  //   },
+  //   {
+  //     header: "Actions",
+  //     accessor: (perm) => (
+  //       <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
+  //         <Button
+  //           variant="destructive"
+  //           size="sm"
+  //           onClick={() => permissionDelete.handleDeleteClick(perm)}
+  //         >
+  //           Delete
+  //         </Button>
+  //       </PermissionGuard>
+  //     ),
+  //   },
+  // ];
 
   return (
     <AppPageShell width="wide">
       <PageHeader
         title="Role & Permission Management"
 
-      /*actions={
-        <>
-          <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
+        actions={
+          <>
+            {/* <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
             <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
               Create Permission
             </Button>
-          </PermissionGuard>
-          <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
-            <Button onClick={handleCreateRole}>Create Role</Button>
-          </PermissionGuard>
-        </>
-      }*/
+          </PermissionGuard> */}
+            <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+              <Button onClick={handleCreateRole}>Create Role</Button>
+            </PermissionGuard>
+          </>
+        }
       />
 
       <div className="flex flex-col gap-8">
@@ -171,7 +171,7 @@ const AdminRoles = () => {
           />
         </div>
 
-        <div className="space-y-4">
+        {/* <div className="space-y-4">
           <h2 className="text-xl font-bold tracking-tight">Permissions</h2>
           <AdminDataTable
             columns={permissionColumns}
@@ -181,7 +181,7 @@ const AdminRoles = () => {
             onRetry={fetchData}
             rowKey="id"
           />
-        </div>
+        </div> */}
       </div>
 
       <CreatePermissionModal

@@ -145,7 +145,7 @@ export const getJobColumns = ({
             ) : (
               <>
                 {displaySessions.map((s) => (
-                  <div key={s.session_id} className="flex items-center justify-between gap-2 text-xs">
+                  <div key={s.session_id} className="flex items-center justify-between gap-0.5 text-xs">
                     <div className="flex items-center gap-1 overflow-hidden">
                       {displaySessions.length > 1 && <Badge variant="outline" className="h-5 px-1 py-0 text-[10px] leading-none border-primary/20 bg-primary/5">
                         #{s.session_id}
