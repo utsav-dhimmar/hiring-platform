@@ -66,10 +66,8 @@ class JobRepository:
                 selectinload(Job.versions),
             )
         )
-        if search_filter is not None:
-            stmt = stmt.where(search_filter)
-
-        stmt = stmt.offset(skip).limit(limit)
+        stmt = stmt.where(search_filter) if search_filter is not None else stmt
+        stmt = stmt.order_by(Job.created_at.desc()).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return {
             "data": list(result.scalars().unique().all()),
@@ -310,6 +308,7 @@ class JobRepository:
                 selectinload(Job.versions),
             )
             .where(search_filter)
+            .order_by(Job.created_at.desc())
             .offset(skip)
             .limit(limit)
         )
