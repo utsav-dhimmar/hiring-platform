@@ -116,6 +116,7 @@ export const CandidateTableFilters = ({
                         : [...jobFilter, j]
                     )
                   }
+                  closeOnClick={true} // close the dropdown after selecting option
                 >
                   {j}
                 </DropdownMenuCheckboxItem>
@@ -126,6 +127,7 @@ export const CandidateTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setJobFilter([])}
+                    closeOnClick={true} // close the dropdown after selecting option
                   >
                     Clear jobs
                   </DropdownMenuCheckboxItem>
@@ -169,6 +171,7 @@ export const CandidateTableFilters = ({
                       : [...statusFilter, s]
                   )
                 }
+                  closeOnClick={true} // close the dropdown after selecting option
               >
                 {capitalize(s)}
               </DropdownMenuCheckboxItem>
@@ -179,6 +182,7 @@ export const CandidateTableFilters = ({
                 <DropdownMenuCheckboxItem
                   checked={false}
                   onClick={() => setStatusFilter([])}
+                  closeOnClick={true} // close the dropdown after selecting option
                 >
                   Clear statuses
                 </DropdownMenuCheckboxItem>
@@ -237,6 +241,7 @@ export const CandidateTableFilters = ({
                           : [...locationFilter, l]
                       )
                     }
+                    closeOnClick={true} // close the dropdown after selecting option
                   >
                     {l}
                   </DropdownMenuCheckboxItem>
@@ -250,6 +255,7 @@ export const CandidateTableFilters = ({
               <DropdownMenuCheckboxItem
                 checked={false}
                 onClick={() => setLocationFilter([])}
+                closeOnClick={true} // close the dropdown after selecting option
               >
                 Clear locations
               </DropdownMenuCheckboxItem>
@@ -296,6 +302,7 @@ export const CandidateTableFilters = ({
                       : [...hrDecisionFilter, d.value]
                   )
                 }
+                closeOnClick={true} // close the dropdown after selecting option
               >
                 {d.label}
               </DropdownMenuCheckboxItem>

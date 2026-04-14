@@ -97,6 +97,7 @@ export const UserTableFilters = ({
                       : [...statusFilter, s]
                   )
                 }
+                closeOnClick={true} // close the dropdown after selecting option
               >
                 {capitalize(s)}
               </DropdownMenuCheckboxItem>
@@ -107,6 +108,7 @@ export const UserTableFilters = ({
                 <DropdownMenuCheckboxItem
                   checked={false}
                   onClick={() => setStatusFilter([])}
+                  closeOnClick={true} // close the dropdown after selecting option
                 >
                   Clear statuses
                 </DropdownMenuCheckboxItem>
@@ -127,7 +129,7 @@ export const UserTableFilters = ({
                 : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
             )}
           >
-             <UserCheck className="h-3.5 w-3.5 opacity-60" />
+            <UserCheck className="h-3.5 w-3.5 opacity-60" />
             {roleFilter.length === 0
               ? "All Roles"
               : roleFilter.length === 1
@@ -151,6 +153,7 @@ export const UserTableFilters = ({
                         : [...roleFilter, r]
                     )
                   }
+                  closeOnClick={true} // close the dropdown after selecting option
                 >
                   {r}
                 </DropdownMenuCheckboxItem>
@@ -161,6 +164,7 @@ export const UserTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setRoleFilter([])}
+                    closeOnClick={true} // close the dropdown after selecting option
                   >
                     Clear roles
                   </DropdownMenuCheckboxItem>
@@ -174,8 +178,8 @@ export const UserTableFilters = ({
       {/* Date Range Picker */}
       <div className={cn(
         "flex items-center gap-1.5 px-3 h-9 rounded-xl border text-sm transition-colors",
-        dateRange?.from 
-          ? "border-primary/40 bg-primary/5 text-foreground" 
+        dateRange?.from
+          ? "border-primary/40 bg-primary/5 text-foreground"
           : "border-input bg-background/50 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
       )}>
         <Popover>

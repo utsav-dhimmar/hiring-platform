@@ -92,6 +92,7 @@ export const JobTableFilters = ({
             {statusOptions.map((s) => (
               <DropdownMenuCheckboxItem
                 key={s}
+                closeOnClick={true} // close the dropdown after selecting option
                 checked={statusFilter.includes(s)}
                 onSelect={(e) => e.preventDefault()}
                 onClick={() =>
@@ -111,6 +112,7 @@ export const JobTableFilters = ({
                 <DropdownMenuCheckboxItem
                   checked={false}
                   onClick={() => setStatusFilter([])}
+                  closeOnClick={true} // close the dropdown after selecting option
                 >
                   Clear statuses
                 </DropdownMenuCheckboxItem>
@@ -170,6 +172,7 @@ export const JobTableFilters = ({
                             : [...departmentFilter, d]
                         )
                       }
+                      closeOnClick={true} // close the dropdown after selecting option
                     >
                       {d}
                     </DropdownMenuCheckboxItem>
@@ -183,6 +186,7 @@ export const JobTableFilters = ({
                 <DropdownMenuCheckboxItem
                   checked={false}
                   onClick={() => setDepartmentFilter([])}
+                  closeOnClick={true} // close the dropdown after selecting option
                 >
                   Clear departments
                 </DropdownMenuCheckboxItem>
