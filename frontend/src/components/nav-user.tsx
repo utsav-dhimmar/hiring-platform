@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Avatar,
@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ModeToggle } from "./shared/mode-toggle"
 import { Separator } from "@/components/ui/separator"
+import { useOutsideClick } from "@/hooks"
 
 export function NavUser() {
   const { state } = useSidebar()
@@ -39,6 +40,12 @@ export function NavUser() {
 
   const [showProfileCard, setShowProfileCard] = useState(false)
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
+
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useOutsideClick(containerRef, () => {
+    setShowProfileCard(false)
+  }, showProfileCard)
 
   const isCollapsed = state === "collapsed"
 
@@ -56,7 +63,7 @@ export function NavUser() {
   if (!user) return null
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       {showProfileCard && !isCollapsed && (
         <div className="absolute bottom-full left-0 right-0 mb-2 p-4 rounded-2xl bg-popover border border-border shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
           <div className="flex items-center gap-3 mb-4">

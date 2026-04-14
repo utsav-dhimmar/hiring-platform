@@ -12,8 +12,10 @@ import ErrorBoundary from "@/components/shared/ErrorBoundary";
  */
 interface DateDisplayProps {
   /** Date value to display (string, number, or Date object) */
-  date: string | number | Date | null | undefined;
-  /** Whether to show time along with date (default: true) */
+  date?: string | number | Date | null;
+  /** Whether to show date part (default: true) */
+  showDate?: boolean;
+  /** Whether to show time along with date (default: false) */
   showTime?: boolean;
   /** Additional CSS class name */
   className?: string;
@@ -25,6 +27,8 @@ interface DateDisplayProps {
   formatter?: (date: Date) => string;
   /** Whether to show a calendar icon (default: false) */
   showIcon?: boolean;
+  /** Whether to return null instead of fallback if date is missing (default: false) */
+  hideIfEmpty?: boolean;
 }
 
 /**
@@ -33,13 +37,17 @@ interface DateDisplayProps {
  */
 const DateDisplayContent = ({
   date,
+  showDate = true,
+  showTime = false,
   className = "",
   fallback = "N/A",
   formatOptions,
   formatter,
   showIcon = false,
+  hideIfEmpty = false,
 }: DateDisplayProps) => {
   if (!date) {
+    if (hideIfEmpty) return null;
     return (
       <span className={cn("text-muted-foreground italic text-sm", className)}>{fallback}</span>
     );
@@ -60,15 +68,21 @@ const DateDisplayContent = ({
   } else if (formatOptions) {
     formattedDate = dateObj.toLocaleString(undefined, formatOptions);
   } else {
-    // Default formatting: DD/MM/YYYY or locale string with time
-    formattedDate = dateObj.toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      // hour: "2-digit",
-      // minute: "2-digit",
-      // hour12: true,
-    });
+    if (showDate) {
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      const month = dateObj.toLocaleString("en-GB", { month: "short" });
+      const year = dateObj.getFullYear();
+      formattedDate = `${day}/${month}/${year}`;
+    }
+
+    if (showTime) {
+      const time = dateObj.toLocaleString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      formattedDate = formattedDate ? `${formattedDate} ${time}` : time;
+    }
   }
 
   return (
