@@ -50,6 +50,15 @@ class SkillService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, skill_in: SkillCreate
     ) -> SkillRead:
         """Create a new skill."""
+        # 1. Check for existing skill name to prevent IntegrityError
+        existing_skill_query = select(Skill).where(Skill.name == skill_in.name)
+        existing_skill_result = await db.execute(existing_skill_query)
+        if existing_skill_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Skill with name '{skill_in.name}' already exists.",
+            )
+
         skill = Skill(
             name=skill_in.name,
             description=skill_in.description,
@@ -76,12 +85,29 @@ class SkillService:
         skill_update: SkillUpdate,
     ) -> Skill | SkillRead:
         """Update a skill."""
-        existing_skill = await self.get_skill_by_id(db=db, skill_id=skill_id)
+        # 1. Verify existence
+        skill = await skill_repository.crud.get(db=db, id=skill_id)
+        if not skill:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Skill not found.",
+            )
+            
         update_data = skill_update.model_dump(exclude_unset=True)
-
         if not update_data:
-            return existing_skill
+            return SkillRead.model_validate(skill)
 
+        # 2. If name is changing, check for uniqueness
+        if "name" in update_data and update_data["name"] != skill.name:
+            existing_skill_query = select(Skill).where(Skill.name == update_data["name"])
+            existing_skill_result = await db.execute(existing_skill_query)
+            if existing_skill_result.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Skill with name '{update_data['name']}' already exists.",
+                )
+
+        # 3. Apply update
         updated_skill = await skill_repository.crud.update(
             db=db,
             id=skill_id,
@@ -90,11 +116,7 @@ class SkillService:
             return_as_model=True,
             one_or_none=True,
         )
-        if updated_skill is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Skill not found.",
-            )
+        
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,

@@ -67,6 +67,15 @@ class DepartmentService:
         department_in: DepartmentCreate,
     ) -> DepartmentRead:
         """Create a new department."""
+        # 1. Check for existing department name to prevent IntegrityError
+        existing_dept_query = select(Department).where(Department.name == department_in.name)
+        existing_dept_result = await db.execute(existing_dept_query)
+        if existing_dept_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Department with name '{department_in.name}' already exists.",
+            )
+
         department = Department(
             name=department_in.name,
             description=department_in.description,
@@ -93,12 +102,29 @@ class DepartmentService:
         department_update: DepartmentUpdate,
     ) -> Department | DepartmentRead:
         """Update a department."""
-        existing = await self.get_department_by_id(db=db, department_id=department_id)
+        # 1. Verify existence
+        department = await department_repository.crud.get(db=db, id=department_id)
+        if not department:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Department not found.",
+            )
+
         update_data = department_update.model_dump(exclude_unset=True)
-
         if not update_data:
-            return existing
+            return DepartmentRead.model_validate(department)
 
+        # 2. If name is changing, check for uniqueness
+        if "name" in update_data and update_data["name"] != department.name:
+            existing_dept_query = select(Department).where(Department.name == update_data["name"])
+            existing_dept_result = await db.execute(existing_dept_query)
+            if existing_dept_result.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Department with name '{update_data['name']}' already exists.",
+                )
+
+        # 3. Apply update
         updated = await department_repository.crud.update(
             db=db,
             id=department_id,
@@ -107,11 +133,7 @@ class DepartmentService:
             return_as_model=True,
             one_or_none=True,
         )
-        if updated is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Department not found.",
-            )
+        
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
