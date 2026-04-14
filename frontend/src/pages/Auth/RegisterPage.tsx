@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { registerSchema, type RegisterFormValues } from "@/schemas/auth";
 import { authService } from "@/apis/auth";
 import { extractErrorMessage } from "@/utils/error";
@@ -28,12 +28,13 @@ import {
   Logo,
 } from "@/components";
 import { INFO } from "@/constants";
-
+import { InputGroup, InputGroupInput, InputGroupAddon, InputGroupButton } from "@/components/ui/input-group";
 const RegisterPage = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -170,15 +171,29 @@ const RegisterPage = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-semibold">Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Create a strong password"
-                              autoComplete="new-password"
-                              className="h-11 rounded-xl"
+                          <InputGroup className="h-11 rounded-xl">
+                            <InputGroupInput
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Enter your password"
+                              autoComplete="current-password"
                               {...field}
+                              className="h-11 rounded-xl"
                             />
-                          </FormControl>
+                            <InputGroupAddon align={"inline-end"}>
+                              <InputGroupButton
+                                onClick={() => setShowPassword(!showPassword)}
+                                size="icon-sm"
+                                variant="ghost"
+
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="size-5 text-muted-foreground/70" />
+                                ) : (
+                                  <Eye className="size-5 text-muted-foreground/70" />
+                                )}
+                              </InputGroupButton>
+                            </InputGroupAddon>
+                          </InputGroup>
                           <FormMessage />
                         </FormItem>
                       )}
