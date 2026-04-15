@@ -50,13 +50,14 @@ class SkillService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, skill_in: SkillCreate
     ) -> SkillRead:
         """Create a new skill."""
-        # 1. Check for existing skill name to prevent IntegrityError
-        existing_skill_query = select(Skill).where(Skill.name == skill_in.name)
+        # 1. Check for existing skill name to prevent IntegrityError (case-insensitive)
+        from sqlalchemy import func
+        existing_skill_query = select(Skill).where(func.lower(Skill.name) == func.lower(skill_in.name))
         existing_skill_result = await db.execute(existing_skill_query)
         if existing_skill_result.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Skill with name '{skill_in.name}' already exists.",
+                detail=f"Skill with name '{skill_in.name}' already exists (case-insensitive check).",
             )
 
         skill = Skill(
@@ -97,14 +98,15 @@ class SkillService:
         if not update_data:
             return SkillRead.model_validate(skill)
 
-        # 2. If name is changing, check for uniqueness
+        # 2. If name is changing, check for uniqueness (case-insensitive)
         if "name" in update_data and update_data["name"] != skill.name:
-            existing_skill_query = select(Skill).where(Skill.name == update_data["name"])
+            from sqlalchemy import func
+            existing_skill_query = select(Skill).where(func.lower(Skill.name) == func.lower(update_data["name"]))
             existing_skill_result = await db.execute(existing_skill_query)
             if existing_skill_result.scalar_one_or_none():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Skill with name '{update_data['name']}' already exists.",
+                    detail=f"Skill with name '{update_data['name']}' already exists (case-insensitive check).",
                 )
 
         # 3. Apply update

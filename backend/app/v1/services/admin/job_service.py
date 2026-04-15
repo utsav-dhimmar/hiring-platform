@@ -142,6 +142,15 @@ class JobAdminService:
             for skill_id in job_in.skill_ids:
                 await skill_service.get_skill_by_id(db, skill_id)
 
+        # Validate title uniqueness (case-insensitive)
+        from sqlalchemy import func, select
+        existing_job_stmt = select(Job.id).where(func.lower(Job.title) == func.lower(job_in.title))
+        if await db.scalar(existing_job_stmt):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Job with title '{job_in.title}' already exists.",
+            )
+
         job = await job_repository.create(
             db=db, object=job_in, created_by=admin_user_id
         )
@@ -191,6 +200,19 @@ class JobAdminService:
                     # Skip invalid skill IDs (like the 3fa85f64 dummy placeholder)
                     continue
             job_update.skill_ids = valid_skill_ids
+
+        # Validate title uniqueness (case-insensitive) if title is being changed
+        if job_update.title:
+            from sqlalchemy import func, select
+            # Get current job to see if title is actually changing
+            current_job = await self.get_job_by_id(db, job_id)
+            if job_update.title.lower() != current_job.title.lower():
+                existing_job_stmt = select(Job.id).where(func.lower(Job.title) == func.lower(job_update.title))
+                if await db.scalar(existing_job_stmt):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Job with title '{job_update.title}' already exists.",
+                    )
 
         updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
         

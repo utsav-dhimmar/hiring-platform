@@ -55,6 +55,7 @@ class Job(Base):
     # JOB FIELDS
     title: Mapped[str] = mapped_column(
         Text,
+        unique=True,
         nullable=False,
     )
 

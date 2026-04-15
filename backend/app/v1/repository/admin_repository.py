@@ -177,7 +177,7 @@ class AdminRepository:
         @param name - Name of the role
         @returns Role object if found, None otherwise
         """
-        result = await db.execute(select(Role).where(Role.name == name))
+        result = await db.execute(select(Role).where(func.lower(Role.name) == func.lower(name)))
         return result.scalar_one_or_none()
 
     async def create_role(self, db: AsyncSession, role: Role) -> Role:
@@ -263,7 +263,7 @@ class AdminRepository:
         @param name - Name of the permission
         @returns Permission object if found, None otherwise
         """
-        result = await db.execute(select(Permission).where(Permission.name == name))
+        result = await db.execute(select(Permission).where(func.lower(Permission.name) == func.lower(name)))
         return result.scalar_one_or_none()
 
     async def create_permission(

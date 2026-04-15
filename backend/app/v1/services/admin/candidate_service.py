@@ -442,14 +442,27 @@ class CandidateAdminService:
         
         # Ordered by stage order
         def _map_stage(cs) -> CandidateStageSummary:
+            # Map database status to a standard API status for the response
+            # Any finished stage is shown as 'completed' to the frontend
+            is_finished = cs.status in ["completed", "failed", "skipped"]
+            response_status = "completed" if is_finished else cs.status
+
             return CandidateStageSummary(
                 stage_id=cs.id,
                 template_name=cs.job_stage.template.name if cs.job_stage and cs.job_stage.template else "Unknown",
-                status=cs.status,
+                status=response_status,
                 order=cs.job_stage.stage_order if cs.job_stage else 0,
                 job_id=cs.job_stage.job_id if cs.job_stage else None,
                 job_name=cs.job_stage.job.title if cs.job_stage and cs.job_stage.job else None,
-                completed_at=cs.completed_at
+                completed_at=cs.completed_at,
+                completed=is_finished,
+                result={
+                    "completed": "passed",
+                    "failed": "failed",
+                    "skipped": "skipped",
+                    "active": "ongoing",
+                    "pending": "pending",
+                }.get(cs.status, cs.status),
             )
 
         pipeline = [_map_stage(cs) for cs in sorted(candidate_stages, key=lambda x: x.job_stage.stage_order if x.job_stage else 0)]
@@ -459,9 +472,15 @@ class CandidateAdminService:
             if cs.status == "active":
                 current_stage = _map_stage(cs)
         
-        # If no active stage found, use the last one (completed/failed) or None
+        # If no active stage found, use the last one that was processed (completed/failed/skipped)
         if not current_stage and pipeline:
-            current_stage = pipeline[-1]
+            # Find the last stage that is NOT pending
+            non_pending_stages = [s for s in pipeline if s.status != "pending"]
+            if non_pending_stages:
+                current_stage = non_pending_stages[-1]
+            else:
+                # Fallback to the first stage if all are pending
+                current_stage = pipeline[0]
 
         # Job Context Overrides
         mapping_job_id = target_job_id or candidate.applied_job_id

@@ -67,13 +67,13 @@ class DepartmentService:
         department_in: DepartmentCreate,
     ) -> DepartmentRead:
         """Create a new department."""
-        # 1. Check for existing department name to prevent IntegrityError
-        existing_dept_query = select(Department).where(Department.name == department_in.name)
+        # 1. Check for existing department name to prevent IntegrityError (case-insensitive)
+        existing_dept_query = select(Department).where(func.lower(Department.name) == func.lower(department_in.name))
         existing_dept_result = await db.execute(existing_dept_query)
         if existing_dept_result.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Department with name '{department_in.name}' already exists.",
+                detail=f"Department with name '{department_in.name}' already exists (case-insensitive check).",
             )
 
         department = Department(
@@ -114,14 +114,14 @@ class DepartmentService:
         if not update_data:
             return DepartmentRead.model_validate(department)
 
-        # 2. If name is changing, check for uniqueness
+        # 2. If name is changing, check for uniqueness (case-insensitive)
         if "name" in update_data and update_data["name"] != department.name:
-            existing_dept_query = select(Department).where(Department.name == update_data["name"])
+            existing_dept_query = select(Department).where(func.lower(Department.name) == func.lower(update_data["name"]))
             existing_dept_result = await db.execute(existing_dept_query)
             if existing_dept_result.scalar_one_or_none():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Department with name '{update_data['name']}' already exists.",
+                    detail=f"Department with name '{update_data['name']}' already exists (case-insensitive check).",
                 )
 
         # 3. Apply update

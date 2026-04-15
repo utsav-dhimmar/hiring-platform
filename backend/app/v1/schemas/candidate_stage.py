@@ -51,5 +51,7 @@ class CandidateStageSummary(BaseModel):
     job_id: uuid.UUID | None = None
     job_name: str | None = None
     completed_at: datetime | None = None
+    completed: bool = False
+    result: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
