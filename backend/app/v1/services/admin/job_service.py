@@ -298,7 +298,7 @@ class JobAdminService:
     async def delete_job(
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_id: uuid.UUID
     ) -> None:
-        """Force-delete a job (hr_admin and superadmin only)."""
+        """Force-delete a job only when inactive (hr_admin and superadmin only)."""
         current_user = await user_service.get_user_by_id(db=db, user_id=admin_user_id)
         role_name = (current_user.role_name or "").lower()
         is_super_admin = "admin:all" in current_user.permissions
@@ -309,7 +309,13 @@ class JobAdminService:
                 detail="Only HR Admin or Super Admin can force delete jobs.",
             )
 
-        await self.get_job_by_id(db=db, job_id=job_id)
+        job = await self.get_job_by_id(db=db, job_id=job_id)
+        if job.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please deactivate the job before deleting it.",
+            )
+
         await job_repository.force_delete(db=db, id=job_id)
         await audit_service.log_action(
             db=db,
