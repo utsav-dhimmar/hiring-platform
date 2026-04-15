@@ -32,6 +32,7 @@ import { CrossMatchView } from "@/components/modal/candidate-details/CrossMatchV
 import { VersionResultView } from "@/components/modal/candidate-details/VersionResultView";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
+import { extractErrorMessage } from "@/utils/error";
 
 /**
  * Props for {@link CandidateDetailsModal}.
@@ -203,7 +204,8 @@ export function CandidateDetailsModal({
       toast.success("Decision submitted successfully");
       setShowFeedbackModal(false);
     } catch (error) {
-      toast.error("Failed to submit decision");
+      const errorMessage = extractErrorMessage(error)
+      toast.error(errorMessage || "Failed to submit decision");
     } finally {
       setIsSubmitting(false);
     }

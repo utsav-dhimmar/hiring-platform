@@ -113,8 +113,9 @@ export default function CreateJob() {
               });
             }
           } catch (error) {
+            const errorMessage = extractErrorMessage(error)
             console.error("Failed to fetch job details:", error);
-            toast.error("Failed to load job details.");
+            toast.error(errorMessage || "Failed to load job details.");
             navigate("/dashboard/jobs");
           }
         }

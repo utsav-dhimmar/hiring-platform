@@ -32,7 +32,7 @@ export const useJobCandidates = (
       if (!jobSlug) return;
       if (!isPolling) setLoading(true);
       try {
-        const id = (location.state as JobRouteState | null)?.jobId || currentJobId.current;
+        let id = (location.state as JobRouteState | null)?.jobId || currentJobId.current;
         const skip = pageIndex * pageSize;
         const limit = pageSize;
 
@@ -65,9 +65,9 @@ export const useJobCandidates = (
         }
       } catch (error) {
         console.error("Failed to fetch job data:", error);
+        const errorMessage = extractErrorMessage(error)
         if (!isPolling) {
-          const errorMessage = extractErrorMessage(error, "Failed to load candidates.");
-          toast.error(errorMessage);
+          toast.error(errorMessage || "Failed to load candidates.");
         }
       } finally {
         if (!isPolling) setLoading(false);
@@ -86,8 +86,9 @@ export const useJobCandidates = (
         await jobService.uploadResume(job.id, file);
         toast.success(`Uploaded ${file.name} successfully!`);
       } catch (error) {
+        const errorMessage = extractErrorMessage(error)
         console.error(`Failed to upload ${file.name}:`, error);
-        toast.error(`Failed to upload ${file.name}`);
+        toast.error(errorMessage || `Failed to upload ${file.name}`);
       }
     });
 
@@ -106,8 +107,9 @@ export const useJobCandidates = (
         toast.success(response.message || "Re-analysis started successfully.");
         await fetchData(true);
       } catch (error) {
+        const errorMessage = extractErrorMessage(error)
         console.error("Failed to reanalyze candidate:", error);
-        toast.error(extractErrorMessage(error, "Failed to start candidate re-analysis."));
+        toast.error(errorMessage || "Failed to start candidate re-analysis.");
       } finally {
         setReanalyzingCandidateIds((current) => current.filter((id) => id !== candidateId));
       }

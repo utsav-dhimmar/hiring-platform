@@ -15,6 +15,7 @@ import type { CrossJobMatchRead } from "@/types/crossMatch";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "@/utils/slug";
 import { capitalize } from "@/lib/utils";
+import { extractErrorMessage } from "@/utils/error";
 interface CrossMatchViewProps {
   resumeId?: string;
   candidateId?: string;
@@ -54,7 +55,8 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
         }
       }
     } catch (error) {
-      console.error("Failed to fetch matches:", error);
+      const errorMessage = extractErrorMessage(error)
+      console.error(errorMessage || "Failed to fetch matches:", error);
     } finally {
       setLoading(false);
     }
@@ -95,7 +97,8 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
       await crossMatchApi.triggerCrossMatch(resumeId);
       toast.info("Discovery triggered. Scanning all active jobs...");
     } catch (error) {
-      toast.error("Failed to trigger discovery.");
+      const errorMessage = extractErrorMessage(error)
+      toast.error(errorMessage || "Failed to trigger discovery.");
       setIsDiscovering(false);
       setStartTime(null);
     }
