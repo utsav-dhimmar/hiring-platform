@@ -57,11 +57,20 @@ export const SkillSelectorSection = ({
   return (
     <div className="app-surface-card space-y-6 p-4 sm:p-5">
       <div className="space-y-1">
-        <h2 className="text-md font-bold tracking-tight">Required Skills</h2>
+        <h2 className="text-md font-bold tracking-tight">Required Skills *</h2>
         <p className="text-muted-foreground text-md font-medium">
           Select the skills that should be linked to this job. Click a skill to
           toggle selection.
         </p>
+        <FormField
+          control={control}
+          name="skill_ids"
+          render={() => (
+            <FormItem>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
 
       {/* Skill Search */}
@@ -149,15 +158,6 @@ export const SkillSelectorSection = ({
         </div>
       )}
 
-      <FormField
-        control={control}
-        name="skill_ids"
-        render={() => (
-          <FormItem>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
     </div>
   );
 };

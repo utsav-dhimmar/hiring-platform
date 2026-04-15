@@ -142,7 +142,6 @@ export const jobCreateSchema = z.object({
   /** Number of open vacancies */
   vacancy: z.number({
     error: "Vacancy is required",
-
   }).int().positive().min(1, "Vacancy must be at least 1"),
   /** UUID of the department this job belongs to */
   department_id: z.string().uuid("Please select a valid department"),
@@ -155,7 +154,7 @@ export const jobCreateSchema = z.object({
   /** Threshold score (0-100) for considering a candidate as 'passed' */
   passing_threshold: z.number().min(0).max(100).default(65),
   /** Array of skill UUIDs required for this job */
-  skill_ids: z.array(z.string().uuid("Invalid skill ID")),
+  skill_ids: z.array(z.string().uuid("Invalid skill ID")).min(1, "Please select at least one skill"),
   /** Optional custom extraction fields used during resume parsing */
   custom_extraction_fields: z.array(z.string()).optional().default([]),
 });
@@ -190,7 +189,7 @@ export const jobUpdateSchema = z.object({
   /** Threshold score (0-100) */
   passing_threshold: z.number().min(0).max(100).optional(),
   /** Array of skill UUIDs */
-  skill_ids: z.array(z.string().uuid("Invalid skill ID")).optional().default([]),
+  skill_ids: z.array(z.string().uuid("Invalid skill ID")).min(1, "Please select at least one skill"),
   /** Array of custom extraction fields */
   custom_extraction_fields: z.array(z.string()).optional(),
 });

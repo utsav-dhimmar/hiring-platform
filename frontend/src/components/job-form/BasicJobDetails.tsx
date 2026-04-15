@@ -31,7 +31,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-md font-semibold text-foreground">
-              Title
+              Title *
             </FormLabel>
             <FormControl>
               <Input
@@ -52,7 +52,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-md font-semibold text-foreground">
-              Vacancy
+              Vacancy *
             </FormLabel>
             <FormControl>
               <Input
@@ -79,7 +79,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-md font-semibold text-foreground">
-              Department
+              Department *
             </FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
@@ -117,7 +117,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-md font-semibold text-foreground">
-              Job Description
+              Job Description *
             </FormLabel>
             <FormControl>
               <Textarea

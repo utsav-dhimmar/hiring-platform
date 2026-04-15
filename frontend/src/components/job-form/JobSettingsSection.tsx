@@ -32,7 +32,7 @@ export const JobSettingsSection = () => {
               <div className="flex items-center gap-4">
                 <Input
                   type="number"
-                  min={0}
+                  min={1}
                   max={100}
                   className="h-12 text-lg rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-center w-24"
                   {...field}
@@ -54,7 +54,7 @@ export const JobSettingsSection = () => {
           <FormItem className="flex flex-row items-center justify-between rounded-2xl border border-muted-foreground/20 p-6 bg-card/10 backdrop-blur-sm hover:bg-card/20 transition-all shadow-sm">
             <div className="space-y-0.5">
               <FormLabel className="text-lg font-bold">
-                Job Status
+                Job Status *
               </FormLabel>
               <p className="text-sm text-muted-foreground font-medium">
                 Control visibility on the job board. Currently{" "}
