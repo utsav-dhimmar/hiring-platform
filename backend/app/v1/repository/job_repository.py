@@ -3,6 +3,7 @@ Repository for job-related database operations.
 """
 
 import uuid
+from typing import Any
 
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -374,6 +375,18 @@ class JobRepository:
         if chunk_records:
             db.add_all(chunk_records)
             await db.flush()
+
+
+    async def get_titles(self, db: AsyncSession) -> list[dict[str, Any]]:
+        """
+        Retrieve only the IDs and titles of all jobs.
+        
+        Returns:
+            list[dict[str, Any]]: A list of dictionaries with 'id' and 'title'.
+        """
+        stmt = select(Job.id, Job.title).order_by(Job.title.asc())
+        result = await db.execute(stmt)
+        return [{"id": row.id, "title": row.title} for row in result.all()]
 
 
 job_repository = JobRepository()

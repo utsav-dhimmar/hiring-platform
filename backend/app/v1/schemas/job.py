@@ -145,3 +145,22 @@ class JobActivityHistoryResponse(BaseModel):
     sessions: list[JobActivitySession]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class JobTitleRead(BaseModel):
+    """
+    Minimal schema for a Job, showing only its unique ID and title.
+    """
+
+    id: uuid.UUID
+    title: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JobTitlesListRead(BaseModel):
+    """
+    Schema for a list of job titles.
+    """
+
+    data: list[JobTitleRead]

@@ -11,6 +11,8 @@ from app.v1.schemas.job import (
     JobsListRead,
     JobActivityHistoryResponse,
     JobActivitySession,
+    JobTitleRead,
+    JobTitlesListRead,
 )
 from app.v1.services.admin.audit_service import audit_service
 from app.v1.services.admin.department_service import department_service
@@ -102,6 +104,11 @@ class JobAdminService:
                 db
             ),
         )
+    
+    async def get_job_titles(self, db: AsyncSession) -> JobTitlesListRead:
+        """Retrieve only IDs and titles for all jobs."""
+        titles = await job_repository.get_titles(db)
+        return JobTitlesListRead(data=[JobTitleRead(**t) for t in titles])
 
     async def get_job_by_id(self, db: AsyncSession, job_id: uuid.UUID) -> JobRead:
         """Get a job by ID."""

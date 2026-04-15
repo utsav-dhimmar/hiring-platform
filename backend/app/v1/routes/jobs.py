@@ -18,6 +18,7 @@ from app.v1.schemas.job import (
     JobsListRead,
     JobUpdate,
     JobActivityHistoryResponse,
+    JobTitlesListRead,
 )
 from app.v1.schemas.job_stage import (
     JobStageConfigCreate,
@@ -79,6 +80,17 @@ async def search_jobs(
         Any: A list of matching jobs.
     """
     return await job_service.search_jobs(db=db, query=q, skip=skip, limit=limit)
+
+
+@router.get("/titles", response_model=JobTitlesListRead)
+async def get_job_titles(
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:access")),
+) -> Any:
+    """
+    Retrieve only the IDs and titles of all jobs.
+    """
+    return await job_service.get_job_titles(db=db)
 
 
 @router.post("", response_model=JobRead, status_code=status.HTTP_201_CREATED)
