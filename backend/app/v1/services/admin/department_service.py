@@ -73,7 +73,7 @@ class DepartmentService:
         if existing_dept_result.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Department with name '{department_in.name}' already exists (case-insensitive check).",
+                detail=f"Department with name '{department_in.name}' already exists.",
             )
 
         department = Department(
@@ -122,7 +122,7 @@ class DepartmentService:
             if existing_dept_result.scalar_one_or_none():
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Department with name '{update_data['name']}' already exists (case-insensitive check).",
+                    detail=f"Department with name '{update_data['name']}' already exists.",
                 )
 
         # 3. Apply update
