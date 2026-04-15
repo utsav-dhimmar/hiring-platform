@@ -115,7 +115,8 @@ class DepartmentService:
             return DepartmentRead.model_validate(department)
 
         # 2. If name is changing, check for uniqueness (case-insensitive)
-        if "name" in update_data and update_data["name"] != department.name:
+        current_name = department["name"] if isinstance(department, dict) else department.name
+        if "name" in update_data and update_data["name"] != current_name:
             existing_dept_query = select(Department).where(func.lower(Department.name) == func.lower(update_data["name"]))
             existing_dept_result = await db.execute(existing_dept_query)
             if existing_dept_result.scalar_one_or_none():
