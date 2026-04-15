@@ -152,10 +152,6 @@ class AdminService:
     async def delete_skill(self, *args, **kwargs) -> None:
         return await skill_service.delete_skill(*args, **kwargs)
 
-    async def search_candidates_for_job(
-        self, *args, **kwargs
-    ) -> list[CandidateResponse]:
-        return await candidate_admin_service.search_candidates_for_job(*args, **kwargs)
 
     async def search_candidates(self, *args, **kwargs) -> list[CandidateResponse]:
         return await candidate_admin_service.search_candidates(*args, **kwargs)
