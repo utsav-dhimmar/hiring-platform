@@ -83,17 +83,25 @@ const jobService = {
   },
 
   /**
-   * Retrieves candidates for a single job.
+   * Retrieves candidates for a single job with pagination support.
    * @param jobId - The UUID of the job
    * @param jdVersion - Optional JD version number to filter candidates
-   * @returns Promise resolving to the list of candidates
+   * @param skip - Number of records to skip for pagination (default: 0)
+   * @param limit - Maximum number of records to return (default: 10)
+   * @returns Promise resolving to the list of candidates and total count
    */
   getJobCandidates: async (
     jobId: string,
     jdVersion?: number,
+    skip = 0,
+    limit = 10,
   ): Promise<CandidateAnalysisResponse> => {
     const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {
-      params: jdVersion !== undefined ? { jd_version: jdVersion } : {},
+      params: {
+        ...(jdVersion !== undefined ? { jd_version: jdVersion } : {}),
+        skip,
+        limit,
+      },
     });
     return response.data;
   },

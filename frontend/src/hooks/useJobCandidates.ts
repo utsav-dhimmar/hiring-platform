@@ -11,7 +11,11 @@ type JobRouteState = {
   jobId?: string;
 };
 
-export const useJobCandidates = (jobSlug: string | undefined) => {
+export const useJobCandidates = (
+  jobSlug: string | undefined,
+  pageIndex = 0,
+  pageSize = 10,
+) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [candidates, setCandidates] = useState<CandidateAnalysis[]>([]);
@@ -20,6 +24,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
   const [isUploading, setIsUploading] = useState(false);
   const [reanalyzingCandidateIds, setReanalyzingCandidateIds] = useState<string[]>([]);
   const [jdVersion, setJdVersion] = useState<number | undefined>(undefined);
+  const [totalCandidates, setTotalCandidates] = useState(0);
   const currentJobId = useRef<string | null>(null);
 
   const fetchData = useCallback(
@@ -27,7 +32,9 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
       if (!jobSlug) return;
       if (!isPolling) setLoading(true);
       try {
-        let id = (location.state as JobRouteState | null)?.jobId || currentJobId.current;
+        const id = (location.state as JobRouteState | null)?.jobId || currentJobId.current;
+        const skip = pageIndex * pageSize;
+        const limit = pageSize;
 
         if (!id) {
           const response = await jobService.getJobs();
@@ -44,15 +51,17 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
         currentJobId.current = id;
 
         if (isPolling) {
-          const candidatesData = await jobService.getJobCandidates(id, jdVersion);
-          setCandidates(candidatesData.data || []);
+          const candidatesResponse = await jobService.getJobCandidates(id, jdVersion, skip, limit);
+          setCandidates(candidatesResponse.data || []);
+          setTotalCandidates(candidatesResponse.total || 0);
         } else {
-          const [jobData, candidatesData] = await Promise.all([
+          const [jobData, candidatesResponse] = await Promise.all([
             jobService.getJob(id),
-            jobService.getJobCandidates(id, jdVersion),
+            jobService.getJobCandidates(id, jdVersion, skip, limit),
           ]);
           setJob(jobData);
-          setCandidates(candidatesData.data || []);
+          setCandidates(candidatesResponse.data || []);
+          setTotalCandidates(candidatesResponse.total || 0);
         }
       } catch (error) {
         console.error("Failed to fetch job data:", error);
@@ -64,7 +73,7 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
         if (!isPolling) setLoading(false);
       }
     },
-    [jobSlug, location.state, navigate, jdVersion],
+    [jobSlug, location.state, navigate, jdVersion, pageIndex, pageSize],
   );
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,12 +199,13 @@ export const useJobCandidates = (jobSlug: string | undefined) => {
     jdVersion,
     setJdVersion,
     stats: {
-      totalCandidates: decisionSummary?.total_candidates ?? candidates.length,
-      approveCount: decisionSummary?.approved_count ?? 0,
-      rejectCount: decisionSummary?.reject_count ?? 0,
-      maybeCount: decisionSummary?.maybe_count ?? 0,
-      undecidedCount: decisionSummary?.undecided_count ?? candidates.length,
+      totalCandidates: totalCandidates || decisionSummary?.total_candidates || candidates.length,
+      approveCount: decisionSummary?.approved_count || 0,
+      rejectCount: decisionSummary?.reject_count || 0,
+      maybeCount: decisionSummary?.maybe_count || 0,
+      undecidedCount: decisionSummary?.undecided_count || totalCandidates || candidates.length,
     },
+    totalCandidates,
     minDate,
   };
 };

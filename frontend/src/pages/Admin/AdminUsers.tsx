@@ -225,7 +225,7 @@ const AdminUsers = () => {
                     size="sm"
                     className="shrink-0"
                     onClick={() => handleDeleteClick(user)}
-                    disabled={currentUser && currentUser.id === user.id}
+                    disabled={currentUser && currentUser.id === user.id || row.original.is_active}
                   >
                     Delete
                   </Button>

@@ -15,6 +15,7 @@ import AppPageShell from "@/components/shared/AppPageShell";
 import { CandidatesDistributionChart } from "@/components/shared/BarChart";
 import { PERMISSIONS } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import type { PaginationState } from "@tanstack/react-table";
 
 
 
@@ -22,6 +23,11 @@ export default function JobCandidates() {
   const { jobSlug } = useParams<{ jobSlug: string }>();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   const {
     candidates,
@@ -38,13 +44,13 @@ export default function JobCandidates() {
     stats,
     jdVersion,
     setJdVersion,
-  } = useJobCandidates(jobSlug);
+    totalCandidates,
+  } = useJobCandidates(jobSlug, pageIndex, pageSize);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<"analysis" | "jd" | "cross-job-match">("analysis");
   const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
-
   const handleUploadClick = () => {
     if (!job?.is_active) return;
     fileInputRef.current?.click();
@@ -144,6 +150,11 @@ export default function JobCandidates() {
                 emptyMessage="No candidates found for this job."
                 candidates={candidates}
                 passing_threshold={job?.passing_threshold}
+                isServerSide={true}
+                pagination={{ pageIndex, pageSize }}
+                onPaginationChange={setPagination}
+                pageCount={Math.ceil(totalCandidates / pageSize)}
+                total={totalCandidates}
                 headerActions={
                   <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
                     <Button
