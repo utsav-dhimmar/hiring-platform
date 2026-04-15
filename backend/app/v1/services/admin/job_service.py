@@ -105,9 +105,9 @@ class JobAdminService:
             ),
         )
     
-    async def get_job_titles(self, db: AsyncSession) -> JobTitlesListRead:
+    async def get_job_titles(self, db: AsyncSession, query: str | None = None) -> JobTitlesListRead:
         """Retrieve only IDs and titles for all jobs."""
-        titles = await job_repository.get_titles(db)
+        titles = await job_repository.get_titles(db, query=query)
         return JobTitlesListRead(data=[JobTitleRead(**t) for t in titles])
 
     async def get_job_by_id(self, db: AsyncSession, job_id: uuid.UUID) -> JobRead:

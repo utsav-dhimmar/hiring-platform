@@ -377,14 +377,18 @@ class JobRepository:
             await db.flush()
 
 
-    async def get_titles(self, db: AsyncSession) -> list[dict[str, Any]]:
+    async def get_titles(self, db: AsyncSession, query: str | None = None) -> list[dict[str, Any]]:
         """
         Retrieve only the IDs and titles of all jobs.
         
         Returns:
             list[dict[str, Any]]: A list of dictionaries with 'id' and 'title'.
         """
-        stmt = select(Job.id, Job.title).order_by(Job.title.asc())
+        stmt = select(Job.id, Job.title)
+        if query:
+            stmt = stmt.where(Job.title.ilike(f"%{query}%"))
+        
+        stmt = stmt.order_by(Job.title.asc())
         result = await db.execute(stmt)
         return [{"id": row.id, "title": row.title} for row in result.all()]
 

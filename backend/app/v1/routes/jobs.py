@@ -86,11 +86,12 @@ async def search_jobs(
 async def get_job_titles(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("jobs:access")),
+    q: str | None = Query(None),
 ) -> Any:
     """
     Retrieve only the IDs and titles of all jobs.
     """
-    return await job_service.get_job_titles(db=db)
+    return await job_service.get_job_titles(db=db, query=q)
 
 
 @router.post("", response_model=JobRead, status_code=status.HTTP_201_CREATED)
