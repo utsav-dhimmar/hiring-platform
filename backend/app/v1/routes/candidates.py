@@ -27,15 +27,24 @@ router = APIRouter()
 
 @router.get("/search", response_model=PaginatedData[CandidateResponse])
 async def search_candidates(
-    query: str | None = Query(None),
+    query: str | None = Query(None, description="General search query (name, email)"),
+    job: str | None = Query(None, description="Job name or UUID"),
+    hr_decision: str | None = Query(None, description="Latest HR decision (approved, rejected, maybe)"),
+    city: str | None = Query(None, description="City/Location name"),
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ) -> Any:
-    """Search candidates across all jobs."""
+    """Search candidates across all jobs with advanced filters."""
     return await admin_service.search_candidates(
-        db=db, query=query, skip=skip, limit=limit
+        db=db, 
+        query=query, 
+        job=job,
+        hr_decision=hr_decision,
+        city=city,
+        skip=skip, 
+        limit=limit
     )
 
 

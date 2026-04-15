@@ -161,15 +161,21 @@ class CandidateAdminService:
         self,
         db: AsyncSession,
         query: str | None = None,
+        job: str | None = None,
+        hr_decision: str | None = None,
+        city: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> PaginatedData[CandidateResponse]:
-        """Search candidates across all jobs."""
+        """Search candidates across all jobs with advanced filtering."""
+        from app.v1.db.models.jobs import Job
+        from app.v1.db.models.locations import Location
 
         # Data and count queries
         stmt = select(Candidate)
         total_stmt = select(func.count()).select_from(Candidate)
 
+        # 1. Base query filter
         if query:
             search_filter = or_(
                 Candidate.first_name.ilike(f"%{query}%"),
@@ -179,9 +185,51 @@ class CandidateAdminService:
             stmt = stmt.where(search_filter)
             total_stmt = total_stmt.where(search_filter)
 
+        # 2. Job filter (UUID or Title)
+        if job:
+            is_uuid = False
+            try:
+                uuid.UUID(str(job))
+                is_uuid = True
+            except ValueError:
+                pass
+
+            if is_uuid:
+                stmt = stmt.where(Candidate.applied_job_id == job)
+                total_stmt = total_stmt.where(Candidate.applied_job_id == job)
+            else:
+                stmt = stmt.join(Job, Candidate.applied_job_id == Job.id).where(Job.title.ilike(f"%{job}%"))
+                total_stmt = total_stmt.join(Job, Candidate.applied_job_id == Job.id).where(Job.title.ilike(f"%{job}%"))
+
+        # 3. City filter
+        if city:
+            stmt = stmt.join(Location, Candidate.location_id == Location.id).where(Location.name.ilike(f"%{city}%"))
+            total_stmt = total_stmt.join(Location, Candidate.location_id == Location.id).where(Location.name.ilike(f"%{city}%"))
+
+        # 4. HR Decision filter
+        if hr_decision:
+            # Map user-friendly labels to database values
+            decision_map = {
+                "approved": "approve",
+                "proceed": "approve",
+                "rejected": "reject",
+                "maybe": "May Be"
+            }
+            mapped_decision = decision_map.get(hr_decision.lower(), hr_decision)
+
+            latest_decision_subq = (
+                select(HrDecision.decision)
+                .where(HrDecision.candidate_id == Candidate.id)
+                .order_by(HrDecision.decided_at.desc())
+                .limit(1)
+                .scalar_subquery()
+            )
+            stmt = stmt.where(latest_decision_subq == mapped_decision)
+            total_stmt = total_stmt.where(latest_decision_subq == mapped_decision)
+
         total = await db.scalar(total_stmt)
 
-        # Apply paging and ordering to the same statement object
+        # Apply paging and ordering
         stmt = (
             stmt.options(
                 selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
@@ -195,7 +243,7 @@ class CandidateAdminService:
         )
 
         result = await db.execute(stmt)
-        candidates = list(result.scalars().all())
+        candidates = list(result.scalars().unique().all())
 
         return PaginatedData[CandidateResponse](
             data=[self._map_candidate_to_response(c) for c in candidates],
@@ -212,7 +260,7 @@ class CandidateAdminService:
         )
 
         analysis = None
-        is_parsed = False
+        is_parsed = True
         resume_score = None
         pass_fail = None
         processing_status = None
