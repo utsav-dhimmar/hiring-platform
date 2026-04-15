@@ -46,7 +46,7 @@ const jobService = {
    * @returns Promise resolving to the created job
    */
   createJob: async (data: JobPayload): Promise<Job> => {
-    const response = await client.post<Job>("/jobs/", data);
+    const response = await client.post<Job>("/jobs", data);
     return response.data;
   },
 
