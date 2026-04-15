@@ -26,6 +26,7 @@ import { slugify } from "@/utils/slug";
 import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
+import { extractErrorMessage } from "@/utils/error";
 
 
 export default function CreateJob() {
@@ -136,9 +137,10 @@ export default function CreateJob() {
       }
       navigate("/dashboard/jobs");
     } catch (error) {
+      const errorMessage = extractErrorMessage(error)
       console.error("Failed to save job:", error);
       toast.error(
-        isEditMode ? "Failed to update job." : "Failed to create job.",
+        isEditMode ? errorMessage || "Failed to update job." : errorMessage || "Failed to create job.",
       );
     } finally {
       setIsSubmitting(false);
