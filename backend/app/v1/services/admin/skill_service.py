@@ -99,7 +99,8 @@ class SkillService:
             return SkillRead.model_validate(skill)
 
         # 2. If name is changing, check for uniqueness (case-insensitive)
-        if "name" in update_data and update_data["name"] != skill.name:
+        current_name = skill["name"] if isinstance(skill, dict) else skill.name
+        if "name" in update_data and update_data["name"] != current_name:
             from sqlalchemy import func
             existing_skill_query = select(Skill).where(func.lower(Skill.name) == func.lower(update_data["name"]))
             existing_skill_result = await db.execute(existing_skill_query)
