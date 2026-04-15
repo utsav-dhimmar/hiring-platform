@@ -34,7 +34,7 @@ interface CandidateTableFiltersProps {
   locationOptions: string[];
   locationSearch: string;
   setLocationSearch: (value: string) => void;
-  jobOptions: string[];
+  jobOptions: { id: string; title: string; slug: string }[];
   jobSearch: string;
   setJobSearch: (value: string) => void;
   hasActiveFilters: boolean;
@@ -49,9 +49,9 @@ export const CandidateTableFilters = ({
   setNameFilter,
   locationFilter,
   setLocationFilter,
-  // jobFilter,
-  // setJobFilter,
-  // showJobContext = false,
+  jobFilter,
+  setJobFilter,
+  showJobContext = false,
   dateRange,
   setDateRange,
   hrDecisionFilter,
@@ -60,9 +60,9 @@ export const CandidateTableFilters = ({
   locationOptions,
   locationSearch,
   setLocationSearch,
-  // jobOptions,
-  // jobSearch,
-  // setJobSearch,
+  jobOptions,
+  jobSearch,
+  setJobSearch,
   hasActiveFilters,
   clearFilters,
   resultCount,
@@ -84,7 +84,7 @@ export const CandidateTableFilters = ({
       </div>
 
       {/* Job dropdown */}
-      {/* {showJobContext && (
+      {showJobContext && (
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
@@ -98,7 +98,7 @@ export const CandidateTableFilters = ({
               {jobFilter.length === 0
                 ? "All Jobs"
                 : jobFilter.length === 1
-                  ? jobFilter[0]
+                  ? jobOptions.find((j) => j.id === jobFilter[0])?.title || "1 Job"
                   : `${jobFilter.length} Jobs`}</span>
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </DropdownMenuTrigger>
@@ -124,19 +124,19 @@ export const CandidateTableFilters = ({
                 ) : (
                   jobOptions.map((j) => (
                     <DropdownMenuCheckboxItem
-                      key={j}
-                      checked={jobFilter.includes(j)}
+                      key={j.id}
+                      checked={jobFilter.includes(j.id)}
                       onSelect={(e) => e.preventDefault()}
                       onClick={() =>
                         setJobFilter(
-                          jobFilter.includes(j)
-                            ? jobFilter.filter((v) => v !== j)
-                            : [...jobFilter, j]
+                          jobFilter.includes(j.id)
+                            ? jobFilter.filter((v) => v !== j.id)
+                            : [...jobFilter, j.id]
                         )
                       }
                       closeOnClick={true} // close the dropdown after selecting option
                     >
-                      {j}
+                      {j.title}
                     </DropdownMenuCheckboxItem>
                   ))
                 )}
@@ -156,7 +156,7 @@ export const CandidateTableFilters = ({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      )} */}
+      )}
 
       {/* Location dropdown */}
       <DropdownMenu>

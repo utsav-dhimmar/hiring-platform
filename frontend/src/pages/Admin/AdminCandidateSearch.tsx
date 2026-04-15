@@ -2,8 +2,8 @@
  * Admin page for searching candidates globally or for a specific job.
  * Provides advanced search and filtering for HR.
  */
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useState, useMemo } from "react";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 import { adminCandidateService, adminJobService } from "@/apis/admin/service";
 import type { JobRead } from "@/types/admin";
 import type { CandidateResponse } from "@/types/resume";
@@ -23,6 +23,7 @@ import { resumeService } from "@/apis/resume";
 import { useAdminData /*, useDeleteConfirmation*/ } from "@/hooks";
 import type { PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
+import { slugify } from "@/utils/slug";
 
 const AdminCandidateSearch = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -47,6 +48,41 @@ const AdminCandidateSearch = () => {
     useState<CandidateResponse | null>(null);
   // const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
 
+  const [searchParams] = useSearchParams();
+  const [jobMapping, setJobMapping] = useState<{ id: string; slug: string }[]>([]);
+
+  // Fetch job mappings for slug resolution
+  useEffect(() => {
+    const fetchMappings = async () => {
+      try {
+        const response = await adminJobService.getAllJobs(0, 500);
+        const mapping = response.data.map((j: any) => ({
+          id: j.id,
+          slug: slugify(j.title),
+        }));
+        setJobMapping(mapping);
+      } catch (err) {
+        console.error("Failed to fetch job mappings:", err);
+      }
+    };
+    fetchMappings();
+  }, []);
+
+  // Extract filters from searchParams and resolve job slugs to IDs
+  const filters = useMemo(() => {
+    const jobSlugs = searchParams.getAll("job");
+    const jobIds = jobSlugs
+      .map(slug => jobMapping.find(m => m.slug === slug)?.id)
+      .filter((id): id is string => !!id);
+
+    return {
+      job: jobIds,
+      status: searchParams.getAll("status"),
+      city: searchParams.getAll("city"),
+      hr_decision: searchParams.getAll("hr_decision"),
+    };
+  }, [searchParams, jobMapping]);
+
   const fetchCandidatesFn = useCallback(async () => {
     const skip = pagination.pageIndex * pagination.pageSize;
     const limit = pagination.pageSize;
@@ -63,12 +99,14 @@ const AdminCandidateSearch = () => {
           activeSearch,
           skip,
           limit,
+          filters // job ID is already in path, but others (status, city, etc) are useful
         );
       } else {
         result = await adminCandidateService.getCandidatesForJob(
           jobId,
           skip,
           limit,
+          filters
         );
       }
 
@@ -92,10 +130,11 @@ const AdminCandidateSearch = () => {
         activeSearch.trim() || undefined,
         skip,
         limit,
+        filters
       );
     }
     return result;
-  }, [jobId, activeSearch, pagination.pageIndex, pagination.pageSize]);
+  }, [jobId, activeSearch, pagination.pageIndex, pagination.pageSize, filters]);
 
   const {
     data: candidates,
@@ -137,10 +176,10 @@ const AdminCandidateSearch = () => {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, [activeSearch]);
 
-  // Refetch when pagination or search changes
+  // Refetch when pagination, search, or filters change
   useEffect(() => {
     fetchCandidates();
-  }, [pagination.pageIndex, pagination.pageSize, activeSearch, fetchCandidates]);
+  }, [pagination.pageIndex, pagination.pageSize, activeSearch, filters, fetchCandidates]);
 
   const handleShowMore = (candidate: CandidateResponse) => {
     setSelectedCandidate(candidate);

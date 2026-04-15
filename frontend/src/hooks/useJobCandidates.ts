@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import jobService from "@/apis/job";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/error";
@@ -18,6 +18,8 @@ export const useJobCandidates = (
 ) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+
   const [candidates, setCandidates] = useState<CandidateAnalysis[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +28,14 @@ export const useJobCandidates = (
   const [jdVersion, setJdVersion] = useState<number | undefined>(undefined);
   const [totalCandidates, setTotalCandidates] = useState(0);
   const currentJobId = useRef<string | null>(null);
+
+  // Extract filters from searchParams
+  const filters = useMemo(() => ({
+    q: searchParams.get("q") || undefined,
+    status: searchParams.getAll("status"),
+    location: searchParams.getAll("city"),
+    hr_decision: searchParams.getAll("hr_decision"),
+  }), [searchParams]);
 
   const fetchData = useCallback(
     async (isPolling = false) => {
@@ -51,13 +61,13 @@ export const useJobCandidates = (
         currentJobId.current = id;
 
         if (isPolling) {
-          const candidatesResponse = await jobService.getJobCandidates(id, jdVersion, skip, limit);
+          const candidatesResponse = await jobService.getJobCandidates(id, jdVersion, skip, limit, filters);
           setCandidates(candidatesResponse.data || []);
           setTotalCandidates(candidatesResponse.total || 0);
         } else {
           const [jobData, candidatesResponse] = await Promise.all([
             jobService.getJob(id),
-            jobService.getJobCandidates(id, jdVersion, skip, limit),
+            jobService.getJobCandidates(id, jdVersion, skip, limit, filters),
           ]);
           setJob(jobData);
           setCandidates(candidatesResponse.data || []);
@@ -73,7 +83,7 @@ export const useJobCandidates = (
         if (!isPolling) setLoading(false);
       }
     },
-    [jobSlug, location.state, navigate, jdVersion, pageIndex, pageSize],
+    [jobSlug, location.state, navigate, jdVersion, pageIndex, pageSize, filters],
   );
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

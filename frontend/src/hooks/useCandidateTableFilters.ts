@@ -1,33 +1,139 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { startOfDay, endOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import type { UnifiedCandidate } from "@/types/candidate";
 import { toTitleCase } from "@/lib/utils";
 import { adminLocationService } from "@/apis/admin/location";
 import jobService from "@/apis/job";
+import { slugify } from "@/utils/slug";
 
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   candidates: T[],
   externalNameFilter?: string,
   onNameFilterChange?: (val: string) => void
 ) => {
-  const [internalNameFilter, setInternalNameFilter] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [internalNameFilter, setInternalNameFilter] = useState(() => searchParams.get("q") || "");
 
   const nameFilter = externalNameFilter !== undefined ? externalNameFilter : internalNameFilter;
   const setNameFilter = onNameFilterChange !== undefined ? onNameFilterChange : setInternalNameFilter;
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [locationFilter, setLocationFilter] = useState<string[]>([]);
-  const [hrDecisionFilter, setHrDecisionFilter] = useState<string[]>([]);
+
+  const [statusFilter, setStatusFilter] = useState<string[]>(() => searchParams.getAll("status"));
+  const [locationFilter, setLocationFilter] = useState<string[]>(() => searchParams.getAll("city"));
+  const [hrDecisionFilter, setHrDecisionFilter] = useState<string[]>(() => searchParams.getAll("hr_decision"));
+
+  // jobFilter stores IDs internally for filtering and API calls, but we sync slugs to URL
   const [jobFilter, setJobFilter] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: undefined,
-    to: undefined,
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    return {
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+    };
   });
+
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState("");
 
-  const [jobOptions, setJobOptions] = useState<string[]>([]);
+  const [jobOptions, setJobOptions] = useState<{ id: string; title: string; slug: string }[]>([]);
   const [jobSearch, setJobSearch] = useState("");
+
+  // Map to resolve slugs from URL back to IDs
+  const [allJobs, setAllJobs] = useState<{ id: string; slug: string }[]>([]);
+
+  // Fetch initial mapping for all jobs to resolve slugs from URL
+  useEffect(() => {
+    const fetchAllJobs = async () => {
+      try {
+        const response = await jobService.getJobs(0, 100);
+        const mapping = response.data.map(j => ({ id: j.id, slug: slugify(j.title) }));
+        setAllJobs(mapping);
+
+        // Once mapping is loaded, initialize jobFilter from slugs in URL
+        const jobSlugs = searchParams.getAll("job");
+        if (jobSlugs.length > 0) {
+          const ids = jobSlugs
+            .map(slug => mapping.find(m => m.slug === slug)?.id)
+            .filter((id): id is string => !!id);
+          setJobFilter(ids);
+        }
+      } catch (error) {
+        console.error("Failed to fetch jobs for slug resolution:", error);
+      }
+    };
+    fetchAllJobs();
+  }, []); // Only once on mount
+
+  // Sync state from URL when URL changes (e.g. back/forward navigation)
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    if (q !== internalNameFilter) setInternalNameFilter(q);
+
+    const status = searchParams.getAll("status");
+    if (JSON.stringify(status) !== JSON.stringify(statusFilter)) setStatusFilter(status);
+
+    const city = searchParams.getAll("city");
+    if (JSON.stringify(city) !== JSON.stringify(locationFilter)) setLocationFilter(city);
+
+    const hr = searchParams.getAll("hr_decision");
+    if (JSON.stringify(hr) !== JSON.stringify(hrDecisionFilter)) setHrDecisionFilter(hr);
+
+    const jobSlugs = searchParams.getAll("job");
+    if (allJobs.length > 0) {
+      const ids = jobSlugs
+        .map(slug => allJobs.find(m => m.slug === slug)?.id)
+        .filter((id): id is string => !!id);
+      if (JSON.stringify(ids) !== JSON.stringify(jobFilter)) {
+        setJobFilter(ids);
+      }
+    }
+
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+    if (fromDate?.getTime() !== dateRange?.from?.getTime() || toDate?.getTime() !== dateRange?.to?.getTime()) {
+      setDateRange({ from: fromDate, to: toDate });
+    }
+  }, [searchParams, allJobs]);
+
+  // Update URL search params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+
+    // Helper to update multi-value params
+    const updateParam = (key: string, values: string[]) => {
+      params.delete(key);
+      values.forEach((v) => params.append(key, v));
+    };
+
+    if (nameFilter) params.set("q", nameFilter);
+    else params.delete("q");
+
+    updateParam("status", statusFilter);
+    updateParam("city", locationFilter);
+    updateParam("hr_decision", hrDecisionFilter);
+
+    // Sync job IDs to slugs in URL
+    const jobSlugs = jobFilter
+      .map(id => allJobs.find(m => m.id === id)?.slug || jobOptions.find(o => o.id === id)?.slug)
+      .filter((slug): slug is string => !!slug);
+    updateParam("job", jobSlugs);
+
+    if (dateRange?.from) params.set("from", dateRange.from.toISOString());
+    else params.delete("from");
+    if (dateRange?.to) params.set("to", dateRange.to.toISOString());
+    else params.delete("to");
+
+    // Only update if something actually changed to avoid unnecessary re-renders
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [nameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, setSearchParams, searchParams, allJobs, jobOptions]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -53,9 +159,12 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
       const fetchJobs = async () => {
         try {
           const response = await jobService.getJobs(0, 100, jobSearch);
-          const titles = response.data.map((job) => job.title.trim());
-          const uniqueTitles = Array.from(new Set(titles)).sort();
-          setJobOptions(uniqueTitles);
+          const options = response.data.map((job) => ({
+            id: job.id,
+            title: job.title.trim(),
+            slug: slugify(job.title),
+          }));
+          setJobOptions(options);
         } catch (error) {
           console.error("Failed to fetch jobs for filter:", error);
         }
@@ -74,9 +183,6 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     });
     return Array.from(set).sort();
   }, [candidates]);
-
-
-  // Job options are now fetched from API
 
   const minDate = useMemo(() => {
     if (candidates.length === 0) return new Date();
@@ -121,8 +227,8 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
 
       // Job filter (multi-select)
       if (jobFilter.length > 0) {
-        const candidateJob = (c.job_name || "").trim();
-        if (!jobFilter.includes(candidateJob)) return false;
+        const candidateJobId = c.applied_job_id || "";
+        if (!jobFilter.includes(candidateJobId)) return false;
       }
 
       // Date range filter

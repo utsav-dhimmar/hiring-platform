@@ -17,11 +17,19 @@ export const adminCandidateService = {
     jobId: string,
     skip: number = 0,
     limit: number = 100,
+    filters?: {
+      hr_decision?: string[];
+      city?: string[];
+      status?: string[];
+    },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       `/candidates/jobs/${jobId}`,
       {
-        params: { skip, limit },
+        params: { skip, limit, ...filters },
+        paramsSerializer: {
+          indexes: null,
+        },
       },
     );
     return response.data;
@@ -40,11 +48,19 @@ export const adminCandidateService = {
     query?: string,
     skip: number = 0,
     limit: number = 100,
+    filters?: {
+      hr_decision?: string[];
+      city?: string[];
+      status?: string[];
+    },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       `/candidates/jobs/${jobId}/search`,
       {
-        params: { query, skip, limit },
+        params: { query, skip, limit, ...filters },
+        paramsSerializer: {
+          indexes: null,
+        },
       },
     );
     return response.data;
@@ -61,11 +77,20 @@ export const adminCandidateService = {
     query?: string,
     skip: number = 0,
     limit: number = 100,
+    filters?: {
+      job?: string[];
+      hr_decision?: string[];
+      city?: string[];
+      status?: string[];
+    },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       "/candidates/search",
       {
-        params: { query, skip, limit },
+        params: { query, skip, limit, ...filters },
+        paramsSerializer: {
+          indexes: null,
+        },
       },
     );
     return response.data;

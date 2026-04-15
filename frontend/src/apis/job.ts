@@ -95,12 +95,22 @@ const jobService = {
     jdVersion?: number,
     skip = 0,
     limit = 10,
+    filters?: {
+      q?: string;
+      hr_decision?: string[];
+      location?: string[];
+      status?: string[];
+    },
   ): Promise<CandidateAnalysisResponse> => {
     const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {
       params: {
         ...(jdVersion !== undefined ? { jd_version: jdVersion } : {}),
         skip,
         limit,
+        ...filters,
+      },
+      paramsSerializer: {
+        indexes: null, // This will result in job=Job1&job=Job2
       },
     });
     return response.data;
