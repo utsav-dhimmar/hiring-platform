@@ -26,127 +26,9 @@ class CandidateAdminService:
         job_id: uuid.UUID,
         skip: int = 0,
         limit: int = 100,
+        query: str | None = None,
         hr_decision: str | None = None,
         jd_version: int | None = None,
-    ) -> PaginatedData[CandidateResponse]:
-        from app.v1.db.models.cross_job_matches import CrossJobMatch
-
-        # 1. Fetch direct candidates
-        dir_filter = Candidate.applied_job_id == job_id
-        dir_stmt = select(Candidate).where(dir_filter)
-
-        if hr_decision:
-            latest_decision_subq = (
-                select(HrDecision.decision)
-                .where(HrDecision.candidate_id == Candidate.id)
-                .order_by(HrDecision.decided_at.desc())
-                .limit(1)
-                .scalar_subquery()
-            )
-            dir_stmt = dir_stmt.where(latest_decision_subq == hr_decision)
-
-        if jd_version is not None:
-            dir_stmt = dir_stmt.where(Candidate.applied_version_number == jd_version)
-
-        dir_stmt = dir_stmt.options(
-            selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
-            selectinload(Candidate.hr_decisions),
-            selectinload(Candidate.applied_job),
-            selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
-        )
-        dir_result = await db.execute(dir_stmt)
-        direct_candidates = list(dir_result.scalars().unique().all())
-
-        # 2. Fetch cross-matched candidates
-        xm_stmt = (
-            select(CrossJobMatch)
-            .where(CrossJobMatch.matched_job_id == job_id)
-            .options(
-                selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
-                selectinload(CrossJobMatch.candidate).selectinload(Candidate.hr_decisions),
-                selectinload(CrossJobMatch.candidate).selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
-                selectinload(CrossJobMatch.matched_job),
-            )
-        )
-        xm_result = await db.execute(xm_stmt)
-        cross_matches = list(xm_result.scalars().unique().all())
-
-        # 3. Map to responses
-        responses = []
-        for c in direct_candidates:
-            responses.append(self._map_candidate_to_response(c, target_job_id=job_id))
-
-        for xm in cross_matches:
-            if not xm.candidate:
-                continue
-
-            # Map candidate normally
-            resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id)
-
-            # Retrieve match analysis as object (OVERRIDE)
-            analysis_obj = None
-            if xm.match_analysis:
-                try:
-                    analysis_obj = ResumeMatchAnalysis.model_validate(xm.match_analysis)
-                except Exception:
-                    pass
-
-            # Calculate pass_fail dynamically based on this job's threshold
-            match_score_val = (
-                float(xm.match_score) if xm.match_score is not None else 0.0
-            )
-            threshold_val = (
-                float(xm.matched_job.passing_threshold)
-                if xm.matched_job and xm.matched_job.passing_threshold
-                else 65.0
-            )
-            derived_pass_fail = (
-                "passed" if match_score_val >= threshold_val else "failed"
-            )
-
-            # Override with cross-match data securely via model_copy
-            resp = resp.model_copy(
-                update={
-                    "applied_version_number": (
-                        xm.matched_job.version if xm.matched_job else resp.applied_version_number
-                    ),
-                    "resume_score": match_score_val,
-                    "pass_fail": derived_pass_fail,
-                    "resume_analysis": analysis_obj,
-                    "created_at": xm.created_at,
-                }
-            )
-
-            # Apply hr_decision filter in-memory for cross-matches if needed
-            if hr_decision:
-                # Use the mapped hr_decision
-                if resp.hr_decision != hr_decision:
-                    continue
-
-            if jd_version is not None and resp.applied_version_number != jd_version:
-                continue
-
-            responses.append(resp)
-
-        # 4. Sort entirely by created_at (most recent first)
-        responses.sort(key=lambda x: x.created_at, reverse=True)
-
-        # 5. Paginate
-        total = len(responses)
-        paginated_responses = responses[skip : skip + limit]
-
-        return PaginatedData[CandidateResponse](
-            data=paginated_responses,
-            total=total,
-        )
-
-    async def search_candidates_for_job(
-        self,
-        db: AsyncSession,
-        job_id: uuid.UUID,
-        query: str | None = None,
-        skip: int = 0,
-        limit: int = 100,
     ) -> PaginatedData[CandidateResponse]:
         from app.v1.db.models.cross_job_matches import CrossJobMatch
 
@@ -162,6 +44,19 @@ class CandidateAdminService:
                 Candidate.email.ilike(f"%{query}%"),
             )
             dir_stmt = dir_stmt.where(search_filter)
+
+        if hr_decision:
+            latest_decision_subq = (
+                select(HrDecision.decision)
+                .where(HrDecision.candidate_id == Candidate.id)
+                .order_by(HrDecision.decided_at.desc())
+                .limit(1)
+                .scalar_subquery()
+            )
+            dir_stmt = dir_stmt.where(latest_decision_subq == hr_decision)
+
+        if jd_version is not None:
+            dir_stmt = dir_stmt.where(Candidate.applied_version_number == jd_version)
 
         dir_stmt = dir_stmt.options(
             selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
@@ -200,8 +95,18 @@ class CandidateAdminService:
             if not xm.candidate:
                 continue
 
+            # Map candidate normally
             resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id)
-            
+
+            # Apply hr_decision filter in-memory for cross-matches if needed
+            if hr_decision:
+                if resp.hr_decision != hr_decision:
+                    continue
+
+            if jd_version is not None and resp.applied_version_number != jd_version:
+                continue
+
+            # Retrieve match analysis as object (OVERRIDE)
             analysis_obj = None
             if xm.match_analysis:
                 try:
@@ -209,6 +114,7 @@ class CandidateAdminService:
                 except Exception:
                     pass
 
+            # Calculate pass_fail dynamically based on this job's threshold
             match_score_val = (
                 float(xm.match_score) if xm.match_score is not None else 0.0
             )
@@ -221,6 +127,7 @@ class CandidateAdminService:
                 "passed" if match_score_val >= threshold_val else "failed"
             )
 
+            # Override with cross-match data securely via model_copy
             resp = resp.model_copy(
                 update={
                     "applied_version_number": (
@@ -232,10 +139,13 @@ class CandidateAdminService:
                     "created_at": xm.created_at,
                 }
             )
+
             responses.append(resp)
 
-        # 4. Sort and paginate
+        # 4. Sort entirely by created_at (most recent first)
         responses.sort(key=lambda x: x.created_at, reverse=True)
+
+        # 5. Paginate
         total = len(responses)
         paginated_responses = responses[skip : skip + limit]
 
@@ -243,6 +153,9 @@ class CandidateAdminService:
             data=paginated_responses,
             total=total,
         )
+
+    # Note: search_candidates_for_job has been merged into get_candidates_for_job
+
 
     async def search_candidates(
         self,

@@ -46,35 +46,22 @@ async def get_job_candidates(
     user: UserRead = Depends(check_permission("candidates:access")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    query: str | None = Query(None, description="Search candidates by first name, last name, or email"),
     hr_decision: str | None = Query(None, description="Filter by HR decision: 'approve', 'reject', or 'May Be'"),
     jd_version: int | None = Query(None, description="Filter by original JD version number"),
 ) -> Any:
-    """Get all candidates for a specific job, optionally filtered by HR decision."""
+    """Get all candidates for a specific job, with optional searching and filtering."""
     return await admin_service.get_candidates_for_job(
         db=db,
         job_id=job_id,
         skip=skip,
         limit=limit,
+        query=query,
         hr_decision=hr_decision,
         jd_version=jd_version,
     )
 
 
-@router.get(
-    "/jobs/{job_id}/search", response_model=PaginatedData[CandidateResponse]
-)
-async def search_job_candidates(
-    job_id: uuid.UUID,
-    query: str | None = Query(None),
-    db: AsyncSession = Depends(get_db),
-    user: UserRead = Depends(check_permission("candidates:access")),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
-) -> Any:
-    """Search candidates for a specific job."""
-    return await admin_service.search_candidates_for_job(
-        db=db, job_id=job_id, query=query, skip=skip, limit=limit
-    )
 
 
 @router.get(
