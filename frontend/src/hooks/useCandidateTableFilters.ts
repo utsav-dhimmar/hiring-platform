@@ -4,6 +4,7 @@ import type { DateRange } from "react-day-picker";
 import type { UnifiedCandidate } from "@/types/candidate";
 import { toTitleCase } from "@/lib/utils";
 import { adminLocationService } from "@/apis/admin/location";
+import jobService from "@/apis/job";
 
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   candidates: T[],
@@ -25,6 +26,9 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState("");
 
+  const [jobOptions, setJobOptions] = useState<string[]>([]);
+  const [jobSearch, setJobSearch] = useState("");
+
   useEffect(() => {
     const handler = setTimeout(() => {
       const fetchLocations = async () => {
@@ -44,6 +48,24 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     return () => clearTimeout(handler);
   }, [locationSearch]);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const fetchJobs = async () => {
+        try {
+          const response = await jobService.getJobs(0, 100, jobSearch);
+          const titles = response.data.map((job) => job.title.trim());
+          const uniqueTitles = Array.from(new Set(titles)).sort();
+          setJobOptions(uniqueTitles);
+        } catch (error) {
+          console.error("Failed to fetch jobs for filter:", error);
+        }
+      };
+      fetchJobs();
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [jobSearch]);
+
   const statusOptions = useMemo(() => {
     const set = new Set<string>();
     candidates.forEach((c) => {
@@ -54,15 +76,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   }, [candidates]);
 
 
-  const jobOptions = useMemo(() => {
-    const set = new Set<string>();
-    candidates.forEach((c) => {
-      if (c.job_name) {
-        set.add(c.job_name.trim());
-      }
-    });
-    return Array.from(set).sort();
-  }, [candidates]);
+  // Job options are now fetched from API
 
   const minDate = useMemo(() => {
     if (candidates.length === 0) return new Date();
@@ -146,6 +160,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     setLocationFilter([]);
     setHrDecisionFilter([]);
     setJobFilter([]);
+    setJobSearch("");
     setDateRange({ from: undefined, to: undefined });
   };
 
@@ -167,6 +182,8 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     jobOptions,
     locationSearch,
     setLocationSearch,
+    jobSearch,
+    setJobSearch,
     minDate,
     filteredCandidates,
     hasActiveFilters,

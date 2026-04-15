@@ -35,6 +35,8 @@ interface CandidateTableFiltersProps {
   locationSearch: string;
   setLocationSearch: (value: string) => void;
   jobOptions: string[];
+  jobSearch: string;
+  setJobSearch: (value: string) => void;
   hasActiveFilters: boolean;
   clearFilters: () => void;
   resultCount: number;
@@ -45,13 +47,11 @@ interface CandidateTableFiltersProps {
 export const CandidateTableFilters = ({
   nameFilter,
   setNameFilter,
-  // statusFilter,
-  // setStatusFilter,
   locationFilter,
   setLocationFilter,
-  jobFilter,
-  setJobFilter,
-  showJobContext = false,
+  // jobFilter,
+  // setJobFilter,
+  // showJobContext = false,
   dateRange,
   setDateRange,
   hrDecisionFilter,
@@ -60,7 +60,9 @@ export const CandidateTableFilters = ({
   locationOptions,
   locationSearch,
   setLocationSearch,
-  jobOptions,
+  // jobOptions,
+  // jobSearch,
+  // setJobSearch,
   hasActiveFilters,
   clearFilters,
   resultCount,
@@ -82,7 +84,7 @@ export const CandidateTableFilters = ({
       </div>
 
       {/* Job dropdown */}
-      {showJobContext && jobOptions.length > 1 && (
+      {/* {showJobContext && (
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
@@ -100,97 +102,61 @@ export const CandidateTableFilters = ({
                   : `${jobFilter.length} Jobs`}</span>
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="max-w-[250px]">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Job Title</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {jobOptions.map((j) => (
-                <DropdownMenuCheckboxItem
-                  key={j}
-                  checked={jobFilter.includes(j)}
-                  onSelect={(e) => e.preventDefault()}
-                  onClick={() =>
-                    setJobFilter(
-                      jobFilter.includes(j)
-                        ? jobFilter.filter((v) => v !== j)
-                        : [...jobFilter, j]
-                    )
-                  }
-                  closeOnClick={true} // close the dropdown after selecting option
-                >
-                  {j}
-                </DropdownMenuCheckboxItem>
-              ))}
-              {jobFilter.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={false}
-                    onClick={() => setJobFilter([])}
-                    closeOnClick={true} // close the dropdown after selecting option
-                  >
-                    Clear jobs
-                  </DropdownMenuCheckboxItem>
-                </>
-              )}
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-
-      {/* Status dropdown */}
-      {/* <DropdownMenu>
-        <DropdownMenuTrigger
-          className={cn(
-            "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
-            statusFilter.length > 0
-              ? "border-primary/40 bg-primary/5 text-foreground"
-              : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          )}
-        >
-          {statusFilter.length === 0
-            ? "All Statuses"
-            : statusFilter.length === 1
-              ? capitalize(statusFilter[0])
-              : `${statusFilter.length} statuses`}
-          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-[160px]">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>Status</DropdownMenuLabel>
+          <DropdownMenuContent align="start" className="min-w-[200px] p-2">
+            <div className="px-1 pb-2">
+              <div className="relative">
+                <Input
+                  placeholder="Search jobs..."
+                  value={jobSearch}
+                  onChange={(e) => setJobSearch(e.target.value)}
+                  className="h-9 rounded-xl text-xs pl-2"
+                  onKeyDown={(e) => e.stopPropagation()} // Prevent closing on space
+                />
+              </div>
+            </div>
             <DropdownMenuSeparator />
-            {statusOptions.map((s) => (
-              <DropdownMenuCheckboxItem
-                key={s}
-                checked={statusFilter.includes(s)}
-                onSelect={(e) => e.preventDefault()}
-                onClick={() =>
-                  setStatusFilter(
-                    statusFilter.includes(s)
-                      ? statusFilter.filter((v) => v !== s)
-                      : [...statusFilter, s]
-                  )
-                }
-                  closeOnClick={true} // close the dropdown after selecting option
-              >
-                {capitalize(s)}
-              </DropdownMenuCheckboxItem>
-            ))}
-            {statusFilter.length > 0 && (
+            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+              <DropdownMenuGroup>
+                {jobOptions.length === 0 ? (
+                  <div className="px-2 py-4 text-xs text-center text-muted-foreground">
+                    not found "{jobSearch}"
+                  </div>
+                ) : (
+                  jobOptions.map((j) => (
+                    <DropdownMenuCheckboxItem
+                      key={j}
+                      checked={jobFilter.includes(j)}
+                      onSelect={(e) => e.preventDefault()}
+                      onClick={() =>
+                        setJobFilter(
+                          jobFilter.includes(j)
+                            ? jobFilter.filter((v) => v !== j)
+                            : [...jobFilter, j]
+                        )
+                      }
+                      closeOnClick={true} // close the dropdown after selecting option
+                    >
+                      {j}
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
+              </DropdownMenuGroup>
+            </div>
+            {jobFilter.length > 0 && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuCheckboxItem
                   checked={false}
-                  onClick={() => setStatusFilter([])}
+                  onClick={() => setJobFilter([])}
                   closeOnClick={true} // close the dropdown after selecting option
                 >
-                  Clear statuses
+                  Clear jobs
                 </DropdownMenuCheckboxItem>
               </>
             )}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu> */}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )} */}
 
       {/* Location dropdown */}
       <DropdownMenu>

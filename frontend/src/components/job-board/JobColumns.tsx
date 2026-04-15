@@ -145,7 +145,7 @@ export const getJobColumns = ({
             ) : (
               <>
                 {displaySessions.map((s) => (
-                  <div key={s.session_id} className="flex items-center justify-between gap-0.5 text-xs">
+                  <div key={s.session_id} className="flex items-center text-xs">
                     <div className="flex items-center gap-1 overflow-hidden">
                       {displaySessions.length > 1 && <Badge variant="outline" className="h-5 px-1 py-0 text-[10px] leading-none border-primary/20 bg-primary/5">
                         #{s.session_id}
@@ -154,7 +154,7 @@ export const getJobColumns = ({
                         <DateDisplay date={s.start_date} />
                       </span>
                     </div>
-                    <Badge variant="secondary" className="h-5 px-1 py-0 text-[10px] font-medium leading-none whitespace-nowrap">
+                    <Badge variant="secondary" className="h-6 px-1 py-0 text-[13px] font-medium leading-none whitespace-nowrap">
                       {s.candidate_count} cand.
                     </Badge>
                   </div>
@@ -238,7 +238,8 @@ export const getJobColumns = ({
                     size="sm"
                     className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
                     onClick={() => onDelete(row.original)}
-                    title="Delete Job"
+                    title={"Delete Job"}
+                    disabled={!!row.original.is_active}
                   >
                     <Trash2Icon className="h-4 w-4" />
                   </Button>

@@ -72,7 +72,7 @@ const DateDisplayContent = ({
       const day = String(dateObj.getDate()).padStart(2, "0");
       const month = dateObj.toLocaleString("en-GB", { month: "short" });
       const year = dateObj.getFullYear();
-      formattedDate = `${day}/${month}/${year}`;
+      formattedDate = `${day}-${month}-${year}`;
     }
 
     if (showTime) {

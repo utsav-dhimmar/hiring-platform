@@ -64,6 +64,8 @@ export function CandidateTable<T extends UnifiedCandidate>({
     jobOptions,
     locationSearch,
     setLocationSearch,
+    jobSearch,
+    setJobSearch,
     minDate,
     filteredCandidates,
     hasActiveFilters,
@@ -98,6 +100,8 @@ export function CandidateTable<T extends UnifiedCandidate>({
         locationSearch={locationSearch}
         setLocationSearch={setLocationSearch}
         jobOptions={jobOptions}
+        jobSearch={jobSearch}
+        setJobSearch={setJobSearch}
         hasActiveFilters={hasActiveFilters}
         clearFilters={clearFilters}
         resultCount={filteredCandidates.length}

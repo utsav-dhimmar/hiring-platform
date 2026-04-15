@@ -41,7 +41,7 @@ export function NavUser() {
   const [showProfileCard, setShowProfileCard] = useState(false)
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
 
-  const containerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>
 
   useOutsideClick(containerRef, () => {
     setShowProfileCard(false)
