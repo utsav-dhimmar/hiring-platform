@@ -96,3 +96,11 @@ export interface JobsListResponse {
   global_screening_summary: Record<string, any> | null;
 }
 
+
+/**
+ * Represents a job title.
+ */
+export interface JobTitle {
+  id: string;
+  title: string;
+}

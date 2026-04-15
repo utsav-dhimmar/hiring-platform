@@ -29,6 +29,8 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   nameFilter?: string;
   onNameFilterChange?: (value: string) => void;
   showJobContext?: boolean;
+  showLocationFilter?: boolean;
+  showStatusFilter?: boolean;
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -45,6 +47,8 @@ export function CandidateTable<T extends UnifiedCandidate>({
   nameFilter: externalNameFilter,
   onNameFilterChange,
   showJobContext = false,
+  showLocationFilter = true,
+  showStatusFilter = true,
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -70,8 +74,8 @@ export function CandidateTable<T extends UnifiedCandidate>({
     filteredCandidates,
     hasActiveFilters,
     clearFilters,
-
-  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange);
+    availableJobs
+  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext);
 
   const columns = useCandidateTableColumns({
     renderActions,
@@ -91,6 +95,8 @@ export function CandidateTable<T extends UnifiedCandidate>({
         jobFilter={jobFilter}
         setJobFilter={setJobFilter}
         showJobContext={showJobContext}
+        showLocationFilter={showLocationFilter}
+        showStatusFilter={showStatusFilter}
         dateRange={dateRange}
         setDateRange={setDateRange}
         hrDecisionFilter={hrDecisionFilter}
@@ -107,6 +113,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
         resultCount={filteredCandidates.length}
         totalCount={total != null && total !== candidates.length ? total : candidates.length}
         minDate={minDate}
+        availableJobs={availableJobs}
       />
 
       <DataTable

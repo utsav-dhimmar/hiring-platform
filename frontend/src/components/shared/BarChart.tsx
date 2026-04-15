@@ -158,6 +158,9 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
             <ChartTooltip
               cursor={{ fill: "rgba(0,0,0,0.05)", radius: 8 }}
               content={<ChartTooltipContent />}
+              formatter={(value) => <span className="text-xs">Total Candidates : <span className="font-bold">
+                {value}
+              </span></span>}
             />
             <Bar
               dataKey="value"

@@ -15,6 +15,13 @@ interface UseAdminDataOptions<T> {
   initialData?: T[];
   /** Whether to automatically fetch data on component mount (default: true) */
   fetchOnMount?: boolean;
+  /**
+   * Set the initial loading state to true even when fetchOnMount is false.
+   * Useful when the caller will trigger the first fetch manually via an effect,
+   * but wants the skeleton to render immediately so child components don't
+   * mount, unmount, and remount during the initial load cycle.
+   */
+  initialLoading?: boolean;
 }
 
 /**
@@ -34,10 +41,10 @@ export const useAdminData = <T>(
   fetchFn: () => Promise<T[] | { data: T[]; total: number }>,
   options: UseAdminDataOptions<T> = {},
 ) => {
-  const { initialData = [], fetchOnMount = true } = options;
+  const { initialData = [], fetchOnMount = true, initialLoading } = options;
   const [data, setData] = useState<T[]>(initialData);
   const [total, setTotal] = useState<number>(0);
-  const [loading, setLoading] = useState(fetchOnMount);
+  const [loading, setLoading] = useState(initialLoading ?? fetchOnMount);
   const [error, setError] = useState<string | null>(null);
   const fetchFnRef = useRef(fetchFn);
 

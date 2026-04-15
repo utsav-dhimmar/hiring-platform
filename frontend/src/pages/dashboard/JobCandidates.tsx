@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Input } from "@/components/";
 import { RotateCw, Info, LayoutGrid, TrendingUp } from "lucide-react";
 import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
@@ -33,6 +33,7 @@ export default function JobCandidates() {
     candidates,
     job,
     loading,
+    isRefreshing,
     isUploading,
     reanalyzingCandidateIds,
     fetchData,
@@ -51,6 +52,13 @@ export default function JobCandidates() {
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<"analysis" | "jd" | "cross-job-match">("analysis");
   const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
+  const [searchParams] = useSearchParams();
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
+  }, [searchParams]);
+
   const handleUploadClick = () => {
     if (!job?.is_active) return;
     fileInputRef.current?.click();
@@ -112,7 +120,10 @@ export default function JobCandidates() {
               ))}
             </div>
           ) : (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+            <div className={cn(
+              "animate-in fade-in slide-in-from-bottom-2 duration-700",
+              isRefreshing && "opacity-60 transition-opacity duration-300"
+            )}>
               {activeTab === "overview" ? (
                 <JobCandidatesStats
                   totalCandidates={stats.totalCandidates}
@@ -145,12 +156,14 @@ export default function JobCandidates() {
               <JobCandidatesSkeleton count={5} />
             </div>
           ) : (
-            <div className="animate-in fade-in slide-in-from-bottom-5 duration-1000">
+            <div className="animate-in fade-in slide-in-from-bottom-5 duration-1000 relative">
               <CandidateTable
                 emptyMessage="No candidates found for this job."
                 candidates={candidates}
                 passing_threshold={job?.passing_threshold}
                 isServerSide={true}
+                showLocationFilter={true}
+                showStatusFilter={true}
                 pagination={{ pageIndex, pageSize }}
                 onPaginationChange={setPagination}
                 pageCount={Math.ceil(totalCandidates / pageSize)}

@@ -1,5 +1,5 @@
 import client from "@/apis/client";
-import type { Job, JobVersionDetail, JobsListResponse } from "@/types/job";
+import type { Job, JobTitle, JobVersionDetail, JobsListResponse } from "@/types/job";
 import type { CandidateAnalysisResponse } from "@/types/admin";
 
 type JobPayload = Record<string, unknown>;
@@ -22,6 +22,22 @@ const jobService = {
   getJobs: async (skip = 0, limit = 10, q?: string): Promise<JobsListResponse> => {
     const response = await client.get<JobsListResponse>("/jobs", {
       params: { skip, limit, ...(q ? { q } : {}) },
+    });
+    return response.data;
+  },
+
+  /**
+   * Retrieves a list of job titles.
+   * @param q - The search query 
+   * @returns Promise resolving to an array of job titles
+   * @example
+   * ```ts
+   * const jobTitles = await jobService.getJobTitles("Software Engineer");
+   * ```
+   */
+  getJobTitles: async (q: string = ""): Promise<JobTitle[]> => {
+    const response = await client.get<JobTitle[]>("/jobs/titles", {
+      params: { ...(q ? { q } : undefined) },
     });
     return response.data;
   },
@@ -96,10 +112,8 @@ const jobService = {
     skip = 0,
     limit = 10,
     filters?: {
-      q?: string;
+      query?: string;
       hr_decision?: string[];
-      location?: string[];
-      status?: string[];
     },
   ): Promise<CandidateAnalysisResponse> => {
     const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {
@@ -108,9 +122,6 @@ const jobService = {
         skip,
         limit,
         ...filters,
-      },
-      paramsSerializer: {
-        indexes: null, // This will result in job=Job1&job=Job2
       },
     });
     return response.data;

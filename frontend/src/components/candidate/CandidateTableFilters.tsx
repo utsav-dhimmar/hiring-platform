@@ -15,6 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 
 interface CandidateTableFiltersProps {
   nameFilter: string;
@@ -26,6 +27,8 @@ interface CandidateTableFiltersProps {
   jobFilter: string[];
   setJobFilter: (value: string[]) => void;
   showJobContext?: boolean;
+  showLocationFilter?: boolean;
+  showStatusFilter?: boolean;
   dateRange: DateRange | undefined;
   setDateRange: (range: DateRange | undefined) => void;
   hrDecisionFilter: string[];
@@ -42,6 +45,11 @@ interface CandidateTableFiltersProps {
   resultCount: number;
   totalCount: number;
   minDate: Date;
+  availableJobs: {
+    id: string;
+    title: string;
+    slug: string;
+  }[]
 }
 
 export const CandidateTableFilters = ({
@@ -56,7 +64,6 @@ export const CandidateTableFilters = ({
   setDateRange,
   hrDecisionFilter,
   setHrDecisionFilter,
-  // statusOptions,
   locationOptions,
   locationSearch,
   setLocationSearch,
@@ -67,7 +74,10 @@ export const CandidateTableFilters = ({
   clearFilters,
   resultCount,
   totalCount,
-  minDate
+  minDate,
+  availableJobs,
+  showLocationFilter = true,
+
 }: CandidateTableFiltersProps) => {
 
   return (
@@ -98,7 +108,7 @@ export const CandidateTableFilters = ({
               {jobFilter.length === 0
                 ? "All Jobs"
                 : jobFilter.length === 1
-                  ? jobOptions.find((j) => j.id === jobFilter[0])?.title || "1 Job"
+                  ? availableJobs.find((j) => j.id === jobFilter[0])?.title || "1 Job"
                   : `${jobFilter.length} Jobs`}</span>
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </DropdownMenuTrigger>
@@ -159,76 +169,78 @@ export const CandidateTableFilters = ({
       )}
 
       {/* Location dropdown */}
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className={cn(
-            "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
-            locationFilter.length > 0
-              ? "border-primary/40 bg-primary/5 text-foreground"
-              : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          )}
-        >
-          {locationFilter.length === 0
-            ? "All Locations"
-            : locationFilter.length === 1
-              ? locationFilter[0]
-              : `${locationFilter.length} locations`}
-          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-[200px] p-2">
-          <div className="px-1 pb-2">
-            <div className="relative">
-              <Input
-                placeholder="Search locations..."
-                value={locationSearch}
-                onChange={(e) => setLocationSearch(e.target.value)}
-                className="h-9 rounded-xl text-xs pl-2"
-                onKeyDown={(e) => e.stopPropagation()} // Prevent closing on space
-              />
+      {showLocationFilter && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+              locationFilter.length > 0
+                ? "border-primary/40 bg-primary/5 text-foreground"
+                : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            )}
+          >
+            {locationFilter.length === 0
+              ? "All Locations"
+              : locationFilter.length === 1
+                ? locationFilter[0]
+                : `${locationFilter.length} locations`}
+            <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[200px] p-2">
+            <div className="px-1 pb-2">
+              <div className="relative">
+                <Input
+                  placeholder="Search locations..."
+                  value={locationSearch}
+                  onChange={(e) => setLocationSearch(e.target.value)}
+                  className="h-9 rounded-xl text-xs pl-2"
+                  onKeyDown={(e) => e.stopPropagation()} // Prevent closing on space
+                />
+              </div>
             </div>
-          </div>
-          <DropdownMenuSeparator />
-          <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-            <DropdownMenuGroup>
-              {locationOptions.length === 0 ? (
-                <div className="px-2 py-4 text-xs text-center text-muted-foreground">
-                  not found "{locationSearch}"
-                </div>
-              ) : (
-                locationOptions.map((l) => (
-                  <DropdownMenuCheckboxItem
-                    key={l}
-                    checked={locationFilter.includes(l)}
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={() =>
-                      setLocationFilter(
-                        locationFilter.includes(l)
-                          ? locationFilter.filter((v) => v !== l)
-                          : [...locationFilter, l]
-                      )
-                    }
-                    closeOnClick={true} // close the dropdown after selecting option
-                  >
-                    {l}
-                  </DropdownMenuCheckboxItem>
-                ))
-              )}
-            </DropdownMenuGroup>
-          </div>
-          {locationFilter.length > 0 && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={false}
-                onClick={() => setLocationFilter([])}
-                closeOnClick={true} // close the dropdown after selecting option
-              >
-                Clear locations
-              </DropdownMenuCheckboxItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuSeparator />
+            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+              <DropdownMenuGroup>
+                {locationOptions.length === 0 ? (
+                  <div className="px-2 py-4 text-xs text-center text-muted-foreground">
+                    not found "{locationSearch}"
+                  </div>
+                ) : (
+                  locationOptions.map((l) => (
+                    <DropdownMenuCheckboxItem
+                      key={l}
+                      checked={locationFilter.includes(l)}
+                      onSelect={(e) => e.preventDefault()}
+                      onClick={() =>
+                        setLocationFilter(
+                          locationFilter.includes(l)
+                            ? locationFilter.filter((v) => v !== l)
+                            : [...locationFilter, l]
+                        )
+                      }
+                      closeOnClick={true} // close the dropdown after selecting option
+                    >
+                      {l}
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
+              </DropdownMenuGroup>
+            </div>
+            {locationFilter.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={false}
+                  onClick={() => setLocationFilter([])}
+                  closeOnClick={true} // close the dropdown after selecting option
+                >
+                  Clear locations
+                </DropdownMenuCheckboxItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       {/* HR Decision multi-select dropdown */}
       <DropdownMenu>
@@ -345,8 +357,10 @@ export const CandidateTableFilters = ({
       )}
 
       {/* Result count */}
-      <span className="ml-auto text-xs text-muted-foreground font-medium">
-        {resultCount} / {totalCount} applicants found
+      <span className="ml-auto text-xs font-medium flex items-center gap-2">
+        Total <span className="font-bold">{totalCount}</span> Candidates
+        <Separator orientation="vertical" className="h-4 bg-gray-700 dark:bg-gray-300" />
+        <span className="font-bold">{resultCount}</span> Candidates found
       </span>
     </div>
   );

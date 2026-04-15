@@ -11,7 +11,11 @@ import { slugify } from "@/utils/slug";
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   candidates: T[],
   externalNameFilter?: string,
-  onNameFilterChange?: (val: string) => void
+  onNameFilterChange?: (val: string) => void,
+  /** Pass false on pages where the job-title filter column is not shown (e.g. per-job
+   *  candidates view) to skip the getJobTitles() network request entirely. */
+  fetchJobTitles = true,
+  isServerSide = false,
 ) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -19,6 +23,16 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
 
   const nameFilter = externalNameFilter !== undefined ? externalNameFilter : internalNameFilter;
   const setNameFilter = onNameFilterChange !== undefined ? onNameFilterChange : setInternalNameFilter;
+
+  // Debounced name filter for URL syncing and filtering
+  const [debouncedNameFilter, setDebouncedNameFilter] = useState(nameFilter);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedNameFilter(nameFilter);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [nameFilter]);
 
   const [statusFilter, setStatusFilter] = useState<string[]>(() => searchParams.getAll("status"));
   const [locationFilter, setLocationFilter] = useState<string[]>(() => searchParams.getAll("city"));
@@ -38,40 +52,56 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
 
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState("");
-
-  const [jobOptions, setJobOptions] = useState<{ id: string; title: string; slug: string }[]>([]);
+  const [availableJobs, setAvailableJobs] = useState<{ id: string; title: string; slug: string }[]>([]);
   const [jobSearch, setJobSearch] = useState("");
 
-  // Map to resolve slugs from URL back to IDs
-  const [allJobs, setAllJobs] = useState<{ id: string; slug: string }[]>([]);
+  // Memoized job options filtered by search query
+  const jobOptions = useMemo(() => {
+    if (!jobSearch.trim()) return availableJobs;
+    const query = jobSearch.toLowerCase();
+    return availableJobs.filter(j =>
+      j.title.toLowerCase().includes(query)
+    );
+  }, [availableJobs, jobSearch]);
 
-  // Fetch initial mapping for all jobs to resolve slugs from URL
+  // Fetch all job titles once on mount — only when the job-filter column is visible.
   useEffect(() => {
-    const fetchAllJobs = async () => {
+    if (!fetchJobTitles) return;
+    const fetchJobs = async () => {
       try {
-        const response = await jobService.getJobs(0, 100);
-        const mapping = response.data.map(j => ({ id: j.id, slug: slugify(j.title) }));
-        setAllJobs(mapping);
+        const response = await jobService.getJobTitles();
+        const jobsArray = Array.isArray(response) ? response : (response as any)?.data;
 
-        // Once mapping is loaded, initialize jobFilter from slugs in URL
+
+        const jobs = jobsArray.map((j: any) => ({
+          id: j.id,
+          title: j.title?.trim() || "Untitled",
+          slug: slugify(j.title || "")
+        }));
+        setAvailableJobs(jobs);
+
+        // Once loaded, initialize jobFilter from slugs in URL
         const jobSlugs = searchParams.getAll("job");
         if (jobSlugs.length > 0) {
           const ids = jobSlugs
-            .map(slug => mapping.find(m => m.slug === slug)?.id)
-            .filter((id): id is string => !!id);
+            .map((slug: any) => jobs.find((m: any) => m.slug === slug)?.id)
+            .filter((id: any): id is string => !!id);
           setJobFilter(ids);
         }
       } catch (error) {
-        console.error("Failed to fetch jobs for slug resolution:", error);
+        console.error("Failed to fetch jobs for filter:", error);
       }
     };
-    fetchAllJobs();
-  }, []); // Only once on mount
+    fetchJobs();
+  }, [fetchJobTitles]); // Fetch whenever job context becomes active
 
   // Sync state from URL when URL changes (e.g. back/forward navigation)
   useEffect(() => {
     const q = searchParams.get("q") || "";
-    if (q !== internalNameFilter) setInternalNameFilter(q);
+    if (q !== internalNameFilter) {
+      setInternalNameFilter(q);
+      setDebouncedNameFilter(q); // Also sync debounced state
+    }
 
     const status = searchParams.getAll("status");
     if (JSON.stringify(status) !== JSON.stringify(statusFilter)) setStatusFilter(status);
@@ -83,9 +113,9 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     if (JSON.stringify(hr) !== JSON.stringify(hrDecisionFilter)) setHrDecisionFilter(hr);
 
     const jobSlugs = searchParams.getAll("job");
-    if (allJobs.length > 0) {
+    if (availableJobs.length > 0) {
       const ids = jobSlugs
-        .map(slug => allJobs.find(m => m.slug === slug)?.id)
+        .map(slug => availableJobs.find(m => m.slug === slug)?.id)
         .filter((id): id is string => !!id);
       if (JSON.stringify(ids) !== JSON.stringify(jobFilter)) {
         setJobFilter(ids);
@@ -99,7 +129,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     if (fromDate?.getTime() !== dateRange?.from?.getTime() || toDate?.getTime() !== dateRange?.to?.getTime()) {
       setDateRange({ from: fromDate, to: toDate });
     }
-  }, [searchParams, allJobs]);
+  }, [searchParams, availableJobs]);
 
   // Update URL search params when filters change
   useEffect(() => {
@@ -111,8 +141,9 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
       values.forEach((v) => params.append(key, v));
     };
 
-    if (nameFilter) params.set("q", nameFilter);
+    if (debouncedNameFilter) params.set("q", debouncedNameFilter);
     else params.delete("q");
+
 
     updateParam("status", statusFilter);
     updateParam("city", locationFilter);
@@ -120,7 +151,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
 
     // Sync job IDs to slugs in URL
     const jobSlugs = jobFilter
-      .map(id => allJobs.find(m => m.id === id)?.slug || jobOptions.find(o => o.id === id)?.slug)
+      .map(id => availableJobs.find(m => m.id === id)?.slug)
       .filter((slug): slug is string => !!slug);
     updateParam("job", jobSlugs);
 
@@ -133,7 +164,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
-  }, [nameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, setSearchParams, searchParams, allJobs, jobOptions]);
+  }, [debouncedNameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, setSearchParams, searchParams, availableJobs]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -154,26 +185,6 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     return () => clearTimeout(handler);
   }, [locationSearch]);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      const fetchJobs = async () => {
-        try {
-          const response = await jobService.getJobs(0, 100, jobSearch);
-          const options = response.data.map((job) => ({
-            id: job.id,
-            title: job.title.trim(),
-            slug: slugify(job.title),
-          }));
-          setJobOptions(options);
-        } catch (error) {
-          console.error("Failed to fetch jobs for filter:", error);
-        }
-      };
-      fetchJobs();
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [jobSearch]);
 
   const statusOptions = useMemo(() => {
     const set = new Set<string>();
@@ -203,9 +214,9 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
       const fullName = `${c.first_name || ""} ${c.last_name || ""}`.toLowerCase().trim();
       const email = (c.email || "").toLowerCase();
       if (
-        nameFilter &&
-        !fullName.includes(nameFilter.toLowerCase()) &&
-        !email.includes(nameFilter.toLowerCase())
+        debouncedNameFilter &&
+        !fullName.includes(debouncedNameFilter.toLowerCase()) &&
+        !email.includes(debouncedNameFilter.toLowerCase())
       ) {
         return false;
       }
@@ -249,10 +260,10 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
 
       return true;
     });
-  }, [candidates, nameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange]);
+  }, [candidates, debouncedNameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, isServerSide]);
 
   const hasActiveFilters =
-    !!nameFilter ||
+    !!debouncedNameFilter ||
     statusFilter.length > 0 ||
     locationFilter.length > 0 ||
     hrDecisionFilter.length > 0 ||
@@ -294,5 +305,6 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     filteredCandidates,
     hasActiveFilters,
     clearFilters,
+    availableJobs,
   };
 };

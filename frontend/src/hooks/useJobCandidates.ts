@@ -23,6 +23,7 @@ export const useJobCandidates = (
   const [candidates, setCandidates] = useState<CandidateAnalysis[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [reanalyzingCandidateIds, setReanalyzingCandidateIds] = useState<string[]>([]);
   const [jdVersion, setJdVersion] = useState<number | undefined>(undefined);
@@ -31,16 +32,22 @@ export const useJobCandidates = (
 
   // Extract filters from searchParams
   const filters = useMemo(() => ({
-    q: searchParams.get("q") || undefined,
-    status: searchParams.getAll("status"),
-    location: searchParams.getAll("city"),
+    query: searchParams.get("q") || undefined,
     hr_decision: searchParams.getAll("hr_decision"),
   }), [searchParams]);
 
   const fetchData = useCallback(
     async (isPolling = false) => {
       if (!jobSlug) return;
-      if (!isPolling) setLoading(true);
+
+
+      const isInitialLoad = !job && !isPolling;
+      if (isInitialLoad) {
+        setLoading(true);
+      } else if (!isPolling) {
+        setIsRefreshing(true);
+      }
+
       try {
         let id = (location.state as JobRouteState | null)?.jobId || currentJobId.current;
         const skip = pageIndex * pageSize;
@@ -65,13 +72,20 @@ export const useJobCandidates = (
           setCandidates(candidatesResponse.data || []);
           setTotalCandidates(candidatesResponse.total || 0);
         } else {
-          const [jobData, candidatesResponse] = await Promise.all([
-            jobService.getJob(id),
-            jobService.getJobCandidates(id, jdVersion, skip, limit, filters),
-          ]);
-          setJob(jobData);
-          setCandidates(candidatesResponse.data || []);
-          setTotalCandidates(candidatesResponse.total || 0);
+          // Fetch job data too if it's the initial load or if we specifically need it
+          if (isInitialLoad) {
+            const [jobData, candidatesResponse] = await Promise.all([
+              jobService.getJob(id),
+              jobService.getJobCandidates(id, jdVersion, skip, limit, filters),
+            ]);
+            setJob(jobData);
+            setCandidates(candidatesResponse.data || []);
+            setTotalCandidates(candidatesResponse.total || 0);
+          } else {
+            const candidatesResponse = await jobService.getJobCandidates(id, jdVersion, skip, limit, filters);
+            setCandidates(candidatesResponse.data || []);
+            setTotalCandidates(candidatesResponse.total || 0);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch job data:", error);
@@ -80,10 +94,11 @@ export const useJobCandidates = (
           toast.error(errorMessage || "Failed to load candidates.");
         }
       } finally {
-        if (!isPolling) setLoading(false);
+        setLoading(false);
+        setIsRefreshing(false);
       }
     },
-    [jobSlug, location.state, navigate, jdVersion, pageIndex, pageSize, filters],
+    [jobSlug, location.state, navigate, jdVersion, pageIndex, pageSize, filters, job],
   );
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,6 +215,7 @@ export const useJobCandidates = (
     candidates,
     job,
     loading,
+    isRefreshing,
     isUploading,
     reanalyzingCandidateIds,
     fetchData,

@@ -24,6 +24,7 @@ import { useAdminData /*, useDeleteConfirmation*/ } from "@/hooks";
 import type { PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
 import { slugify } from "@/utils/slug";
+import jobService from "@/apis/job";
 
 const AdminCandidateSearch = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -43,45 +44,56 @@ const AdminCandidateSearch = () => {
 
   // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
-  // const [showAnalysisDetails, setShowAnalysisDetails] = useState(false);
   const [selectedCandidate, setSelectedCandidate] =
     useState<CandidateResponse | null>(null);
-  // const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
 
   const [searchParams] = useSearchParams();
-  const [jobMapping, setJobMapping] = useState<{ id: string; slug: string }[]>([]);
 
-  // Fetch job mappings for slug resolution
+  /**
+   * Job slug→ID mapping stored in state so that loading it after mount 
+   * triggers a re-fetch of candidates with correct ID filters.
+   */
+  const [jobMappings, setJobMappings] = useState<{ id: string; slug: string }[]>([]);
+
+  // Fetch job title→ID mapping once on mount. Stored in a ref — no re-render, no cascade.
   useEffect(() => {
-    const fetchMappings = async () => {
-      try {
-        const response = await adminJobService.getAllJobs(0, 500);
-        const mapping = response.data.map((j: any) => ({
-          id: j.id,
-          slug: slugify(j.title),
-        }));
-        setJobMapping(mapping);
-      } catch (err) {
-        console.error("Failed to fetch job mappings:", err);
-      }
-    };
-    fetchMappings();
+    jobService
+      .getJobTitles()
+      .then((response) => {
+        const jobsArray = Array.isArray(response) ? response : (response as any)?.data;
+        if (Array.isArray(jobsArray)) {
+          setJobMappings(jobsArray.map((j: any) => ({
+            id: j.id,
+            slug: slugify(j.title || ""),
+          })));
+        }
+      })
+      .catch((err) => console.error("Failed to fetch job mappings:", err));
   }, []);
 
-  // Extract filters from searchParams and resolve job slugs to IDs
+  /**
+   * Derive filter deps from individual param key strings rather than the whole
+   * `searchParams` object. This prevents `filters` from recomputing (and firing
+   * an extra candidate fetch) when unrelated params like `?q=` change.
+   */
+  const statusKey = searchParams.getAll("status").join("\0");
+  const cityKey = searchParams.getAll("city").join("\0");
+  const hrKey = searchParams.getAll("hr_decision").join("\0");
+  const jobKey = searchParams.getAll("job").join("\0");
+
   const filters = useMemo(() => {
-    const jobSlugs = searchParams.getAll("job");
+    const jobSlugs = jobKey ? jobKey.split("\0") : [];
     const jobIds = jobSlugs
-      .map(slug => jobMapping.find(m => m.slug === slug)?.id)
+      .map((slug) => jobMappings.find((m) => m.slug === slug)?.id)
       .filter((id): id is string => !!id);
 
     return {
       job: jobIds,
-      status: searchParams.getAll("status"),
-      city: searchParams.getAll("city"),
-      hr_decision: searchParams.getAll("hr_decision"),
+      status: statusKey ? statusKey.split("\0") : [],
+      city: cityKey ? cityKey.split("\0") : [],
+      hr_decision: hrKey ? hrKey.split("\0") : [],
     };
-  }, [searchParams, jobMapping]);
+  }, [statusKey, cityKey, hrKey, jobKey, jobMappings]);
 
   const fetchCandidatesFn = useCallback(async () => {
     const skip = pagination.pageIndex * pagination.pageSize;
@@ -144,7 +156,13 @@ const AdminCandidateSearch = () => {
     fetchData: fetchCandidates,
   } = useAdminData<CandidateResponse>(
     fetchCandidatesFn,
-    { fetchOnMount: false }
+    {
+      fetchOnMount: false,
+      // Start in a loading state so the skeleton renders immediately and
+      // CandidateSearchTable (which contains useCandidateTableFilters) never
+      // mounts before the first fetch completes, avoiding repeated hook effects.
+      initialLoading: true,
+    }
   );
 
   const fetchJob = useCallback(async () => {
@@ -171,15 +189,27 @@ const AdminCandidateSearch = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset to first page when search changes
+  /**
+   * When the search term changes, either reset page to 0 (the pagination effect
+   * below will then fire the fetch) OR — if already on page 0 — call fetch
+   * directly. This prevents the double-fetch that occurred when activeSearch
+   * was in both this reset effect AND the general fetch effect below.
+   */
   useEffect(() => {
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    if (pagination.pageIndex !== 0) {
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    } else {
+      fetchCandidates();
+    }
+    // fetchCandidates is stable (ref-based inside useAdminData); pagination.pageIndex
+    // is read only to branch — adding it would create a dependency cycle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSearch]);
 
-  // Refetch when pagination, search, or filters change
+  // Refetch when pagination or filters change (activeSearch handled separately above).
   useEffect(() => {
     fetchCandidates();
-  }, [pagination.pageIndex, pagination.pageSize, activeSearch, filters, fetchCandidates]);
+  }, [pagination.pageIndex, pagination.pageSize, filters, fetchCandidates]);
 
   const handleShowMore = (candidate: CandidateResponse) => {
     setSelectedCandidate(candidate);
@@ -261,8 +291,8 @@ const AdminCandidateSearch = () => {
             nameFilter={searchQuery}
             onNameFilterChange={setSearchQuery}
             showJobContext={!jobId}
-            // onShowAnalysisDetails={handleShowAnalysisDetails}
-            // onDelete={handleDeleteClick}
+          // onShowAnalysisDetails={handleShowAnalysisDetails}
+          // onDelete={handleDeleteClick}
           />
         </div>
       )}
