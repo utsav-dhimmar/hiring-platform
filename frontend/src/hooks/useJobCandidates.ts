@@ -6,6 +6,8 @@ import { extractErrorMessage } from "@/utils/error";
 import { slugify } from "@/utils/slug";
 import type { CandidateAnalysis } from "@/types/admin";
 import type { Job } from "@/types/job";
+import { useDeleteConfirmation } from "./useDeleteConfirmation";
+import { resumeService } from "@/apis/resume";
 
 type JobRouteState = {
   jobId?: string;
@@ -211,6 +213,31 @@ export const useJobCandidates = (
     return new Date(Math.min(...dates));
   }, [candidates]);
 
+  const {
+    showModal: showDeleteModal,
+    handleDeleteClick,
+    handleClose: handleCloseDelete,
+    handleConfirm: handleConfirmDelete,
+    isDeleting,
+    error: deleteError,
+    message: deleteMessage,
+  } = useDeleteConfirmation<CandidateAnalysis>({
+    deleteFn: async (id) => {
+      const candidate = candidates.find((c) => c.id === id);
+      const jobId = (candidate as any)?.applied_job_id || job?.id;
+
+      if (!candidate?.resume_id || !jobId) {
+        throw new Error("Cannot delete: Missing job context or resume ID.");
+      }
+      await resumeService.deleteResume(jobId, candidate.resume_id);
+    },
+    onSuccess: () => {
+      fetchData();
+      toast.success("Candidate deleted successfully");
+    },
+    itemTitle: (c) => `${c.first_name || ""} ${c.last_name || ""}`.trim() || "this candidate",
+  });
+
   return {
     candidates,
     job,
@@ -235,5 +262,12 @@ export const useJobCandidates = (
     },
     totalCandidates,
     minDate,
+    showDeleteModal,
+    handleDeleteClick,
+    handleCloseDelete,
+    handleConfirmDelete,
+    isDeleting,
+    deleteError,
+    deleteMessage,
   };
 };

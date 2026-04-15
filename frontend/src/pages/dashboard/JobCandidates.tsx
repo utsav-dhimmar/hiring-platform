@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Input } from "@/components/";
 import { RotateCw, Info, LayoutGrid, TrendingUp } from "lucide-react";
-import { CandidateDetailsModal, JobInfoModal } from "@/components/modal";
+import { CandidateDetailsModal, JobInfoModal, DeleteModal } from "@/components/modal";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import CandidateTable from "@/components/candidate/CandidateTable";
 import { useJobCandidates } from "@/hooks/useJobCandidates";
@@ -46,6 +46,13 @@ export default function JobCandidates() {
     jdVersion,
     setJdVersion,
     totalCandidates,
+    // handleDeleteClick,
+    showDeleteModal,
+    handleCloseDelete,
+    handleConfirmDelete,
+    isDeleting,
+    deleteError,
+    deleteMessage,
   } = useJobCandidates(jobSlug, pageIndex, pageSize);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -245,6 +252,27 @@ export default function JobCandidates() {
                         <div className="text-sm font-semibold">More Info</div>
                       </HoverCardContent>
                     </HoverCard>
+                    {/* <HoverCard>
+                      <HoverCardTrigger
+                        render={(props) => (
+                          <Button
+                            {...props}
+                            variant="outline"
+                            size="sm"
+                            className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
+                            onClick={() => {
+                              setSelectedCandidate(candidate);
+                              handleDeleteClick(candidate);
+                            }}
+                          >
+                            <Trash className="h-4 w-4 shrink-0" />
+                          </Button>
+                        )} />
+
+                      <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                        <div className="text-sm font-semibold">Delete</div>
+                      </HoverCardContent>
+                    </HoverCard> */}
                   </div>
                 )}
               />
@@ -280,6 +308,15 @@ export default function JobCandidates() {
           onChange={handleFileChange}
         />
       </PermissionGuard>
+      <DeleteModal
+        show={showDeleteModal}
+        handleClose={handleCloseDelete}
+        handleConfirm={handleConfirmDelete}
+        title="Delete Candidate"
+        message={deleteMessage}
+        isLoading={isDeleting}
+        error={deleteError}
+      />
     </AppPageShell>
   );
 }
