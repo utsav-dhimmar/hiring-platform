@@ -116,6 +116,10 @@ class AdminRepository:
                 setattr(user, key, value)
         await db.commit()
         await db.refresh(user)
+        # Load role to avoid lazy load error during serialization
+        await db.execute(
+            select(User).options(selectinload(User.role)).where(User.id == user.id)
+        )
         return user
 
     async def delete_user(self, db: AsyncSession, user: User) -> None:
@@ -138,12 +142,21 @@ class AdminRepository:
         """
         Retrieve all roles with pagination and optional search by name.
         """
-        stmt = select(Role)
+        stmt = (
+            select(Role, func.count(User.id).label("user_count"))
+            .outerjoin(User, User.role_id == Role.id)
+            .group_by(Role.id)
+        )
         if search:
             stmt = stmt.where(Role.name.ilike(f"%{search}%"))
 
         result = await db.execute(stmt.offset(skip).limit(limit).order_by(Role.name))
-        return list(result.scalars().all())
+        
+        roles = []
+        for role, count in result.all():
+            role.user_count = count
+            roles.append(role)
+        return roles
 
     async def count_all_roles(
         self, db: AsyncSession, search: str | None = None

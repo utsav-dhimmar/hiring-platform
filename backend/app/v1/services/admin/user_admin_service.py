@@ -98,7 +98,8 @@ class UserAdminService:
         )
         db.add(user)
         await db.commit()
-        await db.refresh(user)
+        # Fetch with role pre-loaded to avoid Lazy Loading error in serialization
+        full_user = await self.get_user_by_id(db, user.id)
 
         await audit_service.log_action(
             db=db,
@@ -110,7 +111,7 @@ class UserAdminService:
         )
 
         logger.info(f"Admin created user with email: {user.email}")
-        return user
+        return full_user
 
     async def update_user(
         self,
