@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useState } from "react";
-import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
+import { adminPermissionService, adminRoleService } from "@/apis/admin";
 import type { PermissionRead, RoleRead } from "@/types/admin";
 import AdminDataTable, { type Column } from "@/components/shared/AdminDataTable";
 import AppPageShell from "@/components/shared/AppPageShell";

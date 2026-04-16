@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
-import { adminCandidateService, adminJobService } from "@/apis/admin/service";
+import { adminCandidateService, adminJobService } from "@/apis/admin";
 import type { JobRead } from "@/types/admin";
 import type { CandidateResponse } from "@/types/resume";
 import AppPageShell from "@/components/shared/AppPageShell";

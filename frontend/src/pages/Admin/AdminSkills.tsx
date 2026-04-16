@@ -3,7 +3,7 @@
  * Displays all skills with ability to create, edit, and delete.
  */
 import { useState, useEffect } from "react";
-import { adminSkillService } from "@/apis/admin/service";
+import { adminSkillService } from "@/apis/admin";
 import type { SkillRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";

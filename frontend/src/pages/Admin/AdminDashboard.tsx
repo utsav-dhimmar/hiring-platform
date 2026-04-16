@@ -3,7 +3,7 @@
  * Displays analytics summary and hiring reports for administrators.
  */
 
-import { adminAnalyticsService } from "@/apis/admin/service";
+import { adminAnalyticsService } from "@/apis/admin";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
 import AdminDataTable, { type Column } from "@/components/shared/AdminDataTable";
 import AppPageShell from "@/components/shared/AppPageShell";

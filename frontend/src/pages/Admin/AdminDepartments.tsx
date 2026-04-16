@@ -3,7 +3,7 @@
  * Displays all departments with ability to create, edit, and delete.
  */
 import { useState, useEffect } from "react";
-import { adminDepartmentService } from "@/apis/admin/service";
+import { adminDepartmentService } from "@/apis/admin";
 import type { DepartmentRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";

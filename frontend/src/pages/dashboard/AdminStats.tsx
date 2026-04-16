@@ -1,4 +1,4 @@
-import { adminAnalyticsService } from "@/apis/admin/service";
+import { adminAnalyticsService } from "@/apis/admin";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
 import { useAdminData } from "@/hooks/useAdminData";
 import AppPageHeader from "@/components/shared/AppPageHeader";
@@ -238,7 +238,7 @@ export default function AdminStats() {
           </div>
         </>
       )
-    }
+      }
     </AppPageShell>
   );
 }

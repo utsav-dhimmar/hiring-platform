@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from "react";
-import { adminSkillService } from "@/apis/admin/service";
+import { adminSkillService } from "@/apis/admin";
 import type { SkillRead } from "@/types/admin";
 import {
   Button,

@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { adminJobService } from "@/apis/admin/service";
+import { adminJobService } from "@/apis/admin";
 import type { JobResumeInfoResponse } from "@/types/resume";
 import { extractErrorMessage } from "@/utils/error";
 

@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
+import { adminPermissionService, adminRoleService } from "@/apis/admin";
 import type { PermissionRead } from "@/types/admin";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import {

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { adminUserService } from "@/apis/admin/service";
+import { adminUserService } from "@/apis/admin";
 import type { UserAdminRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import { DateDisplay } from "@/components/shared/DateDisplay";

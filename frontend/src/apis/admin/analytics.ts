@@ -9,11 +9,11 @@ const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
  */
 export const adminAnalyticsService = {
   /**
-   * Get all audit logs (admin only).
+   * Get all audit logs (admin and hr admin only).
    */
   getAuditLogs: async (skip: number = 0, limit: number = 100, q?: string): Promise<PaginatedResponse<AuditLogRead>> => {
     const response = await apiClient.get<PaginatedResponse<AuditLogRead>>(`${ADMIN_PATH}/audit-logs`, {
-      params: { skip, limit, q },
+      params: { skip, limit, q: q ? q : undefined },
     });
     return response.data;
   },
@@ -23,13 +23,13 @@ export const adminAnalyticsService = {
    */
   getRecentUploads: async (skip: number = 0, limit: number = 50, q?: string): Promise<PaginatedResponse<RecentUploadRead>> => {
     const response = await apiClient.get<PaginatedResponse<RecentUploadRead>>(`${ADMIN_PATH}/recent-uploads`, {
-      params: { skip, limit, q },
+      params: { skip, limit, q: q ? q : undefined },
     });
     return response.data;
   },
 
   /**
-   * Get analytics summary (admin only).
+   * Get analytics summary (admin and hr admin only).
    */
   getAnalytics: async (): Promise<AnalyticsSummary> => {
     const response = await apiClient.get<AnalyticsSummary>(`${ADMIN_PATH}/analytics`);
@@ -37,7 +37,7 @@ export const adminAnalyticsService = {
   },
 
   /**
-   * Get hiring report with detailed statistics (admin only).
+   * Get hiring report with detailed statistics (admin and hr admin only).
    */
   getHiringReport: async (): Promise<HiringReport> => {
     const response = await apiClient.get<HiringReport>(`${ADMIN_PATH}/hiring-report`);

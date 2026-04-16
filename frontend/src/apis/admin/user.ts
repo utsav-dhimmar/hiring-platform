@@ -18,7 +18,7 @@ export const adminUserService = {
     const response = await apiClient.get<{ data: UserAdminRead[]; total: number }>(
       `${ADMIN_PATH}/users`,
       {
-        params: { skip, limit, q: search },
+        params: { skip, limit, q: search ? search : undefined },
       },
     );
     return response.data;

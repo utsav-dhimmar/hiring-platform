@@ -3,7 +3,7 @@
  * Displays a history of user actions and system events.
  */
 import { useState, useEffect } from "react";
-import { adminAnalyticsService } from "@/apis/admin/service";
+import { adminAnalyticsService } from "@/apis/admin";
 import type { AuditLogRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import { DataTable } from "@/components/shared/DataTable";

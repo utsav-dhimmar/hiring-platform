@@ -19,7 +19,7 @@ export const adminLocationService = {
     const response = await apiClient.get<PaginatedResponse<LocationRead>>(
       "/locations",
       {
-        params: { skip, limit, q },
+        params: { skip, limit, q: q ? q : undefined },
       },
     );
     return response.data;

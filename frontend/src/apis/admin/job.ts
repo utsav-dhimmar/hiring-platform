@@ -27,7 +27,7 @@ export const adminJobService = {
     q?: string,
   ): Promise<{ data: JobRead[]; total: number }> => {
     const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs", {
-      params: { skip, limit, ...(q ? { q } : {}) },
+      params: { skip, limit, q: q ? q : undefined },
     });
     return response.data;
   },
@@ -41,7 +41,7 @@ export const adminJobService = {
    */
   searchJobs: async (query: string, skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
     const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs/search", {
-      params: { q: query, skip, limit },
+      params: { q: query ? query : undefined, skip, limit },
     });
     return response.data.data;
   },

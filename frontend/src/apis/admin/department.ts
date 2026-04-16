@@ -19,7 +19,7 @@ export const adminDepartmentService = {
     const response = await apiClient.get<{ data: DepartmentRead[]; total: number }>(
       "/departments",
       {
-        params: { skip, limit, q: search },
+        params: { skip, limit, q: search ? search : undefined },
       },
     );
     return response.data;

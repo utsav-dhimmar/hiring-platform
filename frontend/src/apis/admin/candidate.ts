@@ -57,7 +57,7 @@ export const adminCandidateService = {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       `/candidates/jobs/${jobId}/search`,
       {
-        params: { query, skip, limit, ...filters },
+        params: { query: query ? query : undefined, skip, limit, ...filters },
         paramsSerializer: {
           indexes: null,
         },
@@ -87,7 +87,7 @@ export const adminCandidateService = {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       "/candidates/search",
       {
-        params: { query, skip, limit, ...filters },
+        params: { query: query ? query : undefined, skip, limit, ...filters },
         paramsSerializer: {
           indexes: null,
         },

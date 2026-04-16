@@ -4,7 +4,7 @@
  */
 
 import { useCallback } from "react";
-import { adminPermissionService } from "@/apis/admin/service";
+import { adminPermissionService } from "@/apis/admin";
 import {
   Button,
   Input,

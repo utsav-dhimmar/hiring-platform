@@ -21,7 +21,7 @@ const jobService = {
    */
   getJobs: async (skip = 0, limit = 10, q?: string): Promise<JobsListResponse> => {
     const response = await client.get<JobsListResponse>("/jobs", {
-      params: { skip, limit, ...(q ? { q } : {}) },
+      params: { skip, limit, q: q ? q : undefined },
     });
     return response.data;
   },
@@ -51,7 +51,7 @@ const jobService = {
    */
   searchJobs: async (query: string, skip = 0, limit = 10): Promise<JobsListResponse> => {
     const response = await client.get<JobsListResponse>("/jobs/search", {
-      params: { q: query, skip, limit },
+      params: { q: query ? query : undefined, skip, limit },
     });
     return response.data;
   },

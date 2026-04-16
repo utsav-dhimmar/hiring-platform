@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { adminAnalyticsService } from "@/apis/admin/service";
+import { adminAnalyticsService } from "@/apis/admin";
 import type { RecentUploadRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import { DataTable } from "@/components/shared/DataTable";

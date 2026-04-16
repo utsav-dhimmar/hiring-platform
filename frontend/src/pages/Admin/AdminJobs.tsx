@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { adminJobService } from "@/apis/admin/service";
+import { adminJobService } from "@/apis/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import { DataTable } from "@/components/shared/DataTable";
 import type { Job } from "@/types/job";

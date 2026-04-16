@@ -18,7 +18,7 @@ export const adminSkillService = {
     search?: string,
   ): Promise<{ data: SkillRead[]; total: number }> => {
     const response = await apiClient.get<{ data: SkillRead[]; total: number }>("/skills", {
-      params: { skip, limit, q: search },
+      params: { skip, limit, q: search ? search : undefined },
     });
     return response.data;
   },
