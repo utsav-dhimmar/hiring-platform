@@ -72,12 +72,14 @@ export function CandidateTable<T extends UnifiedCandidate>({
     setLocationSearch,
     jobSearch,
     setJobSearch,
+    resumeScreeningFilter,
+    setResumeScreeningFilter,
     minDate,
     filteredCandidates,
     hasActiveFilters,
     clearFilters,
     availableJobs
-  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange);
+  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold);
 
   const columns = useCandidateTableColumns({
     renderActions,
@@ -110,6 +112,8 @@ export function CandidateTable<T extends UnifiedCandidate>({
         jobOptions={jobOptions}
         jobSearch={jobSearch}
         setJobSearch={setJobSearch}
+        resumeScreeningFilter={resumeScreeningFilter}
+        setResumeScreeningFilter={setResumeScreeningFilter}
         hasActiveFilters={hasActiveFilters}
         clearFilters={clearFilters}
         resultCount={filteredCandidates.length}

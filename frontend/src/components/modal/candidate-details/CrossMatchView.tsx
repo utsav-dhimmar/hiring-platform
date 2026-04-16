@@ -133,7 +133,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
         <div>
           <h3 className="text-lg font-bold flex items-center gap-2">
             <Compass className="h-5 w-5 text-primary" />
-            Discovery
+            Cross Job Match
           </h3>
           <p className="text-sm text-muted-foreground">
             Identify matches for this candidate across other open active positions.

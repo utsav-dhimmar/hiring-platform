@@ -175,7 +175,7 @@ export function DataTable<TData, TValue>({
                     className="h-9 px-4 rounded-xl text-xs font-semibold bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-all flex items-center gap-1.5"
                   >
                     <span className="font-medium">Total:</span>
-                    <span className="font-semibold text-lg">{totalRecords.toLocaleString()}</span>
+                    <span className="font-semibold">{totalRecords.toLocaleString()}</span>
                   </Badge>
                 </div>
               )}

@@ -123,13 +123,6 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                   <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed bg-muted/20 p-5 rounded-2xl border border-muted-foreground/10 transition-colors group-hover:border-primary/20">
                     {selectedVersion?.jd_text || job.jd_text}
                   </div>
-                  {selectedVersion && selectedVersion.id !== "current" && (
-                    <div className="absolute top-3 right-3">
-                      <Badge variant="secondary" className="text-[10px] bg-background/50 backdrop-blur-sm border-0">
-                        Version {selectedVersion.version_number}
-                      </Badge>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground italic p-5 rounded-2xl bg-muted/10 border border-muted-foreground/5">

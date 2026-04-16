@@ -13,6 +13,7 @@ export interface CandidateActiveFilters {
   job: string[];
   hr_decision: string[];
   dateRange?: { from?: Date; to?: Date };
+  resumeScreening?: string[];
 }
 
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(
@@ -24,6 +25,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   fetchJobTitles = true,
   isServerSide = false,
   onFiltersChange?: (filters: CandidateActiveFilters) => void,
+  passingThreshold = 65
 ) => {
   const [internalNameFilter, setInternalNameFilter] = useState("");
 
@@ -53,6 +55,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   const [locationSearch, setLocationSearch] = useState("");
   const [availableJobs, setAvailableJobs] = useState<{ id: string; title: string; slug: string }[]>([]);
   const [jobSearch, setJobSearch] = useState("");
+  const [resumeScreeningFilter, setResumeScreeningFilter] = useState<string[]>([]);
 
   // Memoized job options filtered by search query
   const jobOptions = useMemo(() => {
@@ -94,9 +97,10 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
         job: jobFilter,
         hr_decision: hrDecisionFilter,
         dateRange: dateRange,
+        resumeScreening: resumeScreeningFilter
       });
     }
-  }, [statusFilter, locationFilter, jobFilter, hrDecisionFilter, dateRange, onFiltersChange]);
+  }, [statusFilter, locationFilter, jobFilter, hrDecisionFilter, dateRange, resumeScreeningFilter, onFiltersChange]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -189,10 +193,24 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
           return false;
         }
       }
+      if (resumeScreeningFilter.length > 0) {
+        let candidateScreening = "fail";
+        if (
+          c.pass_fail === true ||
+          String(c.pass_fail).toLowerCase() === "pass" ||
+          (c.resume_score ?? 0) >= passingThreshold
+        ) {
+          candidateScreening = "pass";
+        }
+
+        if (!resumeScreeningFilter.includes(candidateScreening)) {
+          return false;
+        }
+      }
 
       return true;
     });
-  }, [candidates, debouncedNameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, isServerSide]);
+  }, [candidates, debouncedNameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, resumeScreeningFilter, isServerSide]);
 
   const hasActiveFilters =
     !!debouncedNameFilter ||
@@ -200,6 +218,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     locationFilter.length > 0 ||
     hrDecisionFilter.length > 0 ||
     jobFilter.length > 0 ||
+    resumeScreeningFilter.length > 0 ||
     !!dateRange?.from ||
     !!dateRange?.to;
 
@@ -211,6 +230,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     setJobFilter([]);
     setJobSearch("");
     setDateRange({ from: undefined, to: undefined });
+    setResumeScreeningFilter([]);
   };
 
   return {
@@ -233,6 +253,8 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     setLocationSearch,
     jobSearch,
     setJobSearch,
+    resumeScreeningFilter,
+    setResumeScreeningFilter,
     minDate,
     filteredCandidates,
     hasActiveFilters,
