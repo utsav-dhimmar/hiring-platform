@@ -8,6 +8,7 @@ import { type ReactElement } from "react";
 import type { CandidateResponse } from "@/types/resume";
 import type { PaginationState, OnChangeFn } from "@tanstack/react-table";
 import CandidateTable from "@/components/candidate/CandidateTable";
+import type { CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";
 import { Button } from "@/components/ui/button";
 import {
   HoverCard,
@@ -25,6 +26,7 @@ interface CandidateSearchTableProps {
   nameFilter?: string;
   onNameFilterChange?: (value: string) => void;
   showJobContext?: boolean;
+  onFiltersChange?: (filters: CandidateActiveFilters) => void;
   // onShowAnalysisDetails: (candidate: CandidateResponse) => void;
   // onDelete: (candidate: CandidateResponse) => void;
 }
@@ -38,6 +40,7 @@ const CandidateSearchTable = ({
   nameFilter,
   onNameFilterChange,
   showJobContext = false,
+  onFiltersChange,
 }: CandidateSearchTableProps): ReactElement => {
   return (
     <CandidateTable
@@ -50,6 +53,7 @@ const CandidateSearchTable = ({
       nameFilter={nameFilter}
       onNameFilterChange={onNameFilterChange}
       showJobContext={showJobContext}
+      onFiltersChange={onFiltersChange}
       renderActions={(candidate) => (
         <div className="flex items-center gap-2">
           <HoverCard>

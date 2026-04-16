@@ -10,7 +10,7 @@
 
 import type { PaginationState, OnChangeFn } from "@tanstack/react-table";
 import { DataTable } from "@/components/shared/DataTable";
-import { useCandidateTableFilters } from "@/hooks/useCandidateTableFilters";
+import { useCandidateTableFilters, type CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";
 import { useCandidateTableColumns } from "./CandidateTableColumns";
 import { CandidateTableFilters } from "./CandidateTableFilters";
 import type { UnifiedCandidate } from "@/types/candidate";
@@ -31,6 +31,7 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   showJobContext?: boolean;
   showLocationFilter?: boolean;
   showStatusFilter?: boolean;
+  onFiltersChange?: (filters: CandidateActiveFilters) => void;
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -49,6 +50,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   showJobContext = false,
   showLocationFilter = true,
   showStatusFilter = true,
+  onFiltersChange,
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -75,7 +77,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
     hasActiveFilters,
     clearFilters,
     availableJobs
-  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext);
+  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange);
 
   const columns = useCandidateTableColumns({
     renderActions,

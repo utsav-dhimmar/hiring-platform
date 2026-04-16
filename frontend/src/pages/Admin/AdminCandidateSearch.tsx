@@ -2,8 +2,8 @@
  * Admin page for searching candidates globally or for a specific job.
  * Provides advanced search and filtering for HR.
  */
-import { useCallback, useEffect, useState, useMemo } from "react";
-import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { adminCandidateService, adminJobService } from "@/apis/admin";
 import type { JobRead } from "@/types/admin";
 import type { CandidateResponse } from "@/types/resume";
@@ -23,8 +23,8 @@ import { resumeService } from "@/apis/resume";
 import { useAdminData /*, useDeleteConfirmation*/ } from "@/hooks";
 import type { PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
-import { slugify } from "@/utils/slug";
-import jobService from "@/apis/job";
+import type { CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";
+
 
 const AdminCandidateSearch = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -41,59 +41,20 @@ const AdminCandidateSearch = () => {
   const [job, setJob] = useState<JobRead | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Detail Modal State
   const [showDetail, setShowDetail] = useState(false);
   const [selectedCandidate, setSelectedCandidate] =
     useState<CandidateResponse | null>(null);
 
-  const [searchParams] = useSearchParams();
-
-  /**
-   * Job slug→ID mapping stored in state so that loading it after mount 
-   * triggers a re-fetch of candidates with correct ID filters.
-   */
-  const [jobMappings, setJobMappings] = useState<{ id: string; slug: string }[]>([]);
-
-  // Fetch job title→ID mapping once on mount. Stored in a ref — no re-render, no cascade.
-  useEffect(() => {
-    jobService
-      .getJobTitles()
-      .then((response) => {
-        const jobsArray = Array.isArray(response) ? response : (response as any)?.data;
-        if (Array.isArray(jobsArray)) {
-          setJobMappings(jobsArray.map((j: any) => ({
-            id: j.id,
-            slug: slugify(j.title || ""),
-          })));
-        }
-      })
-      .catch((err) => console.error("Failed to fetch job mappings:", err));
-  }, []);
-
-  /**
-   * Derive filter deps from individual param key strings rather than the whole
-   * `searchParams` object. This prevents `filters` from recomputing (and firing
-   * an extra candidate fetch) when unrelated params like `?q=` change.
-   */
-  const statusKey = searchParams.getAll("status").join("\0");
-  const cityKey = searchParams.getAll("city").join("\0");
-  const hrKey = searchParams.getAll("hr_decision").join("\0");
-  const jobKey = searchParams.getAll("job").join("\0");
-
-  const filters = useMemo(() => {
-    const jobSlugs = jobKey ? jobKey.split("\0") : [];
-    const jobIds = jobSlugs
-      .map((slug) => jobMappings.find((m) => m.slug === slug)?.id)
-      .filter((id): id is string => !!id);
-
-    return {
-      job: jobIds,
-      status: statusKey ? statusKey.split("\0") : [],
-      city: cityKey ? cityKey.split("\0") : [],
-      hr_decision: hrKey ? hrKey.split("\0") : [],
-    };
-  }, [statusKey, cityKey, hrKey, jobKey, jobMappings]);
+  // Active filters managed locally now
+  const [filters, setFilters] = useState<CandidateActiveFilters>({
+    job: [],
+    status: [],
+    city: [],
+    hr_decision: [],
+  });
 
   const fetchCandidatesFn = useCallback(async () => {
     const skip = pagination.pageIndex * pagination.pageSize;
@@ -164,6 +125,12 @@ const AdminCandidateSearch = () => {
       initialLoading: true,
     }
   );
+
+  useEffect(() => {
+    if (!loading && isInitialLoad) {
+      setIsInitialLoad(false);
+    }
+  }, [loading, isInitialLoad]);
 
   const fetchJob = useCallback(async () => {
     if (!jobId) return;
@@ -276,7 +243,7 @@ const AdminCandidateSearch = () => {
 
       {error ? (
         <ErrorDisplay message={error} onRetry={fetchCandidates} />
-      ) : loading && candidates.length === 0 ? (
+      ) : isInitialLoad ? (
         <div className="mt-6">
           <JobCandidatesSkeleton count={pagination.pageSize} />
         </div>
@@ -291,6 +258,7 @@ const AdminCandidateSearch = () => {
             nameFilter={searchQuery}
             onNameFilterChange={setSearchQuery}
             showJobContext={!jobId}
+            onFiltersChange={setFilters}
           // onShowAnalysisDetails={handleShowAnalysisDetails}
           // onDelete={handleDeleteClick}
           />
