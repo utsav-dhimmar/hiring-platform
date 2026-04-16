@@ -12,6 +12,7 @@ import {
 } from "@/components";
 import type { SkillRead } from "@/types/admin";
 import { cn } from "@/lib/utils";
+import { Required } from "@/components/job-form/Required";
 
 interface SkillSelectorSectionProps {
   availableSkills: SkillRead[];
@@ -57,7 +58,7 @@ export const SkillSelectorSection = ({
   return (
     <div className="app-surface-card space-y-6 p-4 sm:p-5">
       <div className="space-y-1">
-        <h2 className="text-md font-bold tracking-tight">Required Skills *</h2>
+        <h2 className="text-md font-bold tracking-tight">Required Skills <Required /></h2>
         <p className="text-muted-foreground text-md font-medium">
           Select the skills that should be linked to this job. Click a skill to
           toggle selection.

@@ -14,6 +14,7 @@ import {
   Textarea,
 } from "@/components";
 import type { DepartmentRead } from "@/types/admin";
+import { Required } from "@/components/job-form/Required";
 
 interface BasicJobDetailsProps {
   departments: DepartmentRead[];
@@ -31,7 +32,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-md font-semibold text-foreground">
-              Title *
+              Title <Required />
             </FormLabel>
             <FormControl>
               <Input
@@ -52,7 +53,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-md font-semibold text-foreground">
-              Vacancy *
+              Vacancy <Required />
             </FormLabel>
             <FormControl>
               <Input
@@ -79,7 +80,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-md font-semibold text-foreground">
-              Department *
+              Department <Required />
             </FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
@@ -117,7 +118,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-md font-semibold text-foreground">
-              Job Description *
+              Job Description <Required />
             </FormLabel>
             <FormControl>
               <Textarea
