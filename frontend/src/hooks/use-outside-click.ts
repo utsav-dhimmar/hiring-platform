@@ -21,6 +21,15 @@ export function useOutsideClick<T extends HTMLElement>(
         return;
       }
 
+      const targetEl = target instanceof Element ? target : target.parentElement;
+      if (
+        targetEl?.closest(
+          "[data-slot='dropdown-menu-content'], [data-radix-popper-content-wrapper], [role='menu'], [role='dialog']"
+        )
+      ) {
+        return;
+      }
+
       handler();
     };
 
