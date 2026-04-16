@@ -142,8 +142,8 @@ export function DataTable<TData, TValue>({
   return (
     <div className="w-full space-y-3 sm:space-y-4">
       {searchKey && (
-        <div className="flex w-full flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
-          <div className="flex flex-1 items-center gap-3 max-w-full sm:max-w-2xl">
+        <div className="flex w-full  items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-1 grow items-center gap-3 max-w-full">
             <div className="relative flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -174,8 +174,8 @@ export function DataTable<TData, TValue>({
                     variant="secondary"
                     className="h-9 px-4 rounded-xl text-xs font-semibold bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-all flex items-center gap-1.5"
                   >
-                    <span className="opacity-70 font-medium">Total</span>
-                    <span className="text-sm">{totalRecords.toLocaleString()}</span>
+                    <span className="font-medium">Total:</span>
+                    <span className="font-semibold text-lg">{totalRecords.toLocaleString()}</span>
                   </Badge>
                 </div>
               )}
