@@ -146,6 +146,7 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
               axisLine={false}
               tickMargin={12}
               className="text-[10px] sm:text-xs font-medium text-muted-foreground"
+              allowDecimals={false}
             >
               <Label
                 value="No. of Candidates"
@@ -169,6 +170,7 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
               animationBegin={100}
               animationDuration={1500}
               animationEasing="ease-out"
+              label={{ position: "top", fill: "#000", fontWeight: "bold" }}
               shape={(props: any) => {
                 const { x, y, width, height, payload } = props;
                 return (
