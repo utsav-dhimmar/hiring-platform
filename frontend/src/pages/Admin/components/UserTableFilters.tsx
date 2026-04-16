@@ -15,6 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components";
 
 interface UserTableFiltersProps {
   searchFilter: string;
@@ -233,8 +234,10 @@ export const UserTableFilters = ({
       )}
 
       {/* Result Count */}
-      <span className="ml-auto text-xs text-muted-foreground font-medium bg-muted/20 px-2.5 py-1 rounded-full border border-muted-foreground/10">
-        {resultCount} / {totalCount} users found
+      <span className="ml-auto text-xs font-medium flex items-center gap-2">
+        Total <span className="font-bold">{totalCount}</span> Users
+        <Separator orientation="vertical" className="h-4  bg-gray-700 dark:bg-gray-300" />
+        <span className="font-bold">{resultCount}</span> Users found
       </span>
     </div>
   );

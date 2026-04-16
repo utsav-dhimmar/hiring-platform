@@ -15,6 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 
 interface JobTableFiltersProps {
   titleFilter: string;
@@ -251,8 +252,11 @@ export const JobTableFilters = ({
       }
 
       {/* Result Count */}
-      <span className="ml-auto text-xs text-muted-foreground font-medium bg-muted/20 px-2.5 py-1 rounded-full border border-muted-foreground/10">
-        {resultCount} / {totalCount} jobs found
+      <span className="ml-auto text-xs font-medium flex items-center gap-2">
+        {/* {resultCount} / {totalCount} jobs found */}
+        Total <span className="font-bold">{totalCount}</span> Jobs
+        <Separator orientation="vertical" className="h-4  bg-gray-700 dark:bg-gray-300" />
+        <span className="font-bold">{resultCount}</span> Jobs found
       </span>
     </div >
   );
