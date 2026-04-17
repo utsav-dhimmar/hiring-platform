@@ -60,18 +60,29 @@ class CrossJobMatchService:
                 _log.warning("run_cross_match: no embedding for resume %s — skipping", resume_id)
                 return
 
-            # 3. Define jobs to exclude (Only the original job they applied to/were rejected from)
+            # 3. Find all jobs this resume has already been submitted to (via text_hash)
+            #    This prevents cross-matching into a job the candidate already applied for.
             already_applied_job_ids: set[uuid.UUID] = {original_job_id}
-            
-            _log.info(
-                "run_cross_match: Original job %s excluded. Matching against all other active jobs.",
-                original_job_id,
-            )
+            if resume.text_hash:
+                from app.v1.db.models.candidates import Candidate as CandidateModel
+                existing_apps_stmt = (
+                    select(CandidateModel.applied_job_id)
+                    .join(Resume, Resume.candidate_id == CandidateModel.id)
+                    .where(Resume.text_hash == resume.text_hash)
+                )
+                existing_apps = (await db.execute(existing_apps_stmt)).scalars().all()
+                already_applied_job_ids.update(existing_apps)
+                _log.info(
+                    "run_cross_match: resume %s already applied to %d job(s): %s",
+                    resume_id, len(already_applied_job_ids), already_applied_job_ids
+                )
 
-            # 4. Fetch all other active jobs
+            # 4. Fetch all other active jobs, excluding already-applied jobs
             other_jobs = await cross_job_match_repository.get_all_active_jobs_with_embeddings(
                 db, exclude_job_id=original_job_id
             )
+            # Filter out any jobs the candidate already applied to directly
+            other_jobs = [j for j in other_jobs if j.id not in already_applied_job_ids]
             
             if not other_jobs:
                 _log.info("run_cross_match: no other active jobs found")
