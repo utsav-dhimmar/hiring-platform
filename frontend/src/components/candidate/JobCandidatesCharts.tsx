@@ -1,7 +1,5 @@
-import { useState } from "react";
-import { LayoutGrid, TrendingUp, CircleCheck, ShieldAlert, MapPin } from "lucide-react";
+import { TrendingUp, CircleCheck, ShieldAlert, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { JobCandidatesStats } from "./JobCandidatesStats";
 import { CandidatesDistributionChart, StagesBarChart, LocationBarChart } from "@/components/shared/BarChart";
 import { ResultPieChart } from "@/components/shared/ResultPieChart";
 import type { JobStatsResponse } from "@/types/admin";
@@ -25,110 +23,85 @@ export function JobCandidatesCharts({
   stats,
   jobStats,
 }: JobCandidatesChartsProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "result" | "stages" | "location">("overview");
-
   const passCount = jobStats?.result?.passed || 0;
   const failCount = jobStats?.result?.failed || 0;
 
-  const style = {
-    common: "flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-500",
-    active: "bg-background text-primary shadow-lg scale-100",
-    inactive: "text-muted-foreground hover:text-foreground scale-95",
-  };
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 animate-in fade-in duration-700">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-[400px] rounded-3xl bg-muted/30 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between px-1">
-        {/* Pill Toggle Switcher */}
-        <div className="flex bg-muted/50 p-1 rounded-full border border-muted-foreground/10 shadow-inner flex-wrap">
-          <button
-            onClick={() => setActiveTab("overview")}
-            className={cn(style.common, activeTab === "overview" ? style.active : style.inactive)}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab("analytics")}
-            className={cn(style.common, activeTab === "analytics" ? style.active : style.inactive)}
-          >
-            <TrendingUp className="h-3.5 w-3.5" />
-            Analytics
-          </button>
-          <button
-            onClick={() => setActiveTab("result")}
-            className={cn(style.common, activeTab === "result" ? style.active : style.inactive)}
-          >
-            <CircleCheck className="h-3.5 w-3.5" />
-            Result
-          </button>
-          <button
-            onClick={() => setActiveTab("stages")}
-            className={cn(style.common, activeTab === "stages" ? style.active : style.inactive)}
-          >
-            <ShieldAlert className="h-3.5 w-3.5" />
-            Stages
-          </button>
-          <button
-            onClick={() => setActiveTab("location")}
-            className={cn(style.common, activeTab === "location" ? style.active : style.inactive)}
-          >
-            <MapPin className="h-3.5 w-3.5" />
-            Location
-          </button>
+    <div className={cn(
+      "flex flex-col gap-16 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700",
+      isRefreshing && "opacity-60 transition-opacity duration-300"
+    )}>
+      {/* Distribution Chart */}
+      <div className="group overflow-hidden relative w-full">
+        <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
+          <div className="p-2.5 bg-blue-500/10 rounded-2xl group-hover:rotate-6 transition-transform text-blue-500">
+            <TrendingUp className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Decision Distribution</h4>
+          </div>
+        </div>
+        <div className="w-full h-[500px]">
+          <CandidatesDistributionChart stats={stats} />
         </div>
       </div>
 
-      <div className="relative min-h-[160px]">
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-32 rounded-3xl bg-muted/30 animate-pulse" />
-            ))}
+      {/* Result Pie Chart */}
+      <div className="group overflow-hidden relative w-full">
+        <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
+          <div className="p-2.5 bg-emerald-500/10 rounded-2xl group-hover:rotate-6 transition-transform text-emerald-500">
+            <CircleCheck className="h-5 w-5" />
           </div>
-        ) : (
-          <div className={cn(
-            "animate-in fade-in slide-in-from-bottom-2 duration-700",
-            isRefreshing && "opacity-60 transition-opacity duration-300"
-          )}>
-            {activeTab === "overview" ? (
-              <JobCandidatesStats
-                totalCandidates={stats.totalCandidates}
-                approveCount={stats.approveCount}
-                rejectCount={stats.rejectCount}
-                maybeCount={stats.maybeCount}
-                undecidedCount={stats.undecidedCount}
-              />
-            ) : activeTab === "analytics" ? (
-              <div className="flex flex-col md:flex-row gap-8 items-center ">
-                <div className="w-full h-[300px]">
-                  <CandidatesDistributionChart stats={stats} />
-                </div>
-              </div>
-            ) : activeTab === "result" ? (
-              <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
-                <div className="w-full max-w-md h-[300px]">
-                  <ResultPieChart
-                    passCount={passCount}
-                    failCount={failCount}
-                  />
-                </div>
-              </div>
-            ) : activeTab === "stages" ? (
-              <div className="flex flex-col md:flex-row gap-8 items-center ">
-                <div className="w-full h-[300px]">
-                  <StagesBarChart stages={jobStats?.stages || {}} />
-                </div>
-              </div>
-            ) : activeTab === "location" ? (
-              <div className="flex flex-col md:flex-row gap-8 items-center ">
-                <div className="w-full h-[300px]">
-                  <LocationBarChart locations={jobStats?.location || {}} />
-                </div>
-              </div>
-            ) : null}
+          <div>
+            <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Screening Results</h4>
+            <p className="text-sm text-muted-foreground font-medium">Distribution of passing vs failing candidates</p>
           </div>
-        )}
+        </div>
+        <div className="w-full h-[500px]">
+          <ResultPieChart passCount={passCount} failCount={failCount} />
+        </div>
+      </div>
+
+      {/* Stages Bar Chart */}
+      <div className="group overflow-hidden relative w-full">
+        <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
+          <div className="p-2.5 bg-amber-500/10 rounded-2xl group-hover:rotate-6 transition-transform text-amber-500">
+            <ShieldAlert className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Recruitment Stages</h4>
+            <p className="text-sm text-muted-foreground font-medium">Candidate info stages wise</p>
+          </div>
+        </div>
+        <div className="w-full h-[500px]">
+          <StagesBarChart stages={jobStats?.stages || {}} />
+        </div>
+      </div>
+
+      {/* Location Bar Chart */}
+      <div className="group overflow-hidden relative w-full">
+        <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
+          <div className="p-2.5 bg-purple-500/10 rounded-2xl group-hover:rotate-6 transition-transform text-purple-500">
+            <MapPin className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Locations</h4>
+            <p className="text-sm text-muted-foreground font-medium">Candidates Location wise</p>
+          </div>
+        </div>
+        <div className="w-full h-[500px]">
+          <LocationBarChart locations={jobStats?.location || {}} />
+        </div>
       </div>
     </div>
   );

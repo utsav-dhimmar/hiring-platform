@@ -106,7 +106,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   <Link
                     to={`/dashboard/jobs/${slug}/candidates`}
                     state={{ state: { jobId: jobId } }}
-                    className="text-primary font-medium hover:underline truncate capitalize block w-full"
+                    className="text-primary font-medium hover:underline  capitalize block w-full text-wrap"
                   >
                     {jobName}
                   </Link>
@@ -193,36 +193,6 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           );
         },
       },
-
-      // 3. STATUS
-      // {
-      //   id: "status",
-      //   accessorKey: "processing_status",
-      //   header: "Status",
-      //   cell: ({ row }) => {
-      //     const c = row.original;
-      //     const status = c.processing_status || c.current_status;
-      //     if (status === "processing" || status === "queued") {
-      //       return (
-      //         <Badge
-      //           variant="secondary"
-      //           className="inline-flex items-center gap-1 rounded-lg"
-      //         >
-      //           <Loader2 className="h-3 w-3 animate-spin" />
-      //           Processing
-      //         </Badge>
-      //       );
-      //     }
-      //     if (!status)
-      //       return <span className="text-muted-foreground text-sm">N/A</span>;
-      //     return (
-      //       <StatusBadge
-      //         status={status === "failed" ? "failed" : "completed"}
-      //       />
-      //     );
-      //   },
-      // },
-
       // 4. SCREENING DECISION
       {
         id: "hr_decision",

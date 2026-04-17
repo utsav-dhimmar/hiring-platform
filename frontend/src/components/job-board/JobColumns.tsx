@@ -58,10 +58,11 @@ export const getJobColumns = ({
         );
       },
       cell: ({ row }) => (
-        <div className="flex flex-col gap-1 min-w-[200px] max-w-[250px]">
+        <div className="flex flex-col gap-1 min-w-[200px] max-w-[300px]">
           <div className="flex items-center gap-2">
             <span
               className="font-bold text-md text-wrap"
+              // text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl
               title={row.original.title}
             >
               {row.original.title}
@@ -258,7 +259,6 @@ export const getJobColumns = ({
                     size="sm"
                     className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
                     onClick={() => onEdit(row.original)}
-                    title="Edit Job"
                     isLoading={loadingJobId === row.original.id}
                   >
                     <Edit2 className="h-4 w-4" />
@@ -267,7 +267,7 @@ export const getJobColumns = ({
               />
               <HoverCardContent side="top" className="w-auto p-2 min-w-0">
                 <div className="text-sm font-semibold text-primary">
-                  {" "}
+
                   Edit Job
                 </div>
               </HoverCardContent>
@@ -283,7 +283,6 @@ export const getJobColumns = ({
                     size="sm"
                     className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-all"
                     onClick={() => onDelete(row.original)}
-                    title={"Delete Job"}
                     disabled={!!row.original.is_active}
                   >
                     <Trash2Icon className="h-4 w-4" />
@@ -292,7 +291,6 @@ export const getJobColumns = ({
               />
               <HoverCardContent side="top" className="w-auto p-2 min-w-0">
                 <div className="text-sm font-semibold text-destructive">
-                  {" "}
                   Delete Job
                 </div>
               </HoverCardContent>
@@ -311,7 +309,6 @@ export const getJobColumns = ({
                     size="icon"
                     className="h-9 w-9 rounded-xl hover:bg-blue-500/10 hover:text-blue-500 transition-all"
                     onClick={() => onCandidates(row.original)}
-                    title="View Candidates"
                   >
                     <Users className="h-4 w-4" />
                   </Button>
@@ -319,7 +316,6 @@ export const getJobColumns = ({
               />
               <HoverCardContent side="top" className="w-auto p-2 min-w-0">
                 <div className="text-sm font-semibold text-blue-500">
-                  {" "}
                   View Candidates
                 </div>
               </HoverCardContent>

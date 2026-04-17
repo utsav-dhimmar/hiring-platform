@@ -103,7 +103,6 @@ const QuickResumeUpload: React.FC<QuickResumeUploadProps> = ({
           onClick={handleButtonClick}
           disabled={disabled}
           className="whitespace-nowrap"
-          title="Quick upload resume for this job"
         >
           {label}
         </Button>

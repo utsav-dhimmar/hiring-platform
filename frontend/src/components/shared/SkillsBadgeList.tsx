@@ -69,14 +69,14 @@ const SkillsBadgeList = ({
               side="top"
               className="flex flex-col gap-1 p-2 bg-popover text-popover-foreground border shadow-md"
             >
-              <div className="text-[11px] font-semibold border-b pb-1 mb-1 border-border/50">
+              <div className="text-sm font-semibold border-b pb-1 mb-1 border-border/50">
                 Additional Skills
               </div>
               <div className="flex flex-wrap gap-1 max-w-[200px]">
                 {remainingSkills.map((skill, index) => (
                   <span
                     key={"id" in skill ? skill.id : `${skill.name}-${index}`}
-                    className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium"
+                    className="px-1.5 py-0.5 rounded bg-muted text-md font-medium"
                   >
                     {skill.name}
                   </span>

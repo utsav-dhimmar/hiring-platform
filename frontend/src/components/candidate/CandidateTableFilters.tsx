@@ -113,7 +113,7 @@ export const CandidateTableFilters = ({
             >
               <span className="truncate mr-auto">
                 {jobFilter.length === 0
-                  ? "All Jobs"
+                  ? "Jobs"
                   : jobFilter.length === 1
                     ? availableJobs.find((j) => j.id === jobFilter[0])?.title || "1 Job"
                     : `${jobFilter.length} Jobs`}
@@ -189,7 +189,7 @@ export const CandidateTableFilters = ({
             >
               <span className="truncate mr-auto">
                 {locationFilter.length === 0
-                  ? "All Locations"
+                  ? "Locations"
                   : locationFilter.length === 1
                     ? locationFilter[0]
                     : `${locationFilter.length} locations`}
@@ -264,7 +264,7 @@ export const CandidateTableFilters = ({
           >
             <span className="truncate mr-auto">
               {hrDecisionFilter.length === 0
-                ? "All Decisions"
+                ? "Decisions"
                 : hrDecisionFilter.length === 1
                   ? [{ v: "approve", l: "Approved" }, { v: "may be", l: "May be" }, { v: "reject", l: "Rejected" }, { v: "pending", l: "Pending" }].find((d) => d.v === hrDecisionFilter[0])?.l
                   : `${hrDecisionFilter.length} selected`}

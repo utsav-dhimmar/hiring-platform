@@ -5,15 +5,16 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { RESUME_SCREENING_RESULT } from "@/constants";
 
 const chartConfig = {
   pass: {
-    label: "Passed",
+    label: RESUME_SCREENING_RESULT.PASS,
     color: "hsl(142 71% 45%)",
     // color:"hsl(var(primary))"
   },
   fail: {
-    label: "Failed",
+    label: RESUME_SCREENING_RESULT.FAIL,
     color: "hsl(0 72% 51%)",
   },
 } satisfies ChartConfig;
@@ -79,11 +80,12 @@ export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
         <div className="flex flex-wrap justify-center gap-6 mt-2">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-[hsl(142,71%,45%)] shadow-[0_0_8px_rgba(34,197,94,0.3)]" />
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">Passed: {passCount}</span>
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground"> <span className="capitalize">{RESUME_SCREENING_RESULT.PASS}</span>: {passCount}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-[hsl(0,72%,51%)] shadow-[0_0_8px_rgba(239,68,68,0.3)]" />
-            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">Failed: {failCount}</span>
+            <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">
+              <span className="capitalize">{RESUME_SCREENING_RESULT.FAIL}</span>: {failCount}</span>
           </div>
         </div>
       </div>

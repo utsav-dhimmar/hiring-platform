@@ -34,9 +34,9 @@ export function HrDecision({ decision }: HrDecisionProps) {
           className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase"
         >
           {decision.decision === "approve"
-            ? "approved"
+            ? "approve"
             : decision.decision === "reject"
-              ? "rejected"
+              ? "reject"
               : decision.decision}
         </Badge>
       </div>

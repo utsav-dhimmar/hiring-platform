@@ -80,7 +80,7 @@ export const JobTableFilters = ({
           )}
         >
           {statusFilter.length === 0
-            ? "All Statuses"
+            ? "Statuses"
             : statusFilter.length === 1
               ? capitalize(statusFilter[0])
               : `${statusFilter.length} statuses`}
@@ -135,7 +135,7 @@ export const JobTableFilters = ({
             )}
           >
             {departmentFilter.length === 0
-              ? "All Departments"
+              ? "Departments"
               : departmentFilter.length === 1
                 ? departmentFilter[0]
                 : `${departmentFilter.length} departments`}

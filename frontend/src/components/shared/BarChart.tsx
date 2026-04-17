@@ -6,12 +6,12 @@ const chartConfig = {
     label: "Total Candidates",
     color: "#3b82f6",
   },
-  approved: {
-    label: "Approved",
+  approve: {
+    label: "Approve",
     color: "hsl(var(--success))",
   },
-  rejected: {
-    label: "Rejected",
+  reject: {
+    label: "Reject",
     color: "hsl(var(--destructive))",
   },
   maybe: {
@@ -212,12 +212,13 @@ interface StagesBarChartProps {
 }
 
 export function StagesBarChart({ stages }: StagesBarChartProps) {
-  const data = Object.entries(stages).map(([name, value], index) => ({
-    name,
-    value,
-    gradientId: `gradientStage-${index}`,
-  })).filter((item) => item.name.endsWith("Round_completed") == false);
-  console.log(data)
+  const data = Object.entries(stages)
+    .filter(([name]) => !name.endsWith("Round_completed"))
+    .map(([name, value], index) => ({
+      name,
+      value,
+      gradientId: `gradientStage-${index}`,
+    }));
   const colors = [
     ["#8b5cf6", "#7c3aed"], // Violet
     ["#6366f1", "#4f46e5"], // Indigo

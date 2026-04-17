@@ -14,8 +14,8 @@ interface AppPageShellProps {
 
 const widthClasses: Record<AppPageShellWidth, string> = {
   form: "max-w-4xl",
-  default: "max-w-6xl",
-  wide: "max-w-7xl 2xl:max-w-[92rem]",
+  default: "max-w-none",
+  wide: "max-w-none",
   full: "max-w-none",
 };
 
@@ -29,13 +29,13 @@ export default function AppPageShell({
   children,
   className,
   contentClassName,
-  width = "default",
+  width = "full",
   gap = "tight",
 }: AppPageShellProps) {
   return (
     <section
       className={cn(
-        "w-full px-2.5 pb-4 pt-2.5 sm:px-2 md:px-3 md:pb-3 md:pt-2 lg:px-2.5 lg:pb-4",
+        "w-full px-2 pb-4 pt-2.5 sm:px-2.5 md:px-4 md:pb-3 md:pt-2 lg:px-6 lg:pb-4",
         className,
       )}
     >

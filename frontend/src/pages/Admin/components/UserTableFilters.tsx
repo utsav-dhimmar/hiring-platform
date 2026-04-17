@@ -76,7 +76,7 @@ export const UserTableFilters = ({
           )}
         >
           {statusFilter.length === 0
-            ? "All Statuses"
+            ? "Statuses"
             : statusFilter.length === 1
               ? capitalize(statusFilter[0])
               : `${statusFilter.length} statuses`}
@@ -132,7 +132,7 @@ export const UserTableFilters = ({
           >
             <UserCheck className="h-3.5 w-3.5 opacity-60" />
             {roleFilter.length === 0
-              ? "All Roles"
+              ? "Roles"
               : roleFilter.length === 1
                 ? roleFilter[0]
                 : `${roleFilter.length} roles`}

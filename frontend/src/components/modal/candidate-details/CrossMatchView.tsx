@@ -150,7 +150,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
               </SelectValue>
             </SelectTrigger>
             <SelectContent className="" align="end">
-              <SelectItem value="all">All Results</SelectItem>
+              <SelectItem value="all">Results</SelectItem>
               <SelectItem value="passed">Pass</SelectItem>
               <SelectItem value="failed">Fail</SelectItem>
             </SelectContent>
