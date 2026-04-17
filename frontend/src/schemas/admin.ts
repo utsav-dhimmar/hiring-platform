@@ -139,7 +139,7 @@ const jobBaseSchema = z.object({
   jd_text: z.string().trim().min(20, "Job description must be at least 20 characters long"),
   /** Whether the job is active */
   is_active: z.boolean(),
-  /** Threshold score (0-100) for considering a candidate as 'passed' */
+  /** Threshold score (0-100) for considering a candidate as 'pass' */
   passing_threshold: z.number().min(0).max(100),
   /** Array of skill UUIDs required for this job */
   skill_ids: z.array(uuidSchema("Invalid skill ID")).min(1, "Please select at least one skill"),

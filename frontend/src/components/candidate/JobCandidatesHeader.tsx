@@ -36,7 +36,7 @@ export const JobCandidatesHeader = ({
         <>
           <span className="font-semibold text-blue-500">{job?.department_name || "Department"}</span>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Status:</span>
+            <span className="text-sm text-muted-foreground">Job Status:</span>
             {job ? (
               <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
                 <div className="flex items-center gap-2">

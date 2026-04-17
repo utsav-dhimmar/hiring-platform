@@ -67,7 +67,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
             "Unknown Candidate";
           return (
             <div className="flex flex-col gap-0.5 min-w-[160px] max-w-[250px]">
-              <span 
+              <span
                 className="font-bold text-base text-foreground truncate block"
                 title={fullName}
               >

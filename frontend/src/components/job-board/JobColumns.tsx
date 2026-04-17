@@ -61,7 +61,7 @@ export const getJobColumns = ({
         <div className="flex flex-col gap-1 min-w-[200px] max-w-[250px]">
           <div className="flex items-center gap-2">
             <span
-              className="font-bold text-md truncate"
+              className="font-bold text-md text-wrap"
               title={row.original.title}
             >
               {row.original.title}
@@ -109,7 +109,7 @@ export const getJobColumns = ({
               onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
               className="hover:bg-transparent p-0 font-semibold"
             >
-              Status
+              Job Status
               <ArrowUpDown className="ml-2 h-4 w-4" />
             </Button>
           </PermissionGuard>
@@ -160,13 +160,13 @@ export const getJobColumns = ({
       header: "Hiring Activity",
       cell: ({ row }) => {
         const sessions = row.original.activity_sessions || [];
-        const displaySessions = sessions.slice(0, 3); // Show last 3 sessions // use -3 and reverse() if reverse needed
+        const displaySessions = sessions.slice(-3).reverse(); // Show last 3 sessions // use -3 and reverse() if reverse needed
 
         const remainingCount = sessions.length - 3;
         const totalCandidates = row.original.total_candidates || 0;
 
         return (
-          <div className="flex flex-col gap-1.5 min-w-[140px]">
+          <div className="flex flex-col gap-0.5 min-w-[140px]">
             {sessions.length === 0 ? (
               <span className="text-xs text-muted-foreground italic">
                 No sessions
@@ -200,7 +200,7 @@ export const getJobColumns = ({
                   <Button
                     variant="link"
                     size="sm"
-                    className="h-auto p-0 text-xs text-primary font-semibold hover:no-underline flex justify-start w-fit group"
+                    className="h-auto p-0 text-primary font-semibold hover:no-underline flex justify-start w-fit group"
                     onClick={() => onViewSessions(row.original)}
                   >
                     + {remainingCount} more
@@ -213,7 +213,7 @@ export const getJobColumns = ({
                   <Button
                     variant="link"
                     size="sm"
-                    className="h-auto p-0 text-[10px] hover:text-primary transition-colors font-medium hover:no-underline flex justify-start w-fit"
+                    className="h-auto p-0 hover:text-primary transition-colors font-medium hover:no-underline flex justify-start w-fit"
                     onClick={() => onViewSessions(row.original)}
                   >
                     View details
@@ -222,7 +222,7 @@ export const getJobColumns = ({
               </>
             )}
 
-            <div className="flex items-center gap-1.5 pt-1.5 mt-0.5 border-t border-border/40">
+            <div className="flex items-center gap-1.5 pt-0.5 border-t border-border/40">
               <span className="text-[13px] font-semibold text-muted-foreground">
                 Total candidates:{" "}
                 <span className="font-bold text-foreground">

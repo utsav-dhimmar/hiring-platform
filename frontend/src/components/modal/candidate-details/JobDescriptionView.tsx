@@ -46,7 +46,7 @@ export function JobDescriptionView({
         </div>
       ) : selectedVersionData ? (
         <div className="space-y-3.5 rounded-[2.5rem] border border-border/80 bg-card/40 backdrop-blur-sm p-4 sm:p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-0.5 md:pr-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                 <FileText className="h-5.5 w-5.5" />

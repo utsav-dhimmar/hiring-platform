@@ -59,7 +59,7 @@ export interface Job {
   is_active: boolean;
   /** Optional custom extraction fields used during resume parsing */
   custom_extraction_fields?: string[] | null;
-  /** Threshold score (0-100) for considering a candidate as 'passed' */
+  /** Threshold score (0-100) for considering a candidate as 'pass' */
   passing_threshold: number;
   /** Current active version number */
   version?: number;
