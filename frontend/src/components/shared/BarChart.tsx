@@ -42,7 +42,7 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
     { name: "Maybe", value: stats.maybeCount, gradientId: "gradientMaybe" },
     { name: "Pending", value: stats.undecidedCount, gradientId: "gradientPending" },
   ];
-  console.log(stats, data)
+
   const colors = {
     Total: ["#3b82f6", "#2563eb"],
     Approved: ["#22c55e", "#16a34a"],
@@ -58,6 +58,7 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
           <BarChart
             data={data}
             margin={{ top: 20, right: 30, left: 30, bottom: 50 }}
+            className='[&_.recharts-cartesian-grid-horizontal>line]:[stroke-dasharray:0]'
           >
             <defs>
               <linearGradient id="gradientTotal" x1="0" y1="0" x2="0" y2="1">
@@ -123,8 +124,9 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
             </defs>
             <CartesianGrid
               vertical={false}
-              strokeDasharray="3 3"
-              strokeOpacity={0.1}
+              strokeDasharray="6 6"
+              stroke="var(--muted-foreground)"
+              strokeOpacity={0.5}
             />
             <XAxis
               dataKey="name"
@@ -157,7 +159,7 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
               />
             </YAxis>
             <ChartTooltip
-              cursor={{ fill: "rgba(0,0,0,0.05)", radius: 8 }}
+              cursor={false}
               content={<ChartTooltipContent />}
               formatter={(value) => <span className="text-xs">Total Candidates : <span className="font-bold">
                 {value}
@@ -170,7 +172,19 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
               animationBegin={100}
               animationDuration={1500}
               animationEasing="ease-out"
-              label={{ position: "top", fill: "#000", fontWeight: "bold" }}
+              label={(props: any) => {
+                const { x, y, width, value } = props;
+                return (
+                  <text
+                    x={x + width / 2}
+                    y={y - 12}
+                    className="fill-foreground text-[10px] sm:text-xs font-bold"
+                    textAnchor="middle"
+                  >
+                    {value}
+                  </text>
+                );
+              }}
               shape={(props: any) => {
                 const { x, y, width, height, payload } = props;
                 return (

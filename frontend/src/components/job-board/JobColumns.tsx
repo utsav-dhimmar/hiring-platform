@@ -58,25 +58,33 @@ export const getJobColumns = ({
         );
       },
       cell: ({ row }) => (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 min-w-[200px] max-w-[250px]">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-md">{row.getValue("title")}</span>
+            <span
+              className="font-bold text-md truncate"
+              title={row.original.title}
+            >
+              {row.original.title}
+            </span>
             {row.original.version && (
               <Badge
                 variant="secondary"
-                className="text-xs font-normal h-5 px-1.5 rounded-md"
+                className="text-xs font-normal h-5 px-1.5 rounded-md shrink-0"
               >
                 v{row.original.version}
               </Badge>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
+            <span
+              className="text-sm text-muted-foreground truncate"
+              title={row.original.department?.name || "No Department"}
+            >
               {row.original.department?.name || "No Department"}
             </span>
             <Badge
               variant="outline"
-              className="text-xs font-normal h-5 px-1.5 rounded-md border-muted-foreground/20"
+              className="text-xs font-normal h-5 px-1.5 rounded-md border-muted-foreground/20 shrink-0"
             >
               {row.original.vacancy != null ? (
                 <span> <span className="font-bold">{row.original.vacancy}</span> Openings</span>

@@ -46,7 +46,7 @@ const SkillsBadgeList = ({
           <Badge
             key={"id" in skill ? skill.id : `${skill.name}-${index}`}
             variant="secondary"
-            className="font-medium text-[10px] px-2 py-0.5 rounded-md border-muted-foreground/10 bg-muted/50 text-muted-foreground hover:bg-muted/80 transition-colors"
+            className="text-sm font-normal h-5 px-1.5 rounded-md border-muted-foreground/20"
             title={skill.description || undefined}
           >
             {skill.name}
@@ -59,7 +59,7 @@ const SkillsBadgeList = ({
                 <Badge
                   {...props}
                   variant="outline"
-                  className="font-medium text-[10px] px-2 py-0.5 rounded-md bg-background hover:bg-muted transition-colors border-dashed"
+                  className="text-sm font-normal h-5 px-1.5 rounded-md border-muted-foreground/20"
                 >
                   +{remainingSkills.length} more
                 </Badge>

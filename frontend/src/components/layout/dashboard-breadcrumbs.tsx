@@ -23,6 +23,7 @@ import {
   Sparkles,
   GitBranch,
   ChevronRight,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,7 +39,8 @@ const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   new: { label: "Create Job", icon: PlusCircle },
   edit: { label: "Edit Job", icon: Settings },
   versions: { label: "Versions", icon: GitBranch },
-  admin: { label: "Admin", icon: ShieldCheck },
+  admin: { label: "Admin Dashboard", icon: ShieldCheck },
+  departments: { label: "Departments", icon: Building2 },
   users: { label: "Users", icon: UserCog },
   roles: { label: "Roles", icon: ShieldCheck },
   skills: { label: "Skills", icon: Sparkles },
@@ -55,6 +57,11 @@ function shouldHideSegment(pathnames: string[], index: number) {
   const segment = pathnames[index];
   const nextSegment = pathnames[index + 1];
   const previousSegment = pathnames[index - 1];
+
+  // Hide the 'admin' grouping route if we are on a child page
+  if (segment === "admin" && nextSegment) {
+    return true;
+  }
 
   if (ROUTE_META[segment]) {
     return false;

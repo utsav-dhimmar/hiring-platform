@@ -175,32 +175,6 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* {!isEditMode ? (
-                <FormField
-                  control={control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="Enter password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Password cannot be changed here" disabled className="bg-muted" />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Passwords must be reset via forgot password or a dedicated endpoint.
-                  </p>
-                </FormItem>
-              )} */}
-
               <FormField
                 control={control}
                 name="role_id"

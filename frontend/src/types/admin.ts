@@ -64,6 +64,7 @@ export interface RoleRead extends RoleBase {
   id: string;
   created_at?: string;
   updated_at?: string;
+  user_count: number
 }
 
 /**

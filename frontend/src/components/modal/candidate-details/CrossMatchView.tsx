@@ -185,7 +185,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
             <span className="text-primary font-semibold text-sm">Analyzing all active jobs...</span>
           </div>
           <p className="text-xs text-muted-foreground text-center max-w-sm">
-            Our AI is comparing this candidate's skills and experience against all other current job requirements.
+            This will check against all active jobs and find matches for this candidate.
           </p>
         </div>
       )}

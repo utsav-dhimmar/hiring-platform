@@ -66,8 +66,11 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
             `${c.first_name || ""} ${c.last_name || ""}`.trim() ||
             "Unknown Candidate";
           return (
-            <div className="flex flex-col gap-0.5 min-w-[160px]">
-              <span className="font-bold text-base text-foreground">
+            <div className="flex flex-col gap-0.5 min-w-[160px] max-w-[250px]">
+              <span 
+                className="font-bold text-base text-foreground truncate block"
+                title={fullName}
+              >
                 {isProcessing && !c.first_name ? (
                   <span className="text-muted-foreground italic text-sm">
                     Processing…
@@ -76,10 +79,10 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   fullName
                 )}
               </span>
-              <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+              <span className="text-xs text-muted-foreground truncate block" title={c.email || "N/A"}>
                 {c.email || "N/A"}
               </span>
-              <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+              <span className="text-xs text-muted-foreground truncate block" title={c.phone || "N/A"}>
                 {c.phone || "N/A"}
               </span>
             </div>
@@ -99,12 +102,11 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
               if (!jobId || !jobName) return <span className="text-muted-foreground text-sm font-medium italic">N/A</span>;
               const slug = slugify(jobName);
               return (
-                <div className="flex items-center gap-1.5 max-w-[200px]" title={jobName}>
-
+                <div className="flex items-center gap-1.5 min-w-[120px] max-w-[200px]" title={jobName}>
                   <Link
                     to={`/dashboard/jobs/${slug}/candidates`}
                     state={{ state: { jobId: jobId } }}
-                    className="text-primary font-medium hover:underline truncate capitalize"
+                    className="text-primary font-medium hover:underline truncate capitalize block w-full"
                   >
                     {jobName}
                   </Link>

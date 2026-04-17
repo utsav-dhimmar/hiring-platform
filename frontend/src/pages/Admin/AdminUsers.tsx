@@ -206,7 +206,7 @@ const AdminUsers = () => {
         const user = row.original;
         return (
           (currentUser && < div className="flex gap-2 justify-end items-center flex-nowrap" >
-            <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
+            {user.full_name !== "System Admin" && user.role_name.toLowerCase() !== "super admin" && <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
               <Button
                 variant="outline"
                 size="sm"
@@ -216,9 +216,9 @@ const AdminUsers = () => {
               >
                 Edit
               </Button>
-            </PermissionGuard>
+            </PermissionGuard>}
             {
-              user.full_name !== "System Admin" && (
+              user.full_name !== "System Admin" && user.role_name.toLowerCase() !== "super admin" && (
                 <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
                   <Button
                     variant="destructive"

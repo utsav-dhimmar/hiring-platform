@@ -80,10 +80,14 @@ const AdminRoles = () => {
       accessor: (role) => <DateDisplay date={role.created_at} showTime={false} />,
     },
     {
+      header: "Users Count",
+      accessor: (role) => role.user_count,
+    },
+    {
       header: "Actions",
       accessor: (role) => (
         <>
-          {currentUser &&
+          {currentUser && role.name.toLocaleLowerCase() !== "superadmin" &&
             <>
               <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
                 <Button
@@ -101,7 +105,7 @@ const AdminRoles = () => {
                   variant="destructive"
                   size="sm"
                   onClick={() => roleDelete.handleDeleteClick(role)}
-                  disabled={currentUser.role_id === role.id}
+                  disabled={currentUser.role_id === role.id || role?.user_count > 0}
                 >
                   Delete
                 </Button>

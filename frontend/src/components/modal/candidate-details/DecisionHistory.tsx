@@ -15,17 +15,13 @@ function getDecisionBadgeVariant(decision: HrDecisionHistoryItem["decision"]) {
 }
 
 export function DecisionHistory({ decisions }: DecisionHistoryProps) {
-  // TODO: issue from backend api which return [] 
   if (decisions.length === 0) {
-    return (
-      <section className="p-4 rounded-2xl bg-muted/30 border border-muted-foreground/10 space-y-2">
-        <h3 className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-          <History className="h-4 w-4" />
-          HR Decision History
-        </h3>
-        <p className="text-sm text-muted-foreground">No previous HR decisions found.</p>
-      </section>
-    );
+    return null;
+  }
+
+  // If there's only 1 decision and it's approve or reject, don't show history
+  if (decisions.length === 1 && decisions[0].decision.toLowerCase() !== "may be") {
+    return null;
   }
 
   return (

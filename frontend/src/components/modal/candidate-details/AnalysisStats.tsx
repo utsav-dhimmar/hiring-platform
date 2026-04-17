@@ -58,14 +58,14 @@ export function AnalysisStats({
             <>
               <CheckCircle2 className="h-3 w-3" />
               <span className="font-extrabold text-[9px] tracking-wider">
-                PASSED
+                PASS
               </span>
             </>
           ) : (
             <>
               <XCircle className="h-3 w-3" />
               <span className="font-extrabold text-[9px] tracking-wider">
-                FAILED
+                FAIL
               </span>
             </>
           )}
