@@ -1,7 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
 
 from app.v1.db.session import get_db
@@ -35,7 +35,32 @@ async def trigger_cross_job_match(
         )
     
     from app.v1.db.models.candidates import Candidate
+    from app.v1.db.models.hr_decisions import HrDecision
+
+    # Verify candidate exists and check latest decision
     candidate = await db.get(Candidate, resume.candidate_id)
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found",
+        )
+
+    # Fetch latest decision for the original job (the one they applied for)
+    latest_decision_stmt = (
+        select(HrDecision)
+        .where(HrDecision.candidate_id == candidate.id)
+        .where(or_(HrDecision.job_id == candidate.applied_job_id, HrDecision.job_id.is_(None)))
+        .order_by(HrDecision.decided_at.desc())
+        .limit(1)
+    )
+    latest_decision_res = await db.execute(latest_decision_stmt)
+    latest_decision = latest_decision_res.scalar_one_or_none()
+
+    if not latest_decision or latest_decision.decision.lower() != "reject":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Manual discovery is only allowed once a candidate has been explicitly marked as 'rejected' for their applied position."
+        )
     
     # Offload to Celery task
     from app.v1.services.resume_upload_service import resume_upload_service

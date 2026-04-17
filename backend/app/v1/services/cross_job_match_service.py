@@ -9,11 +9,12 @@ from app.v1.core.embeddings import embedding_service
 from app.v1.utils.text import build_job_text
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.job_chunks import JobChunk
+from app.v1.db.models.cross_job_matches import CrossJobMatch
 from app.v1.services.candidate_stage_service import candidate_stage_service
+from sqlalchemy import or_
 
 _log = logging.getLogger(__name__)
 
-_SHORTLIST_N = 100   # bi-encoder narrows to this many
 _MIN_SCORE   = 0.0   # store all matches
 
 class CrossJobMatchService:
@@ -59,52 +60,44 @@ class CrossJobMatchService:
                 _log.warning("run_cross_match: no embedding for resume %s — skipping", resume_id)
                 return
 
-            # 3. Find all jobs this resume has already been submitted to (via text_hash)
-            #    This prevents cross-matching into a job the candidate already applied for.
+            # 3. Define jobs to exclude (Only the original job they applied to/were rejected from)
             already_applied_job_ids: set[uuid.UUID] = {original_job_id}
-            if resume.text_hash:
-                from app.v1.db.models.candidates import Candidate as CandidateModel
-                existing_apps_stmt = (
-                    select(CandidateModel.applied_job_id)
-                    .join(Resume, Resume.candidate_id == CandidateModel.id)
-                    .where(Resume.text_hash == resume.text_hash)
-                )
-                existing_apps = (await db.execute(existing_apps_stmt)).scalars().all()
-                already_applied_job_ids.update(existing_apps)
-                _log.info(
-                    "run_cross_match: resume %s already applied to %d job(s): %s",
-                    resume_id, len(already_applied_job_ids), already_applied_job_ids
-                )
+            
+            _log.info(
+                "run_cross_match: Original job %s excluded. Matching against all other active jobs.",
+                original_job_id,
+            )
 
-            # Shortlist all active jobs with bi-encoder, excluding already-applied jobs
+            # 4. Fetch all other active jobs
             other_jobs = await cross_job_match_repository.get_all_active_jobs_with_embeddings(
                 db, exclude_job_id=original_job_id
             )
-            # Filter out any jobs the candidate already applied to directly
-            other_jobs = [j for j in other_jobs if j.id not in already_applied_job_ids]
+            
             if not other_jobs:
                 _log.info("run_cross_match: no other active jobs found")
                 return
-
+            
             scored = []
             for job in other_jobs:
                 job_emb = job.jd_embedding
                 if job_emb is None:
                     try:
+                        _log.info("Job %s missing embedding. Generating on demand...", job.title)
                         job_emb = embedding_service.encode_jd(build_job_text(job))
                         job.jd_embedding = job_emb
                         await db.flush()
                     except Exception as e:
-                        _log.warning("Failed to generate embedding for job %s: %s", job.id, e)
+                        _log.warning("Failed to generate embedding for job %s (%s): %s", job.title, job.id, e)
                         continue
                 bi_score = embedding_service.get_semantic_score_from_embeddings(base_embedding, job_emb)
+                _log.info("Rough bi-encoder score for %s: %f", job.title, bi_score)
                 scored.append({"job": job, "score": bi_score})
 
             # 4. Deep rerank using chunk-level similarity
-            scored.sort(key=lambda x: x["score"], reverse=True)
-            top = scored[:_SHORTLIST_N]
-
-            for item in top:
+            # No limit: we process all jobs in 'scored'
+            _log.info("Proceeding to deep-rerank and analysis for %d jobs.", len(scored))
+            
+            for item in scored:
                 job = item["job"]
                 try:
                     job_chunks = (await db.execute(
@@ -118,19 +111,22 @@ class CrossJobMatchService:
                             for r in resume_embeddings
                             for j in job_chunks
                         )
+                        _log.info("Detailed chunk-rerank score for %s: %f (prev: %f)", job.title, max_sim, item["score"])
                         item["score"] = max_sim
-                except Exception:
+                except Exception as e:
+                    _log.warning("Failed chunk-rerank for job %s: %s", job.title, e)
                     pass  # keep bi_score
 
-            # 5. Persist match records with candidate_id (no duplicate Candidate rows)
+            # 5. Persist match records for all scored jobs
             match_data = [
                 {
                     "candidate_id": orig_candidate.id,
                     "matched_job_id": item["job"].id,
                     "match_score": item["score"],
                 }
-                for item in top
+                for item in scored
             ]
+            
             await cross_job_match_repository.upsert_matches(
                 db,
                 resume_id=resume_id,
@@ -141,7 +137,7 @@ class CrossJobMatchService:
             _log.info("Stored %d cross-job matches for resume_id=%s", len(match_data), resume_id)
 
             # 5.5 Initiate hiring pipelines for all matched jobs
-            for item in top:
+            for item in scored:
                 try:
                     await candidate_stage_service.initiate_candidate_pipeline(
                         db, orig_candidate.id, item["job"].id
@@ -153,10 +149,9 @@ class CrossJobMatchService:
             # 6. Generate job-specific AI analysis for each match (reuse raw_text + chunks)
             bg_processor = BackgroundProcessor(ResumeProcessor())
             from sqlalchemy.orm.attributes import flag_modified
-            from app.v1.db.models.cross_job_matches import CrossJobMatch
             from sqlalchemy import select as sa_select
 
-            for item in top:
+            for item in scored:
                 job = item["job"]
                 try:
                     _log.info("Generating cross-match analysis for job: %s", job.title)

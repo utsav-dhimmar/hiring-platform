@@ -88,12 +88,31 @@ class CandidateAdminService:
 
         # 3. Map to responses
         responses = []
+        seen_candidate_ids = set()
+        seen_emails = set()
+        
         for c in direct_candidates:
             responses.append(self._map_candidate_to_response(c, target_job_id=job_id))
+            seen_candidate_ids.add(c.id)
+            if c.email:
+                seen_emails.add(c.email.lower().strip())
 
         for xm in cross_matches:
             if not xm.candidate:
                 continue
+            
+            # Skip if already in the list (by ID or by Email)
+            if xm.candidate_id in seen_candidate_ids:
+                continue
+            
+            cand_email = (xm.candidate.email.lower().strip() if xm.candidate.email else None)
+            if cand_email and cand_email in seen_emails:
+                continue
+
+            # Record that we've seen this candidate
+            seen_candidate_ids.add(xm.candidate_id)
+            if cand_email:
+                seen_emails.add(cand_email)
 
             # Map candidate normally
             resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id)

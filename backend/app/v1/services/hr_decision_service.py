@@ -170,19 +170,8 @@ class HRDecisionService:
 
         # Trigger cross-match in background if candidate is rejected (case-insensitive)
         if decision_data.decision.lower() == "reject":
-            from app.v1.db.models.cross_job_matches import CrossJobMatch
-
-            existing_match_count = await db.scalar(
-                select(func.count(CrossJobMatch.id)).where(
-                    CrossJobMatch.candidate_id == candidate_id
-                )
-            )
-            if existing_match_count and existing_match_count > 0:
-                logger.info(
-                    f"Skipping cross-match for {candidate_id}: Already cross-matched before."
-                )
-            else:
-                _trigger_cross_match_for_candidate(candidate)
+            logger.info(f"Decision is 'reject'. Triggering automatic cross-job discovery for candidate {candidate_id}.")
+            _trigger_cross_match_for_candidate(candidate)
 
         return HRDecisionResponse.model_validate(hr_decision)
 
@@ -277,6 +266,9 @@ class HRDecisionService:
                 )
 
         # Update decision
+        was_final_decision = decision.decision.lower() in ["approve", "reject"]
+        old_decision = decision.decision.lower()
+        
         decision.decision = decision_data.decision
         decision.notes = decision_data.notes
         if getattr(decision_data, "job_id", None):
@@ -291,7 +283,8 @@ class HRDecisionService:
         )
 
         # Trigger stage advancement in the pipeline if it hasn't happened yet
-        if decision_data.decision.lower() in ["approve", "reject"] and decision.decision.lower() not in ["approve", "reject"]:
+        # (transitioning from 'May Be' or None to 'approve'/'reject')
+        if decision_data.decision.lower() in ["approve", "reject"] and not was_final_decision:
             from app.v1.db.models.candidate_stages import CandidateStage
             from app.v1.db.models.job_stage_configs import JobStageConfig
 
@@ -313,29 +306,18 @@ class HRDecisionService:
                 await candidate_stage_service.advance_candidate(db, decision.candidate_id, cs_to_advance.id, success=success)
                 await db.commit()
 
-        # Trigger cross-match in background if candidate is rejected (case-insensitive)
-        if decision_data.decision.lower() == "reject":
-            from app.v1.db.models.cross_job_matches import CrossJobMatch
-
-            existing_match_count = await db.scalar(
-                select(func.count(CrossJobMatch.id)).where(
-                    CrossJobMatch.candidate_id == decision.candidate_id
-                )
+        # Trigger cross-match in background if candidate is now rejected and wasn't before
+        if decision_data.decision.lower() == "reject" and old_decision != "reject":
+            # We need the candidate model with resumes loaded
+            candidate_result = await db.execute(
+                select(Candidate)
+                .options(selectinload(Candidate.resumes))
+                .where(Candidate.id == decision.candidate_id)
             )
-            if existing_match_count and existing_match_count > 0:
-                logger.info(
-                    f"Skipping cross-match for {decision.candidate_id}: Already cross-matched before."
-                )
-            else:
-                # We need the candidate model with resumes loaded
-                candidate_result = await db.execute(
-                    select(Candidate)
-                    .options(selectinload(Candidate.resumes))
-                    .where(Candidate.id == decision.candidate_id)
-                )
-                candidate_to_cross_match = candidate_result.scalar_one_or_none()
-                if candidate_to_cross_match:
-                    _trigger_cross_match_for_candidate(candidate_to_cross_match)
+            candidate_to_cross_match = candidate_result.scalar_one_or_none()
+            if candidate_to_cross_match:
+                logger.info(f"Transitioned to 'reject'. Triggering automatic cross-job discovery for candidate {decision.candidate_id}.")
+                _trigger_cross_match_for_candidate(candidate_to_cross_match)
 
         return HRDecisionResponse.model_validate(decision)
 
