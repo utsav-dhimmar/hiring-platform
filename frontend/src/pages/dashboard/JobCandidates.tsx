@@ -1,21 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Input } from "@/components/";
-import { RotateCw, Info, LayoutGrid, TrendingUp } from "lucide-react";
+import { RotateCw, Info } from "lucide-react";
 import { CandidateDetailsModal, JobInfoModal, DeleteModal } from "@/components/modal";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import CandidateTable from "@/components/candidate/CandidateTable";
 import { useJobCandidates } from "@/hooks/useJobCandidates";
 import { JobCandidatesSkeleton } from "@/components/candidate/JobCandidatesSkeleton";
-import { JobCandidatesStats } from "@/components/candidate/JobCandidatesStats";
 import { JobCandidatesHeader } from "@/components/candidate/JobCandidatesHeader";
+import { JobCandidatesCharts } from "@/components/candidate/JobCandidatesCharts";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import type { CandidateAnalysis } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
-import { CandidatesDistributionChart } from "@/components/shared/BarChart";
-import { ResultPieChart } from "@/components/shared/ResultPieChart";
 import { PERMISSIONS } from "@/lib/permissions";
-import { cn } from "@/lib/utils";
 import type { PaginationState } from "@tanstack/react-table";
 
 
@@ -54,21 +51,14 @@ export default function JobCandidates() {
     isDeleting,
     deleteError,
     deleteMessage,
+    jobStats,
   } = useJobCandidates(jobSlug, pageIndex, pageSize);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<"analysis" | "jd" | "cross-job-match">("analysis");
-  const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "result">("overview");
   const [searchParams] = useSearchParams();
 
-  // Calculate pass/fail counts for the Result tab
-  const passCount = candidates.filter(c => c.pass_fail === "pass" || c.pass_fail === true).length;
-  const failCount = candidates.filter(c => c.pass_fail === "fail" || c.pass_fail === false).length;
-
-  // Use dummy data if no candidates have been processed yet (as per user request "for now use dummy data")
-  const displayPassCount = (passCount > 0 || failCount > 0) ? passCount : 12;
-  const displayFailCount = (passCount > 0 || failCount > 0) ? failCount : 8;
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -95,89 +85,12 @@ export default function JobCandidates() {
       />
 
       {/* Unified Analytics Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-1">
-
-
-          {/* Pill Toggle Switcher */}
-          <div className="flex bg-muted/50 p-1 rounded-full border border-muted-foreground/10 shadow-inner">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={cn(
-                "flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-500",
-                activeTab === "overview"
-                  ? "bg-background text-primary shadow-lg scale-100"
-                  : "text-muted-foreground hover:text-foreground scale-95"
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab("analytics")}
-              className={cn(
-                "flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-500",
-                activeTab === "analytics"
-                  ? "bg-background text-primary shadow-lg scale-100"
-                  : "text-muted-foreground hover:text-foreground scale-95"
-              )}
-            >
-              <TrendingUp className="h-3.5 w-3.5" />
-              Analytics
-            </button>
-            <button
-              onClick={() => setActiveTab("result")}
-              className={cn(
-                "flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-500",
-                activeTab === "result"
-                  ? "bg-background text-primary shadow-lg scale-100"
-                  : "text-muted-foreground hover:text-foreground scale-95"
-              )}
-            >
-              <TrendingUp className="h-3.5 w-3.5" />
-              Result
-              {/* resume screening */}
-            </button>
-          </div>
-        </div>
-
-        <div className="relative min-h-[160px]">
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-32 rounded-3xl bg-muted/30 animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className={cn(
-              "animate-in fade-in slide-in-from-bottom-2 duration-700",
-              isRefreshing && "opacity-60 transition-opacity duration-300"
-            )}>
-              {activeTab === "overview" ? (
-                <JobCandidatesStats
-                  totalCandidates={stats.totalCandidates}
-                  approveCount={stats.approveCount}
-                  rejectCount={stats.rejectCount}
-                  maybeCount={stats.maybeCount}
-                  undecidedCount={stats.undecidedCount}
-                />
-              ) : activeTab === "analytics" ? (
-                <div className="flex flex-col md:flex-row gap-8 items-center ">
-                  <div className="w-full h-[300px]">
-                    <CandidatesDistributionChart stats={stats} />
-                  </div>
-                </div>
-              ) : activeTab === "result" ? (
-                <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
-                  <div className="w-full max-w-md h-[300px]">
-                    <ResultPieChart passCount={displayPassCount} failCount={displayFailCount} />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </div>
+      <JobCandidatesCharts
+        loading={loading}
+        isRefreshing={isRefreshing}
+        stats={stats}
+        jobStats={jobStats}
+      />
 
       {/* Candidate List Section */}
       <div className="space-y-4">

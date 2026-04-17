@@ -1,6 +1,6 @@
 import client from "@/apis/client";
 import type { Job, JobTitle, JobVersionDetail, JobsListResponse } from "@/types/job";
-import type { CandidateAnalysisResponse } from "@/types/admin";
+import type { CandidateAnalysisResponse, JobStatsResponse } from "@/types/admin";
 
 type JobPayload = Record<string, unknown>;
 
@@ -167,6 +167,16 @@ const jobService = {
    */
   deleteJob: async (jobId: string): Promise<void> => {
     await client.delete(`/jobs/${jobId}`);
+  },
+
+  /**
+   * Retrieves comprehensive statistics for a specific job.
+   * @param jobId - The UUID of the job
+   * @returns Promise resolving to the job statistics
+   */
+  getJobStats: async (jobId: string): Promise<JobStatsResponse> => {
+    const response = await client.get<JobStatsResponse>(`/candidates/jobs/${jobId}/stats`);
+    return response.data;
   },
 };
 

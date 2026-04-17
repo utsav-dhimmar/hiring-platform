@@ -459,3 +459,34 @@ export interface CandidateAnalysisResponse {
   data: CandidateAnalysis[];
   total: number;
 }
+
+/**
+ * AI resume-screening pass/fail breakdown for a job.
+ */
+export interface JobResultStats {
+  passed: number;
+  failed: number;
+  pending: number;
+}
+
+/**
+ * HR decision summary for a job.
+ */
+export interface JobHRDecisionStats {
+  total_candidates: number;
+  approved: number;
+  rejected: number;
+  maybe: number;
+  pending: number;
+}
+
+/**
+ * Comprehensive statistics for a specific job.
+ */
+export interface JobStatsResponse {
+  result: JobResultStats;
+  location: Record<string, number>;
+  stages: Record<string, number>;
+  hr_decisions: JobHRDecisionStats;
+}
+

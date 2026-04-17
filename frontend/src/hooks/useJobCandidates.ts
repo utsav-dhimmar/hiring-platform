@@ -4,7 +4,7 @@ import jobService from "@/apis/job";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/error";
 import { slugify } from "@/utils/slug";
-import type { CandidateAnalysis } from "@/types/admin";
+import type { CandidateAnalysis, JobStatsResponse } from "@/types/admin";
 import type { Job } from "@/types/job";
 import { useDeleteConfirmation } from "./useDeleteConfirmation";
 import { resumeService } from "@/apis/resume";
@@ -30,6 +30,7 @@ export const useJobCandidates = (
   const [reanalyzingCandidateIds, setReanalyzingCandidateIds] = useState<string[]>([]);
   const [jdVersion, setJdVersion] = useState<number | undefined>(undefined);
   const [totalCandidates, setTotalCandidates] = useState(0);
+  const [jobStats, setJobStats] = useState<JobStatsResponse | null>(null);
   const currentJobId = useRef<string | null>(null);
   const jobStateRef = useRef<Job | null>(null);
 
@@ -79,14 +80,16 @@ export const useJobCandidates = (
           setCandidates(candidatesResponse.data || []);
           setTotalCandidates(candidatesResponse.total || 0);
         } else {
-          // Fetch job data and candidates when not polling
-          const [jobData, candidatesResponse] = await Promise.all([
+          // Fetch job data, candidates and stats when not polling
+          const [jobData, candidatesResponse, statsData] = await Promise.all([
             jobService.getJob(id),
             jobService.getJobCandidates(id, jdVersion, skip, limit, filters),
+            jobService.getJobStats(id),
           ]);
           setJob(jobData);
           setCandidates(candidatesResponse.data || []);
           setTotalCandidates(candidatesResponse.total || 0);
+          setJobStats(statsData);
         }
       } catch (error) {
         console.error("Failed to fetch job data:", error);
@@ -251,6 +254,7 @@ export const useJobCandidates = (
     handleReanalyzeAll,
     handleToggleStatus,
     needsReanalysis,
+    jobStats,
     jdVersion,
     setJdVersion,
     stats: {

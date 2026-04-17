@@ -206,3 +206,318 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
     </div>
   );
 }
+
+interface StagesBarChartProps {
+  stages: Record<string, number>;
+}
+
+export function StagesBarChart({ stages }: StagesBarChartProps) {
+  const data = Object.entries(stages).map(([name, value], index) => ({
+    name,
+    value,
+    gradientId: `gradientStage-${index}`,
+  })).filter((item) => item.name.endsWith("Round_completed") == false);
+  console.log(data)
+  const colors = [
+    ["#8b5cf6", "#7c3aed"], // Violet
+    ["#6366f1", "#4f46e5"], // Indigo
+    ["#3b82f6", "#2563eb"], // Blue
+    ["#06b6d4", "#0891b2"], // Cyan
+    ["#14b8a6", "#0d9488"], // Teal
+    ["#10b981", "#059669"], // Emerald
+  ];
+
+  if (data.length === 0) {
+    return (
+      <div className="w-full h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-3xl">
+        <div className="text-center space-y-2">
+          <p className="text-muted-foreground font-medium italic">No stage data available yet.</p>
+          <p className="text-xs text-muted-foreground/60">Upload candidates to see stage distribution.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full min-h-[300px] animate-in fade-in zoom-in-95 duration-700">
+      <ChartContainer
+        config={{
+          value: {
+            label: "Candidates",
+            color: "hsl(var(--primary))",
+          },
+        }}
+        className="h-full w-full"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 20, right: 30, left: 30, bottom: 50 }}
+            className='[&_.recharts-cartesian-grid-horizontal>line]:[stroke-dasharray:0]'
+          >
+            <defs>
+              {data.map((_, index) => (
+                <linearGradient
+                  key={`gradientStage-${index}`}
+                  id={`gradientStage-${index}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor={colors[index % colors.length][0]}
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={colors[index % colors.length][1]}
+                    stopOpacity={1}
+                  />
+                </linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid
+              vertical={false}
+              strokeDasharray="6 6"
+              stroke="var(--muted-foreground)"
+              strokeOpacity={0.5}
+            />
+            <XAxis
+              dataKey="name"
+              tickLine={false}
+              tickMargin={12}
+              axisLine={false}
+              interval={0}
+              className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground"
+            >
+              <Label
+                value="Recruitment Stages"
+                position="insideBottom"
+                offset={-25}
+                className="fill-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-wider"
+              />
+            </XAxis>
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={12}
+              className="text-[10px] sm:text-xs font-medium text-muted-foreground"
+              allowDecimals={false}
+            >
+              <Label
+                value="No. of Candidates"
+                angle={-90}
+                position="insideLeft"
+                style={{ textAnchor: "middle" }}
+                className="fill-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-wider"
+              />
+            </YAxis>
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent />}
+              formatter={(value) => (
+                <span className="text-xs">
+                  Candidates : <span className="font-bold">{value}</span>
+                </span>
+              )}
+            />
+            <Bar
+              dataKey="value"
+              radius={[10, 10, 0, 0]}
+              barSize={50}
+              animationBegin={100}
+              animationDuration={1500}
+              animationEasing="ease-out"
+              label={(props: any) => {
+                const { x, y, width, value } = props;
+                return (
+                  <text
+                    x={x + width / 2}
+                    y={y - 12}
+                    className="fill-foreground text-[10px] sm:text-xs font-bold"
+                    textAnchor="middle"
+                  >
+                    {value}
+                  </text>
+                );
+              }}
+              shape={(props: any) => {
+                const { x, y, width, height, payload } = props;
+                return (
+                  <Rectangle
+                    x={x}
+                    y={y}
+                    width={width}
+                    height={height}
+                    radius={[10, 10, 0, 0]}
+                    fill={`url(#${payload?.gradientId})`}
+                    className="transition-all duration-300 hover:opacity-80"
+                  />
+                );
+              }}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </div>
+  );
+}
+
+interface LocationBarChartProps {
+  locations: Record<string, number>;
+}
+
+export function LocationBarChart({ locations }: LocationBarChartProps) {
+  const data = Object.entries(locations).map(([name, value], index) => ({
+    name,
+    value,
+    gradientId: `gradientLocation-${index}`,
+  }));
+
+  const colors = [
+    ["#f97316", "#ea580c"], // Orange
+    ["#f59e0b", "#d97706"], // Amber
+    ["#eab308", "#ca8a04"], // Yellow
+    ["#fb923c", "#f97316"], // Light Orange
+    ["#fcd34d", "#f59e0b"], // Light Amber
+  ];
+
+  if (data.length === 0) {
+    return (
+      <div className="w-full h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-3xl">
+        <div className="text-center space-y-2">
+          <p className="text-muted-foreground font-medium italic">No location data available yet.</p>
+          <p className="text-xs text-muted-foreground/60">Candidate locations will appear here once extracted.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full min-h-[300px] animate-in fade-in zoom-in-95 duration-700">
+      <ChartContainer
+        config={{
+          value: {
+            label: "Candidates",
+            color: "hsl(var(--primary))",
+          },
+        }}
+        className="h-full w-full"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 20, right: 30, left: 30, bottom: 50 }}
+            className='[&_.recharts-cartesian-grid-horizontal>line]:[stroke-dasharray:0]'
+          >
+            <defs>
+              {data.map((_, index) => (
+                <linearGradient
+                  key={`gradientLocation-${index}`}
+                  id={`gradientLocation-${index}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor={colors[index % colors.length][0]}
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={colors[index % colors.length][1]}
+                    stopOpacity={1}
+                  />
+                </linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid
+              vertical={false}
+              strokeDasharray="6 6"
+              stroke="var(--muted-foreground)"
+              strokeOpacity={0.5}
+            />
+            <XAxis
+              dataKey="name"
+              tickLine={false}
+              tickMargin={12}
+              axisLine={false}
+              interval={0}
+              className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground"
+            >
+              <Label
+                value="Candidate Locations"
+                position="insideBottom"
+                offset={-25}
+                className="fill-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-wider"
+              />
+            </XAxis>
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={12}
+              className="text-[10px] sm:text-xs font-medium text-muted-foreground"
+              allowDecimals={false}
+            >
+              <Label
+                value="No. of Candidates"
+                angle={-90}
+                position="insideLeft"
+                style={{ textAnchor: "middle" }}
+                className="fill-muted-foreground text-[10px] sm:text-xs font-bold uppercase tracking-wider"
+              />
+            </YAxis>
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent />}
+              formatter={(value) => (
+                <span className="text-xs">
+                  Candidates : <span className="font-bold">{value}</span>
+                </span>
+              )}
+            />
+            <Bar
+              dataKey="value"
+              radius={[10, 10, 0, 0]}
+              barSize={50}
+              animationBegin={100}
+              animationDuration={1500}
+              animationEasing="ease-out"
+              label={(props: any) => {
+                const { x, y, width, value } = props;
+                return (
+                  <text
+                    x={x + width / 2}
+                    y={y - 12}
+                    className="fill-foreground text-[10px] sm:text-xs font-bold"
+                    textAnchor="middle"
+                  >
+                    {value}
+                  </text>
+                );
+              }}
+              shape={(props: any) => {
+                const { x, y, width, height, payload } = props;
+                return (
+                  <Rectangle
+                    x={x}
+                    y={y}
+                    width={width}
+                    height={height}
+                    radius={[10, 10, 0, 0]}
+                    fill={`url(#${payload?.gradientId})`}
+                    className="transition-all duration-300 hover:opacity-80"
+                  />
+                );
+              }}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </div>
+  );
+}
