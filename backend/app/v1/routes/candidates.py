@@ -20,9 +20,26 @@ from app.v1.schemas.hr_decision import (
 )
 from app.v1.services.admin_service import admin_service
 from app.v1.services.hr_decision_service import hr_decision_service
+from app.v1.schemas.job_stats import JobStatsResponse
+from app.v1.services.job_stats_service import job_stats_service
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+
 router = APIRouter()
+
+
+@router.get("/jobs/{job_id}/stats", response_model=JobStatsResponse)
+async def get_job_stats(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:access")),
+) -> Any:
+    """Get candidate aggregate statistics for a specific job."""
+    try:
+        return await job_stats_service.get_job_stats(db=db, job_id=job_id)
+    except Exception as e:
+        # Log error in real world
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/search", response_model=PaginatedData[CandidateResponse])

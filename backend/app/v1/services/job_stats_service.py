@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, select, or_, and_
+from sqlalchemy import func, select, or_, and_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.models.candidates import Candidate
@@ -91,7 +91,9 @@ class JobStatsService:
 
         # ── Cross-matched candidates: compare score vs job threshold ───────
         job = await db.get(Job, job_id)
-        threshold = float(job.passing_threshold) if job and job.passing_threshold else 65.0
+        threshold = (
+            float(job.passing_threshold) if job and job.passing_threshold else 65.0
+        )
 
         cross_passed = (
             await db.scalar(
@@ -154,22 +156,82 @@ class JobStatsService:
         self, db: AsyncSession, job_id: uuid.UUID
     ) -> dict[str, int]:
         """
-        Count how many candidates are currently placed in each named stage
-        for this job (only native candidates have CandidateStage records).
-
-        Grouping is by stage template name so human-readable stage names are returned.
-        Uses an outer join so stages with 0 candidates are included.
+        Count how many candidates are currently active in each named stage
+        for this job. A candidate is counted ONLY in their most advanced stage.
         """
-        rows = await db.execute(
-            select(StageTemplate.name, func.count(CandidateStage.id).label("cnt"))
-            .select_from(JobStageConfig)
-            .join(StageTemplate, JobStageConfig.template_id == StageTemplate.id)
-            .outerjoin(CandidateStage, JobStageConfig.id == CandidateStage.job_stage_id)
+        # 1. Subquery to find the "current" stage record ID for each candidate in this job.
+        # Logic:
+        #   - We prefer the highest order non-pending stage.
+        #   - If all are pending, we prefer the lowest order pending stage (the first stage).
+        # 1. Subquery to find the most advanced non-pending stage for each candidate,
+        # or their first stage if all are pending/new.
+        # We use a subquery to find the "best order" to prioritize non-pending over pending.
+        best_order_subq = (
+            select(
+                CandidateStage.candidate_id,
+                func.coalesce(
+                    func.max(
+                        case(
+                            (
+                                CandidateStage.status != "pending",
+                                JobStageConfig.stage_order,
+                            ),
+                            else_=None,
+                        )
+                    ),
+                    func.min(JobStageConfig.stage_order),
+                ).label("best_order"),
+            )
+            .join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
             .where(JobStageConfig.job_id == job_id)
-            .group_by(StageTemplate.name, JobStageConfig.stage_order)
+            .group_by(CandidateStage.candidate_id)
+            .subquery()
+        )
+
+        # 2. Fetch the stage records matching that best order
+        # We use DISTINCT ON (candidate_id) to handle potential duplicate records if they exist
+        stmt = (
+            select(StageTemplate.name, CandidateStage.status)
+            .distinct(CandidateStage.candidate_id)
+            .join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
+            .join(StageTemplate, JobStageConfig.template_id == StageTemplate.id)
+            .join(
+                best_order_subq,
+                and_(
+                    best_order_subq.c.candidate_id == CandidateStage.candidate_id,
+                    best_order_subq.c.best_order == JobStageConfig.stage_order,
+                ),
+            )
+            .where(JobStageConfig.job_id == job_id)
+            .order_by(CandidateStage.candidate_id, CandidateStage.started_at.desc())
+        )
+
+        rows = await db.execute(stmt)
+
+        # 3. Build the flat result dictionary
+        # Initialize all stages with 0 for both active and completed
+        all_stages_res = await db.execute(
+            select(StageTemplate.name)
+            .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+            .where(JobStageConfig.job_id == job_id)
             .order_by(JobStageConfig.stage_order)
         )
-        return {row.name: row.cnt for row in rows.all()}
+
+        final_stats: dict[str, int] = {}
+        for name in all_stages_res.scalars().all():
+            final_stats[name] = 0
+            final_stats[f"{name}_completed"] = 0
+
+        # 4. Fill with actual counts
+        for name, status in rows.all():
+            is_active = status in ("pending", "active")
+            key = name if is_active else f"{name}_completed"
+            if key in final_stats:
+                final_stats[key] += 1
+            else:
+                final_stats[key] = 1  # Fallback for unexpected stages
+
+        return final_stats
 
     async def _get_hr_decision_stats(
         self, db: AsyncSession, job_id: uuid.UUID
