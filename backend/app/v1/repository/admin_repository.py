@@ -542,7 +542,9 @@ class AdminRepository:
         active_jobs = (
             await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0
         )
-        total_candidates = await db.scalar(select(func.count(Candidate.id))) or 0
+        total_candidates_native = await db.scalar(select(func.count(Candidate.id))) or 0
+        total_candidates_matched = await db.scalar(select(func.count(CrossJobMatch.id))) or 0
+        total_candidates = total_candidates_native + total_candidates_matched
 
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         resumes_last_30_days = (

@@ -66,12 +66,12 @@ const AdminDashboard = () => {
             loading={loading}
           />
           {/* <StatCard
-            label="Passed"
+            label="Pass"
             value={report?.total_passed ?? 0}
             loading={loading}
           /> */}
           {/* <StatCard
-            label="Failed"
+            label="Fail"
             value={report?.total_failed ?? 0}
             loading={loading}
           /> */}
@@ -81,7 +81,7 @@ const AdminDashboard = () => {
             loading={loading}
           /> */}
           {/* <StatCard
-            label="Unprocessed"
+            label="Unprocess"
             value={report?.total_unprocessed ?? 0}
             loading={loading}
           /> */}

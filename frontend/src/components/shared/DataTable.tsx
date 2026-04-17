@@ -36,7 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-
+import { Separator } from "@/components/ui/separator";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -57,6 +57,9 @@ interface DataTableProps<TData, TValue> {
   searchValue?: string;
   emptyMessage?: string;
   totalRecords?: number;
+  totalCount?: number;
+  resultCount?: number;
+  entityName?: string;
 }
 
 
@@ -78,6 +81,9 @@ export function DataTable<TData, TValue>({
   searchValue,
   emptyMessage = "No results.",
   totalRecords,
+  totalCount,
+  resultCount,
+  entityName,
 }: DataTableProps<TData, TValue>) {
 
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -165,18 +171,31 @@ export function DataTable<TData, TValue>({
               </div>
             )}
           </div>
-          {(headerActions || totalRecords !== undefined) && (
+          {(headerActions || totalRecords !== undefined || (totalCount !== undefined && resultCount !== undefined)) && (
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
               {headerActions}
-              {totalRecords !== undefined && (
+              {(totalRecords !== undefined || (totalCount !== undefined && resultCount !== undefined)) && (
                 <div className="flex items-center gap-2 ml-auto sm:ml-0">
-                  <Badge
-                    variant="secondary"
-                    className="h-9 px-4 rounded-xl text-xs font-semibold bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-all flex items-center gap-1.5"
-                  >
-                    <span className="font-medium">Total:</span>
-                    <span className="font-semibold">{totalRecords.toLocaleString()}</span>
-                  </Badge>
+                  {entityName ? (
+                    <div className="text-xs font-medium flex items-center gap-2 justify-self-center px-2">
+                      <span className="text-muted-foreground mr-1">Total</span> 
+                      <span className="font-bold">{totalCount ?? totalRecords}</span> {entityName}
+                      {(resultCount !== undefined || searchValue) && (
+                        <>
+                          <Separator orientation="vertical" className="h-4 bg-gray-700 dark:bg-gray-300" />
+                          <span className="font-bold">{resultCount ?? totalRecords}</span> {entityName} found
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <Badge
+                      variant="secondary"
+                      className="h-9 px-4 rounded-xl text-xs font-semibold bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-all flex items-center gap-1.5"
+                    >
+                      <span className="font-medium">Total:</span>
+                      <span className="font-semibold">{(totalRecords ?? resultCount ?? 0).toLocaleString()}</span>
+                    </Badge>
+                  )}
                 </div>
               )}
             </div>

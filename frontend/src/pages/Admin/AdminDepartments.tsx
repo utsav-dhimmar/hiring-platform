@@ -61,8 +61,12 @@ const AdminDepartments = () => {
     fetchDepartments();
   }, [pageIndex, pageSize, fetchDepartments, debouncedSearch]);
 
-
-
+  const [overallTotal, setOverallTotal] = useState(0);
+  useEffect(() => {
+    if (!debouncedSearch) {
+      setOverallTotal(total);
+    }
+  }, [total, debouncedSearch]);
 
   const [_deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -235,6 +239,9 @@ const AdminDepartments = () => {
           pageCount={Math.ceil(total / pageSize)}
           onPaginationChange={setPagination}
           totalRecords={total}
+          totalCount={overallTotal}
+          resultCount={departments.length}
+          entityName="Departments"
         />
 
       )}

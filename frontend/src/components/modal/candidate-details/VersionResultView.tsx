@@ -92,18 +92,18 @@ export function VersionResultView({
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2.5 sm:px-1.5 sm:pr-6">
+        <div className="space-y-0.5">
           <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2">
             <History className="h-5 w-5 text-primary" />
             JD Version Result
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground leading-none">
             Historical screening performance for this candidate.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-muted/40 p-2 rounded-xl border border-muted-foreground/10 px-4">
+        <div className="flex items-center gap-3 bg-muted/40 p-1.5 rounded-xl border border-muted-foreground/10 px-3.5 sm:mr-1">
           <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider whitespace-nowrap">
             Select Version:
           </span>
@@ -111,7 +111,7 @@ export function VersionResultView({
             value={selectedVersion}
             onValueChange={(val) => val && setSelectedVersion(val)}
           >
-            <SelectTrigger className="w-[100px] rounded-lg border-muted-foreground/5 h-8 text-xs font-bold shadow-none bg-background">
+            <SelectTrigger className="w-fit min-w-[100px] rounded-lg border-muted-foreground/5 h-8 text-xs font-bold shadow-none bg-background gap-2">
               <SelectValue placeholder="Version" />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-muted-foreground/10">

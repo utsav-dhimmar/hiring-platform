@@ -25,7 +25,7 @@ interface CrossMatchViewProps {
 /**
  * CrossMatchView Component
  * 
- * Displays and manages the "Discovery (Cross-Job Match)" feature.
+ * Displays and manages the "Cross-Job Match" feature.
  * Allows triggering a background matching process and polls for results.
  */
 export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
@@ -51,7 +51,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
         if (hasNewMatches) {
           setIsDiscovering(false);
           setStartTime(null);
-          toast.success("Discovery complete! Found potential matches.");
+          toast.success("Cross Job Match complete! Found potential matches.");
         }
       }
     } catch (error) {
@@ -95,10 +95,10 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     setStartTime(Date.now());
     try {
       await crossMatchApi.triggerCrossMatch(resumeId);
-      toast.info("Discovery triggered. Scanning all active jobs...");
+      toast.info("Cross Job Match triggered. Scanning all active jobs...");
     } catch (error) {
       const errorMessage = extractErrorMessage(error)
-      toast.error(errorMessage || "Failed to trigger discovery.");
+      toast.error(errorMessage || "Failed to trigger Cross Job Match.");
       setIsDiscovering(false);
       setStartTime(null);
     }
@@ -129,32 +129,30 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2.5 sm:px-1.5 sm:pr-6">
+        <div className="space-y-0.5">
           <h3 className="text-lg font-bold flex items-center gap-2">
             <Compass className="h-5 w-5 text-primary" />
             Cross Job Match
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground leading-tight">
             Identify matches for this candidate across other open active positions.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:mr-1">
           <Select
             value={statusFilter}
             onValueChange={(value) => value && setStatusFilter(value)}
           >
             <SelectTrigger className="w-[110px] h-10 rounded-xl" size="sm">
-              {/* <Filter className="mr-2 h-3.5 w-3.5" /> */}
               <SelectValue placeholder="Filter">
-                {/* {statusFilter === "all" ? "All Results" : capitalize(statusFilter)} */}
                 {capitalize(statusFilter)}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="" align="end">
               <SelectItem value="all">All Results</SelectItem>
-              <SelectItem value="passed">Passed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="passed">Pass</SelectItem>
+              <SelectItem value="failed">Fail</SelectItem>
             </SelectContent>
           </Select>
 
@@ -234,7 +232,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
                           }
                       `}
                       >
-                        {match.match_score >= (match.matched_job?.passing_threshold ?? 65) ? "PASSED" : "FAILED"}
+                        {match.match_score >= (match.matched_job?.passing_threshold ?? 65) ? "PASS" : "FAIL"}
                       </Badge>
                     </div>
                   </div>

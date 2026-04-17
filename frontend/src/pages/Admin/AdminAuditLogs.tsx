@@ -39,6 +39,13 @@ const AdminAuditLogs = () => {
     fetchData();
   }, [pageIndex, pageSize, searchValue, fetchData]);
 
+  const [overallTotal, setOverallTotal] = useState(0);
+  useEffect(() => {
+    if (!searchValue) {
+      setOverallTotal(total);
+    }
+  }, [total, searchValue]);
+
   // Handle search with pagination reset
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
@@ -126,6 +133,9 @@ const AdminAuditLogs = () => {
           isServerSide={true}
           pageCount={Math.ceil(total / pageSize)}
           totalRecords={total}
+          totalCount={overallTotal}
+          resultCount={logs.length}
+          entityName="Logs"
         />
 
       )}

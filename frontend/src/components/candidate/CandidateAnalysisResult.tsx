@@ -125,7 +125,7 @@ const CandidateAnalysisResult = ({ candidate }: CandidateAnalysisResultProps) =>
               <h6 className="text-primary font-bold mb-0">Status Note</h6>
             </div>
             <p className="mb-0 text-primary/80">
-              Candidate passed the initial screening with a match score of{" "}
+              Candidate pass the initial screening with a match score of{" "}
               <strong>{candidate.resume_score?.toFixed(1)}%</strong>.
             </p>
           </div>

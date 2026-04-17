@@ -324,7 +324,7 @@ export const CandidateTableFilters = ({
           >
             <span className="truncate mr-auto">
               {resumeScreeningFilter.length === 0
-                ? "Resume Screening"
+                ? "Result"
                 : resumeScreeningFilter.length === 1
                   ? [{ v: "pass", l: "Pass" }, { v: "fail", l: "Fail" }].find((d) => d.v === resumeScreeningFilter[0])?.l
                   : `${resumeScreeningFilter.length} selected`}
@@ -333,7 +333,7 @@ export const CandidateTableFilters = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-[160px]">
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Resume Screening</DropdownMenuLabel>
+              <DropdownMenuLabel>Result</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {[
                 { value: "pass", label: "Pass" },

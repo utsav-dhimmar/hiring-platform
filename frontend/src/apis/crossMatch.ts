@@ -2,7 +2,7 @@ import client from "@/apis/client";
 import type { CrossJobMatchResponse } from "@/types/crossMatch";
 
 /**
- * API service for Cross-Job Match (Discovery) operations.
+ * API service for Cross-Job Match operations.
  */
 export const crossMatchApi = {
   /**

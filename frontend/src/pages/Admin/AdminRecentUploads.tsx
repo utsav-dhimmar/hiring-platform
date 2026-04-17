@@ -51,6 +51,13 @@ const AdminRecentUploads = () => {
     fetchData();
   }, [pageIndex, pageSize, searchValue, fetchData]);
 
+  const [overallTotal, setOverallTotal] = useState(0);
+  useEffect(() => {
+    if (!searchValue) {
+      setOverallTotal(total);
+    }
+  }, [total, searchValue]);
+
   // Handle search with pagination reset
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
@@ -153,6 +160,9 @@ const AdminRecentUploads = () => {
           isServerSide={true}
           pageCount={Math.ceil(total / pageSize)}
           totalRecords={total}
+          totalCount={overallTotal}
+          resultCount={uploads.length}
+          entityName="Uploads"
           tableActions={
 
             <div className="flex items-center gap-2">

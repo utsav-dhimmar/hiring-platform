@@ -13,6 +13,7 @@ import PermissionGuard from "@/components/auth/PermissionGuard";
 import type { CandidateAnalysis } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import { CandidatesDistributionChart } from "@/components/shared/BarChart";
+import { ResultPieChart } from "@/components/shared/ResultPieChart";
 import { PERMISSIONS } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import type { PaginationState } from "@tanstack/react-table";
@@ -58,8 +59,16 @@ export default function JobCandidates() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<"analysis" | "jd" | "cross-job-match">("analysis");
-  const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "result">("overview");
   const [searchParams] = useSearchParams();
+
+  // Calculate pass/fail counts for the Result tab
+  const passCount = candidates.filter(c => c.pass_fail === "pass" || c.pass_fail === true).length;
+  const failCount = candidates.filter(c => c.pass_fail === "fail" || c.pass_fail === false).length;
+
+  // Use dummy data if no candidates have been processed yet (as per user request "for now use dummy data")
+  const displayPassCount = (passCount > 0 || failCount > 0) ? passCount : 12;
+  const displayFailCount = (passCount > 0 || failCount > 0) ? failCount : 8;
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -116,6 +125,19 @@ export default function JobCandidates() {
               <TrendingUp className="h-3.5 w-3.5" />
               Analytics
             </button>
+            <button
+              onClick={() => setActiveTab("result")}
+              className={cn(
+                "flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-500",
+                activeTab === "result"
+                  ? "bg-background text-primary shadow-lg scale-100"
+                  : "text-muted-foreground hover:text-foreground scale-95"
+              )}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              Result
+              {/* resume screening */}
+            </button>
           </div>
         </div>
 
@@ -139,14 +161,19 @@ export default function JobCandidates() {
                   maybeCount={stats.maybeCount}
                   undecidedCount={stats.undecidedCount}
                 />
-              ) : (
-
+              ) : activeTab === "analytics" ? (
                 <div className="flex flex-col md:flex-row gap-8 items-center ">
                   <div className="w-full h-[300px]">
                     <CandidatesDistributionChart stats={stats} />
                   </div>
                 </div>
-              )}
+              ) : activeTab === "result" ? (
+                <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+                  <div className="w-full max-w-md h-[300px]">
+                    <ResultPieChart passCount={displayPassCount} failCount={displayFailCount} />
+                  </div>
+                </div>
+              ) : null}
             </div>
           )}
         </div>
