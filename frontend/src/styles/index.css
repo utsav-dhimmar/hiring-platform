@@ -122,12 +122,14 @@
     @apply border-border outline-ring/50;
   }
 
-  body {
-    @apply bg-background text-foreground text-2xl leading-relaxed;
+  html {
+    /* Fluid root: 16px @ ≤1280px → 24px @ 3840px — scales all rem-based UI */
+    font-size: clamp(1rem, 0.75rem + 0.3125vw, 1.5rem);
+    @apply font-sans;
   }
 
-  html {
-    @apply font-sans;
+  body {
+    @apply bg-background text-foreground text-2xl leading-relaxed;
   }
 }
 
