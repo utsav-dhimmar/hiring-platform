@@ -299,30 +299,6 @@ class JobAdminService:
 
         return JobRead.model_validate(updated_job)
 
-    async def update_job_status(
-        self,
-        db: AsyncSession,
-        admin_user_id: uuid.UUID,
-        job_id: uuid.UUID,
-        status_in: JobStatusUpdate,
-    ) -> Job:
-        """Update only the active status of a job (Enable/Disable)."""
-        await self.get_job_by_id(db=db, job_id=job_id)
-
-        # Bypasses the edit lock as this is a specific status update API
-        updated_job = await job_repository.update(
-            db=db, id=job_id, object=JobUpdate(is_active=status_in.is_active)
-        )
-
-        await audit_service.log_action(
-            db=db,
-            user_id=admin_user_id,
-            action="update_job_status",
-            target_type="job",
-            target_id=job_id,
-            details={"is_active": status_in.is_active},
-        )
-        return updated_job
 
     async def delete_job(
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_id: uuid.UUID
@@ -378,7 +354,7 @@ class JobAdminService:
             A dictionary with 'total_candidates', 'current_session_count', 
             and 'sessions' (list of JobActivitySession).
         """
-        from sqlalchemy import select, and_, func, or_
+        from sqlalchemy import select, and_, func, or_, case, Text
         from app.v1.db.models.audit_logs import AuditLog
         from app.v1.db.models.candidates import Candidate
         from app.v1.db.models.cross_job_matches import CrossJobMatch
@@ -391,18 +367,18 @@ class JobAdminService:
                 detail="Job not found.",
             )
 
-        # 2. Get total candidates (Native Applied + AI Cross-matched)
-        native_count_stmt = select(func.count(Candidate.id)).where(
-            Candidate.applied_job_id == job_id
+        # 2. Get total unique candidates for this job (Native OR Cross, deduplicated by email)
+        total_unique_stmt = select(
+            func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
+        ).where(
+            or_(
+                Candidate.applied_job_id == job_id,
+                Candidate.id.in_(
+                    select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                )
+            )
         )
-        matched_count_stmt = select(func.count(CrossJobMatch.id)).where(
-            CrossJobMatch.matched_job_id == job_id
-        )
-        
-        native_res = await db.execute(native_count_stmt)
-        matched_res = await db.execute(matched_count_stmt)
-        
-        total_candidates = (native_res.scalar() or 0) + (matched_res.scalar() or 0)
+        total_candidates = await db.scalar(total_unique_stmt) or 0
 
         # 3. Get status update audit logs
         stmt = (
@@ -469,30 +445,36 @@ class JobAdminService:
             if not include_sessions and not s["is_current"]:
                 continue
 
-            # Count native applicants in this session
-            native_stmt = select(func.count(Candidate.id)).where(
-                and_(
-                    Candidate.applied_job_id == job_id,
-                    Candidate.created_at >= s["start_date"],
+            # Build conditions dynamically to handle None end_dates
+            conditions = [
+                or_(
+                    and_(Candidate.applied_job_id == job_id, Candidate.created_at >= s["start_date"]),
+                    Candidate.id.in_(
+                        select(CrossJobMatch.candidate_id).where(
+                            and_(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.created_at >= s["start_date"])
+                        )
+                    )
                 )
-            )
-            if s["end_date"]:
-                native_stmt = native_stmt.where(Candidate.created_at <= s["end_date"])
-
-            # Count AI cross-matches in this session
-            matched_stmt = select(func.count(CrossJobMatch.id)).where(
-                and_(
-                    CrossJobMatch.matched_job_id == job_id,
-                    CrossJobMatch.created_at >= s["start_date"],
-                )
-            )
-            if s["end_date"]:
-                matched_stmt = matched_stmt.where(CrossJobMatch.created_at <= s["end_date"])
-
-            native_res = await db.execute(native_stmt)
-            matched_res = await db.execute(matched_stmt)
+            ]
             
-            count_val = (native_res.scalar() or 0) + (matched_res.scalar() or 0)
+            if s.get("end_date") is not None:
+                conditions.append(
+                    or_(
+                        and_(Candidate.applied_job_id == job_id, Candidate.created_at <= s["end_date"]),
+                        Candidate.id.in_(
+                            select(CrossJobMatch.candidate_id).where(
+                                and_(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.created_at <= s["end_date"])
+                            )
+                        )
+                    )
+                )
+
+            session_unique_stmt = select(
+                func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
+            ).where(and_(*conditions))
+            
+            # Simplified session counting for accuracy
+            count_val = await db.scalar(session_unique_stmt) or 0
             s["candidate_count"] = count_val
             
             if s["is_current"]:

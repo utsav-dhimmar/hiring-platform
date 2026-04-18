@@ -8,7 +8,7 @@ role management, permission management, audit logs, and analytics reporting.
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, desc, func, or_, select
+from sqlalchemy import and_, desc, func, or_, select, case, Text
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -419,110 +419,89 @@ class AdminRepository:
         @param db - Database session
         @returns Dictionary containing total counts for users, roles, permissions, jobs, candidates, resumes, and active counts
         """
-        total_users = await db.scalar(select(func.count(User.id)))
-        total_roles = await db.scalar(select(func.count(Role.id)))
-        total_permissions = await db.scalar(select(func.count(Permission.id)))
-        total_jobs = await db.scalar(select(func.count(Job.id)))
-        total_candidates_native = await db.scalar(select(func.count(Candidate.id))) or 0
-        total_candidates_matched = await db.scalar(select(func.count(CrossJobMatch.id))) or 0
-        total_candidates = total_candidates_native + total_candidates_matched
-        
-        total_resumes = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail.isnot(None))
-            )
-            or 0
-        )
-        active_jobs = await db.scalar(select(func.count(Job.id)).where(Job.is_active))
-        active_users = await db.scalar(
-            select(func.count(User.id)).where(User.is_active)
-        )
+        # Core counts
+        total_users = await db.scalar(select(func.count(User.id))) or 0
+        total_roles = await db.scalar(select(func.count(Role.id))) or 0
+        total_permissions = await db.scalar(select(func.count(Permission.id))) or 0
+        total_jobs = await db.scalar(select(func.count(Job.id))) or 0
+        active_jobs = await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0
+        active_users = await db.scalar(select(func.count(User.id)).where(User.is_active)) or 0
 
-        # AI Screening Stats from Resumes
-        total_passed = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail.ilike("passed"))
+        # 1. Total Unique Candidates (by email, fall back to ID)
+        total_unique_stmt = select(
+            func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
+        ).select_from(Candidate)
+        total_candidates = await db.scalar(total_unique_stmt) or 0
+        
+        # 2. Screening Stats - Deduplicated globally
+        unique_screening_subq = (
+            select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                Resume.pass_fail
             )
-            or 0
-        )
-        total_failed = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail.ilike("failed"))
+            .join(Resume, Resume.candidate_id == Candidate.id)
+            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+            .order_by(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                case((Resume.pass_fail == "passed", 0), (Resume.pass_fail == "pending", 1), else_=2)
             )
-            or 0
+            .subquery()
         )
-        total_pending = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(
-                    or_(
-                        and_(Resume.parsed.is_(True), Resume.pass_fail.is_(None)),
-                        Resume.pass_fail.ilike("pending")
-                    )
-                )
-            )
-            or 0
+        
+        screening_res = await db.execute(
+            select(unique_screening_subq.c.pass_fail, func.count()).group_by(unique_screening_subq.c.pass_fail)
         )
+        counts = {row[0]: row[1] for row in screening_res.all()}
+        
+        total_passed = counts.get("passed", 0)
+        total_failed = counts.get("failed", 0)
+        total_pending = counts.get("pending", 0)
+        total_resumes = total_passed + total_failed + total_pending
+
         total_unprocessed = (
             await db.scalar(
-                select(func.count(Resume.id)).where(Resume.parsed.is_(False))
+                select(func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
+                .join(Resume, Resume.candidate_id == Candidate.id)
+                .where(Resume.parsed.is_(False))
             )
             or 0
         )
 
-        # Subquery to pick only the most recent decision for each candidate
+        # 3. HR Decisions - Deduplicated globally
         latest_decisions_stmt = (
-            select(HrDecision.candidate_id, HrDecision.decision)
-            .distinct(HrDecision.candidate_id)
-            .order_by(HrDecision.candidate_id, desc(HrDecision.decided_at))
+            select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                HrDecision.decision
+            )
+            .join(HrDecision, HrDecision.candidate_id == Candidate.id)
+            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+            .order_by(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)), desc(HrDecision.decided_at))
         ).subquery()
 
-        # Mutually exclusive counts based on LATEST decision
-        approved_count = (
-            await db.scalar(
-                select(func.count())
-                .select_from(latest_decisions_stmt)
-                .where(latest_decisions_stmt.c.decision == "approve")
-            )
-            or 0
+        decision_rows = await db.execute(
+            select(latest_decisions_stmt.c.decision, func.count()).group_by(latest_decisions_stmt.c.decision)
         )
-        maybe_count = (
-            await db.scalar(
-                select(func.count())
-                .select_from(latest_decisions_stmt)
-                .where(latest_decisions_stmt.c.decision == "May Be")
-            )
-            or 0
-        )
-        reject_count = (
-            await db.scalar(
-                select(func.count())
-                .select_from(latest_decisions_stmt)
-                .where(latest_decisions_stmt.c.decision == "reject")
-            )
-            or 0
-        )
-
-        # Unique candidates with any decision
-        hr_decision_count = (
-            await db.scalar(select(func.count()).select_from(latest_decisions_stmt))
-            or 0
-        )
-
-        pending_decision_count = max(0, (total_candidates or 0) - hr_decision_count)
+        decision_counts = {row[0]: row[1] for row in decision_rows.all()}
+        
+        approved_count = decision_counts.get("approve", 0)
+        maybe_count = decision_counts.get("May Be", 0)
+        reject_count = decision_counts.get("reject", 0)
+        hr_decision_count = approved_count + maybe_count + reject_count
+        pending_decision_count = max(0, total_candidates - hr_decision_count)
 
         return {
-            "total_users": total_users or 0,
-            "total_roles": total_roles or 0,
-            "total_permissions": total_permissions or 0,
-            "total_jobs": total_jobs or 0,
-            "total_candidates": total_candidates or 0,
-            "total_resumes": total_resumes or 0,
+            "total_users": total_users,
+            "total_roles": total_roles,
+            "total_permissions": total_permissions,
+            "total_jobs": total_jobs,
+            "total_candidates": total_candidates,
+            "total_resumes": total_resumes,
             "total_passed": total_passed,
             "total_failed": total_failed,
             "total_pending": total_pending,
             "total_unprocessed": total_unprocessed,
-            "active_jobs": active_jobs or 0,
-            "active_users": active_users or 0,
+            "active_jobs": active_jobs,
+            "active_users": active_users,
             "approved_count": approved_count,
             "maybe_count": maybe_count,
             "reject_count": reject_count,
@@ -533,23 +512,20 @@ class AdminRepository:
     async def get_hiring_report(self, db: AsyncSession) -> dict:
         """
         Get detailed hiring analytics report.
-
-        @param db - Database session
-        @returns Dictionary with job statistics, candidate counts, resume metrics, and pass rates
-        @throws ValueError if database query fails
         """
         total_jobs = await db.scalar(select(func.count(Job.id))) or 0
-        active_jobs = (
-            await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0
-        )
-        total_candidates = await db.scalar(select(func.count(Candidate.id))) or 0
+        active_jobs = (await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0)
+        
+        total_candidates = await db.scalar(
+            select(func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
+        ) or 0
 
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         resumes_last_30_days = (
             await db.scalar(
-                select(func.count(Resume.id)).where(
-                    Resume.uploaded_at >= thirty_days_ago
-                )
+                select(func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
+                .join(Resume, Resume.candidate_id == Candidate.id)
+                .where(Resume.uploaded_at >= thirty_days_ago)
             )
             or 0
         )
@@ -558,43 +534,12 @@ class AdminRepository:
             select(func.avg(Resume.resume_score)).where(Resume.resume_score.isnot(None))
         )
 
-        # AI Screening Stats from Resumes
-        total_passed = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail.ilike("passed"))
-            )
-            or 0
-        )
-        total_failed = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(Resume.pass_fail.ilike("failed"))
-            )
-            or 0
-        )
-        total_pending = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(
-                    or_(
-                        and_(Resume.parsed.is_(True), Resume.pass_fail.is_(None)),
-                        Resume.pass_fail.ilike("pending")
-                    )
-                )
-            )
-            or 0
-        )
-        total_unprocessed = (
-            await db.scalar(
-                select(func.count(Resume.id)).where(Resume.parsed.is_(False))
-            )
-            or 0
-        )
-
-        # HR Decisions and Pending stats (using the consolidated HrDecision table)
-        hr_decided_count = (
-            await db.scalar(select(func.count(func.distinct(HrDecision.candidate_id))))
-            or 0
-        )
-        pending_count = max(0, total_candidates - hr_decided_count)
+        # Reuse screening stats logic
+        analytics = await self.get_analytics_summary(db)
+        
+        # HR Decisions (Deduplicated by email)
+        hr_decided_count = analytics["hr_decision_count"]
+        pending_count = analytics["pending_decision_count"]
 
         jobs_result = await db.execute(
             select(Job).order_by(Job.created_at.desc()).limit(20)
@@ -603,29 +548,24 @@ class AdminRepository:
 
         candidates_by_job = []
         for job in jobs:
-            native_count = (
-                await db.scalar(
-                    select(func.count(Candidate.id)).where(
-                        Candidate.applied_job_id == job.id
+            job_unique_stmt = select(
+                func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
+            ).where(
+                or_(
+                    Candidate.applied_job_id == job.id,
+                    Candidate.id.in_(
+                        select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job.id)
                     )
                 )
-                or 0
             )
-            matched_count = (
-                await db.scalar(
-                    select(func.count(CrossJobMatch.id)).where(
-                        CrossJobMatch.matched_job_id == job.id
-                    )
-                )
-                or 0
-            )
+            job_candidate_count = await db.scalar(job_unique_stmt) or 0
             
             candidates_by_job.append(
                 {
                     "job_id": str(job.id),
                     "job_title": job.title,
                     "department": job.department.name if job.department else None,
-                    "candidate_count": native_count + matched_count,
+                    "candidate_count": job_candidate_count,
                 }
             )
 
@@ -633,10 +573,10 @@ class AdminRepository:
             "total_jobs": total_jobs,
             "active_jobs": active_jobs,
             "total_candidates": total_candidates,
-            "total_passed": total_passed,
-            "total_failed": total_failed,
-            "total_pending": total_pending,
-            "total_unprocessed": total_unprocessed,
+            "total_passed": analytics["total_passed"],
+            "total_failed": analytics["total_failed"],
+            "total_pending": analytics["total_pending"],
+            "total_unprocessed": analytics["total_unprocessed"],
             "candidates_by_job": candidates_by_job,
             "resumes_uploaded_last_30_days": resumes_last_30_days,
             "average_resume_score": float(avg_score) if avg_score else None,

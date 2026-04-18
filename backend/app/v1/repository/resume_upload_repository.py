@@ -331,7 +331,7 @@ class ResumeUploadRepository:
         if location is not None:
             # Normalize and get-or-create Location row
             loc_name = location.strip().title()
-            if loc_name and loc_name.lower() not in ("not mentioned", "null", "none"):
+            if loc_name and loc_name.lower() not in ("not mentioned", "null", "none", "unknown", "n/a"):
                 loc_obj = await db.scalar(
                     select(Location).where(func.lower(Location.name) == loc_name.lower())
                 )

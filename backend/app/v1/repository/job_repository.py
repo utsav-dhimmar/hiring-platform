@@ -5,7 +5,7 @@ Repository for job-related database operations.
 import uuid
 from typing import Any
 
-from sqlalchemy import delete, func, insert, select
+from sqlalchemy import delete, func, insert, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,6 +19,7 @@ from app.v1.db.models.interviews import Interview
 from app.v1.db.models.job_chunks import JobChunk
 from app.v1.db.models.job_skills import job_skills
 from app.v1.db.models.job_stage_configs import JobStageConfig
+from app.v1.db.models.candidate_stages import CandidateStage
 from app.v1.db.models.jobs import Job
 from app.v1.db.models.recordings import Recording
 from app.v1.db.models.resume_chunks import ResumeChunk
@@ -247,6 +248,17 @@ class JobRepository:
                 (HrDecision.job_id == id) | (HrDecision.candidate_id.in_(candidate_ids_subquery))
             )
         )
+        
+        # Explicitly clear CandidateStage records to satisfy FK constraints
+        await db.execute(delete(CandidateStage).where(CandidateStage.candidate_id.in_(candidate_ids_subquery)))
+        
+        # Clean up legacy/ghost table that might still have FKs to candidates
+        try:
+            await db.execute(text("DELETE FROM resume_screening_decisions WHERE candidate_id IN (SELECT id FROM candidates WHERE applied_job_id = :job_id)"), {"job_id": id})
+        except Exception:
+            # Table might not exist in all environments, safe to skip if it fails
+            pass
+
         await db.execute(delete(CoverLetter).where(CoverLetter.candidate_id.in_(candidate_ids_subquery)))
         await db.execute(
             delete(candidate_skills).where(

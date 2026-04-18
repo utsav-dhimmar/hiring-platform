@@ -20,25 +20,38 @@ from app.v1.schemas.hr_decision import (
 )
 from app.v1.services.admin_service import admin_service
 from app.v1.services.hr_decision_service import hr_decision_service
-from app.v1.schemas.job_stats import JobStatsResponse
 from app.v1.services.job_stats_service import job_stats_service
+from app.v1.schemas.job_stats import JobStatsResponse
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
 
-@router.get("/jobs/{job_id}/stats", response_model=JobStatsResponse)
+@router.get(
+    "/jobs/{job_id}/stats",
+    response_model=JobStatsResponse,
+    tags=["Job Stats"],
+    summary="Get comprehensive stats for a specific job",
+)
 async def get_job_stats(
     job_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
-) -> Any:
-    """Get candidate aggregate statistics for a specific job."""
+) -> JobStatsResponse:
+    """
+    Returns a full stats breakdown for a job:
+      - result: AI screening pass / fail / pending counts (native + cross-matched)
+      - location: candidate count grouped by city/location
+      - stages: candidate count grouped by hiring pipeline stage name
+      - hr_decisions: HR decision summary (total, approved, rejected, maybe, pending)
+    """
     try:
         return await job_stats_service.get_job_stats(db=db, job_id=job_id)
     except Exception as e:
-        # Log error in real world
+        print(f"Error in get_job_stats: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
@@ -202,34 +215,3 @@ async def update_candidate_decision(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Job Stats Endpoint  -  NEW, completely isolated
-# GET /api/v1/candidates/jobs/{job_id}/stats
-# ─────────────────────────────────────────────────────────────────────────────
-
-from app.v1.services.job_stats_service import job_stats_service
-from app.v1.schemas.job_stats import JobStatsResponse
-
-
-@router.get(
-    "/jobs/{job_id}/stats",
-    response_model=JobStatsResponse,
-    tags=["Job Stats"],
-    summary="Get comprehensive stats for a specific job",
-)
-async def get_job_stats(
-    job_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    user: UserRead = Depends(check_permission("candidates:access")),
-) -> JobStatsResponse:
-    """
-    Returns a full stats breakdown for a job:
-      - result: AI screening pass / fail / pending counts (native + cross-matched)
-      - location: candidate count grouped by city/location
-      - stages: candidate count grouped by hiring pipeline stage name
-      - hr_decisions: HR decision summary (total, approved, rejected, maybe, pending)
-    """
-    try:
-        return await job_stats_service.get_job_stats(db=db, job_id=job_id)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error")

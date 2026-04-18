@@ -63,6 +63,7 @@ class CandidateAdminService:
             selectinload(Candidate.hr_decisions),
             selectinload(Candidate.applied_job),
             selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
+            selectinload(Candidate.location_rel),
         )
         dir_result = await db.execute(dir_stmt)
         direct_candidates = list(dir_result.scalars().unique().all())
@@ -75,6 +76,7 @@ class CandidateAdminService:
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.hr_decisions),
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
+                selectinload(CrossJobMatch.candidate).selectinload(Candidate.location_rel),
                 selectinload(CrossJobMatch.matched_job),
             )
         )
@@ -255,6 +257,7 @@ class CandidateAdminService:
                 selectinload(Candidate.hr_decisions),
                 selectinload(Candidate.applied_job),
                 selectinload(Candidate.stages).selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template),
+                selectinload(Candidate.location_rel),
             )
             .order_by(Candidate.created_at.desc())
             .offset(skip)

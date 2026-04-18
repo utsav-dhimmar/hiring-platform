@@ -16,7 +16,8 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, select, or_, and_, case
+from sqlalchemy import func, select, or_, and_, case, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.models.candidates import Candidate
@@ -73,99 +74,118 @@ class JobStatsService:
         self, db: AsyncSession, job_id: uuid.UUID
     ) -> JobResultStats:
         """
-        Count pass / fail / pending for native candidates (via Resume.pass_fail)
-        plus cross-matched candidates (via CrossJobMatch.match_score vs job threshold).
+        Count pass / fail / pending for unique candidates in this job.
+        Prioritizes native Resume status over cross-match scores.
         """
         from app.v1.db.models.jobs import Job
-
-        # ── Native candidates: group resumes by pass_fail ──────────────────
-        native_rows = await db.execute(
-            select(Resume.pass_fail, func.count(Resume.id).label("cnt"))
-            .join(Candidate, Resume.candidate_id == Candidate.id)
-            .where(Candidate.applied_job_id == job_id)
-            .group_by(Resume.pass_fail)
-        )
-        native_counts: dict[str | None, int] = {
-            row.pass_fail: row.cnt for row in native_rows.all()
-        }
-
-        # ── Cross-matched candidates: compare score vs job threshold ───────
         job = await db.get(Job, job_id)
         threshold = (
             float(job.passing_threshold) if job and job.passing_threshold else 65.0
         )
 
-        cross_passed = (
-            await db.scalar(
-                select(func.count(CrossJobMatch.id)).where(
-                    CrossJobMatch.matched_job_id == job_id,
-                    CrossJobMatch.match_score >= threshold,
+        # Subquery to get unique candidate identifiers (email) and their strongest source of screening info
+        # Prioritize native (resumes) over cross matches
+        stmt = (
+            select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                func.coalesce(Resume.pass_fail, 
+                    case((CrossJobMatch.match_score >= threshold, "passed"),
+                         (CrossJobMatch.match_score < threshold, "failed"),
+                         else_="pending")
+                ).label("final_pass_fail")
+            )
+            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+            .outerjoin(Resume, Resume.candidate_id == Candidate.id)
+            .outerjoin(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
+            .where(
+                or_(
+                    Candidate.applied_job_id == job_id,
+                    CrossJobMatch.matched_job_id == job_id
                 )
             )
-            or 0
-        )
-        cross_failed = (
-            await db.scalar(
-                select(func.count(CrossJobMatch.id)).where(
-                    CrossJobMatch.matched_job_id == job_id,
-                    CrossJobMatch.match_score < threshold,
-                    CrossJobMatch.match_score.is_not(None),
-                )
+            # Order by is_native to ensure DISTINCT picks native record if available
+            .order_by(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                case((Candidate.applied_job_id == job_id, 0), else_=1)
             )
-            or 0
         )
 
+        rows = await db.execute(stmt)
+        counts: dict[str, int] = {"passed": 0, "failed": 0, "pending": 0}
+        for _, pf in rows.all():
+            if pf in counts:
+                counts[pf] += 1
+            else:
+                counts["pending"] += 1
+
         return JobResultStats(
-            passed=(native_counts.get("passed") or 0) + cross_passed,
-            failed=(native_counts.get("failed") or 0) + cross_failed,
-            pending=(native_counts.get("pending") or 0),
+            passed=counts["passed"],
+            failed=counts["failed"],
+            pending=counts["pending"],
         )
 
     async def _get_location_stats(
         self, db: AsyncSession, job_id: uuid.UUID
     ) -> dict[str, int]:
         """
-        Count native candidates per location for this job.
-        Candidates without a location are grouped under 'Unknown'.
+        Count unique candidates per location for this job.
+        Includes cross-matches. Deduplicates by email.
         """
-        rows = await db.execute(
-            select(Location.name, func.count(Candidate.id).label("cnt"))
-            .join(Location, Candidate.location_id == Location.id)
-            .where(Candidate.applied_job_id == job_id)
-            .group_by(Location.name)
-            .order_by(func.count(Candidate.id).desc())
-        )
-        location_counts: dict[str, int] = {row.name: row.cnt for row in rows.all()}
-
-        # Count candidates whose location_id is NULL
-        unknown_count = (
-            await db.scalar(
-                select(func.count(Candidate.id)).where(
+        stmt = (
+            select(Location.name, func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
+            .join(Candidate, Location.id == Candidate.location_id)
+            .where(
+                or_(
                     Candidate.applied_job_id == job_id,
-                    Candidate.location_id.is_(None),
+                    Candidate.id.in_(
+                        select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                    )
                 )
             )
-            or 0
+            .group_by(Location.name)
         )
-        if unknown_count:
-            location_counts["Unknown"] = unknown_count
+        rows = await db.execute(stmt)
+        location_counts: dict[str, int] = {row[0]: row[1] for row in rows.all()}
 
+        # Removed "Unknown" (NULL) location count per user request.
+        # Only candidates with an identified location appear in these stats.
         return location_counts
 
     async def _get_stage_stats(
         self, db: AsyncSession, job_id: uuid.UUID
     ) -> dict[str, int]:
         """
-        Count how many candidates are currently active in each named stage
-        for this job. A candidate is counted ONLY in their most advanced stage.
+        Count how many unique candidates are in each stage for this job.
+        Deduplicates by email.
         """
         # 1. Subquery to find the "current" stage record ID for each candidate in this job.
         # Logic:
         #   - We prefer the highest order non-pending stage.
         #   - If all are pending, we prefer the lowest order pending stage (the first stage).
-        # 1. Subquery to find the most advanced non-pending stage for each candidate,
-        # or their first stage if all are pending/new.
-        # We use a subquery to find the "best order" to prioritize non-pending over pending.
+        
+        # Deduplication subquery: Map each unique person (email) to their latest application record in this job context
+        unique_candidates_subq = (
+            select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                Candidate.id.label("representative_candidate_id")
+            )
+            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+            .outerjoin(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
+            .where(
+                or_(
+                    Candidate.applied_job_id == job_id,
+                    CrossJobMatch.matched_job_id == job_id
+                )
+            )
+            .order_by(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                case((Candidate.applied_job_id == job_id, 0), else_=1), # Prefer native record
+                Candidate.created_at.desc()
+            )
+            .subquery()
+        )
+
+        # 2. Subquery to find the "best order" for these representative candidate records
         best_order_subq = (
             select(
                 CandidateStage.candidate_id,
@@ -184,12 +204,12 @@ class JobStatsService:
             )
             .join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
             .where(JobStageConfig.job_id == job_id)
+            .where(CandidateStage.candidate_id.in_(select(unique_candidates_subq.c.representative_candidate_id)))
             .group_by(CandidateStage.candidate_id)
             .subquery()
         )
 
-        # 2. Fetch the stage records matching that best order
-        # We use DISTINCT ON (candidate_id) to handle potential duplicate records if they exist
+        # 2. Fetch the stage records
         stmt = (
             select(StageTemplate.name, CandidateStage.status)
             .distinct(CandidateStage.candidate_id)
@@ -230,60 +250,48 @@ class JobStatsService:
                 final_stats[key] += 1
             else:
                 final_stats[key] = 1  # Fallback for unexpected stages
-
         return final_stats
 
     async def _get_hr_decision_stats(
         self, db: AsyncSession, job_id: uuid.UUID
     ) -> JobHRDecisionStats:
         """
-        Compute HR decision breakdown for this job.
-
-        Logic mirrors `HRDecisionService.get_job_decision_summary` but returns
-        a simpler dict-based schema tailored to the stats endpoint.
+        Compute unique HR decision breakdown for this job.
+        Deduplicates by email.
         """
-
-        # Total candidates for this job (native + cross-matched)
-        total_native = (
-            await db.scalar(
-                select(func.count(Candidate.id)).where(
-                    Candidate.applied_job_id == job_id
+        # Deduplication by email
+        total_unique_stmt = select(
+            func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
+        ).where(
+            or_(
+                Candidate.applied_job_id == job_id,
+                Candidate.id.in_(
+                    select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
                 )
             )
-            or 0
         )
-        total_cross = (
-            await db.scalar(
-                select(func.count(CrossJobMatch.id)).where(
-                    CrossJobMatch.matched_job_id == job_id
-                )
-            )
-            or 0
-        )
-        total_candidates = total_native + total_cross
+        total_candidates = await db.scalar(total_unique_stmt) or 0
 
-        # Latest decision per candidate scoped to this job
+        # Latest decision per unique per-person (email)
         subq = (
             select(
-                HrDecision.candidate_id,
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
                 HrDecision.decision,
                 func.row_number()
                 .over(
-                    partition_by=HrDecision.candidate_id,
+                    partition_by=func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
                     order_by=HrDecision.decided_at.desc(),
                 )
                 .label("rn"),
-            ).where(
+            )
+            .join(HrDecision, HrDecision.candidate_id == Candidate.id)
+            .where(
                 or_(
                     HrDecision.job_id == job_id,
                     and_(
                         HrDecision.job_id.is_(None),
-                        HrDecision.candidate_id.in_(
-                            select(Candidate.id).where(
-                                Candidate.applied_job_id == job_id
-                            )
-                        ),
-                    ),
+                        Candidate.applied_job_id == job_id
+                    )
                 )
             )
         ).subquery()

@@ -19,7 +19,8 @@ from app.v1.schemas.hr_decision import (
     HRDecisionUpdate,
 )
 from app.v1.core.logging import get_logger
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, Text, case
+from sqlalchemy.dialects.postgresql import UUID
 from app.v1.services.candidate_stage_service import candidate_stage_service
 
 logger = get_logger(__name__)
@@ -329,8 +330,10 @@ class HRDecisionService:
         from app.v1.db.models.candidates import Candidate
         from app.v1.schemas.hr_decision import HRDecisionSummary
 
-        # Total candidates in DB
-        total_result = await db.execute(select(func.count(Candidate.id)))
+        # Total unique candidates in DB (by email, fallback to ID if email is null)
+        total_result = await db.execute(
+            select(func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
+        )
         total_candidates = total_result.scalar() or 0
 
         # Counts per decision status (one latest decision per candidate)
@@ -341,7 +344,7 @@ class HRDecisionService:
                 HrDecision.decision,
                 func.row_number()
                 .over(
-                    partition_by=HrDecision.candidate_id,
+                    partition_by=func.coalesce(HrDecision.candidate_id, func.cast(HrDecision.id, UUID)),
                     order_by=HrDecision.decided_at.desc(),
                 )
                 .label("rn"),
@@ -376,21 +379,28 @@ class HRDecisionService:
         from app.v1.db.models.cross_job_matches import CrossJobMatch
         from app.v1.schemas.hr_decision import HRJobDecisionSummary
 
-        # Total native candidates
-        total_native_result = await db.execute(
-            select(func.count(Candidate.id)).where(Candidate.applied_job_id == job_id)
+        # 1. Get unique candidate emails currently linked to this job (Native OR Cross)
+        native_subq = select(Candidate.email).where(Candidate.applied_job_id == job_id)
+        cross_subq = (
+            select(Candidate.email)
+            .join(CrossJobMatch, Candidate.id == CrossJobMatch.candidate_id)
+            .where(CrossJobMatch.matched_job_id == job_id)
         )
-        total_native = total_native_result.scalar() or 0
-
-        # Total cross-matched candidates
-        total_cross_result = await db.execute(
-            select(func.count(CrossJobMatch.id)).where(
-                CrossJobMatch.matched_job_id == job_id
+        
+        # Combine and deduplicate
+        combined_emails_stmt = select(func.count(func.distinct(func.coalesce(native_subq.subquery().c.email, cross_subq.subquery().c.email))))
+        # Note: A simpler way to get count of unique individuals in this job:
+        total_candidates_stmt = select(
+            func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
+        ).where(
+            or_(
+                Candidate.applied_job_id == job_id,
+                Candidate.id.in_(
+                    select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                )
             )
         )
-        total_cross = total_cross_result.scalar() or 0
-
-        total_candidates = total_native + total_cross
+        total_candidates = await db.scalar(total_candidates_stmt) or 0
 
         # Latest decision per candidate, filtered to decisions explicitly made for this job
         subq = (
@@ -448,83 +458,125 @@ class HRDecisionService:
         from app.v1.db.models.jobs import Job
         from sqlalchemy import or_, and_
 
-        # 1. Native Resumes
-        result = await db.execute(
-            select(Resume.pass_fail, func.count(Resume.id))
-            .join(Candidate, Resume.candidate_id == Candidate.id)
+        # 1. Native Resumes - Get unique per-job individuals
+        native_subq = (
+            select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                Resume.pass_fail
+            )
+            .join(Resume, Resume.candidate_id == Candidate.id)
             .where(Candidate.applied_job_id == job_id)
-            .group_by(Resume.pass_fail)
+            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+            .order_by(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)), Resume.uploaded_at.desc())
+            .subquery()
         )
-        counts = {row[0]: row[1] for row in result.all()}
+        
+        # 2. Cross-matches - Get unique per-job individuals
+        cross_subq = (
+            select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                CrossJobMatch.match_score
+            )
+            .join(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
+            .where(CrossJobMatch.matched_job_id == job_id)
+            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+            .order_by(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)), CrossJobMatch.created_at.desc())
+            .subquery()
+        )
 
-        # 2. Cross-matched Candidates
+        from app.v1.db.models.jobs import Job
         job = await db.get(Job, job_id)
-        threshold = (
-            float(job.passing_threshold) if job and job.passing_threshold else 65.0
-        )
+        threshold = float(job.passing_threshold) if job and job.passing_threshold else 65.0
 
-        cross_passed = (
-            await db.scalar(
-                select(func.count(CrossJobMatch.id)).where(
-                    CrossJobMatch.matched_job_id == job_id,
-                    CrossJobMatch.match_score >= threshold,
-                )
-            )
-            or 0
-        )
-
-        cross_failed = (
-            await db.scalar(
-                select(func.count(CrossJobMatch.id)).where(
-                    CrossJobMatch.matched_job_id == job_id,
-                    CrossJobMatch.match_score < threshold,
-                )
-            )
-            or 0
-        )
+        # Combine results: prioritization (Native > Cross)
+        # We'll fetch all and deduplicate in Python for simplicity and precision in this specific helper
+        native_res = await db.execute(select(native_subq.c.unique_id, native_subq.c.pass_fail))
+        cross_res = await db.execute(select(cross_subq.c.unique_id, cross_subq.c.match_score))
+        
+        counts = {"passed": 0, "failed": 0, "pending": 0}
+        processed_ids = set()
+        
+        for uid, pf in native_res.all():
+            processed_ids.add(uid)
+            counts[pf if pf in counts else "pending"] += 1
+            
+        for uid, score in cross_res.all():
+            if uid in processed_ids:
+                continue
+            
+            s = float(score) if score is not None else 0.0
+            pf = "passed" if s >= threshold else "failed"
+            counts[pf] += 1
 
         return {
             "job_id": job_id,
-            "passed_count": counts.get("passed", 0) + cross_passed,
-            "failed_count": counts.get("failed", 0) + cross_failed,
-            "pending_count": counts.get("pending", 0),
+            "passed_count": counts["passed"],
+            "failed_count": counts["failed"],
+            "pending_count": counts["pending"],
         }
 
     async def get_global_screening_summary(
         self,
         db: AsyncSession,
     ) -> dict[str, int]:
-        """Global count of resumes grouped by pass_fail status, including dynamically calculated cross-matches."""
+        """Global unique candidate screening status summary."""
         from app.v1.db.models.cross_job_matches import CrossJobMatch
         from app.v1.db.models.jobs import Job
+        from app.v1.db.models.candidates import Candidate
 
-        # 1. Native counts
-        result = await db.execute(
-            select(Resume.pass_fail, func.count(Resume.id)).group_by(Resume.pass_fail)
+        # Subquery to get unique candidate identifiers (email) and their strongest source of screening info
+        # Prioritize native (resumes) over cross matches across ALL jobs
+        # Note: We use a simplified logic here: if they passed ANY job natively, they are 'passed'. 
+        # If they failed all native but passed a cross match, they are 'passed'.
+        
+        # 1. Native status per unique person
+        native_stmt = (
+            select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                Resume.pass_fail
+            )
+            .join(Resume, Resume.candidate_id == Candidate.id)
+            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+            .order_by(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                case((Resume.pass_fail == "passed", 0), (Resume.pass_fail == "pending", 1), else_=2)
+            )
         )
-        counts = {row[0]: row[1] for row in result.all()}
-
-        # 2. Cross-match global counts
-        cross_res = await db.execute(
-            select(CrossJobMatch.id, CrossJobMatch.match_score, Job.passing_threshold)
-            .join(Job, CrossJobMatch.matched_job_id == Job.id)
-            .where(CrossJobMatch.match_score.is_not(None))
+        
+        # 2. Cross-match status per unique person
+        # (Using a standard 65.0 threshold for global cross-match counting simplicity)
+        cross_stmt = (
+            select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                case((CrossJobMatch.match_score >= 65.0, "passed"), else_="failed").label("pass_fail")
+            )
+            .join(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
+            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+            .order_by(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                case((CrossJobMatch.match_score >= 65.0, 0), else_=1)
+            )
         )
 
-        cross_passed = 0
-        cross_failed = 0
-        for row in cross_res.all():
-            score = float(row.match_score) if row.match_score is not None else 0.0
-            thresh = float(row.passing_threshold) if row.passing_threshold else 65.0
-            if score >= thresh:
-                cross_passed += 1
-            else:
-                cross_failed += 1
+        native_res = await db.execute(native_stmt)
+        cross_res = await db.execute(cross_stmt)
+        
+        counts = {"passed": 0, "failed": 0, "pending": 0}
+        processed_ids = set()
+        
+        for uid, pf in native_res.all():
+            processed_ids.add(uid)
+            counts[pf if pf in counts else "pending"] += 1
+            
+        for uid, pf in cross_res.all():
+            if uid in processed_ids:
+                continue
+            counts[pf] += 1
 
         return {
-            "passed": counts.get("passed", 0) + cross_passed,
-            "failed": counts.get("failed", 0) + cross_failed,
-            "pending": counts.get("pending", 0),
+            "passed": counts["passed"],
+            "failed": counts["failed"],
+            "pending": counts["pending"],
         }
 
     async def get_global_decision_summary(self, db: AsyncSession) -> dict[str, int]:

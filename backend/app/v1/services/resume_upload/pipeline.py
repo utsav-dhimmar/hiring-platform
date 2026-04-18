@@ -161,7 +161,7 @@ async def run_resume_processing_pipeline(
                 # Helper to check if a value is effectively missing
                 def is_missing(val):
                     if not val: return True
-                    if isinstance(val, str) and val.strip().lower() in ("not mentioned", "null", "none"): return True
+                    if isinstance(val, str) and val.strip().lower() in ("not mentioned", "null", "none", "unknown", "n/a"): return True
                     return False
 
                 h_info = extract_heuristic_info(raw_text)
@@ -208,7 +208,7 @@ async def run_resume_processing_pipeline(
                     "name": parsed_name,
                     "email": parsed_email,
                     "phone": parsed_phone,
-                    "location": normalized.get("location", []),
+                    "location": [loc for loc in normalized.get("location", []) if not is_missing(loc.get("text") if isinstance(loc, dict) else loc)],
                     "skills": normalized.get("skills", []),
                     "experience": normalized.get("experience", []),
                     "education": normalized.get("education", []),
