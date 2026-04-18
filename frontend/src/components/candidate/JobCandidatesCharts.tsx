@@ -49,6 +49,7 @@ export function JobCandidatesCharts({
           </div>
           <div>
             <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Decision Distribution</h4>
+            <p className="text-sm text-muted-foreground font-medium">Distribution of HR decision</p>
           </div>
         </div>
         <div className="w-full h-[500px]">

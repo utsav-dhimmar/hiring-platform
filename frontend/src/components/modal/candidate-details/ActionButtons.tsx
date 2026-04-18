@@ -23,7 +23,7 @@ export function ActionButtons({
         variant="default"
         className="w-full rounded-xl px-8 shadow-md uppercase font-bold sm:w-auto"
       >
-        Approved
+        Approve
       </Button>
       {showMaybeButton && (
         <Button
@@ -39,7 +39,7 @@ export function ActionButtons({
         onClick={() => onAction("reject")}
         className="w-full rounded-xl px-8 shadow-md uppercase font-bold sm:w-auto"
       >
-        Rejected
+        Reject
       </Button>
     </div>
   );

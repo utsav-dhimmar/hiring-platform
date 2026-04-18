@@ -37,8 +37,8 @@ interface CandidatesDistributionChartProps {
 export function CandidatesDistributionChart({ stats }: CandidatesDistributionChartProps) {
   const data = [
     // { name: "Total Candidates", value: stats.totalCandidates, gradientId: "gradientTotal" },
-    { name: "Approved", value: stats.approveCount, gradientId: "gradientApproved" },
-    { name: "Rejected", value: stats.rejectCount, gradientId: "gradientRejected" },
+    { name: "Approve", value: stats.approveCount, gradientId: "gradientApprove" },
+    { name: "Reject", value: stats.rejectCount, gradientId: "gradientReject" },
     { name: "Maybe", value: stats.maybeCount, gradientId: "gradientMaybe" },
     { name: "Pending", value: stats.undecidedCount, gradientId: "gradientPending" },
   ];
@@ -73,7 +73,7 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
                   stopOpacity={1}
                 />
               </linearGradient>
-              <linearGradient id="gradientApproved" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="gradientApprove" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
                   stopColor={colors.Approved[0]}
@@ -85,7 +85,7 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
                   stopOpacity={1}
                 />
               </linearGradient>
-              <linearGradient id="gradientRejected" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="gradientReject" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
                   stopColor={colors.Rejected[0]}
@@ -213,7 +213,7 @@ interface StagesBarChartProps {
 
 export function StagesBarChart({ stages }: StagesBarChartProps) {
   const data = Object.entries(stages)
-    .filter(([name]) => !name.endsWith("Round_completed"))
+    .filter(([name]) => !name.split("_").includes("completed"))
     .map(([name, value], index) => ({
       name,
       value,

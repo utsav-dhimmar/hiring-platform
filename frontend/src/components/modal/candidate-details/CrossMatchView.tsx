@@ -78,7 +78,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
         if (isDiscovering) {
           setIsDiscovering(false);
           setStartTime(null);
-          toast.info("Scanning completed. Check results below.");
+          toast.info("Scanning complete. Check results below.");
         }
       }, 25000);
 
@@ -122,7 +122,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           <Search className="h-8 w-8 text-muted-foreground/40" />
         </div>
         <p className="text-muted-foreground font-medium">No resume found for this candidate.</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">Cross-match requires a parsed resume.</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Cross Job Match requires a parsed resume.</p>
       </div>
     );
   }

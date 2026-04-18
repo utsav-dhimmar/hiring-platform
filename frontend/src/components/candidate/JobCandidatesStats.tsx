@@ -23,7 +23,7 @@ export const JobCandidatesStats = ({
       hoverBorder: "border-muted-foreground/10",
     },
     {
-      label: "Approved",
+      label: "Approve",
       value: approveCount,
       activeColor: "text-green-600",
       labelColor: "text-green-600/70 group-hover:text-green-600",
@@ -31,7 +31,7 @@ export const JobCandidatesStats = ({
       hoverBorder: "hover:border-green-500/20",
     },
     {
-      label: "Rejected",
+      label: "Reject",
       value: rejectCount,
       activeColor: "text-red-600",
       labelColor: "text-red-500/50 group-hover:text-red-500/80",

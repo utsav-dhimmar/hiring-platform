@@ -138,7 +138,7 @@ export function AnalysisContent({
               </>
             ) : (
               <p className="text-sm text-green-600 font-medium">
-                No major missing skills identified.
+                No major missing skills identify.
               </p>
             )}
           </div>

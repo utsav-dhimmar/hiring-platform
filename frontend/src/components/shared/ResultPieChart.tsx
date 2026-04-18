@@ -26,8 +26,8 @@ interface ResultPieChartProps {
 
 export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
   const data = [
-    { name: "pass", value: passCount, fill: "var(--color-pass)" },
-    { name: "fail", value: failCount, fill: "var(--color-fail)" },
+    { name: "Pass", value: passCount, fill: "var(--color-pass)" },
+    { name: "Fail", value: failCount, fill: "var(--color-fail)" },
   ].filter((item) => item.value > 0);
 
   const total = passCount + failCount;

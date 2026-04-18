@@ -108,7 +108,7 @@ const CandidateAnalysisResult = ({ candidate }: CandidateAnalysisResultProps) =>
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm italic">
-                  No extraordinary points noted.
+                  No extraordinary points found from the resume.
                 </p>
               )}
             </div>
@@ -126,7 +126,7 @@ const CandidateAnalysisResult = ({ candidate }: CandidateAnalysisResultProps) =>
             </div>
             <p className="mb-0 text-primary/80">
               Candidate pass the initial screening with a match score of{" "}
-              <strong>{candidate.resume_score?.toFixed(1)}%</strong>.
+              <strong>{candidate.resume_score}%</strong>.
             </p>
           </div>
         </div>

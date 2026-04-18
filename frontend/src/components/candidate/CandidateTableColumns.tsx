@@ -211,9 +211,9 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
               status={decision}
               label={
                 decision === "approve"
-                  ? "approved"
+                  ? "approve"
                   : decision === "reject"
-                    ? "rejected"
+                    ? "reject"
                     : decision
               }
               className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
