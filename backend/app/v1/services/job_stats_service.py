@@ -240,16 +240,14 @@ class JobStatsService:
         final_stats: dict[str, int] = {}
         for name in all_stages_res.scalars().all():
             final_stats[name] = 0
-            final_stats[f"{name}_completed"] = 0
 
-        # 4. Fill with actual counts
+        # 4. Fill with actual counts (only for current active/pending candidates)
         for name, status in rows.all():
-            is_active = status in ("pending", "active")
-            key = name if is_active else f"{name}_completed"
-            if key in final_stats:
-                final_stats[key] += 1
-            else:
-                final_stats[key] = 1  # Fallback for unexpected stages
+            if status in ("pending", "active"):
+                if name in final_stats:
+                    final_stats[name] += 1
+                else:
+                    final_stats[name] = 1  # Fallback for unexpected stages
         return final_stats
 
     async def _get_hr_decision_stats(
