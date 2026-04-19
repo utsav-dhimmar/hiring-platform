@@ -266,7 +266,7 @@ export const CandidateTableFilters = ({
               {hrDecisionFilter.length === 0
                 ? "Decisions"
                 : hrDecisionFilter.length === 1
-                  ? [{ v: "approve", l: "Approved" }, { v: "may be", l: "May be" }, { v: "reject", l: "Rejected" }, { v: "pending", l: "Pending" }].find((d) => d.v === hrDecisionFilter[0])?.l
+                  ? [{ v: "approve", l: "Approve" }, { v: "may be", l: "May be" }, { v: "reject", l: "Reject" }, { v: "pending", l: "Pending" }].find((d) => d.v === hrDecisionFilter[0])?.l
                   : `${hrDecisionFilter.length} selected`}
             </span>
             <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
@@ -276,9 +276,9 @@ export const CandidateTableFilters = ({
               <DropdownMenuLabel>HR Decision</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {[
-                { value: "approve", label: "Approved" },
+                { value: "approve", label: "Approve" },
                 { value: "may be", label: "May be" },
-                { value: "reject", label: "Rejected" },
+                { value: "reject", label: "Reject" },
                 { value: "pending", label: "Pending" },
               ].map((d) => (
                 <DropdownMenuCheckboxItem
