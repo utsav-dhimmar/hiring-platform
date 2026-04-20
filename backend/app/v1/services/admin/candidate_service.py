@@ -33,7 +33,12 @@ class CandidateAdminService:
         from app.v1.db.models.cross_job_matches import CrossJobMatch
 
         # 1. Fetch direct candidates
-        dir_filter = Candidate.applied_job_id == job_id
+        dir_filter = or_(
+            Candidate.applied_job_id == job_id,
+            Candidate.id.in_(
+                select(HrDecision.candidate_id).where(HrDecision.job_id == job_id)
+            )
+        )
         dir_stmt = select(Candidate).where(dir_filter)
 
         search_filter = None
@@ -124,9 +129,6 @@ class CandidateAdminService:
                 if resp.hr_decision != hr_decision:
                     continue
 
-            if jd_version is not None and resp.applied_version_number != jd_version:
-                continue
-
             # Retrieve match analysis as object (OVERRIDE)
             analysis_obj = None
             if xm.match_analysis:
@@ -193,8 +195,17 @@ class CandidateAdminService:
         from app.v1.db.models.locations import Location
 
         # Data and count queries
-        stmt = select(Candidate)
-        total_stmt = select(func.count()).select_from(Candidate)
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
+        from sqlalchemy import exists
+
+        # Base filter: Candidate must have a primary job OR at least one cross-match entry
+        base_filter = or_(
+            Candidate.applied_job_id.is_not(None),
+            exists().where(CrossJobMatch.candidate_id == Candidate.id)
+        )
+
+        stmt = select(Candidate).where(base_filter)
+        total_stmt = select(func.count()).select_from(Candidate).where(base_filter)
 
         # 1. Base query filter
         if query:
@@ -216,11 +227,19 @@ class CandidateAdminService:
                 pass
 
             if is_uuid:
-                stmt = stmt.where(Candidate.applied_job_id == job)
-                total_stmt = total_stmt.where(Candidate.applied_job_id == job)
+                # Direct UUID comparison
+                xm_subq = select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job)
+                stmt = stmt.where(or_(Candidate.applied_job_id == job, Candidate.id.in_(xm_subq)))
+                total_stmt = total_stmt.where(or_(Candidate.applied_job_id == job, Candidate.id.in_(xm_subq)))
             else:
-                stmt = stmt.join(Job, Candidate.applied_job_id == Job.id).where(Job.title.ilike(f"%{job}%"))
-                total_stmt = total_stmt.join(Job, Candidate.applied_job_id == Job.id).where(Job.title.ilike(f"%{job}%"))
+                # Title search
+                xm_subq = select(CrossJobMatch.candidate_id).join(Job, CrossJobMatch.matched_job_id == Job.id).where(Job.title.ilike(f"%{job}%"))
+                stmt = stmt.outerjoin(Job, Candidate.applied_job_id == Job.id).where(
+                    or_(Job.title.ilike(f"%{job}%"), Candidate.id.in_(xm_subq))
+                )
+                total_stmt = total_stmt.outerjoin(Job, Candidate.applied_job_id == Job.id).where(
+                    or_(Job.title.ilike(f"%{job}%"), Candidate.id.in_(xm_subq))
+                )
 
         # 3. City filter
         if city:

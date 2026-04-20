@@ -130,7 +130,7 @@ class Job(Base):
         "User", back_populates="jobs", foreign_keys=[created_by]
     )
     candidates: Mapped[list["Candidate"]] = relationship(
-        "Candidate", back_populates="applied_job", cascade="all, delete-orphan"
+        "Candidate", back_populates="applied_job", cascade="save-update, merge, refresh-expire"
     )
     versions: Mapped[list["JobVersion"]] = relationship(
         "JobVersion",

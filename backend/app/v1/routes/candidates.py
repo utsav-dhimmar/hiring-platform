@@ -179,6 +179,7 @@ async def create_candidate_decision(
 @router.get("/{candidate_id}/decisions", response_model=HRDecisionHistoryResponse)
 async def get_candidate_decision_history(
     candidate_id: uuid.UUID,
+    job_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
 ) -> Any:
@@ -187,6 +188,7 @@ async def get_candidate_decision_history(
         return await hr_decision_service.get_decision_history(
             db=db,
             candidate_id=candidate_id,
+            job_id=job_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

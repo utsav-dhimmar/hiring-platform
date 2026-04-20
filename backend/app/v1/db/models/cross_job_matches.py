@@ -53,9 +53,10 @@ class CrossJobMatch(Base):
         ForeignKey("resumes.id", ondelete="CASCADE"),
     )
 
-    original_job_id: Mapped[uuid.UUID] = mapped_column(
+    original_job_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("jobs.id", ondelete="CASCADE"),
+        ForeignKey("jobs.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     matched_job_id: Mapped[uuid.UUID] = mapped_column(

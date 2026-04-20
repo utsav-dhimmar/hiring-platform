@@ -265,6 +265,9 @@ class JobStatsService:
                 Candidate.applied_job_id == job_id,
                 Candidate.id.in_(
                     select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                ),
+                Candidate.id.in_(
+                    select(HrDecision.candidate_id).where(HrDecision.job_id == job_id)
                 )
             )
         )

@@ -97,11 +97,13 @@ class CandidateStageService:
         current_cs.completed_at = datetime.utcnow()
 
         if not success:
-            await db.execute(
-                update(Candidate)
-                .where(Candidate.id == candidate_id)
-                .values(current_status="Rejected")
-            )
+            # Check if candidate is active in ANY other job before marking as globally "Rejected"
+            # However, for now, we'll just mark as "Rejected (Job Specific)" if possible, 
+            # but since current_status is just a string, we'll check if this is their primary application.
+            candidate = await db.get(Candidate, candidate_id)
+            if candidate and candidate.applied_job_id == job_id:
+                candidate.current_status = "Rejected"
+            
             await db.flush()
             return current_cs
 
@@ -138,22 +140,19 @@ class CandidateStageService:
                 )
                 db.add(next_cs)
 
-            # Update candidate status
-            await db.execute(
-                update(Candidate)
-                .where(Candidate.id == candidate_id)
-                .values(current_status=next_js.template.name if next_js.template else f"Stage {next_order}")
-            )
+            # Update candidate status only if it's their primary job or they have no status
+            candidate = await db.get(Candidate, candidate_id)
+            if candidate and (candidate.applied_job_id == job_id or not candidate.current_status):
+                candidate.current_status = next_js.template.name if next_js.template else f"Stage {next_order}"
             
             await db.flush()
             return next_cs
         else:
             # End of pipeline
-            await db.execute(
-                update(Candidate)
-                .where(Candidate.id == candidate_id)
-                .values(current_status="Hiring Process Completed")
-            )
+            candidate = await db.get(Candidate, candidate_id)
+            if candidate and candidate.applied_job_id == job_id:
+                candidate.current_status = "Hiring Process Completed"
+            
             await db.flush()
             return None
 

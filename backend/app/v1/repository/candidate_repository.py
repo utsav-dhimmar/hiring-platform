@@ -52,9 +52,16 @@ class CandidateRepository:
 
         stmt = (
             select(Candidate)
-            .where(Candidate.applied_job_id == job_id)
+            .outerjoin(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
+            .where(
+                or_(
+                    Candidate.applied_job_id == job_id,
+                    CrossJobMatch.matched_job_id == job_id
+                )
+            )
             .where(search_filter)
             .options(selectinload(Candidate.resumes))
+            .distinct(Candidate.id)
             .order_by(Candidate.created_at.desc())
             .offset(skip)
             .limit(limit)

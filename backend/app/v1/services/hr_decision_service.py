@@ -26,15 +26,18 @@ from app.v1.services.candidate_stage_service import candidate_stage_service
 logger = get_logger(__name__)
 
 
-def _trigger_cross_match_for_candidate(candidate: Candidate) -> None:
+def _trigger_cross_match_for_candidate(candidate: Candidate, job_id: uuid.UUID | None = None) -> None:
     """Fire-and-forget Celery cross-match task for a rejected candidate.
 
-    Picks the candidate's job_id as the original job, and the latest
-    resume_id from the candidate's resumes relationship.
+    Picks the candidate's latest resume and triggers discovery across all jobs
+    except the one they were just rejected from.
     """
     try:
         from app.v1.services.resume_upload.background import BackgroundProcessor
         from app.v1.services.resume_upload.processor import ResumeProcessor
+
+        # Use the provided job_id (rejection context) or fallback to their original application
+        origin_job_id = job_id or candidate.applied_job_id
 
         resumes = getattr(candidate, "resumes", None) or []
         if not resumes:
@@ -50,14 +53,14 @@ def _trigger_cross_match_for_candidate(candidate: Candidate) -> None:
         # Use BackgroundProcessor for standard task scheduling
         bg_processor = BackgroundProcessor(ResumeProcessor())
         bg_processor.schedule_cross_match(
-            resume_id=latest_resume.id, original_job_id=candidate.applied_job_id
+            resume_id=latest_resume.id, original_job_id=origin_job_id
         )
 
         logger.info(
-            "Automatic cross-match triggered for candidate_id=%s, resume_id=%s, job_id=%s",
+            "Automatic cross-match triggered for candidate_id=%s, resume_id=%s, context_job_id=%s",
             candidate.id,
             latest_resume.id,
-            candidate.applied_job_id,
+            origin_job_id,
         )
     except Exception:
         logger.exception(
@@ -109,11 +112,12 @@ class HRDecisionService:
                     "Only one 'May Be' decision is allowed per candidate for a specific job."
                 )
 
-        # Check "approve" decision limit (only 1 per candidate globally)
-        if decision_data.decision.lower() == "approve":
+        # Check "approve" decision limit (only 1 per candidate for THIS specific job)
+        if decision_data.decision.lower() == "approve" and actual_job_id:
             existing_approve = await db.execute(
                 select(func.count(HrDecision.id)).where(
                     HrDecision.candidate_id == candidate_id,
+                    HrDecision.job_id == actual_job_id,
                     func.lower(HrDecision.decision) == "approve",
                 )
             )
@@ -121,8 +125,7 @@ class HRDecisionService:
 
             if approve_count >= 1:
                 raise ValueError(
-                    "This candidate has already been approved for a role. "
-                    "Only one approval is allowed per candidate across all jobs."
+                    "This candidate has already been approved for this specific job. "
                 )
 
         # Create the decision
@@ -171,8 +174,8 @@ class HRDecisionService:
 
         # Trigger cross-match in background if candidate is rejected (case-insensitive)
         if decision_data.decision.lower() == "reject":
-            logger.info(f"Decision is 'reject'. Triggering automatic cross-job discovery for candidate {candidate_id}.")
-            _trigger_cross_match_for_candidate(candidate)
+            logger.info(f"Decision is 'reject'. Triggering automatic cross-job discovery for candidate {candidate_id} from job context {actual_job_id}.")
+            _trigger_cross_match_for_candidate(candidate, job_id=actual_job_id)
 
         return HRDecisionResponse.model_validate(hr_decision)
 
@@ -180,6 +183,7 @@ class HRDecisionService:
         self,
         db: AsyncSession,
         candidate_id: uuid.UUID,
+        job_id: uuid.UUID | None = None,
     ) -> HRDecisionHistoryResponse:
         """Get complete decision history for a candidate."""
 
@@ -192,10 +196,22 @@ class HRDecisionService:
             raise ValueError(f"Candidate with id {candidate_id} not found")
 
         # Get all decisions for the candidate
+        stmt = select(HrDecision).where(HrDecision.candidate_id == candidate_id)
+        
+        if job_id:
+            # Match decisions explicitly linked to this job OR legacy decisions linked to this candidate's primary job
+            stmt = stmt.where(
+                or_(
+                    HrDecision.job_id == job_id,
+                    and_(
+                        HrDecision.job_id.is_(None),
+                        candidate.applied_job_id == job_id
+                    )
+                )
+            )
+
         decisions_result = await db.execute(
-            select(HrDecision)
-            .where(HrDecision.candidate_id == candidate_id)
-            .order_by(HrDecision.decided_at.desc())
+            stmt.order_by(HrDecision.decided_at.desc())
             .options(selectinload(HrDecision.user))
         )
         decisions = decisions_result.scalars().all()
@@ -246,24 +262,25 @@ class HRDecisionService:
                 raise ValueError(
                     "Only one 'May Be' decision is allowed per candidate for a specific job."
                 )
-        # Check "approve" decision limit if updating to "approve"
+        # Check "approve" decision limit if updating to "approve" (scoped to specific job)
         if (
             decision_data.decision.lower() == "approve"
             and decision.decision.lower() != "approve"
+            and actual_job_id
         ):
             existing_approve = await db.execute(
                 select(func.count(HrDecision.id)).where(
                     HrDecision.candidate_id == decision.candidate_id,
+                    HrDecision.job_id == actual_job_id,
                     func.lower(HrDecision.decision) == "approve",
-                    HrDecision.id != decision_id,  # Exclude current decision
+                    HrDecision.id != decision_id,
                 )
             )
             approve_count = existing_approve.scalar() or 0
 
             if approve_count >= 1:
                 raise ValueError(
-                    "This candidate has already been approved for a role. "
-                    "Only one approval is allowed per candidate across all jobs."
+                    "This candidate has already been approved for this specific job. "
                 )
 
         # Update decision
@@ -317,8 +334,8 @@ class HRDecisionService:
             )
             candidate_to_cross_match = candidate_result.scalar_one_or_none()
             if candidate_to_cross_match:
-                logger.info(f"Transitioned to 'reject'. Triggering automatic cross-job discovery for candidate {decision.candidate_id}.")
-                _trigger_cross_match_for_candidate(candidate_to_cross_match)
+                logger.info(f"Transitioned to 'reject'. Triggering automatic cross-job discovery for candidate {decision.candidate_id} from job context {actual_job_id}.")
+                _trigger_cross_match_for_candidate(candidate_to_cross_match, job_id=actual_job_id)
 
         return HRDecisionResponse.model_validate(decision)
 
@@ -345,7 +362,10 @@ class HRDecisionService:
                 func.row_number()
                 .over(
                     partition_by=func.coalesce(HrDecision.candidate_id, func.cast(HrDecision.id, UUID)),
-                    order_by=HrDecision.decided_at.desc(),
+                    order_by=(
+                        case((func.lower(HrDecision.decision) == "approve", 0), (HrDecision.decision == "May Be", 1), else_=2),
+                        HrDecision.decided_at.desc()
+                    ),
                 )
                 .label("rn"),
             )
