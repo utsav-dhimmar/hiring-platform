@@ -99,6 +99,10 @@ export function DataTable<TData, TValue>({
   // Sync internal pagination when props change
   useEffect(() => {
     setInternalPagination({ pageIndex, pageSize });
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   }, [pageIndex, pageSize]);
 
   const paginationState = isServerSide ? { pageIndex, pageSize } : internalPagination;
@@ -178,7 +182,7 @@ export function DataTable<TData, TValue>({
                 <div className="flex items-center gap-2 ml-auto sm:ml-0">
                   {entityName ? (
                     <div className="text-xs font-medium flex items-center gap-2 justify-self-center px-2">
-                      <span className="text-muted-foreground mr-1">Total</span> 
+                      <span className="text-muted-foreground mr-1">Total</span>
                       <span className="font-bold">{totalCount ?? totalRecords}</span> {entityName}
                       {(resultCount !== undefined || searchValue) && (
                         <>
