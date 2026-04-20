@@ -179,7 +179,7 @@ export function CandidateDetailsModal({
   const handleAction = (type: "approve" | "reject" | "maybe") => {
     reset({
       decision: type,
-      note: "",
+      note: form.getValues("note") || "",
     });
     setShowFeedbackModal(true);
   };

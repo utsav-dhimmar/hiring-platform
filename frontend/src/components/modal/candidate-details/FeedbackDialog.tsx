@@ -51,41 +51,34 @@ export function FeedbackDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-xl">
             <div
-              className={`h-10 w-10 rounded-full flex items-center justify-center ${feedbackType === "approve"
-                ? "bg-green-500/10 text-green-600"
-                : feedbackType === "reject"
-                  ? "bg-red-500/10 text-red-600"
-                  : "bg-amber-500/10 text-amber-600"
+              className={`h-10 w-10 rounded-full flex items-center justify-center 
+                ${feedbackType === "approve" ? "bg-green-500/10 text-green-600" :
+                  feedbackType === "reject" ? "bg-red-500/10 text-red-600"
+                    : "bg-amber-500/10 text-amber-600"
                 }`}
             >
               <MessageSquare className="h-5 w-5" />
             </div>
-            {feedbackType === "approve"
-              ? "Approve Candidate"
-              : feedbackType === "reject"
-                ? "Reject Candidate"
-                : "Mark as 'Maybe'"}
+            {feedbackType === "approve" ? "Approve Candidate" :
+              feedbackType === "reject" ? "Reject Candidate" :
+                "Mark as 'Maybe'"}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <label className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
               Reason for{" "}
-              {feedbackType === "approve"
-                ? "Approval"
-                : feedbackType === "reject"
-                  ? "Rejection"
-                  : "Decision"}
+              {feedbackType === "approve" ? "Approve" :
+                feedbackType === "reject" ? "Rejecte" :
+                  "May Be"}
             </label>
             <span className="block text-[10px] text-muted-foreground italic mb-1">
               Minimum 10 characters required.
             </span>
             <Textarea
-              placeholder={`Enter reason for ${feedbackType === "approve"
-                ? "approving"
-                : feedbackType === "reject"
-                  ? "rejecting"
-                  : "marking as maybe"
+              placeholder={`Enter reason for ${feedbackType === "approve" ? "approving" :
+                feedbackType === "reject" ? "rejecting" :
+                  "marking as maybe"
                 } ${candidateName}...`}
               className={`min-h-[120px] rounded-2xl resize-none border-muted-foreground/20 focus:border-primary/30 transition-colors ${errors.note ? "border-red-500 focus:border-red-500" : ""
                 }`}
@@ -99,33 +92,24 @@ export function FeedbackDialog({
           </div>
         </div>
         <DialogFooter className="gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
+          <Button variant="ghost"
             className="rounded-xl"
+            onClick={() => onOpenChange(false)}
           >
             Cancel
           </Button>
           <Button
             variant={
-              feedbackType === "approve"
-                ? "default"
-                : feedbackType === "reject"
-                  ? "destructive"
-                  : "secondary"
+              feedbackType === "approve" ? "default" :
+                feedbackType === "reject" ? "destructive" :
+                  "secondary"
             }
             className="rounded-xl px-8"
-            onClick={handleSubmit(onSubmit)}
             disabled={isSubmitting || isFormSubmitting}
+            onClick={handleSubmit(onSubmit)}
           >
-            {isSubmitting || isFormSubmitting
-              ? "Submitting..."
-              : `Confirm ${feedbackType === "approve"
-                ? "Approval"
-                : feedbackType === "reject"
-                  ? "Rejection"
-                  : "Decision"
-              }`}
+            {isSubmitting || isFormSubmitting ? "Submitting..." : `Confirm ${feedbackType === "approve" ? "Approval" :
+              feedbackType === "reject" ? "Rejection" : "Decision"}`}
           </Button>
         </DialogFooter>
       </DialogContent>
