@@ -3,6 +3,7 @@ Repository for job-related database operations.
 """
 
 import uuid
+import logging
 from typing import Any
 
 from sqlalchemy import delete, func, insert, select, text
@@ -28,6 +29,8 @@ from app.v1.db.models.resumes import Resume
 from app.v1.db.models.transcripts import Transcript
 from app.v1.schemas.job import JobCreate, JobUpdate
 from app.v1.db.models.job_versions import JobVersion
+
+logger = logging.getLogger(__name__)
 
 
 class JobRepository:
@@ -147,25 +150,39 @@ class JobRepository:
         # Remove status from payload to prevent version creation on status changes
         status_change = payload.pop("status", None)
 
+        # Detect actual changes to version-worthy fields
+        core_fields = ["title", "department_id", "jd_text", "jd_json", "passing_threshold"]
         core_fields_changed = any(
-            k in payload
-            for k in [
-                "title",
-                "vacancy",
-                "department_id",
-                "jd_text",
-                "jd_json",
-                "passing_threshold",
-            ]
+            k in payload and payload[k] != getattr(job, k)
+            for k in core_fields
         )
+
+        extraction_fields_changed = (
+            "custom_extraction_fields" in payload 
+            and payload["custom_extraction_fields"] != job.custom_extraction_fields
+        )
+
+        skills_changed = False
+        if skill_ids is not None:
+            current_skill_ids = {s.id for s in job.skills}
+            new_skill_ids = set(skill_ids)
+            if current_skill_ids != new_skill_ids:
+                skills_changed = True
+
         version_worthy_change = (
             core_fields_changed
-            or "custom_extraction_fields" in payload
-            or skill_ids is not None
+            or extraction_fields_changed
+            or skills_changed
         )
 
         for key, value in payload.items():
             setattr(job, key, value)
+
+        # Explicitly ensure vacancy is set correctly if provided in payload
+        # This acts as a guardrail against any hidden logic that might be shifting the value
+        if "vacancy" in payload:
+            logger.info(f"Enforcing vacancy update for job {id}: {payload['vacancy']} (original input: {object.vacancy})")
+            job.vacancy = payload["vacancy"]
 
         # Handle status change separately (without triggering version)
         if status_change is not None:
