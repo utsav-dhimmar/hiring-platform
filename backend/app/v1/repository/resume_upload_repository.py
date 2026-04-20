@@ -679,93 +679,76 @@ class ResumeUploadRepository:
         resume_id: uuid.UUID,
         job_id: uuid.UUID,
     ) -> bool:
-        """Delete a resume and its associated records (chunk, file, candidate).
-
-        Args:
-            db: The async database session.
-            resume_id: UUID of the resume to delete.
-            job_id: UUID of the job it belongs to (for scoped lookup).
-
-        Returns:
-            True if deleted, False if not found.
         """
-        # Load the resume with candidate relation
-        resume = await db.scalar(
-            select(Resume)
-            .join(Candidate, Resume.candidate_id == Candidate.id)
-            .options(selectinload(Resume.candidate), selectinload(Resume.file))
-            .where(Resume.id == resume_id, Candidate.applied_job_id == job_id)
+        Delete a resume or candidate from a specific job.
+        Preserves the candidate if they are matched to other jobs.
+        """
+        # 1. Look for the candidate and their link to this job
+        candidate = await db.scalar(
+            select(Candidate)
+            .options(selectinload(Candidate.resumes))
+            .where(
+                (Candidate.applied_job_id == job_id) | 
+                (Candidate.id.in_(select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)))
+            )
+            .distinct()
         )
-        if not resume:
+        if not candidate:
             return False
 
-        candidate_id = resume.candidate_id
-        file_id = resume.file_id
+        candidate_id = candidate.id
 
-        # Delete resume chunks first (FK dependency)
-        await db.execute(delete(ResumeChunk).where(ResumeChunk.resume_id == resume_id))
-
-        # Delete the resume row
-        await db.delete(resume)
-
-        # Explicitly delete the file record to clear deduplication hash
-        if file_id:
-            await db.execute(delete(FileRecord).where(FileRecord.id == file_id))
-
-        await db.flush()
-
-        remaining_resume_count = await db.scalar(
-            select(func.count(Resume.id)).where(Resume.candidate_id == candidate_id)
-        )
-
-        # The UI treats deleting the last resume as deleting the candidate entry too.
-        if not remaining_resume_count:
-            await db.execute(
-                delete(candidate_skills).where(
-                    candidate_skills.c.candidate_id == candidate_id
-                )
+        # 2. Check if the candidate is needed elsewhere (other cross-matches)
+        other_matches_count = await db.scalar(
+            select(func.count(CrossJobMatch.id)).where(
+                (CrossJobMatch.candidate_id == candidate_id) & (CrossJobMatch.matched_job_id != job_id)
             )
-            await db.execute(
-                delete(HrDecision).where(HrDecision.candidate_id == candidate_id)
-            )
+        ) or 0
+        
+        # Also check if they are the primary applicant for a DIFFERENT job (unlikely here but safe)
+        is_primary_elsewhere = (candidate.applied_job_id is not None and candidate.applied_job_id != job_id)
 
-            # Delete dependents of Interview first (FK dependency)
-            interview_ids_subquery = select(Interview.id).where(
-                Interview.candidate_id == candidate_id
-            )
-            await db.execute(
-                delete(Transcript).where(
-                    Transcript.interview_id.in_(interview_ids_subquery)
-                )
-            )
-            await db.execute(
-                delete(Recording).where(
-                    Recording.interview_id.in_(interview_ids_subquery)
-                )
-            )
+        should_keep_profile = (other_matches_count > 0) or is_primary_elsewhere
 
-            await db.execute(
-                delete(Interview).where(Interview.candidate_id == candidate_id)
-            )
+        # 3. Cleanup job-specific data
+        # Decisions for this job only
+        await db.execute(delete(HrDecision).where(HrDecision.candidate_id == candidate_id, HrDecision.job_id == job_id))
+        
+        # Interviews for this job only (and their transients)
+        job_interview_ids = select(Interview.id).where(Interview.candidate_id == candidate_id, Interview.job_id == job_id)
+        await db.execute(delete(Transcript).where(Transcript.interview_id.in_(job_interview_ids)))
+        await db.execute(delete(Recording).where(Recording.interview_id.in_(job_interview_ids)))
+        await db.execute(delete(Interview).where(Interview.candidate_id == candidate_id, Interview.job_id == job_id))
 
-            # CrossJobMatch references resume_id, not candidate_id
-            await db.execute(
-                delete(CrossJobMatch).where(
-                    CrossJobMatch.resume_id.in_(
-                        select(Resume.id).where(Resume.candidate_id == candidate_id)
-                    )
-                )
-            )
-            await db.execute(
-                delete(CoverLetter).where(CoverLetter.candidate_id == candidate_id)
-            )
-            await db.execute(
-                delete(FileRecord).where(FileRecord.candidate_id == candidate_id)
-            )
-            await db.execute(delete(Candidate).where(Candidate.id == candidate_id))
+        # Cross-job match entry for THIS job
+        await db.execute(delete(CrossJobMatch).where(CrossJobMatch.candidate_id == candidate_id, CrossJobMatch.matched_job_id == job_id))
 
-        await db.commit()
-        return True
+        # Unlink if they were the primary applicant for this job
+        if candidate.applied_job_id == job_id:
+            candidate.applied_job_id = None
+            await db.flush()
+
+        # 4. Final Decision: Delete or Keep?
+        if should_keep_profile:
+            # We keep the Candidate, Resumes, and Files because they are used elsewhere
+            await db.commit()
+            return True
+        else:
+            # Hard delete if this was their only job
+            # Delete resume chunks
+            resume_ids_subq = select(Resume.id).where(Resume.candidate_id == candidate_id)
+            await db.execute(delete(ResumeChunk).where(ResumeChunk.resume_id.in_(resume_ids_subq)))
+            
+            # Delete resumes and files
+            await db.execute(delete(Resume).where(Resume.candidate_id == candidate_id))
+            await db.execute(delete(FileRecord).where(FileRecord.candidate_id == candidate_id))
+            await db.execute(delete(CoverLetter).where(CoverLetter.candidate_id == candidate_id))
+            await db.execute(delete(candidate_skills).where(candidate_skills.c.candidate_id == candidate_id))
+            
+            # Delete the person
+            await db.delete(candidate)
+            await db.commit()
+            return True
 
 
 resume_upload_repository = ResumeUploadRepository()

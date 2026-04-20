@@ -229,69 +229,43 @@ class JobRepository:
         await self.force_delete(db=db, id=id)
 
     async def force_delete(self, db: AsyncSession, id: uuid.UUID) -> None:
-        """Force-delete a job and its related candidate pipeline data."""
+        """Force-delete a job and its related metadata, unlinking candidates."""
         job_exists = await db.scalar(select(Job.id).where(Job.id == id))
         if job_exists is None:
             return
 
-        candidate_ids_subquery = select(Candidate.id).where(Candidate.applied_job_id == id)
-        resume_ids_subquery = select(Resume.id).where(
-            Resume.candidate_id.in_(candidate_ids_subquery)
-        )
-        interview_ids_subquery = select(Interview.id).where(
-            Interview.candidate_id.in_(candidate_ids_subquery)
-        )
-
-        # Remove deepest dependencies first, then delete parents.
-        await db.execute(delete(ResumeChunk).where(ResumeChunk.resume_id.in_(resume_ids_subquery)))
-        await db.execute(
-            delete(ResumeVersionResult).where(
-                (ResumeVersionResult.job_id == id)
-                | (ResumeVersionResult.resume_id.in_(resume_ids_subquery))
-            )
-        )
-        await db.execute(
-            delete(CrossJobMatch).where(
-                (CrossJobMatch.original_job_id == id)
-                | (CrossJobMatch.matched_job_id == id)
-                | (CrossJobMatch.candidate_id.in_(candidate_ids_subquery))
-                | (CrossJobMatch.resume_id.in_(resume_ids_subquery))
-            )
-        )
-        await db.execute(delete(Transcript).where(Transcript.interview_id.in_(interview_ids_subquery)))
-        await db.execute(delete(Recording).where(Recording.interview_id.in_(interview_ids_subquery)))
-        await db.execute(
-            delete(HrDecision).where(
-                (HrDecision.job_id == id) | (HrDecision.candidate_id.in_(candidate_ids_subquery))
-            )
-        )
+        # 1. Delete transient data related to this job's interviews
+        job_interview_ids = select(Interview.id).where(Interview.job_id == id)
+        await db.execute(delete(Transcript).where(Transcript.interview_id.in_(job_interview_ids)))
+        await db.execute(delete(Recording).where(Recording.interview_id.in_(job_interview_ids)))
         
-        # Explicitly clear CandidateStage records to satisfy FK constraints
-        await db.execute(delete(CandidateStage).where(CandidateStage.candidate_id.in_(candidate_ids_subquery)))
+        # 2. Delete core job-specific records
+        await db.execute(delete(ResumeVersionResult).where(ResumeVersionResult.job_id == id))
+        await db.execute(delete(HrDecision).where(HrDecision.job_id == id))
+        await db.execute(delete(Interview).where(Interview.job_id == id))
         
-        # Clean up legacy/ghost table that might still have FKs to candidates
-        try:
-            await db.execute(text("DELETE FROM resume_screening_decisions WHERE candidate_id IN (SELECT id FROM candidates WHERE applied_job_id = :job_id)"), {"job_id": id})
-        except Exception:
-            # Table might not exist in all environments, safe to skip if it fails
-            pass
+        # 3. Cleanup Candidate stages for THIS job only
+        job_stage_ids_subq = select(JobStageConfig.id).where(JobStageConfig.job_id == id)
+        await db.execute(delete(CandidateStage).where(CandidateStage.job_stage_id.in_(job_stage_ids_subq)))
 
-        await db.execute(delete(CoverLetter).where(CoverLetter.candidate_id.in_(candidate_ids_subquery)))
+        # 4. Handle Cross-Job Matches
+        # ONLY remove matches pointing TO this job (matched_job_id).
+        # Matches originating FROM this job (original_job_id) should be PRESERVED
+        # (The DB will set original_job_id to NULL automatically)
         await db.execute(
-            delete(candidate_skills).where(
-                candidate_skills.c.candidate_id.in_(candidate_ids_subquery)
-            )
+            delete(CrossJobMatch).where(CrossJobMatch.matched_job_id == id)
         )
-        await db.execute(
-            delete(Interview).where(
-                (Interview.job_id == id) | (Interview.candidate_id.in_(candidate_ids_subquery))
-            )
-        )
-        await db.execute(delete(Resume).where(Resume.candidate_id.in_(candidate_ids_subquery)))
-        await db.execute(delete(FileRecord).where(FileRecord.candidate_id.in_(candidate_ids_subquery)))
-        await db.execute(delete(Candidate).where(Candidate.applied_job_id == id))
 
-        # Remove job-owned records.
+        # 5. UNLINK candidates instead of deleting them
+        # This preserves the Candidate profile, Resume, and File records for the Candidate Pool
+        from sqlalchemy import update
+        await db.execute(
+            update(Candidate)
+            .where(Candidate.applied_job_id == id)
+            .values(applied_job_id=None)
+        )
+
+        # 6. Remove job-owned configuration and metadata
         await db.execute(delete(job_skills).where(job_skills.c.job_id == id))
         await db.execute(delete(JobStageConfig).where(JobStageConfig.job_id == id))
         await db.execute(delete(JobChunk).where(JobChunk.job_id == id))

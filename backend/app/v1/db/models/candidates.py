@@ -80,10 +80,10 @@ class Candidate(Base):
     )
 
     # FOREIGN KEY
-    applied_job_id: Mapped[uuid.UUID] = mapped_column(
+    applied_job_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("jobs.id"),
-        nullable=False,
+        ForeignKey("jobs.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     applied_version_number: Mapped[int | None] = mapped_column(

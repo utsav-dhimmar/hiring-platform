@@ -4,6 +4,8 @@ API routes for location-related operations in version 1.
 
 from typing import Any
 
+import uuid
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,11 +26,12 @@ async def get_all_locations(
     skip: int = Query(0, ge=0),
     limit: int = Query(500, ge=1, le=1000),
     q: str | None = Query(None, description="Search locations by name"),
+    job_id: uuid.UUID | None = Query(None, description="Filter locations by specific job ID"),
 ) -> Any:
     """Get all locations for filtering (e.g. dropdown).
 
     Returns a paginated list of all unique locations, sorted alphabetically.
     """
     return await location_service.get_all_locations(
-        db=db, skip=skip, limit=limit, q=q
+        db=db, skip=skip, limit=limit, q=q, job_id=job_id
     )
