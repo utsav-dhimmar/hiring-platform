@@ -427,15 +427,18 @@ class AdminRepository:
         active_jobs = await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0
         active_users = await db.scalar(select(func.count(User.id)).where(User.is_active)) or 0
 
-        # 1. Total Job Opportunities (Apps + CrossMatches + Decisions)
-        stmt1 = select(Candidate.id.label("candidate_id"), Candidate.applied_job_id.label("job_id")).where(Candidate.applied_job_id.isnot(None))
-        stmt2 = select(CrossJobMatch.candidate_id, CrossJobMatch.matched_job_id.label("job_id"))
-        stmt3 = select(HrDecision.candidate_id, HrDecision.job_id)
+        # 1. Total Unique Candidates (Deduplicated by email)
+        total_candidates = await db.scalar(
+            select(func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
+        ) or 0
         
-        from sqlalchemy import union
-        union_stmt = union(stmt1, stmt2, stmt3).subquery()
-        total_opportunities = await db.scalar(select(func.count()).select_from(union_stmt)) or 0
-        total_candidates = total_opportunities
+        # 1a. Total Job Opportunities (Apps + CrossMatches + Decisions) - for internal use if needed
+        # stmt1 = select(Candidate.id.label("candidate_id"), Candidate.applied_job_id.label("job_id")).where(Candidate.applied_job_id.isnot(None))
+        # stmt2 = select(CrossJobMatch.candidate_id, CrossJobMatch.matched_job_id.label("job_id"))
+        # stmt3 = select(HrDecision.candidate_id, HrDecision.job_id)
+        # from sqlalchemy import union
+        # union_stmt = union(stmt1, stmt2, stmt3).subquery()
+        # total_opportunities = await db.scalar(select(func.count()).select_from(union_stmt)) or 0
         
         # 2. Screening Stats - Deduplicated globally
         unique_screening_subq = (
@@ -518,14 +521,10 @@ class AdminRepository:
         total_jobs = await db.scalar(select(func.count(Job.id))) or 0
         active_jobs = (await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0)
         
-        # Use robust opportunity-centric count (Apps + CrossMatches + Decisions)
-        stmt1 = select(Candidate.id.label("candidate_id"), Candidate.applied_job_id.label("job_id")).where(Candidate.applied_job_id.isnot(None))
-        stmt2 = select(CrossJobMatch.candidate_id, CrossJobMatch.matched_job_id.label("job_id"))
-        stmt3 = select(HrDecision.candidate_id, HrDecision.job_id)
-        
-        from sqlalchemy import union
-        union_stmt = union(stmt1, stmt2, stmt3).subquery()
-        total_candidates = await db.scalar(select(func.count()).select_from(union_stmt)) or 0
+        # Use robust unique candidate count (Deduplicated by email)
+        total_candidates = await db.scalar(
+            select(func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
+        ) or 0
 
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         resumes_last_30_days = (
