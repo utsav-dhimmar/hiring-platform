@@ -94,7 +94,10 @@ export function FeedbackDialog({
         <DialogFooter className="gap-2">
           <Button variant="ghost"
             className="rounded-xl"
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              onOpenChange(false)
+              form.reset({ note: "" })
+            }}
           >
             Cancel
           </Button>

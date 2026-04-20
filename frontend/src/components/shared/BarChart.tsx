@@ -213,7 +213,6 @@ interface StagesBarChartProps {
 
 export function StagesBarChart({ stages }: StagesBarChartProps) {
   const data = Object.entries(stages)
-    .filter(([name]) => !name.split("_").includes("completed"))
     .map(([name, value], index) => ({
       name,
       value,

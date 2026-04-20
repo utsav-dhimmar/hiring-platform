@@ -40,7 +40,7 @@ export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
       <div className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px] px-0"
+          className="mx-auto aspect-square max-h-[200px] px-0"
         >
           {hasData ? (
             <RechartsPieChart>

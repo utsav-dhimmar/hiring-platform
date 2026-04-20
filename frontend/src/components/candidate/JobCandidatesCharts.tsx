@@ -35,7 +35,7 @@ export function JobCandidatesCharts({
       </div>
     );
   }
-  const obj: { title: string; description: string; chart: React.JSX.Element }[] = [
+  const obj: { title: string; description: string; chart: React.JSX.Element, takeFullSpace?: boolean }[] = [
     {
       title: CHART_TEXTS.hrDecision.label,
       description: CHART_TEXTS.hrDecision.description,
@@ -49,30 +49,32 @@ export function JobCandidatesCharts({
     {
       title: CHART_TEXTS.recruitmentStages.label,
       description: CHART_TEXTS.recruitmentStages.description,
-      chart: <StagesBarChart stages={jobStats?.stages || {}} />
+      chart: <StagesBarChart stages={jobStats?.stages || {}} />,
+      takeFullSpace: true
     },
     {
       title: CHART_TEXTS.locations.label,
       description: CHART_TEXTS.locations.description,
-      chart: <LocationBarChart locations={jobStats?.location || {}} />
+      chart: <LocationBarChart locations={jobStats?.location || {}} />,
+      takeFullSpace: true
     },
 
   ];
   return (
     <div className={cn(
-      "flex flex-col gap-16 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 p-0.5",
+      "grid grid-cols-1 md:grid-cols-2 gap-16 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 p-0.5",
       isRefreshing && "opacity-60 transition-opacity duration-300"
     )}>
       {
-        obj.map(({ chart, title, description }) => (
-          <div className="group overflow-hidden relative w-full" key={title}>
+        obj.map(({ chart, title, description, takeFullSpace }) => (
+          <div className={cn("group overflow-hidden relative w-full", takeFullSpace && "md:col-span-2")} key={title}>
             <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
               <div>
                 <h4 className="font-black text-xl text-foreground tracking-tight uppercase">{title}</h4>
                 <p className="text-sm text-muted-foreground font-medium">{description}</p>
               </div>
             </div>
-            <div className="w-full h-[500px]">
+            <div className="w-full h-[250px]">
               {chart}
             </div>
           </div>

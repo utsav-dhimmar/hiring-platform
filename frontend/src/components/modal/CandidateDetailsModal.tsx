@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator";
 import type { CandidateResponse } from "@/types/resume";
 import type { CandidateAnalysis } from "@/types/admin";
 import { toast } from "sonner";
@@ -179,8 +179,9 @@ export function CandidateDetailsModal({
   const handleAction = (type: "approve" | "reject" | "maybe") => {
     reset({
       decision: type,
-      note: form.getValues("note") || "",
-    });
+      note: form.watch("note"),
+    })
+    form.clearErrors();
     setShowFeedbackModal(true);
   };
 
@@ -227,7 +228,7 @@ export function CandidateDetailsModal({
           <CandidateHeader candidate={candidate} />
         </DialogHeader>
 
-        <div className="px-2 py-1.5 sm:px-4 border-y border-muted-foreground/10 bg-muted/20 flex flex-col items-start justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="px-2 py-1.5 sm:px-4 border-y border-muted-foreground/10 bg-muted/20 flex flex-col items-start justify-center gap-3 self-center">
           <AnalysisStats
             candidate={candidate}
             activeTab={activeTab}
@@ -235,11 +236,11 @@ export function CandidateDetailsModal({
             passing_threshold={passing_threshold}
           />
 
-          <div className="flex w-full items-center justify-center gap-3 sm:w-auto sm:justify-end">
-            <Separator
+          <div className="flex w-full items-center justify-center gap-3">
+            {/* <Separator
               orientation="vertical"
               className="hidden h-10 bg-muted-foreground/10 sm:block"
-            />
+            /> */}
             <AnalysisTabs activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
         </div>
