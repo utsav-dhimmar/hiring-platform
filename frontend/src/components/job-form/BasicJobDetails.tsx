@@ -31,13 +31,13 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-md font-semibold text-foreground">
+            <FormLabel className="text-lg font-semibold text-foreground">
               Title <Required />
             </FormLabel>
             <FormControl>
               <Input
                 placeholder="e.g. Senior Frontend Developer"
-                className="h-10 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                className="h-10 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                 {...field}
               />
             </FormControl>
@@ -52,7 +52,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         name="vacancy"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-md font-semibold text-foreground">
+            <FormLabel className="text-lg font-semibold text-foreground">
               Vacancy <Required />
             </FormLabel>
             <FormControl>
@@ -60,7 +60,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
                 type="number"
                 min="1"
                 placeholder="e.g. 5"
-                className="h-10 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                className="h-10 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                 value={field.value !== null && field.value !== undefined ? field.value : ""}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -79,13 +79,13 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         name="department_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-md font-semibold text-foreground">
+            <FormLabel className="text-lg font-semibold text-foreground">
               Department <Required />
             </FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
-                <SelectTrigger className="h-12 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium">
-                  <SelectValue placeholder="Select department">
+                <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full">
+                  <SelectValue placeholder="Select department" className="w-full">
                     {
                       departments.find(
                         (dept) => dept.id === field.value,
@@ -99,7 +99,7 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
                   <SelectItem
                     key={dept.id}
                     value={dept.id}
-                    className="py-3 text-md font-medium"
+                    className="py-3 text-base font-medium w-full"
                   >
                     {dept.name}
                   </SelectItem>
@@ -117,13 +117,13 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
         name="jd_text"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="text-md font-semibold text-foreground">
+            <FormLabel className="text-lg font-semibold text-foreground">
               Job Description <Required />
             </FormLabel>
             <FormControl>
               <Textarea
                 placeholder="Detailed job description..."
-                className="min-h-62.5 text-md rounded-2xl p-5 border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all resize-none font-medium"
+                className="min-h-62.5 text-base rounded-2xl p-5 border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all resize-none font-medium"
                 {...field}
               />
             </FormControl>

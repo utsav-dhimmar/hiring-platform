@@ -207,14 +207,14 @@ export function DataTable<TData, TValue>({
         </div>
 
       )}
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-background/70 backdrop-blur-sm">
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-background/70 backdrop-blur-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="px-1">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}
@@ -237,7 +237,7 @@ export function DataTable<TData, TValue>({
                   className={loading ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="w-fit p-1 h-fit">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

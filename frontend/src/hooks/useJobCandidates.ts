@@ -208,7 +208,6 @@ export const useJobCandidates = (
     }
   }, [candidates, fetchData]);
 
-  const decisionSummary = job?.decision_summary;
 
   const minDate = useMemo(() => {
     if (candidates.length === 0) return new Date();
@@ -258,11 +257,11 @@ export const useJobCandidates = (
     jdVersion,
     setJdVersion,
     stats: {
-      totalCandidates: totalCandidates || decisionSummary?.total_candidates || candidates.length,
-      approveCount: decisionSummary?.approved_count || 0,
-      rejectCount: decisionSummary?.reject_count || 0,
-      maybeCount: decisionSummary?.maybe_count || 0,
-      undecidedCount: decisionSummary?.undecided_count || totalCandidates || candidates.length,
+      totalCandidates: totalCandidates || jobStats?.hr_decisions.total_candidates || candidates.length,
+      approveCount: jobStats?.hr_decisions.approved ?? 0,
+      rejectCount: jobStats?.hr_decisions.rejected ?? 0,
+      maybeCount: jobStats?.hr_decisions.maybe ?? 0,
+      undecidedCount: jobStats?.hr_decisions.pending ?? 0,
     },
     totalCandidates,
     minDate,

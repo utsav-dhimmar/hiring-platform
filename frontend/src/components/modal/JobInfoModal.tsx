@@ -152,8 +152,23 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
               </div>
             )}
 
-            {/* Other details if needed could be added here */}
+
+            {/* Passing Threshold */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                Passing Threshold
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                <Badge
+                  variant="secondary"
+                  className="rounded-xl px-3 py-1 font-medium bg-secondary/50 hover:bg-secondary text-secondary-foreground border-muted-foreground/10 transition-colors"
+                >
+                  {job.passing_threshold}%
+                </Badge>
+              </div>
+            </div>
           </div>
+          {/* Other details if needed could be added here */}
         </div>
       </DialogContent>
     </Dialog>

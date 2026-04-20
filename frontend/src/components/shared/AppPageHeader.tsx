@@ -39,14 +39,14 @@ export default function AppPageHeader({
           className
         )}
       >
-        <div className={cn("px-3.5 py-3 flex flex-col gap-3", contentClassName)}>
+        <div className={cn("px-1 py-3 flex flex-col gap-3", contentClassName)}>
           {/* Navbar Layer: Title and Actions */}
           <div className="flex items-center justify-between gap-4 flex-col sm:flex-row">
             <div className="flex items-center gap-2 overflow-hidden">
               <div className="flex flex-col min-w-0 overflow-hidden">
                 <h1
                   className={cn(
-                    "text-lg font-bold tracking-tight text-foreground sm:text-xl truncate",
+                    "font-bold tracking-tight text-foreground truncate ",
                     headingClassName
                   )}
                 >

@@ -15,10 +15,10 @@ export const CustomFieldsSection = () => {
   return (
     <div className="app-surface-card space-y-6 p-4 sm:p-5">
       <div className="space-y-1">
-        <h2 className="text-md font-bold tracking-tight">
+        <h2 className="text-lg font-bold tracking-tight">
           Custom Extraction Fields
         </h2>
-        <p className="text-muted-foreground text-md font-medium">
+        <p className="text-muted-foreground text-base font-medium">
           Add specific information you want the AI to extract from resumes (e.g. "Notice Period", "Willingness to Relocate").
         </p>
       </div>
@@ -33,7 +33,7 @@ export const CustomFieldsSection = () => {
                 <div className="flex gap-2">
                   <Input
                     placeholder="Type a field name and press enter..."
-                    className="h-12 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                    className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();

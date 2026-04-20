@@ -76,7 +76,7 @@ const SkillsBadgeList = ({
                 {remainingSkills.map((skill, index) => (
                   <span
                     key={"id" in skill ? skill.id : `${skill.name}-${index}`}
-                    className="px-1.5 py-0.5 rounded bg-muted text-md font-medium"
+                    className="px-0.5 py-0.5 rounded bg-muted text-xs font-medium"
                   >
                     {skill.name}
                   </span>

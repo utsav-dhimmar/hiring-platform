@@ -20,7 +20,7 @@ export const JobSettingsSection = () => {
         control={control}
         name="passing_threshold"
         render={({ field }) => (
-          <FormItem className="flex flex-col justify-center rounded-2xl border border-muted-foreground/20 p-6 bg-card/10 backdrop-blur-sm hover:bg-card/20 transition-all shadow-sm">
+          <FormItem className="flex flex-row justify-between items-center rounded-2xl border border-muted-foreground/20 p-6 bg-card/10 backdrop-blur-sm hover:bg-card/20 transition-all shadow-sm">
             <div className="space-y-1 mb-4">
               <FormLabel className="text-lg font-bold">
                 Passing Threshold

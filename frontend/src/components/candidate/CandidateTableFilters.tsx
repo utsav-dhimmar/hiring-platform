@@ -86,7 +86,7 @@ export const CandidateTableFilters = ({
 
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] items-center gap-3 p-3 bg-muted/30 rounded-2xl border border-muted-foreground/10 text-center">
+    <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] items-center gap-3 p-3 bg-muted/30 rounded-2xl border border-muted-foreground/10 text-center overflow-x-hidden">
       {/* Column 1: Search field (Anchored Left) */}
       <div className="relative w-full lg:w-[320px]">
         <Input
@@ -99,13 +99,13 @@ export const CandidateTableFilters = ({
       </div>
 
       {/* Column 2: Filtration options loop (Middle) */}
-      <div className="grid grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-2 min-w-0">
+      <div className="grid grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-1 min-w-0 overflow-hidden">
         {/* Job dropdown */}
         {showJobContext && (
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
-                "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:w-[160px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+                "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:min-w-[120px] lg:max-w-[160px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
                 jobFilter.length > 0
                   ? "border-primary/40 bg-primary/5 text-foreground"
                   : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -181,7 +181,7 @@ export const CandidateTableFilters = ({
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
-                "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:w-[150px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+                "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:min-w-[110px] lg:max-w-[150px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
                 locationFilter.length > 0
                   ? "border-primary/40 bg-primary/5 text-foreground"
                   : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -256,7 +256,7 @@ export const CandidateTableFilters = ({
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
-              "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:w-[140px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+              "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:min-w-[110px] lg:max-w-[140px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
               hrDecisionFilter.length > 0
                 ? "border-primary/40 bg-primary/5 text-foreground"
                 : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -316,7 +316,7 @@ export const CandidateTableFilters = ({
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
-              "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:w-[160px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+              "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:min-w-[100px] lg:max-w-[140px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
               resumeScreeningFilter.length > 0
                 ? "border-primary/40 bg-primary/5 text-foreground"
                 : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -371,7 +371,7 @@ export const CandidateTableFilters = ({
         </DropdownMenu>
 
         {/* Date range picker */}
-        <div className="flex items-center gap-1.5 px-3 h-9 w-full lg:w-[240px] rounded-xl border border-input text-sm bg-background">
+        <div className="flex items-center gap-1.5 px-3 h-9 w-full lg:min-w-[180px] lg:max-w-[240px] rounded-xl border border-input text-sm bg-background">
           <Popover>
             <PopoverTrigger
               className={cn(

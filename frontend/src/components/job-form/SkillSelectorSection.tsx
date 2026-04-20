@@ -58,8 +58,8 @@ export const SkillSelectorSection = ({
   return (
     <div className="app-surface-card space-y-6 p-4 sm:p-5">
       <div className="space-y-1">
-        <h2 className="text-md font-bold tracking-tight">Required Skills <Required /></h2>
-        <p className="text-muted-foreground text-md font-medium">
+        <h2 className="text-lg font-bold tracking-tight">Required Skills <Required /></h2>
+        <p className="text-muted-foreground text-base font-medium">
           Select the skills that should be linked to this job. Click a skill to
           toggle selection.
         </p>
@@ -81,7 +81,7 @@ export const SkillSelectorSection = ({
           placeholder="Search skills by name..."
           value={skillSearch}
           onChange={(e) => setSkillSearch(e.target.value)}
-          className="pl-10 h-10 text-md rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+          className="pl-10 h-10 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
         />
       </div>
 

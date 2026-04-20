@@ -23,8 +23,8 @@ export function JobCandidatesCharts({
   stats,
   jobStats,
 }: JobCandidatesChartsProps) {
-  const passCount = jobStats?.result?.passed || 0;
-  const failCount = jobStats?.result?.failed || 0;
+  const passCount = jobStats?.result?.passed ?? 0;
+  const failCount = jobStats?.result?.failed ?? 0;
 
   if (loading) {
     return (

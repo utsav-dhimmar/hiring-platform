@@ -13,6 +13,7 @@ import { cn, capitalize, toTitleCase } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
 import { Link } from "react-router-dom";
 import { slugify } from "@/utils/slug";
+import { RESUME_SCREENING_RESULT } from "@/constants";
 function scoreColor(score: number, threshold: number = 65) {
   if (score >= 80) return "bg-green-500";
   if (score >= threshold) return "bg-yellow-500";
@@ -68,7 +69,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           return (
             <div className="flex flex-col gap-0.5 min-w-[160px] max-w-[250px]">
               <span
-                className="font-bold text-base text-foreground truncate block"
+                className="font-bold  text-foreground truncate block"
                 title={fullName}
               >
                 {isProcessing && !c.first_name ? (
@@ -79,10 +80,10 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   fullName
                 )}
               </span>
-              <span className="text-xs text-muted-foreground truncate block" title={c.email || "N/A"}>
+              <span className="text-muted-foreground truncate block" title={c.email || "N/A"}>
                 {c.email || "N/A"}
               </span>
-              <span className="text-xs text-muted-foreground truncate block" title={c.phone || "N/A"}>
+              <span className="text-muted-foreground truncate block" title={c.phone || "N/A"}>
                 {c.phone || "N/A"}
               </span>
             </div>
@@ -179,13 +180,13 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                     (c.pass_fail === true ||
                       String(c.pass_fail).toLowerCase() === "pass" ||
                       (c.resume_score ?? 0) >= passing_threshold)
-                      ? "pass"
-                      : "fail"
+                      ? RESUME_SCREENING_RESULT.PASS
+                      : RESUME_SCREENING_RESULT.FAIL
                 }
                 className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
                 mapping={{
-                  pass: "default",
-                  fail: "destructive",
+                  [RESUME_SCREENING_RESULT.PASS]: "default",
+                  [RESUME_SCREENING_RESULT.FAIL]: "destructive",
                   pending: "secondary",
                 }}
               />

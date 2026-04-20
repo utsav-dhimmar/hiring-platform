@@ -16,14 +16,15 @@ import QuickResumeUpload from "@/components/candidate/QuickResumeUpload";
 import {
   CandidateDetailsModal,
   // CandidateAnalysisModal,
-  // DeleteModal,
+  DeleteModal,
 } from "@/components/modal";
 import { JobCandidatesSkeleton } from "@/components/candidate/JobCandidatesSkeleton";
 import { resumeService } from "@/apis/resume";
-import { useAdminData /*, useDeleteConfirmation*/ } from "@/hooks";
+import { useAdminData, useDeleteConfirmation } from "@/hooks";
 import type { PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
 import type { CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";
+import { useToast } from "@/components/shared";
 
 
 const AdminCandidateSearch = () => {
@@ -31,7 +32,7 @@ const AdminCandidateSearch = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith("/dashboard/admin");
-  // const toast = useToast();
+  const toast = useToast();
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -189,27 +190,28 @@ const AdminCandidateSearch = () => {
   //   setShowAnalysisDetails(true);
   // };
 
-  // const {
-  //   showModal: showDeleteModal,
-  //   handleDeleteClick,
-  //   handleClose: handleCloseDelete,
-  //   handleConfirm: handleConfirmDelete,
-  //   isDeleting,
-  //   error: deleteError,
-  // } = useDeleteConfirmation<CandidateResponse>({
-  //   deleteFn: async (id) => {
-  //     const candidate = candidates.find((c) => c.id === id);
-  //     if (!candidate?.resume_id || !jobId) {
-  //       throw new Error("Cannot delete: Missing job context or resume ID.");
-  //     }
-  //     await resumeService.deleteResume(jobId, candidate.resume_id);
-  //   },
-  //   onSuccess: () => {
-  //     fetchCandidates();
-  //     toast.success("Candidate deleted successfully");
-  //   },
-  //   itemTitle: (c) => `${c.first_name} ${c.last_name}`,
-  // });
+  const {
+    showModal: showDeleteModal,
+    handleDeleteClick,
+    handleClose: handleCloseDelete,
+    handleConfirm: handleConfirmDelete,
+    isDeleting,
+    error: deleteError,
+  } = useDeleteConfirmation<CandidateResponse>({
+    deleteFn: async (id) => {
+      const candidate = candidates.find((c) => c.id === id);
+
+      if (!candidate?.resume_id || !candidate.applied_job_id) {
+        throw new Error("Cannot delete: Missing job context or resume ID.");
+      }
+      await resumeService.deleteResume(candidate.applied_job_id, candidate.resume_id);
+    },
+    onSuccess: () => {
+      fetchCandidates();
+      toast.success("Candidate deleted successfully");
+    },
+    itemTitle: (c) => `${c.first_name} ${c.last_name}`,
+  });
 
   return (
     <AppPageShell width="wide" gap="tight">
@@ -259,8 +261,8 @@ const AdminCandidateSearch = () => {
             onNameFilterChange={setSearchQuery}
             showJobContext={!jobId}
             onFiltersChange={setFilters}
-          // onShowAnalysisDetails={handleShowAnalysisDetails}
-          // onDelete={handleDeleteClick}
+            // onShowAnalysisDetails={handleShowAnalysisDetails}
+            onDelete={handleDeleteClick}
           />
         </div>
       )}
@@ -273,7 +275,7 @@ const AdminCandidateSearch = () => {
         jobId={jobId}
       />
 
-      {/* <DeleteModal
+      <DeleteModal
         show={showDeleteModal}
         handleClose={handleCloseDelete}
         handleConfirm={handleConfirmDelete}
@@ -281,7 +283,7 @@ const AdminCandidateSearch = () => {
         message={`Are you sure you want to delete this candidate? This action cannot be undone.`}
         isLoading={isDeleting}
         error={deleteError}
-      /> */}
+      />
     </AppPageShell>
   );
 };

@@ -171,7 +171,7 @@ export default function CreateJob() {
         }
       />
 
-      <div className="mx-auto w-full max-w-4xl">
+      <div className="mx-auto w-full">
         {isInitialLoading ? (
           <JobFormSkeleton />
         ) : (

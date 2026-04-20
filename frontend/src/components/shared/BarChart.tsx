@@ -382,7 +382,7 @@ export function LocationBarChart({ locations }: LocationBarChartProps) {
     ["#f59e0b", "#d97706"], // Amber
     ["#eab308", "#ca8a04"], // Yellow
     ["#fb923c", "#f97316"], // Light Orange
-    ["#fcd34d", "#f59e0b"], // Light Amber
+    ["#fcd34d", "#d97706"], // Light Amber
   ];
 
   if (data.length === 0) {

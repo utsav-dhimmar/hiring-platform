@@ -25,7 +25,7 @@ import {
 import { formatFileSize } from "@/utils/converters";
 
 
-export type FileSizeUnit = "auto" | "B" | "KB" | "MB";
+export type FileSizeUnit = "Auto" | "B" | "KB" | "MB";
 
 const AdminRecentUploads = () => {
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
@@ -64,7 +64,7 @@ const AdminRecentUploads = () => {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
-  const [fileSizeUnit, setFileSizeUnit] = useState<FileSizeUnit>("auto");
+  const [fileSizeUnit, setFileSizeUnit] = useState<FileSizeUnit>("Auto");
 
   const columns: ColumnDef<RecentUploadRead>[] = [
     {
@@ -94,18 +94,18 @@ const AdminRecentUploads = () => {
         </Button>
       ),
       cell: ({ row }) => (
-        <span className="font-medium text-foreground">{row.original.file_name || "N/A"}</span>
+        <span className="font-medium text-foreground ">{row.original.file_name || "N/A"}</span>
       ),
     },
-    {
-      accessorKey: "file_type",
-      header: "Type",
-      cell: ({ row }) => (
-        <span className="uppercase text-xs font-bold text-muted-foreground">
-          {row.original.file_type || "N/A"}
-        </span>
-      ),
-    },
+    // {
+    //   accessorKey: "file_type",
+    //   header: "Type",
+    //   cell: ({ row }) => (
+    //     <span className="uppercase  font-bold text-muted-foreground">
+    //       {row.original.file_type || "N/A"}
+    //     </span>
+    //   ),
+    // },
     {
       accessorKey: "size",
       header: "Size",
@@ -117,7 +117,7 @@ const AdminRecentUploads = () => {
       header: "Uploaded By",
       cell: ({ row }) => (
         <span
-          className="font-medium text-foreground"
+          className="font-medium text-foreground "
           title={row.original.uploader_name || "N/A"}
         >
           {row.original.uploader_name || "N/A"}
@@ -129,7 +129,7 @@ const AdminRecentUploads = () => {
       header: "Candidate",
       cell: ({ row }) => (
         <span
-          className="font-medium text-foreground"
+          className="font-medium text-foreground "
           title={row.original.candidate_name || "N/A"}
         >
           {row.original.candidate_name || "N/A"}
@@ -166,16 +166,16 @@ const AdminRecentUploads = () => {
           tableActions={
 
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">Unit:</span>
+              <span className="font-medium text-muted-foreground whitespace-nowrap">Unit:</span>
               <Select
                 value={fileSizeUnit}
                 onValueChange={(value) => setFileSizeUnit(value as FileSizeUnit)}
               >
-                <SelectTrigger className="w-[90px] h-9 rounded-xl border-border/70 bg-background/90 transition-all focus:ring-2 focus:ring-primary/20">
-                  <SelectValue placeholder="Unit" />
+                <SelectTrigger className="w-[150px] h-9 rounded-xl border-border/70 bg-background/90 transition-all focus:ring-2 focus:ring-primary/20">
+                  <SelectValue placeholder="Unit" className={"text-base"} />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Auto</SelectItem>
+                <SelectContent side="bottom">
+                  <SelectItem value="Auto">Auto</SelectItem>
                   <SelectItem value="KB">KB</SelectItem>
                   <SelectItem value="MB">MB</SelectItem>
                 </SelectContent>

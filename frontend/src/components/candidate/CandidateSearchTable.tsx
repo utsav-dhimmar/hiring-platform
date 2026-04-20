@@ -28,7 +28,7 @@ interface CandidateSearchTableProps {
   showJobContext?: boolean;
   onFiltersChange?: (filters: CandidateActiveFilters) => void;
   // onShowAnalysisDetails: (candidate: CandidateResponse) => void;
-  // onDelete: (candidate: CandidateResponse) => void;
+  onDelete: (candidate: CandidateResponse) => void;
 }
 
 const CandidateSearchTable = ({
@@ -41,6 +41,7 @@ const CandidateSearchTable = ({
   onNameFilterChange,
   showJobContext = false,
   onFiltersChange,
+  // onDelete
 }: CandidateSearchTableProps): ReactElement => {
   return (
     <CandidateTable
@@ -74,6 +75,24 @@ const CandidateSearchTable = ({
               <div className="text-sm font-semibold">Candidate Info</div>
             </HoverCardContent>
           </HoverCard>
+          {/* <HoverCard>
+            <HoverCardTrigger
+              render={(props) => (
+                <Button
+                  {...props}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 w-9 p-0 rounded-xl border border-muted-foreground/10 hover:bg-muted transition-all duration-300 flex items-center justify-center shrink-0"
+                  onClick={() => onDelete(candidate)}
+                >
+                  <Trash className="h-4 w-4 shrink-0" />
+                </Button>
+              )}
+            />
+            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+              <div className="text-sm font-semibold">Delete</div>
+            </HoverCardContent>
+          </HoverCard> */}
         </div>
       )}
     />

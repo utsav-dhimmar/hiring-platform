@@ -61,20 +61,21 @@ export const getJobColumns = ({
         <div className="flex flex-col gap-1 min-w-[200px] max-w-[300px]">
           <div className="flex items-center gap-2">
             <span
-              className="font-bold text-md text-wrap"
+              className="font-bold text-sm text-wrap"
               // text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl
               title={row.original.title}
             >
               {row.original.title}
+
+              {row.original.version && (
+                <Badge
+                  variant="secondary"
+                  className="ml-1 text-xs font-normal h-5 px-1.5 rounded-md shrink-0"
+                >
+                  v{row.original.version}
+                </Badge>
+              )}
             </span>
-            {row.original.version && (
-              <Badge
-                variant="secondary"
-                className="text-xs font-normal h-5 px-1.5 rounded-md shrink-0"
-              >
-                v{row.original.version}
-              </Badge>
-            )}
           </div>
           <div className="flex items-center gap-2">
             <span
@@ -118,7 +119,7 @@ export const getJobColumns = ({
       },
       cell: ({ row }) => (
         <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center gap-3 max-w-[100px] ">
             <Switch
               checked={row.original.is_active}
               onCheckedChange={() => onToggleStatus(row.original)}

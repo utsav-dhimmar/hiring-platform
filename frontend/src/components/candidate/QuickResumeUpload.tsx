@@ -61,7 +61,7 @@ const QuickResumeUpload: React.FC<QuickResumeUploadProps> = ({
 
     const MAX_SIZE_MB = Number(import.meta.env.VITE_RESUME_MAX_SIZE_MB) || 5;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      toast.warn(`Resume size must be <= ${MAX_SIZE_MB} MB.`);
+      toast.warn(`Resume size must be less than ${MAX_SIZE_MB} MB.`);
       event.target.value = "";
       return;
     }
