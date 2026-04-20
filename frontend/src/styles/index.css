@@ -81,6 +81,10 @@
   --sidebar-accent-foreground: oklch(0.212 0.019 322.12);
   --sidebar-border: oklch(0.922 0.005 325.62);
   --sidebar-ring: oklch(0.711 0.019 323.02);
+
+  /* custom chart color */
+  --chart-pass: oklch(0.59 0.16 166.72);
+  --chart-fail: var(--color-chart-2)
 }
 
 .dark {
@@ -124,12 +128,12 @@
 
   html {
     /* Fluid root: 16px @ ≤1280px → 24px @ 3840px — scales all rem-based UI */
-    font-size: clamp(1rem, 0.75rem + 0.3125vw, 1.5rem);
+    font-size: clamp(1rem, 0.75rem + 0.3125vw, 2.5rem);
     @apply font-sans;
   }
 
   body {
-    @apply bg-background text-foreground text-2xl leading-relaxed;
+    @apply bg-background text-foreground text-xl leading-relaxed;
   }
 }
 

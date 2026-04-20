@@ -1,8 +1,8 @@
-import { TrendingUp, CircleCheck, ShieldAlert, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CandidatesDistributionChart, StagesBarChart, LocationBarChart } from "@/components/shared/BarChart";
 import { ResultPieChart } from "@/components/shared/ResultPieChart";
 import type { JobStatsResponse } from "@/types/admin";
+import { CHART_TEXTS } from "@/constants";
 
 interface JobCandidatesChartsProps {
   loading: boolean;
@@ -35,75 +35,49 @@ export function JobCandidatesCharts({
       </div>
     );
   }
+  const obj: { title: string; description: string; chart: React.JSX.Element }[] = [
+    {
+      title: CHART_TEXTS.hrDecision.label,
+      description: CHART_TEXTS.hrDecision.description,
+      chart: <CandidatesDistributionChart stats={stats} />
+    },
+    {
+      title: CHART_TEXTS.screeningResults.label,
+      description: CHART_TEXTS.screeningResults.description,
+      chart: <ResultPieChart passCount={passCount} failCount={failCount} />
+    },
+    {
+      title: CHART_TEXTS.recruitmentStages.label,
+      description: CHART_TEXTS.recruitmentStages.description,
+      chart: <StagesBarChart stages={jobStats?.stages || {}} />
+    },
+    {
+      title: CHART_TEXTS.locations.label,
+      description: CHART_TEXTS.locations.description,
+      chart: <LocationBarChart locations={jobStats?.location || {}} />
+    },
 
+  ];
   return (
     <div className={cn(
-      "flex flex-col gap-16 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700",
+      "flex flex-col gap-16 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 p-0.5",
       isRefreshing && "opacity-60 transition-opacity duration-300"
     )}>
-      {/* Distribution Chart */}
-      <div className="group overflow-hidden relative w-full">
-        <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
-          <div className="p-2.5 bg-blue-500/10 rounded-2xl group-hover:rotate-6 transition-transform text-blue-500">
-            <TrendingUp className="h-5 w-5" />
+      {
+        obj.map(({ chart, title, description }) => (
+          <div className="group overflow-hidden relative w-full" key={title}>
+            <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
+              <div>
+                <h4 className="font-black text-xl text-foreground tracking-tight uppercase">{title}</h4>
+                <p className="text-sm text-muted-foreground font-medium">{description}</p>
+              </div>
+            </div>
+            <div className="w-full h-[500px]">
+              {chart}
+            </div>
           </div>
-          <div>
-            <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Decision Distribution</h4>
-            <p className="text-sm text-muted-foreground font-medium">Distribution of HR decision</p>
-          </div>
-        </div>
-        <div className="w-full h-[500px]">
-          <CandidatesDistributionChart stats={stats} />
-        </div>
-      </div>
-
-      {/* Result Pie Chart */}
-      <div className="group overflow-hidden relative w-full">
-        <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
-          <div className="p-2.5 bg-emerald-500/10 rounded-2xl group-hover:rotate-6 transition-transform text-emerald-500">
-            <CircleCheck className="h-5 w-5" />
-          </div>
-          <div>
-            <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Screening Results</h4>
-            <p className="text-sm text-muted-foreground font-medium">Distribution of passing vs failing candidates</p>
-          </div>
-        </div>
-        <div className="w-full h-[500px]">
-          <ResultPieChart passCount={passCount} failCount={failCount} />
-        </div>
-      </div>
-
-      {/* Stages Bar Chart */}
-      <div className="group overflow-hidden relative w-full">
-        <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
-          <div className="p-2.5 bg-amber-500/10 rounded-2xl group-hover:rotate-6 transition-transform text-amber-500">
-            <ShieldAlert className="h-5 w-5" />
-          </div>
-          <div>
-            <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Recruitment Stages</h4>
-            <p className="text-sm text-muted-foreground font-medium">Candidate info stages wise</p>
-          </div>
-        </div>
-        <div className="w-full h-[500px]">
-          <StagesBarChart stages={jobStats?.stages || {}} />
-        </div>
-      </div>
-
-      {/* Location Bar Chart */}
-      <div className="group overflow-hidden relative w-full">
-        <div className="flex items-center gap-3 mb-8 border-b border-muted-foreground/10 pb-4">
-          <div className="p-2.5 bg-purple-500/10 rounded-2xl group-hover:rotate-6 transition-transform text-purple-500">
-            <MapPin className="h-5 w-5" />
-          </div>
-          <div>
-            <h4 className="font-black text-xl text-foreground tracking-tight uppercase">Locations</h4>
-            <p className="text-sm text-muted-foreground font-medium">Candidates Location wise</p>
-          </div>
-        </div>
-        <div className="w-full h-[500px]">
-          <LocationBarChart locations={jobStats?.location || {}} />
-        </div>
-      </div>
+        ))
+      }
     </div>
   );
 }

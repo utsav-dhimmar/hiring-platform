@@ -10,12 +10,14 @@ import { RESUME_SCREENING_RESULT } from "@/constants";
 const chartConfig = {
   pass: {
     label: RESUME_SCREENING_RESULT.PASS,
-    color: "hsl(142 71% 45%)",
-    // color:"hsl(var(primary))"
+    // color: "hsl(142 71% 45%)",
+    // color: "var(--primary)",
+    color: "var(--chart-pass)"
   },
   fail: {
     label: RESUME_SCREENING_RESULT.FAIL,
-    color: "hsl(0 72% 51%)",
+    // color: "hsl(0 72% 51%)",
+    color: "var(--chart-fail)"
   },
 } satisfies ChartConfig;
 
