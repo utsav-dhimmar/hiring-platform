@@ -42,6 +42,9 @@ interface CandidateTableFiltersProps {
   jobOptions: { id: string; title: string; slug: string }[];
   jobSearch: string;
   setJobSearch: (value: string) => void;
+  stageFilter: string[];
+  setStageFilter: (value: string[]) => void;
+  stageOptions: string[];
   hasActiveFilters: boolean;
   clearFilters: () => void;
   resultCount: number;
@@ -74,6 +77,9 @@ export const CandidateTableFilters = ({
   jobOptions,
   jobSearch,
   setJobSearch,
+  stageFilter,
+  setStageFilter,
+  stageOptions,
   hasActiveFilters,
   clearFilters,
   resultCount,
@@ -361,6 +367,67 @@ export const CandidateTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setResumeScreeningFilter([])}
+                  >
+                    Clear selection
+                  </DropdownMenuCheckboxItem>
+                </>
+              )}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Stages multi-select dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:min-w-[100px] lg:max-w-[140px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+              stageFilter.length > 0
+                ? "border-primary/40 bg-primary/5 text-foreground"
+                : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            )}
+          >
+            <span className="truncate mr-auto">
+              {stageFilter.length === 0
+                ? "Stages"
+                : stageFilter.length === 1
+                  ? stageFilter[0]
+                  : `${stageFilter.length} selected`}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[160px]">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Stages</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {stageOptions.length === 0 ? (
+                <div className="px-2 py-4 text-xs text-center text-muted-foreground">
+                  No stages available
+                </div>
+              ) : (
+                stageOptions.map((s) => (
+                  <DropdownMenuCheckboxItem
+                    key={s}
+                    checked={stageFilter.includes(s)}
+                    onSelect={(e) => e.preventDefault()}
+                    onClick={() =>
+                      setStageFilter(
+                        stageFilter.includes(s)
+                          ? stageFilter.filter((v) => v !== s)
+                          : [...stageFilter, s]
+                      )
+                    }
+                    closeOnClick={true}
+                  >
+                    {s}
+                  </DropdownMenuCheckboxItem>
+                ))
+              )}
+              {stageFilter.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={false}
+                    onClick={() => setStageFilter([])}
                   >
                     Clear selection
                   </DropdownMenuCheckboxItem>

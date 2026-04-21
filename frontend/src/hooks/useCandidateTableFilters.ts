@@ -14,6 +14,7 @@ export interface CandidateActiveFilters {
   hr_decision: string[];
   dateRange?: { from?: Date; to?: Date };
   resumeScreening?: string[];
+  stage?: string[];
 }
 
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(
@@ -25,7 +26,8 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   fetchJobTitles = true,
   isServerSide = false,
   onFiltersChange?: (filters: CandidateActiveFilters) => void,
-  passingThreshold = 65
+  passingThreshold = 65,
+  stageOptionsProp?: string[]
 ) => {
   const [internalNameFilter, setInternalNameFilter] = useState("");
 
@@ -56,6 +58,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   const [availableJobs, setAvailableJobs] = useState<{ id: string; title: string; slug: string }[]>([]);
   const [jobSearch, setJobSearch] = useState("");
   const [resumeScreeningFilter, setResumeScreeningFilter] = useState<string[]>([]);
+  const [stageFilter, setStageFilter] = useState<string[]>([]);
 
   // Memoized job options filtered by search query
   const jobOptions = useMemo(() => {
@@ -97,10 +100,11 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
         job: jobFilter,
         hr_decision: hrDecisionFilter,
         dateRange: dateRange,
-        resumeScreening: resumeScreeningFilter
+        resumeScreening: resumeScreeningFilter,
+        stage: stageFilter
       });
     }
-  }, [statusFilter, locationFilter, jobFilter, hrDecisionFilter, dateRange, resumeScreeningFilter, onFiltersChange]);
+  }, [statusFilter, locationFilter, jobFilter, hrDecisionFilter, dateRange, resumeScreeningFilter, stageFilter, onFiltersChange]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -130,6 +134,16 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     });
     return Array.from(set).sort();
   }, [candidates]);
+
+  const stageOptions = useMemo(() => {
+    if (stageOptionsProp && stageOptionsProp.length > 0) return stageOptionsProp;
+    const set = new Set<string>();
+    candidates.forEach((c) => {
+      const s = c.current_stage?.template_name;
+      if (s) set.add(s);
+    });
+    return Array.from(set).sort();
+  }, [candidates, stageOptionsProp]);
 
   const minDate = useMemo(() => {
     if (candidates.length === 0) return new Date();
@@ -208,9 +222,15 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
         }
       }
 
+      // Stage filter (multi-select)
+      if (stageFilter.length > 0) {
+        const candidateStage = c.current_stage?.template_name || "";
+        if (!stageFilter.includes(candidateStage)) return false;
+      }
+
       return true;
     });
-  }, [candidates, debouncedNameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, resumeScreeningFilter, isServerSide]);
+  }, [candidates, debouncedNameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, resumeScreeningFilter, stageFilter, isServerSide]);
 
   const hasActiveFilters =
     !!debouncedNameFilter ||
@@ -231,6 +251,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     setJobSearch("");
     setDateRange({ from: undefined, to: undefined });
     setResumeScreeningFilter([]);
+    setStageFilter([]);
   };
 
   return {
@@ -255,6 +276,9 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     setJobSearch,
     resumeScreeningFilter,
     setResumeScreeningFilter,
+    stageFilter,
+    setStageFilter,
+    stageOptions,
     minDate,
     filteredCandidates,
     hasActiveFilters,

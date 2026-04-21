@@ -32,6 +32,7 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   showLocationFilter?: boolean;
   showStatusFilter?: boolean;
   onFiltersChange?: (filters: CandidateActiveFilters) => void;
+  stageOptions?: string[];
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -51,6 +52,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   showLocationFilter = true,
   showStatusFilter = true,
   onFiltersChange,
+  stageOptions: stageOptionsProp,
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -78,8 +80,11 @@ export function CandidateTable<T extends UnifiedCandidate>({
     filteredCandidates,
     hasActiveFilters,
     clearFilters,
-    availableJobs
-  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold);
+    availableJobs,
+    stageFilter,
+    setStageFilter,
+    stageOptions,
+  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold, stageOptionsProp);
 
   const columns = useCandidateTableColumns({
     renderActions,
@@ -114,6 +119,9 @@ export function CandidateTable<T extends UnifiedCandidate>({
         setJobSearch={setJobSearch}
         resumeScreeningFilter={resumeScreeningFilter}
         setResumeScreeningFilter={setResumeScreeningFilter}
+        stageFilter={stageFilter}
+        setStageFilter={setStageFilter}
+        stageOptions={stageOptions}
         hasActiveFilters={hasActiveFilters}
         clearFilters={clearFilters}
         resultCount={filteredCandidates.length}
