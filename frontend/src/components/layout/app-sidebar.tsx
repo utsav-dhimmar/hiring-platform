@@ -4,6 +4,12 @@ import * as React from "react"
 import { useAppSelector } from "@/store/hooks"
 import { selectCurrentUser } from "@/store/slices/authSlice"
 import { hasAnyPermission, hasPermissions, PERMISSIONS } from "@/lib/permissions"
+
+/**
+ * Application sidebar navigation with role-based menu sections.
+ * Displays Platform (Recruitment) and System (Admin) navigation based on user permissions.
+ * Collapsible with animated toggle between collapsed/expanded states.
+ */
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +34,7 @@ import {
   LayoutDashboard,
   Users,
   Database,
+  Settings2
 } from "lucide-react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -126,6 +133,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: "Candidates",
           url: "/dashboard/admin/candidates",
           permission: PERMISSIONS.CANDIDATES_ACCESS,
+        },
+      ],
+    }, {
+      title: "Job Stages & Criteria",
+      url: "/dashboard/admin/criteria-stages",
+      icon: Settings2,
+      items: [
+        {
+          title: "Stages",
+          url: "/dashboard/admin/criteria-stages/stages",
+          permission: PERMISSIONS.ADMIN_ALL, // TODO: adjust as per backend API
+        }, {
+          title: "Criteria",
+          url: "/dashboard/admin/criteria-stages/criteria",
+          permission: PERMISSIONS.ADMIN_ALL, // TODO: adjust as per backend API
         },
       ],
     },

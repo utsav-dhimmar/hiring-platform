@@ -22,8 +22,9 @@ const JobBoard = lazy(() => import("@/pages/dashboard/job-board"));
 const CreateJob = lazy(() => import("@/pages/dashboard/CreateJob"));
 const JobCandidates = lazy(() => import("@/pages/dashboard/JobCandidates"));
 const ProfilePage = lazy(() => import("@/pages/Profile"));
+const CandidatesStages = lazy(() => import("@/pages/dashboard/CandidatesStages"));
 
-// Admin pages
+// Admin pages (lazy-loaded for bundle size optimization)
 const AdminDashboard = lazy(() => import("@/pages/Admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/pages/Admin/AdminUsers"));
 const AdminRoles = lazy(() => import("@/pages/Admin/AdminRoles"));
@@ -33,6 +34,10 @@ const AdminJobs = lazy(() => import("@/pages/Admin/AdminJobs"));
 const AdminCandidateSearch = lazy(() => import("@/pages/Admin/AdminCandidateSearch"));
 const AdminSkills = lazy(() => import("@/pages/Admin/AdminSkills"));
 const AdminDepartments = lazy(() => import("@/pages/Admin/AdminDepartments"));
+const AdminJobStages = lazy(() => import("@/pages/Admin/AdminJobStages"));
+const AdminJobCriteria = lazy(() => import("@/pages/Admin/AdminJobCriteria"));
+const AdminJobCriteriaForm = lazy(() => import("@/pages/Admin/AdminJobCriteriaForm"));
+const AdminJobStageForm = lazy(() => import("@/pages/Admin/AdminJobStageForm"));
 
 /**
  * Main routing component for the application.
@@ -108,6 +113,14 @@ const AppRoutes = () => {
             element={
               <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
                 <JobCandidates />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="jobs/:jobSlug/candidates/:candidateName/stages"
+            element={
+              <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
+                <CandidatesStages />
               </RoleRoute>
             }
           />
@@ -214,6 +227,21 @@ const AppRoutes = () => {
                 </RoleRoute>
               }
             />
+            <Route
+              path="criteria-stages"
+              element={
+                <RoleRoute requiredPermissions={PERMISSIONS.ADMIN_ALL}>
+                  <Outlet />
+                </RoleRoute>
+              }
+            >
+              <Route path="criteria" element={<AdminJobCriteria />} />
+              <Route path="criteria/new" element={<AdminJobCriteriaForm />} />
+              <Route path="criteria/:slug/edit" element={<AdminJobCriteriaForm />} />
+              <Route path="stages" element={<AdminJobStages />} />
+              <Route path="stages/new" element={<AdminJobStageForm />} />
+              <Route path="stages/:slug/edit" element={<AdminJobStageForm />} />
+            </Route>
           </Route>
         </Route>
 

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Input } from "@/components/";
-import { RotateCw, Info, Users, BarChart3, } from "lucide-react";
+import { RotateCw, Info, Users, BarChart3, Layers } from "lucide-react";
 import { CandidateDetailsModal, JobInfoModal, DeleteModal } from "@/components/modal";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import CandidateTable from "@/components/candidate/CandidateTable";
@@ -17,8 +17,10 @@ import { PERMISSIONS } from "@/lib/permissions";
 import type { PaginationState } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 
-
-
+/**
+ * Page component for managing job candidates with toggle between candidates list and analytics views.
+ * Provides candidate table with filtering, search, and bulk reanalyze functionality.
+ */
 export default function JobCandidates() {
   const { jobSlug } = useParams<{ jobSlug: string }>();
   const navigate = useNavigate();
@@ -250,6 +252,32 @@ export default function JobCandidates() {
                             />
                             <HoverCardContent side="top" className="w-auto p-2 min-w-0">
                               <div className="text-sm font-semibold">More Info</div>
+                            </HoverCardContent>
+                          </HoverCard>
+                          <HoverCard>
+                            <HoverCardTrigger
+                              render={(props) => (
+                                <Button
+                                  {...props}
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0 "
+                                  onClick={() => {
+                                    navigate(`/dashboard/jobs/${jobSlug}/candidates/${candidate.first_name}/stages`, {
+                                      state: {
+                                        candidate: candidate,
+                                        jobSlug: jobSlug,
+                                        job
+                                      }
+                                    })
+                                  }}
+                                >
+                                  <Layers className="h-4 w-4 shrink-0 text-blue-600" />
+                                </Button>
+                              )}
+                            />
+                            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                              <div className="text-sm font-semibold text-blue-600">Stages</div>
                             </HoverCardContent>
                           </HoverCard>
                           {/* <HoverCard>

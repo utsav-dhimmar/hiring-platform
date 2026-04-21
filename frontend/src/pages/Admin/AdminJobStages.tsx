@@ -1,0 +1,188 @@
+import { useState, useEffect, useCallback } from "react";
+import AppPageShell from "@/components/shared/AppPageShell";
+import PageHeader from "@/components/shared/PageHeader";
+import { DataTable } from "@/components/shared/DataTable";
+import { Button } from "@/components/ui/button";
+import { Eye, Pencil, Trash2, ArrowUpDown, Plus } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { StageTemplate } from "@/types/stage";
+import { adminStageTemplateService } from "@/apis/admin/stageTemplate";
+import { useToast } from "@/components/shared";
+import { StageDeleteDialog } from "@/components/admin/StageDeleteDialog";
+import { StageDetailDialog } from "@/components/admin/StageDetailDialog";
+import { useNavigate } from "react-router-dom";
+import { slugify } from "@/utils/slug";
+
+/**
+ * Admin page for managing job stage templates.
+ * Displays searchable table with view, edit, and delete functionality.
+ */
+const AdminJobStages = () => {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<StageTemplate[]>([]);
+  const toast = useToast();
+  const navigate = useNavigate();
+
+  // Dialog states
+  const [selectedTemplate, setSelectedTemplate] = useState<StageTemplate | null>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const fetchTemplates = useCallback(async () => {
+    setLoading(true);
+    try {
+      const templates = await adminStageTemplateService.getAllTemplates();
+      setData(templates);
+    } catch (error) {
+      console.error("Failed to fetch stage templates:", error);
+      toast.error("Failed to load stage templates");
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  const handleShow = (template: StageTemplate) => {
+    setSelectedTemplate(template);
+    setIsDetailOpen(true);
+  };
+
+  const handleEdit = (template: StageTemplate) => {
+    const slug = slugify(template.name);
+    navigate(`/dashboard/admin/criteria-stages/stages/${slug}/edit`, {
+      state: { template }
+    });
+  };
+
+  const handleDeleteClick = (template: StageTemplate) => {
+    setSelectedTemplate(template);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedTemplate) return;
+
+    try {
+      await adminStageTemplateService.deleteTemplate(selectedTemplate.id);
+      toast.success("Stage template deleted successfully");
+      fetchTemplates();
+    } catch (error) {
+      toast.error("Failed to delete stage template");
+    } finally {
+      setIsDeleteOpen(false);
+      setSelectedTemplate(null);
+    }
+  };
+
+  const columns: ColumnDef<StageTemplate>[] = [
+    {
+      accessorKey: "name",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => (
+        <span className="font-medium text-foreground">{row.original.name}</span>
+      ),
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => (
+        <span className="text-muted-foreground truncate line-clamp-1 max-w-md">
+          {row.original.description || "No description"}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleShow(row.original)}
+            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+            title="Show Details"
+          >
+            <Eye className="h-4 w-4" />
+            <span className="sr-only">Show</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleEdit(row.original)}
+            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+            title="Edit Template"
+          >
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Edit</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDeleteClick(row.original)}
+            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            title="Delete Template"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Delete</span>
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <AppPageShell width="wide">
+      <PageHeader
+        title="Job Stages Configuration"
+        actions={
+          <Button
+            onClick={() => navigate("/dashboard/admin/criteria-stages/stages/new")}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Stage
+          </Button>
+        }
+      />
+      <div className="mt-8">
+        <DataTable
+          columns={columns}
+          data={data}
+          loading={loading}
+          searchKey="name"
+          searchPlaceholder="Search templates..."
+          entityName="Template"
+        />
+      </div>
+
+      <StageDetailDialog
+        isOpen={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        template={selectedTemplate}
+      />
+
+      <StageDeleteDialog
+        isOpen={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        template={selectedTemplate}
+        onConfirm={confirmDelete}
+        onCancel={() => setIsDeleteOpen(false)}
+      />
+    </AppPageShell>
+  );
+};
+
+export default AdminJobStages;

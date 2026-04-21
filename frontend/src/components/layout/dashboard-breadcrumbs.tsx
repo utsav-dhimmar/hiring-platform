@@ -24,20 +24,21 @@ import {
   GitBranch,
   ChevronRight,
   Building2,
+  ListChecks,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 
 /**
- * Predefined route metadata: maps a URL segment to a friendly label and icon.
- * Segments NOT present here are treated as dynamic (slugs / IDs) and formatted
- * by capitalizing + replacing dashes with spaces.
+ * Route metadata mapping: maps URL segments to display labels and icons.
+ * Unmapped segments (dynamic IDs/slugs) are hidden to keep breadcrumbs clean.
  */
 const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   dashboard: { label: "Home", icon: Home },
   jobs: { label: "Jobs", icon: Briefcase },
   candidates: { label: "Candidates", icon: Users },
   new: { label: "Create Job", icon: PlusCircle },
-  edit: { label: "Edit Job", icon: Settings },
+  edit: { label: "Edit", icon: Settings },
   versions: { label: "Versions", icon: GitBranch },
   admin: { label: "Admin Dashboard", icon: ShieldCheck },
   departments: { label: "Departments", icon: Building2 },
@@ -48,32 +49,40 @@ const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   "recent-uploads": { label: "Recent Uploads", icon: Upload },
   stats: { label: "Statistics", icon: BarChart3 },
   profile: { label: "Profile", icon: UserCog },
+  "criteria-stages": { label: "Job Config", icon: Settings },
+  criteria: { label: "Job Criteria", icon: ListChecks },
+  stages: { label: "Job Stages", icon: Layers },
 };
 
-const HIDE_DYNAMIC_BEFORE = new Set(["edit", "candidates", "versions"]);
-const DYNAMIC_PARENT_SEGMENTS = new Set(["jobs"]);
-
+/**
+ * Determines whether a path segment should be hidden from breadcrumbs.
+ * @param pathnames - Array of URL path segments
+ * @param index - Current segment index to evaluate
+ * @returns True if segment should be hidden
+ */
 function shouldHideSegment(pathnames: string[], index: number) {
   const segment = pathnames[index];
   const nextSegment = pathnames[index + 1];
-  const previousSegment = pathnames[index - 1];
 
-  // Hide the 'admin' grouping route if we are on a child page
-  if (segment === "admin" && nextSegment) {
+  // Hide the 'admin' and 'criteria-stages' grouping routes if we are on a child page
+  if ((segment === "admin" || segment === "criteria-stages") && nextSegment) {
     return true;
   }
 
-  if (ROUTE_META[segment]) {
-    return false;
+  // Hide any segment that doesn't have a defined label in ROUTE_META (dynamic slugs/IDs)
+  // This satisfies the user's request to remove "Details" segments from the breadcrumb.
+  if (!ROUTE_META[segment]) {
+    return true;
   }
 
-  if (!previousSegment || !DYNAMIC_PARENT_SEGMENTS.has(previousSegment)) {
-    return false;
-  }
-
-  return !nextSegment || HIDE_DYNAMIC_BEFORE.has(nextSegment);
+  return false;
 }
 
+/**
+ * Breadcrumb navigation component for dashboard pages.
+ * Builds navigation path from current URL with route metadata labels and icons.
+ * Dynamic segments (IDs/slugs) are automatically hidden.
+ */
 export function DashboardBreadcrumbs() {
   const location = useLocation();
   const pathnames = location.pathname.split("/").filter(Boolean);

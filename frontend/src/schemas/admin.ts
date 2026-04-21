@@ -1,7 +1,8 @@
 import * as z from "zod";
 
 /**
- * Zod validation schemas for admin user management.
+ * Zod validation schemas for admin entity management.
+ * Provides centralized form validation for users, roles, jobs, stages, and criteria.
  */
 
 // --- Shared Primitives ---
@@ -10,17 +11,17 @@ import * as z from "zod";
 const nameSchema = (min: number, entity: string) =>
   z.string().trim().min(min, `${entity} must be at least ${min} characters long`);
 
-/** Factory for optional descriptions */
+/** Factory for optional descriptions with minimum character requirement */
 const descriptionSchema = (min: number = 5) =>
   z.string().trim().min(min, `Description must be at least ${min} characters long`);
 
-/** UUID validation with custom error */
+/** UUID v7 validation with custom error message */
 const uuidSchema = (message: string = "Invalid UUID") => z.uuid({
   version: "v7",
   error: message,
 });
 
-/** Base email validation */
+/** Base email validation schema */
 const emailSchema = z.string().email("Invalid email address").trim();
 
 // --- User Schemas ---
@@ -257,3 +258,38 @@ export const departmentUpdateSchema = departmentBaseSchema.partial();
 
 /** Type inferred from departmentUpdateSchema. */
 export type DepartmentUpdateFormValues = z.infer<typeof departmentUpdateSchema>;
+
+// --- Job Criteria Schemas ---
+
+const jobCriteriaBaseSchema = z.object({
+  /** Name of the criteria (minimum 3 characters) */
+  name: nameSchema(3, "Criteria name"),
+  /** Description of the criteria (minimum 5 characters) */
+  description: descriptionSchema(),
+  /** Whether the criteria is active */
+  is_active: z.boolean(),
+  /** Whether to apply this criteria to all jobs */
+  apply_to_all: z.boolean(),
+  /** List of job UUIDs this criteria applies to (if not apply_to_all) */
+  job_ids: z.array(z.string()).optional(),
+});
+
+/**
+ * Schema for creating a new job criteria.
+ */
+export const jobCriteriaCreateSchema = jobCriteriaBaseSchema.extend({
+  is_active: z.boolean().default(true),
+  apply_to_all: z.boolean().default(true),
+  job_ids: z.array(z.string()).optional().default([]),
+});
+
+/** Type inferred from jobCriteriaCreateSchema. */
+export type JobCriteriaCreateFormValues = z.infer<typeof jobCriteriaCreateSchema>;
+
+/**
+ * Schema for updating an existing job criteria.
+ */
+export const jobCriteriaUpdateSchema = jobCriteriaBaseSchema.partial();
+
+/** Type inferred from jobCriteriaUpdateSchema. */
+export type JobCriteriaUpdateFormValues = z.infer<typeof jobCriteriaUpdateSchema>;
