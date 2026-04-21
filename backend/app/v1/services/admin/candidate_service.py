@@ -1,6 +1,7 @@
+from datetime import datetime
 import uuid
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -29,6 +30,8 @@ class CandidateAdminService:
         query: str | None = None,
         hr_decision: str | None = None,
         jd_version: int | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> PaginatedData[CandidateResponse]:
         from app.v1.db.models.cross_job_matches import CrossJobMatch
 
@@ -39,6 +42,13 @@ class CandidateAdminService:
                 select(HrDecision.candidate_id).where(HrDecision.job_id == job_id)
             )
         )
+        
+        # Apply date filters to direct candidates
+        if start_date:
+            dir_filter = and_(dir_filter, Candidate.created_at >= start_date)
+        if end_date:
+            dir_filter = and_(dir_filter, Candidate.created_at <= end_date)
+
         dir_stmt = select(Candidate).where(dir_filter)
 
         search_filter = None
@@ -74,9 +84,15 @@ class CandidateAdminService:
         direct_candidates = list(dir_result.scalars().unique().all())
 
         # 2. Fetch cross-matched candidates
+        xm_filter = CrossJobMatch.matched_job_id == job_id
+        if start_date:
+            xm_filter = and_(xm_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            xm_filter = and_(xm_filter, CrossJobMatch.created_at <= end_date)
+
         xm_stmt = (
             select(CrossJobMatch)
-            .where(CrossJobMatch.matched_job_id == job_id)
+            .where(xm_filter)
             .options(
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.hr_decisions),
@@ -144,7 +160,7 @@ class CandidateAdminService:
             threshold_val = (
                 float(xm.matched_job.passing_threshold)
                 if xm.matched_job and xm.matched_job.passing_threshold
-                else 65.0
+                else 70.0
             )
             derived_pass_fail = (
                 "passed" if match_score_val >= threshold_val else "failed"
@@ -187,6 +203,8 @@ class CandidateAdminService:
         job: str | None = None,
         hr_decision: str | None = None,
         city: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> PaginatedData[CandidateResponse]:
@@ -266,6 +284,14 @@ class CandidateAdminService:
             )
             stmt = stmt.where(latest_decision_subq == mapped_decision)
             total_stmt = total_stmt.where(latest_decision_subq == mapped_decision)
+
+        # 5. Date filters
+        if start_date:
+            stmt = stmt.where(Candidate.created_at >= start_date)
+            total_stmt = total_stmt.where(Candidate.created_at >= start_date)
+        if end_date:
+            stmt = stmt.where(Candidate.created_at <= end_date)
+            total_stmt = total_stmt.where(Candidate.created_at <= end_date)
 
         total = await db.scalar(total_stmt)
 

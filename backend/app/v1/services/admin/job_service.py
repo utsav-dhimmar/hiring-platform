@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timedelta
 from typing import Any
 
 from app.v1.db.models.jobs import Job
@@ -18,6 +19,7 @@ from app.v1.services.admin.audit_service import audit_service
 from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.skill_service import skill_service
 from app.v1.services.user_service import user_service
+from app.v1.services.admin.job_priority_service import job_priority_service
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -158,6 +160,16 @@ class JobAdminService:
                 detail=f"Job with title '{job_in.title}' already exists.",
             )
 
+        # Handle priority dates calculation
+        if job_in.priority_id:
+            if not job_in.priority_start_date:
+                job_in.priority_start_date = datetime.now()
+            
+            if not job_in.priority_end_date:
+                priority = await job_priority_service.get_priority_by_id(db, job_in.priority_id)
+                if priority:
+                    job_in.priority_end_date = job_in.priority_start_date + timedelta(days=priority.duration_days)
+
         job = await job_repository.create(
             db=db, object=job_in, created_by=admin_user_id
         )
@@ -173,6 +185,11 @@ class JobAdminService:
             target_id=job.id,
             details={"title": job.title},
         )
+
+        # Trigger background task to match all existing resumes to this new job
+        from app.v1.services.admin.job_tasks import match_all_resumes_to_job_task
+        match_all_resumes_to_job_task.delay(str(job.id))
+
         return JobRead.model_validate(job)
 
     async def update_job(
@@ -220,6 +237,17 @@ class JobAdminService:
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Job with title '{job_update.title}' already exists.",
                     )
+
+        # Handle priority dates calculation on update
+        if job_update.priority_id:
+            # If priority changed or start date is not set, set it
+            if not job_update.priority_start_date:
+                job_update.priority_start_date = datetime.now()
+            
+            if not job_update.priority_end_date:
+                priority = await job_priority_service.get_priority_by_id(db, job_update.priority_id)
+                if priority:
+                    job_update.priority_end_date = job_update.priority_start_date + timedelta(days=priority.duration_days)
 
         updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
         
