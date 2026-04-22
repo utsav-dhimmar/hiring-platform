@@ -24,6 +24,7 @@ import {
   GitBranch,
   ChevronRight,
   Building2,
+  ListTodo,
   type LucideIcon,
 } from "lucide-react";
 
@@ -48,6 +49,8 @@ const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   "recent-uploads": { label: "Recent Uploads", icon: Upload },
   stats: { label: "Statistics", icon: BarChart3 },
   profile: { label: "Profile", icon: UserCog },
+  settings: { label: "Settings", icon: Settings },
+  priorities: { label: "Priorities", icon: ListTodo },
 };
 
 const HIDE_DYNAMIC_BEFORE = new Set(["edit", "candidates", "versions"]);
@@ -58,8 +61,8 @@ function shouldHideSegment(pathnames: string[], index: number) {
   const nextSegment = pathnames[index + 1];
   const previousSegment = pathnames[index - 1];
 
-  // Hide the 'admin' grouping route if we are on a child page
-  if (segment === "admin" && nextSegment) {
+  // Hide grouping routes if we are on a child page
+  if ((segment === "admin" || segment === "settings") && nextSegment) {
     return true;
   }
 

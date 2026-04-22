@@ -13,3 +13,4 @@ export { default as CandidateAnalysisModal } from "@/components/modal/CandidateA
 export { default as JobSkillSelector } from "@/components/modal/JobSkillSelector";
 export { JobInfoModal } from "@/components/modal/JobInfoModal";
 export { default as CreateDepartmentModal } from "@/components/modal/CreateDepartmentModal";
+export { default as CreateJobPriorityModal } from "@/components/modal/CreateJobPriorityModal";
