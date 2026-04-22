@@ -30,7 +30,13 @@ async def run_task_with_disposal(coro):
             _log.warning("Engine disposal timed out or failed")
 
 @celery_app.task(name="process_resume_task", bind=True, max_retries=3)
-def process_resume_task(self, job_id_str: str, resume_id_str: str, file_path: str):
+def process_resume_task(
+    self,
+    job_id_str: str,
+    resume_id_str: str,
+    file_path: str,
+    existing_resume_id_str: str | None = None,
+):
     """Celery task to process a single resume upload."""
     print(f"[V2] Received task for resume_id={resume_id_str}, path={file_path}")
     
@@ -40,6 +46,7 @@ def process_resume_task(self, job_id_str: str, resume_id_str: str, file_path: st
     
     job_id = uuid.UUID(job_id_str)
     resume_id = uuid.UUID(resume_id_str)
+    existing_resume_id = uuid.UUID(existing_resume_id_str) if existing_resume_id_str else None
     
     processor = ResumeProcessor()
     bg_processor = BackgroundProcessor(processor)
@@ -48,7 +55,10 @@ def process_resume_task(self, job_id_str: str, resume_id_str: str, file_path: st
         asyncio.run(
             run_task_with_disposal(
                 bg_processor.process_resume_in_background(
-                    job_id=job_id, resume_id=resume_id, file_path=normalized_path
+                    job_id=job_id,
+                    resume_id=resume_id,
+                    file_path=normalized_path,
+                    existing_resume_id=existing_resume_id,
                 )
             )
         )

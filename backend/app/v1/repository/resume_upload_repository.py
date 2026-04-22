@@ -403,10 +403,8 @@ class ResumeUploadRepository:
                 selectinload(Resume.file),
                 selectinload(Resume.version_results),
             )
-            .join(Candidate, Candidate.id == Resume.candidate_id)
             .where(
                 Resume.id == resume_id,
-                Candidate.applied_job_id == job_id,
             )
         )
         if owner_id is not None:
@@ -585,6 +583,18 @@ class ResumeUploadRepository:
                 )
             ).all()
         )
+
+    async def get_resume_full_text(self, db: AsyncSession, resume_id: uuid.UUID) -> str:
+        """Fetch and combine all raw_text from ResumeChunks for a given resume_id."""
+        from app.v1.db.models.resume_chunks import ResumeChunk
+        stmt = (
+            select(ResumeChunk.raw_text)
+            .where(ResumeChunk.resume_id == resume_id)
+            .order_by(ResumeChunk.id.asc()) # Assuming UUID7 order is chronological
+        )
+        result = await db.execute(stmt)
+        chunks = result.scalars().all()
+        return "\n\n".join([c for c in chunks if c])
 
     async def get_resumes_for_job(
         self,

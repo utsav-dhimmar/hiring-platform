@@ -99,7 +99,46 @@ def normalize_extractions(
             elif extraction_class in ("certification", "certifications"):
                 normalized["certifications"].append(item)
             elif extraction_class in ("link", "links"):
-                normalized["links"].append(item)
+                text = item.get("text", "")
+                # If LLM combined multiple links or tagged as multiple, split them
+                if ";" in text or "," in text or item.get("attributes", {}).get("type") == "multiple":
+                    # Split by common delimiters
+                    delimiters = [";", ","]
+                    parts = [text]
+                    for d in delimiters:
+                        new_parts = []
+                        for p in parts:
+                            new_parts.extend(p.split(d))
+                        parts = new_parts
+                    
+                    for p in parts:
+                        p = p.strip()
+                        if p:
+                            # Identify type based on URL
+                            attr = {}
+                            p_lower = p.lower()
+                            if "linkedin.com" in p_lower:
+                                attr["type"] = "linkedin"
+                            elif "github.com" in p_lower:
+                                attr["type"] = "github"
+                            elif "behance.net" in p_lower or "dribbble.com" in p_lower:
+                                attr["type"] = "portfolio"
+                            else:
+                                attr["type"] = "website"
+                            
+                            normalized["links"].append({
+                                "text": p,
+                                "attributes": attr
+                            })
+                else:
+                    # Single link, still try to improve type if generic
+                    if not item.get("attributes", {}).get("type") or item["attributes"]["type"] == "multiple":
+                        p_lower = text.lower()
+                        if "linkedin.com" in p_lower:
+                            item["attributes"]["type"] = "linkedin"
+                        elif "github.com" in p_lower:
+                            item["attributes"]["type"] = "github"
+                    normalized["links"].append(item)
 
     return normalized
 

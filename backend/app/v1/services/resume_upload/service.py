@@ -11,6 +11,7 @@ from pathlib import Path
 from app.v1.utils.uuid import UUIDHelper
 
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings
@@ -127,8 +128,10 @@ class ResumeUploadService:
         )
         
         candidate = None
+        existing_resume_id = None
         if existing_global_file:
             # Re-use existing candidate
+            from app.v1.db.models.candidates import Candidate
             candidate = await db.get(Candidate, existing_global_file.candidate_id)
             _log.info(f"Re-using existing candidate {candidate.id} for global hash match {content_hash}")
             
@@ -153,8 +156,8 @@ class ResumeUploadService:
                     detail="This candidate is already linked to this job.",
                 )
             
-            # Find the resume record for this file
-            resume_stmt = select(Resume.id).where(Resume.file_id == existing_global_file.id)
+            # Find the resume record for this file (only fully parsed ones)
+            resume_stmt = select(Resume.id).where(Resume.file_id == existing_global_file.id, Resume.parsed == True)
             existing_resume_id = (await db.execute(resume_stmt)).scalar()
 
             # Link existing candidate to this new job via CrossJobMatch
@@ -285,6 +288,7 @@ class ResumeUploadService:
             job_id=job_id,
             resume_id=resume_record.id,
             file_path=stored_file_path,
+            existing_resume_id=existing_resume_id if existing_global_file else None,
         )
         log_stage(
             stage="upload_total",

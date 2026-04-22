@@ -30,6 +30,7 @@ class BackgroundProcessor:
         job_id: uuid.UUID,
         resume_id: uuid.UUID,
         file_path: str,
+        existing_resume_id: uuid.UUID | None = None,
     ) -> None:
         """Schedule the resume processing task via Celery.
 
@@ -37,11 +38,15 @@ class BackgroundProcessor:
             job_id: The job ID.
             resume_id: The resume ID.
             file_path: Path to the stored resume file.
+            existing_resume_id: Optional ID of an existing resume to copy data from.
         """
         from .tasks import process_resume_task
 
         process_resume_task.delay(
-            job_id_str=str(job_id), resume_id_str=str(resume_id), file_path=file_path
+            job_id_str=str(job_id),
+            resume_id_str=str(resume_id),
+            file_path=file_path,
+            existing_resume_id_str=str(existing_resume_id) if existing_resume_id else None,
         )
         logger.info("Celery task scheduled for resume_id=%s", resume_id)
 
@@ -79,6 +84,7 @@ class BackgroundProcessor:
         job_id: uuid.UUID,
         resume_id: uuid.UUID,
         file_path: str,
+        existing_resume_id: uuid.UUID | None = None,
     ) -> None:
         from .pipeline import run_resume_processing_pipeline
 
@@ -88,6 +94,7 @@ class BackgroundProcessor:
             file_path=file_path,
             processor=self.processor,
             mark_failed_cb=self._mark_resume_failed,
+            existing_resume_id=existing_resume_id,
         )
 
     def schedule_mass_refresh(

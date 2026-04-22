@@ -31,6 +31,7 @@ async def run_resume_processing_pipeline(
     processor: ResumeProcessor,
     mark_failed_cb: Callable[[AsyncSession, uuid.UUID, dict | None, str], Awaitable[None]],
     reanalyze: bool = False,
+    existing_resume_id: uuid.UUID | None = None,
 ) -> None:
     """Full background processing workflow for an uploaded or re-analyzed resume.
 
@@ -110,12 +111,32 @@ async def run_resume_processing_pipeline(
             parsed_summary = {}
             text_hash = resume_record.text_hash
 
+            # ---- Optimization: Reuse existing resume data if available ----
+            if existing_resume_id and not reanalyze:
+                logger.info("[PIPELINE] DUPLICATE DETECTED: Re-using data from existing resume %s for resume %s", existing_resume_id, resume_id)
+                raw_text = await resume_upload_repository.get_resume_full_text(db, existing_resume_id)
+                from app.v1.db.models.resumes import Resume
+                existing_resume_obj = await db.get(Resume, existing_resume_id)
+                if existing_resume_obj:
+                    parsed_summary = dict(existing_resume_obj.parse_summary or {})
+                    # Clean up processing/analysis as we'll re-analyze for THIS job
+                    parsed_summary.pop("analysis", None)
+                    parsed_summary.pop("processing", None)
+                    text_hash = existing_resume_obj.text_hash
+                    
+                    # Mark as skipped extraction
+                    reanalyze = True 
+                    logger.info("Successfully copied data from global duplicate. Skipping LLM extraction.")
+            # --------------------------------------------------------------
+
             if not reanalyze:
+                logger.info("[PIPELINE] Starting LLM extraction for resume_id=%s", resume_id)
                 stage_started_at = time.perf_counter()
                 raw_text, normalized = await run_in_resume_executor(
                     processor.process_resume,
                     file_path,
                 )
+                logger.info("[PIPELINE] LLM extraction complete for resume_id=%s in %.2fs", resume_id, time.perf_counter() - stage_started_at)
                 log_stage(
                     stage="extract_and_normalize",
                     started_at=stage_started_at,
@@ -221,13 +242,15 @@ async def run_resume_processing_pipeline(
                 extracted_skill_names_list = extract_skill_names(normalized)
             else:
                 # RE-ANALYZE PATH: Load stored text and summary
-                logger.info("Using stored data for re-analysis of resume %s", resume_id)
-                raw_text = await resume_upload_repository.get_resume_full_text(db, resume_id)
+                logger.info("Using stored data for re-analysis/duplicate of resume %s", resume_id)
+                if not raw_text:
+                    raw_text = await resume_upload_repository.get_resume_full_text(db, resume_id)
                 if not raw_text:
                     raise ValueError("Stored raw text not found for re-analysis.")
                 
-                # Use existing summary, stripping the old analysis
-                parsed_summary = dict(resume_record.parse_summary or {})
+                # Use existing summary if not already populated from duplicate
+                if not parsed_summary:
+                    parsed_summary = dict(resume_record.parse_summary or {})
                 parsed_summary.pop("analysis", None)
                 parsed_summary.pop("processing", None)
                 
@@ -241,6 +264,7 @@ async def run_resume_processing_pipeline(
                 job_id=job_id,
             )
 
+            logger.info("[PIPELINE] Starting AI Analysis (insights) for resume_id=%s against job_id=%s", resume_id, job_id)
             stage_started_at = time.perf_counter()
             insights = await processor.generate_resume_insights(
                 raw_text=raw_text,
@@ -249,6 +273,7 @@ async def run_resume_processing_pipeline(
                 job_skills=job_skills,
                 candidate_skills=extracted_skill_names_list,
             )
+            logger.info("[PIPELINE] AI Analysis complete for resume_id=%s in %.2fs", resume_id, time.perf_counter() - stage_started_at)
             log_stage(
                 stage="analysis_and_embeddings",
                 started_at=stage_started_at,
@@ -332,11 +357,13 @@ async def run_resume_processing_pipeline(
 
             custom_extractions = {}
             if getattr(job, "custom_extraction_fields", None):
+                logger.info("[PIPELINE] Starting Custom Field Extraction for resume_id=%s", resume_id)
                 from app.v1.services.resume_upload.custom_extractor import custom_extractor_service
                 custom_extractions = await custom_extractor_service.extract_background_custom_fields(
                     raw_text=raw_text,
                     fields_list=job.custom_extraction_fields,
                 )
+                logger.info("[PIPELINE] Custom Field Extraction complete for resume_id=%s", resume_id)
 
             analysis = ResumeMatchAnalysis.model_validate(
                 insights["analysis"]
