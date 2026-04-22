@@ -29,6 +29,7 @@ class JobHRDecisionStats(BaseModel):
     rejected: int = 0
     maybe: int = 0
     pending: int = 0
+    undecidedCount: int = 0
 
 
 class JobStatsResponse(BaseModel):

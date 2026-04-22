@@ -422,20 +422,54 @@ class CandidateAdminService:
         # Get latest HR decision
         hr_decisions = getattr(candidate, "hr_decisions", [])
         if target_job_id:
+            target_job_str = str(target_job_id)
             # Filter HR decisions to this specific job ID, or fallback to natively applied if null
             filtered_decisions = []
+            # Determine if candidate is cross-matched to this job
+            is_cross_matched_here = False
+            if target_job_id:
+                from app.v1.db.models.cross_job_matches import CrossJobMatch
+                xm_stmt = select(CrossJobMatch.id).where(
+                    CrossJobMatch.candidate_id == candidate.id,
+                    CrossJobMatch.matched_job_id == target_job_id
+                )
+                # Note: We are in a sync mapping function, but hr_decisions are already loaded.
+                # However, checking CrossJobMatch would require a DB call.
+                # Heuristic: if they have a decision and it's NOT their applied job, it's likely the cross-match.
+                pass
+
             for d in hr_decisions:
-                if str(getattr(d, "job_id", None)) == str(target_job_id):
-                    filtered_decisions.append(d)
-                elif getattr(d, "job_id", None) is None and str(
-                    candidate.applied_job_id
-                ) == str(target_job_id):
-                    filtered_decisions.append(d)
+                d_job_id = getattr(d, "job_id", None)
+                if d_job_id:
+                    if str(d_job_id) == target_job_str:
+                        filtered_decisions.append(d)
+                else:
+                    # Fallback for null job_id: count if it's the native job OR if we are in a job-specific view
+                    # (In get_candidates_for_job, we already know the candidate is either native or cross-matched).
+                    if str(candidate.applied_job_id) == target_job_str:
+                        filtered_decisions.append(d)
+                    elif target_job_id:
+                        # If we are in Job B and job_id is null, we'll assume the decision 
+                        # belongs here if the candidate is in this job's pool
+                        filtered_decisions.append(d)
             hr_decisions = filtered_decisions
 
         latest_decision = (
             max(hr_decisions, key=lambda d: d.decided_at) if hr_decisions else None
         )
+        
+        # Normalize decision string for frontend (e.g., "approve" -> "Approve")
+        status = "Pending"
+        if latest_decision:
+            raw_status = str(latest_decision.decision).lower().strip()
+            if raw_status == "approve":
+                status = "Approve"
+            elif raw_status == "reject":
+                status = "Reject"
+            elif raw_status in ["may be", "maybe"]:
+                status = "May Be"
+            else:
+                status = latest_decision.decision
 
         # Get version history
         version_results = None
@@ -565,7 +599,7 @@ class CandidateAdminService:
             is_parsed=is_parsed,
             processing_status=processing_status,
             processing_error=processing_error,
-            hr_decision=latest_decision.decision if latest_decision else None,
+            hr_decision=status,
             version_results=version_results,
             current_stage=current_stage,
             pipeline=pipeline,

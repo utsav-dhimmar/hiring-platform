@@ -357,22 +357,6 @@ async def run_resume_processing_pipeline(
             resume_record.pass_fail = "passed" if float(resume_record.resume_score or 0) >= (job.passing_threshold or 70.0) else "failed"
             resume_record.text_hash = text_hash
 
-            # Trigger automatic cross-match if candidate fails AI screening
-            if resume_record.pass_fail == "failed" and not reanalyze:
-                # Check if we already ran discovery for this resume to avoid infinite loops
-                from app.v1.db.models.cross_job_matches import CrossJobMatch
-                from sqlalchemy import select, func
-                exists_stmt = select(func.count(CrossJobMatch.id)).where(CrossJobMatch.resume_id == resume_id)
-                count = (await db.execute(exists_stmt)).scalar() or 0
-                
-                if count == 0:
-                    from .background import BackgroundProcessor
-                    bg = BackgroundProcessor(processor)
-                    bg.schedule_cross_match(resume_id=resume_id, original_job_id=job_id)
-                    logger.info("AI Screening 'failed' and no prior discovery found. Triggered automatic cross-job matching for resume_id=%s", resume_id)
-                else:
-                    logger.info("AI Screening 'failed' but discovery already exists for resume_id=%s. Skipping to prevent redundant matching loops.", resume_id)
-
             # --- Save versioned result ---
             from app.v1.db.models.resume_version_results import ResumeVersionResult
             versioned = ResumeVersionResult(

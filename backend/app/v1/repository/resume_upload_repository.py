@@ -69,18 +69,7 @@ class ResumeUploadRepository:
         job_id: uuid.UUID,
         content_hash: str,
     ) -> FileRecord | None:
-        """Find an existing file record for a job that matches the given content hash.
-
-        Used to prevent the same file from being uploaded twice to the same job.
-
-        Args:
-            db: The async database session.
-            job_id: The ID of the target job.
-            content_hash: SHA-256 hex digest of the raw file bytes.
-
-        Returns:
-            The existing FileRecord if a duplicate is found, None otherwise.
-        """
+        """Find an existing file record for a job that matches the given content hash."""
         return await db.scalar(
             select(FileRecord)
             .join(Candidate, Candidate.id == FileRecord.candidate_id)
@@ -88,6 +77,19 @@ class ResumeUploadRepository:
                 Candidate.applied_job_id == job_id,
                 FileRecord.content_hash == content_hash,
             )
+        )
+
+    async def get_file_by_content_hash_global(
+        self,
+        db: AsyncSession,
+        *,
+        content_hash: str,
+    ) -> FileRecord | None:
+        """Find ANY existing file record in the database with this hash."""
+        return await db.scalar(
+            select(FileRecord)
+            .where(FileRecord.content_hash == content_hash)
+            .limit(1)
         )
 
     async def get_resume_by_text_hash_for_job(

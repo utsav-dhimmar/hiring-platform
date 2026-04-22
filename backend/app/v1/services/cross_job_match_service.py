@@ -10,8 +10,9 @@ from app.v1.utils.text import build_job_text
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.job_chunks import JobChunk
 from app.v1.db.models.cross_job_matches import CrossJobMatch
+from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.services.candidate_stage_service import candidate_stage_service
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 _log = logging.getLogger(__name__)
 
@@ -45,6 +46,17 @@ class CrossJobMatchService:
                 _log.warning("run_cross_match: candidate not found for resume %s", resume_id)
                 return
 
+            # Skip cross-matching if the candidate is already approved for ANY job
+            check_approve = await db.execute(
+                select(HrDecision.id).where(
+                    HrDecision.candidate_id == orig_candidate.id,
+                    func.lower(HrDecision.decision) == "approve"
+                ).limit(1)
+            )
+            if check_approve.scalar():
+                _log.info("run_cross_match: candidate %s already approved elsewhere — skipping cross-match", orig_candidate.id)
+                return
+
             # 2. Get embedding — resume level first, fallback to chunks
             chunk_stmt = select(ResumeChunk).where(ResumeChunk.resume_id == resume_id)
             orig_chunks = (await db.execute(chunk_stmt)).scalars().all()
@@ -60,9 +72,11 @@ class CrossJobMatchService:
                 _log.warning("run_cross_match: no embedding for resume %s — skipping", resume_id)
                 return
 
-            # 3. Find all jobs this resume has already been submitted to (via text_hash)
-            #    This prevents cross-matching into a job the candidate already applied for.
-            already_applied_job_ids: set[uuid.UUID] = {original_job_id}
+            # 3. Find all jobs this resume/candidate is ALREADY linked to (Applied OR Cross-matched)
+            #    This prevents discovery from duplicating them into jobs they are already in.
+            already_linked_job_ids: set[uuid.UUID] = {original_job_id}
+            
+            # Check other native apps for this email/hash
             if resume.text_hash:
                 from app.v1.db.models.candidates import Candidate as CandidateModel
                 existing_apps_stmt = (
@@ -71,18 +85,28 @@ class CrossJobMatchService:
                     .where(Resume.text_hash == resume.text_hash)
                 )
                 existing_apps = (await db.execute(existing_apps_stmt)).scalars().all()
-                already_applied_job_ids.update(existing_apps)
-                _log.info(
-                    "run_cross_match: resume %s already applied to %d job(s): %s",
-                    resume_id, len(already_applied_job_ids), already_applied_job_ids
-                )
+                for ajid in existing_apps:
+                    if ajid: already_linked_job_ids.add(ajid)
 
-            # 4. Fetch all other active jobs, excluding already-applied jobs
+            # IMPORTANT: Also check existing cross-matches for this specific candidate ID
+            existing_xm_stmt = select(CrossJobMatch.matched_job_id).where(
+                CrossJobMatch.candidate_id == orig_candidate.id
+            )
+            existing_xms = (await db.execute(existing_xm_stmt)).scalars().all()
+            for xjid in existing_xms:
+                if xjid: already_linked_job_ids.add(xjid)
+
+            _log.info(
+                "run_cross_match: candidate %s already in %d job(s) — will skip discovery for these.",
+                orig_candidate.id, len(already_linked_job_ids)
+            )
+
+            # 4. Fetch all other active jobs, excluding already-linked jobs
             other_jobs = await cross_job_match_repository.get_all_active_jobs_with_embeddings(
                 db, exclude_job_id=original_job_id
             )
-            # Filter out any jobs the candidate already applied to directly
-            other_jobs = [j for j in other_jobs if j.id not in already_applied_job_ids]
+            # Filter out any jobs the candidate is already part of
+            other_jobs = [j for j in other_jobs if j.id not in already_linked_job_ids]
             
             if not other_jobs:
                 _log.info("run_cross_match: no other active jobs found")
@@ -246,14 +270,22 @@ class CrossJobMatchService:
             job_emb = job.jd_embedding
 
             # 2. Fetch resumes from the last N months that have embeddings and are parsed
+            # AND the candidate is NOT approved for any job
             since_date = datetime.now() - timedelta(days=30 * months_limit)
+            
+            # Subquery to find candidates who are already approved
+            approved_candidates_subq = select(HrDecision.candidate_id).where(
+                func.lower(HrDecision.decision) == "approve"
+            )
+
             resume_stmt = (
                 select(Resume)
                 .options(selectinload(Resume.candidate))
                 .where(
                     Resume.resume_embedding != None, 
                     Resume.parsed == True,
-                    Resume.uploaded_at >= since_date
+                    Resume.uploaded_at >= since_date,
+                    ~Resume.candidate_id.in_(approved_candidates_subq)
                 )
             )
             resumes = (await db.execute(resume_stmt)).scalars().all()
