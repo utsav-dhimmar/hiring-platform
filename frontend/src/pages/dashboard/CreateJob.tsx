@@ -62,7 +62,7 @@ export default function CreateJob() {
   const {
     fetchData: fetchSkills,
   } = useAdminData<SkillRead>(
-    () => adminSkillService.getAllSkills(100, 0, ""),
+    () => adminSkillService.getAllSkills(),
     { fetchOnMount: false }
   )
 

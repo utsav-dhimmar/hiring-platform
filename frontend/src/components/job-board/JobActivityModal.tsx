@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +23,10 @@ interface JobActivityModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   job: Job | null;
+  onSessionClick?: (startDate: string, endDate?: string) => void;
 }
 
-export function JobActivityModal({ isOpen, onOpenChange, job }: JobActivityModalProps) {
+export function JobActivityModal({ isOpen, onOpenChange, job, onSessionClick }: JobActivityModalProps) {
   if (!job) return null;
 
   const sessions = job.activity_sessions || [];
@@ -80,7 +82,15 @@ export function JobActivityModal({ isOpen, onOpenChange, job }: JobActivityModal
                 </TableRow>
               ) : (
                 [...sessions].reverse().map((session) => (
-                  <TableRow key={session.session_id} className={session.is_current ? "bg-primary/5" : ""}>
+                  <TableRow
+                    key={session.session_id}
+                    className={cn(
+                      "transition-colors",
+                      session.is_current ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/50",
+                      onSessionClick && "cursor-pointer"
+                    )}
+                    onClick={() => onSessionClick?.(session.start_date, session.end_date)}
+                  >
                     <TableCell className="font-medium">#{session.session_id}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">

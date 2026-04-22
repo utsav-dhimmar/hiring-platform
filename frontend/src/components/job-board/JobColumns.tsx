@@ -22,6 +22,7 @@ interface ColumnHandlers {
   onEdit: (job: Job) => void;
   onCandidates: (job: Job) => void;
   onViewSessions: (job: Job) => void;
+  onSessionCandidates: (job: Job, startDate: string, endDate?: string) => void;
   loadingJobId?: string | null;
 }
 
@@ -41,6 +42,7 @@ export const getJobColumns = ({
   onEdit,
   onCandidates,
   onViewSessions,
+  onSessionCandidates,
   loadingJobId,
 }: ColumnHandlers): ColumnDef<Job>[] => [
     {
@@ -176,7 +178,14 @@ export const getJobColumns = ({
             ) : (
               <>
                 {displaySessions.map((s) => (
-                  <div key={s.session_id} className="flex items-center text-xs">
+                  <div
+                    key={s.session_id}
+                    className="flex items-center text-xs"
+                  // onClick={(e) => {
+                  //   e.stopPropagation();
+                  //   onSessionCandidates(row.original, s.start_date, s.end_date);
+                  // }}
+                  >
                     <div className="flex items-center gap-1 overflow-hidden">
                       {displaySessions.length > 1 && (
                         <Badge
@@ -192,9 +201,13 @@ export const getJobColumns = ({
                     </div>
                     <Badge
                       variant="outline"
-                      className="text-sm font-normal h-5 px-1.5 rounded-md border-muted-foreground/20"
+                      className="cursor-pointer text-sm font-normal h-5 px-1.5 rounded-md border-muted-foreground/20 hover:border-primary/30 hover:bg-primary/5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSessionCandidates(row.original, s.start_date, s.end_date as string);
+                      }}
                     >
-                      <span className="font-bold">  {s.candidate_count}</span> cand.
+                      <span className="font-bold group-hover/session:text-primary transition-colors" >  {s.candidate_count}</span> cand.
                     </Badge>
                   </div>
                 ))}

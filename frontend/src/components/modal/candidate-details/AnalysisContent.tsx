@@ -150,7 +150,7 @@ export function AnalysisContent({
           <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
             Extraordinary Points
           </h3>
-          <ul className="list-disc">
+          <ul className="list-disc sm:pl-4">
             {analysis?.extraordinary_points &&
               analysis.extraordinary_points.length > 0 ? (
               analysis.extraordinary_points.map((point, idx) => (

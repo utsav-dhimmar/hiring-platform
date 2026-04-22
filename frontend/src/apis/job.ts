@@ -114,6 +114,9 @@ const jobService = {
     filters?: {
       query?: string;
       hr_decision?: string[];
+      jd_versions?: number[];
+      start_date?: Date;
+      end_date?: Date;
     },
   ): Promise<CandidateAnalysisResponse> => {
     const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {
@@ -174,8 +177,15 @@ const jobService = {
    * @param jobId - The UUID of the job
    * @returns Promise resolving to the job statistics
    */
-  getJobStats: async (jobId: string): Promise<JobStatsResponse> => {
-    const response = await client.get<JobStatsResponse>(`/candidates/jobs/${jobId}/stats`);
+  getJobStats: async (jobId: string, filters?: {
+    start_date?: Date;
+    end_date?: Date;
+  }): Promise<JobStatsResponse> => {
+    const response = await client.get<JobStatsResponse>(`/candidates/jobs/${jobId}/stats`, {
+      params: {
+        ...filters,
+      },
+    });
     return response.data;
   },
 };

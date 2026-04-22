@@ -207,6 +207,7 @@ export function CandidateDetailsModal({
       await onDecisionSubmitted?.();
       toast.success("Decision submitted successfully");
       setShowFeedbackModal(false);
+      form.reset({ note: "" })
     } catch (error) {
       const errorMessage = extractErrorMessage(error)
       toast.error(errorMessage || "Failed to submit decision");

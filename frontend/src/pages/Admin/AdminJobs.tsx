@@ -158,6 +158,16 @@ const AdminJobs = () => {
           setSelectedJobForActivity(job);
           setIsActivityModalOpen(true);
         },
+        onSessionCandidates: (job, startDate, endDate) => {
+          const slug = slugify(job.title);
+          const params = new URLSearchParams();
+          if (startDate) params.set("start_date", startDate);
+          if (endDate) params.set("end_date", endDate);
+
+          navigate(`/dashboard/jobs/${slug}/candidates?${params.toString()}`, {
+            state: { jobId: job.id },
+          });
+        },
         loadingJobId,
       }),
     [navigate, handleToggleStatus, loadingJobId],
@@ -223,6 +233,18 @@ const AdminJobs = () => {
         isOpen={isActivityModalOpen}
         onOpenChange={setIsActivityModalOpen}
         job={selectedJobForActivity}
+        onSessionClick={(start, end) => {
+          if (!selectedJobForActivity) return;
+          const slug = slugify(selectedJobForActivity.title);
+          const params = new URLSearchParams();
+          if (start) params.set("start_date", start);
+          if (end) params.set("end_date", end);
+
+          navigate(`/dashboard/jobs/${slug}/candidates?${params.toString()}`, {
+            state: { jobId: selectedJobForActivity.id },
+          });
+          setIsActivityModalOpen(false);
+        }}
       />
     </AppPageShell>
   );

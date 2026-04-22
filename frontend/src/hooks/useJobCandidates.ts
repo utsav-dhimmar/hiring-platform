@@ -40,10 +40,17 @@ export const useJobCandidates = (
   }, [job]);
 
   // Extract filters from searchParams
-  const filters = useMemo(() => ({
-    query: searchParams.get("q") || undefined,
-    hr_decision: searchParams.getAll("hr_decision"),
-  }), [searchParams]);
+  const filters = useMemo(() => {
+    const start_date = searchParams.get("start_date");
+    const end_date = searchParams.get("end_date");
+
+    return {
+      query: searchParams.get("q") || undefined,
+      hr_decision: searchParams.getAll("hr_decision"),
+      start_date: start_date ? new Date(start_date) : undefined,
+      end_date: end_date ? new Date(end_date) : undefined,
+    };
+  }, [searchParams]);
 
   const fetchData = useCallback(
     async (isPolling = false) => {
@@ -84,7 +91,7 @@ export const useJobCandidates = (
           const [jobData, candidatesResponse, statsData] = await Promise.all([
             jobService.getJob(id),
             jobService.getJobCandidates(id, jdVersion, skip, limit, filters),
-            jobService.getJobStats(id),
+            jobService.getJobStats(id, { start_date: filters.start_date, end_date: filters.end_date }),
           ]);
           setJob(jobData);
           setCandidates(candidatesResponse.data || []);
