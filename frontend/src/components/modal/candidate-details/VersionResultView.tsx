@@ -117,7 +117,7 @@ export function VersionResultView({
             <SelectContent className="rounded-xl border-muted-foreground/10 " side="bottom" >
               {results.map((r) => (
                 <SelectItem key={r.version} value={String(r.version)} className="rounded-lg text-xs font-medium ">
-                  V{r.version}
+                  {r.version}
                 </SelectItem>
               ))}
             </SelectContent>

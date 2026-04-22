@@ -1,0 +1,48 @@
+import client from "@/apis/client";
+import type { JobPriorityRead } from "@/types/admin";
+
+/**
+ * Service for managing job priorities in the admin panel.
+ */
+export const adminJobPriorityService = {
+  /**
+   * Retrieves all job priorities.
+   * @returns Promise resolving to an array of job priorities
+   */
+  getAllPriorities: async (): Promise<JobPriorityRead[]> => {
+    const response = await client.get<JobPriorityRead[]>("/job-priorities");
+    return response.data;
+  },
+
+  /**
+   * Creates a new job priority.
+   * @param data - The priority data (name, duration_days)
+   * @returns Promise resolving to the created priority
+   */
+  createPriority: async (data: { name: string; duration_days: number }): Promise<JobPriorityRead> => {
+    const response = await client.post<JobPriorityRead>("/job-priorities", data);
+    return response.data;
+  },
+
+  /**
+   * Updates an existing job priority.
+   * @param id - The UUID of the priority to update
+   * @param data - The updated data
+   * @returns Promise resolving to the updated priority
+   */
+  updatePriority: async (
+    id: string,
+    data: { name?: string; duration_days?: number }
+  ): Promise<JobPriorityRead> => {
+    const response = await client.patch<JobPriorityRead>(`/job-priorities/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Deletes a job priority.
+   * @param id - The UUID of the priority to delete
+   */
+  deletePriority: async (id: string): Promise<void> => {
+    await client.delete(`/job-priorities/${id}`);
+  },
+};

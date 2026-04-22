@@ -13,8 +13,8 @@ import { cn, capitalize, toTitleCase } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
 import { Link } from "react-router-dom";
 import { slugify } from "@/utils/slug";
-import { RESUME_SCREENING_RESULT } from "@/constants";
-function scoreColor(score: number, threshold: number = 65) {
+import { DEFAULT_PASSING_THRESHOLD, RESUME_SCREENING_RESULT } from "@/constants";
+function scoreColor(score: number, threshold: number = DEFAULT_PASSING_THRESHOLD) {
   if (score >= 80) return "bg-green-500";
   if (score >= threshold) return "bg-yellow-500";
   return "bg-red-500";
@@ -39,7 +39,7 @@ interface UseCandidateTableColumnsProps<T extends UnifiedCandidate> {
 
 export const useCandidateTableColumns = <T extends UnifiedCandidate>({
   renderActions,
-  passing_threshold = 65,
+  passing_threshold = DEFAULT_PASSING_THRESHOLD,
   showJobContext = false,
 }: UseCandidateTableColumnsProps<T>) => {
   return useMemo<ColumnDef<T>[]>(

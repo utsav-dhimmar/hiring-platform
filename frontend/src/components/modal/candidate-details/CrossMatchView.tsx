@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { slugify } from "@/utils/slug";
 import { capitalize } from "@/lib/utils";
 import { extractErrorMessage } from "@/utils/error";
+import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
 interface CrossMatchViewProps {
   resumeId?: string;
   candidateId?: string;
@@ -111,7 +112,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
 
   const filteredMatches = matches.filter((match) => {
     if (statusFilter === "all") return true;
-    const isPassed = match.match_score >= (match.matched_job?.passing_threshold ?? 65);
+    const isPassed = match.match_score >= (match.matched_job?.passing_threshold ?? DEFAULT_PASSING_THRESHOLD);
     return statusFilter === "pass" ? isPassed : !isPassed;
   });
 
@@ -226,13 +227,13 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
                           variant="secondary"
                           className={`
                         text-[10px] h-4.5 px-2 font-black border-none transition-all
-                        ${match.match_score >= (match.matched_job?.passing_threshold ?? 65)
+                        ${match.match_score >= (match.matched_job?.passing_threshold ?? DEFAULT_PASSING_THRESHOLD)
                               ? "bg-emerald-500/10  ring-1 ring-emerald-500/20"
                               : "bg-rose-500/10  ring-1 ring-rose-500/20"
                             }
                       `}
                         >
-                          {match.match_score >= (match.matched_job?.passing_threshold ?? 65) ? "PASS" : "FAIL"}
+                          {match.match_score >= (match.matched_job?.passing_threshold ?? DEFAULT_PASSING_THRESHOLD) ? "PASS" : "FAIL"}
                         </Badge>
                       </div>
                     </div>

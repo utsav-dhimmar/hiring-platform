@@ -129,7 +129,7 @@ export function AnalysisContent({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-500/5 mt-2"
+                    className="w-full text-xs font-bold  hover:bg-black/5 dark:hover:bg-white/5 mt-2"
                     onClick={() => setShowAllSkills(!showAllSkills)}
                   >
                     {showAllSkills

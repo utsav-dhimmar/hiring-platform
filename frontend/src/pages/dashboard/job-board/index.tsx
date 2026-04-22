@@ -171,7 +171,7 @@ export default function JobBoard() {
       <JobBoardHeader />
 
       <div className="app-surface-card">
-        {loading ? (
+        {loading && jobs.length === 0 ? (
           <div className="flex flex-col gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <JobSkeleton key={i} />

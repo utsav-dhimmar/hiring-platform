@@ -218,11 +218,16 @@ export interface HiringReport {
  */
 export interface JobCreate {
   title: string;
-  department?: string;
-  jd_text?: string;
-  jd_json?: Record<string, unknown>;
+  vacancy: number;
+  department_id: string;
+  jd_text: string;
   is_active?: boolean;
-  skill_ids?: string[];
+  skill_ids: string[];
+  passing_threshold?: number;
+  custom_extraction_fields?: string[];
+  priority_id?: string | null;
+  priority_start_date?: string | null;
+  priority_end_date?: string | null;
 }
 
 /**
@@ -230,11 +235,16 @@ export interface JobCreate {
  */
 export interface JobUpdate {
   title?: string;
-  department?: string;
+  vacancy?: number;
+  department_id?: string;
   jd_text?: string;
-  jd_json?: Record<string, unknown>;
   is_active?: boolean;
   skill_ids?: string[];
+  passing_threshold?: number;
+  custom_extraction_fields?: string[];
+  priority_id?: string | null;
+  priority_start_date?: string | null;
+  priority_end_date?: string | null;
 }
 
 /**
@@ -300,6 +310,21 @@ export interface DepartmentUpdate {
 export interface DepartmentRead extends DepartmentBase {
 
   id: string;
+}
+
+/**
+ * Job Priority Management Types
+ */
+
+/**
+ * Job priority returned from read operations.
+ */
+export interface JobPriorityRead {
+  id: string;
+  name: string;
+  duration_days: number;
+  created_at: string;
+  updated_at: string;
 }
 
 /**

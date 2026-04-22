@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from "lucide-react";
 import type { CandidateResponse } from "@/types/resume";
 import type { CandidateAnalysis } from "@/types/admin";
+import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
 
 /**
  * Props for {@link AnalysisStats}.
@@ -21,7 +22,7 @@ export function AnalysisStats({
   candidate,
   // onVersionClick,
   // activeTab,
-  passing_threshold = 65,
+  passing_threshold = DEFAULT_PASSING_THRESHOLD,
 }: AnalysisStatsProps) {
   const analysis = candidate.resume_analysis;
   const isPassed =

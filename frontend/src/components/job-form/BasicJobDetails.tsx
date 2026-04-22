@@ -1,5 +1,6 @@
 import { useFormContext } from "react-hook-form";
 import {
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -13,14 +14,15 @@ import {
   SelectValue,
   Textarea,
 } from "@/components";
-import type { DepartmentRead } from "@/types/admin";
+import type { DepartmentRead, JobPriorityRead } from "@/types/admin";
 import { Required } from "@/components/job-form/Required";
 
 interface BasicJobDetailsProps {
   departments: DepartmentRead[];
+  priorities?: JobPriorityRead[];
 }
 
-export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
+export const BasicJobDetails = ({ departments, priorities = [] }: BasicJobDetailsProps) => {
   const { control } = useFormContext();
 
   return (
@@ -106,6 +108,47 @@ export const BasicJobDetails = ({ departments }: BasicJobDetailsProps) => {
                 ))}
               </SelectContent>
             </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Priority */}
+      <FormField
+        control={control}
+        name="priority_id"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-lg font-semibold text-foreground">
+              Job Priority
+            </FormLabel>
+            <Select onValueChange={field.onChange} value={field.value || ""}>
+              <FormControl>
+                <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full">
+                  <SelectValue placeholder="Select priority" className="w-full">
+                    {
+                      priorities.find(
+                        (p) => p.id === field.value,
+                      )?.name
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
+                {priorities.map((p) => (
+                  <SelectItem
+                    key={p.id}
+                    value={p.id}
+                    className="py-3 text-base font-medium w-full"
+                  >
+                    {p.name} ({p.duration_days} days)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormDescription>
+              Determines how long this job will stay active.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}

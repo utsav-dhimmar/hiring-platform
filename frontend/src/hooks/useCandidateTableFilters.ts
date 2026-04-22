@@ -6,6 +6,7 @@ import { toTitleCase } from "@/lib/utils";
 import { adminLocationService } from "@/apis/admin/location";
 import jobService from "@/apis/job";
 import { slugify } from "@/utils/slug";
+import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
 
 export interface CandidateActiveFilters {
   status: string[];
@@ -26,7 +27,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   fetchJobTitles = true,
   isServerSide = false,
   onFiltersChange?: (filters: CandidateActiveFilters) => void,
-  passingThreshold = 65,
+  passingThreshold = DEFAULT_PASSING_THRESHOLD,
   stageOptionsProp?: string[]
 ) => {
   const [internalNameFilter, setInternalNameFilter] = useState("");
