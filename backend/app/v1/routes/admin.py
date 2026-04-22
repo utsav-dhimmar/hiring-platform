@@ -33,6 +33,14 @@ from app.v1.schemas.job_stage import (
 )
 from app.v1.schemas.response import PaginatedData
 from app.v1.schemas.user import UserRead
+from app.v1.schemas.prompt import PromptsList, PromptRead
+from app.v1.prompts import (
+    RESUME_JD_ANALYSIS_PROMPT,
+    RESUME_EXTRACTION_PROMPT,
+    JD_INSTRUCTION,
+    RESUME_INSTRUCTION,
+    SKILL_INSTRUCTION
+)
 from app.v1.services.admin_service import admin_service
 from app.v1.services.stage_service import stage_service
 from fastapi import APIRouter, Depends, Query, status
@@ -317,3 +325,20 @@ async def delete_stage_template(
 ) -> None:
     """Delete a stage template."""
     await stage_service.delete_template(db=db, template_id=template_id)
+
+
+@router.get("/prompts", response_model=PromptsList)
+async def get_active_prompts(
+    admin: UserRead = Depends(check_permission("analytics:read")),
+) -> Any:
+    """
+    Get all AI prompts currently in use by the system (Read-only).
+    """
+    prompts = [
+        {"name": "Resume Extraction Prompt", "content": RESUME_EXTRACTION_PROMPT},
+        {"name": "Resume-JD Analysis Prompt", "content": RESUME_JD_ANALYSIS_PROMPT},
+        {"name": "JD Processing Instruction", "content": JD_INSTRUCTION},
+        {"name": "Resume Processing Instruction", "content": RESUME_INSTRUCTION},
+        {"name": "Skill Extraction Instruction", "content": SKILL_INSTRUCTION},
+    ]
+    return {"data": prompts}

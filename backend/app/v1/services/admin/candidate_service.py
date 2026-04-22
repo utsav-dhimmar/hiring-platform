@@ -510,6 +510,17 @@ class CandidateAdminService:
                 # Fallback to the first stage if all are pending
                 current_stage = pipeline[0]
 
+        # Force 'pending' status if HR hasn't made an initial decision yet for the first stage
+        is_undecided = latest_decision is None or not latest_decision.decision
+        if is_undecided and current_stage and current_stage.order == 1:
+            current_stage.status = "pending"
+            current_stage.result = "pending"
+            # Update in pipeline list too
+            for p in pipeline:
+                if p.order == 1:
+                    p.status = "pending"
+                    p.result = "pending"
+
         # Job Context Overrides
         mapping_job_id = target_job_id or candidate.applied_job_id
         mapping_job_name = None

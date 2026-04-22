@@ -95,6 +95,7 @@ class CandidateStageService:
         # 2. Mark current stage as done
         current_cs.status = "completed" if success else "failed"
         current_cs.completed_at = datetime.utcnow()
+        job_id = current_cs.job_stage.job_id
 
         if not success:
             # Check if candidate is active in ANY other job before marking as globally "Rejected"
@@ -108,7 +109,6 @@ class CandidateStageService:
             return current_cs
 
         # 3. Find the next stage in the job pipeline
-        job_id = current_cs.job_stage.job_id
         next_order = current_cs.job_stage.stage_order + 1
 
         next_stage_stmt = (
