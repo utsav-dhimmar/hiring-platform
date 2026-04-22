@@ -79,8 +79,17 @@ async def get_cross_job_matches(
     resume_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
 ) -> CrossJobMatchResponse:
-    """Retrieve existing cross-job matches for a resume."""
+    """Retrieve existing cross-job matches for a resume with pagination."""
+    from sqlalchemy import func
+
+    # Count total matches
+    count_query = select(func.count()).where(CrossJobMatch.resume_id == resume_id)
+    total = await db.scalar(count_query)
+
+    # Fetch paginated matches
     query = (
         select(CrossJobMatch)
         .options(
@@ -89,9 +98,12 @@ async def get_cross_job_matches(
             selectinload(CrossJobMatch.matched_job).selectinload(Job.versions),
         )
         .where(CrossJobMatch.resume_id == resume_id)
+        .order_by(CrossJobMatch.match_score.desc())
+        .offset(skip)
+        .limit(limit)
     )
 
-    result = await db.execute(query.order_by(CrossJobMatch.match_score.desc()))
+    result = await db.execute(query)
     matches = result.scalars().all()
     
     match_dict = {}
@@ -104,5 +116,8 @@ async def get_cross_job_matches(
 
     return CrossJobMatchResponse(
         resume_id=resume_id,
-        matches=match_dict
+        matches=match_dict,
+        total=total or 0,
+        skip=skip,
+        limit=limit
     )
