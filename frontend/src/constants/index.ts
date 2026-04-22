@@ -34,3 +34,5 @@ export const CHART_TEXTS = {
   },
 } as const;
 
+// Max number of items to display in a dropdown before showing "...and X more"
+export const FILTER_DISPLAY_LIMIT = 5;

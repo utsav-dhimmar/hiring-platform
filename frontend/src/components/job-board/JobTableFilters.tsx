@@ -16,6 +16,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { FILTER_DISPLAY_LIMIT } from "@/constants";
 
 interface JobTableFiltersProps {
   titleFilter: string;
@@ -134,11 +135,13 @@ export const JobTableFilters = ({
                 : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
             )}
           >
-            {departmentFilter.length === 0
-              ? "Departments"
-              : departmentFilter.length === 1
-                ? departmentFilter[0]
-                : `${departmentFilter.length} departments`}
+            <span className="truncate max-w-[150px]">
+              {departmentFilter.length === 0
+                ? "Departments"
+                : departmentFilter.length <= FILTER_DISPLAY_LIMIT
+                  ? departmentFilter.join(", ")
+                  : `${departmentFilter.slice(0, FILTER_DISPLAY_LIMIT).join(", ")} and ${departmentFilter.length - FILTER_DISPLAY_LIMIT} more`}
+            </span>
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-[200px] p-2">
@@ -161,23 +164,30 @@ export const JobTableFilters = ({
                     not found "{departmentSearch}"
                   </div>
                 ) : (
-                  departmentOptions.map((d) => (
-                    <DropdownMenuCheckboxItem
-                      key={d}
-                      checked={departmentFilter.includes(d)}
-                      onSelect={(e) => e.preventDefault()}
-                      onClick={() =>
-                        setDepartmentFilter(
-                          departmentFilter.includes(d)
-                            ? departmentFilter.filter((v) => v !== d)
-                            : [...departmentFilter, d]
-                        )
-                      }
-                      closeOnClick={true} // close the dropdown after selecting option
-                    >
-                      {d}
-                    </DropdownMenuCheckboxItem>
-                  ))
+                  <>
+                    {departmentOptions.slice(0, FILTER_DISPLAY_LIMIT).map((d) => (
+                      <DropdownMenuCheckboxItem
+                        key={d}
+                        checked={departmentFilter.includes(d)}
+                        onSelect={(e) => e.preventDefault()}
+                        onClick={() =>
+                          setDepartmentFilter(
+                            departmentFilter.includes(d)
+                              ? departmentFilter.filter((v) => v !== d)
+                              : [...departmentFilter, d]
+                          )
+                        }
+                        closeOnClick={true} // close the dropdown after selecting option
+                      >
+                        {d}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                    {departmentOptions.length > FILTER_DISPLAY_LIMIT && (
+                      <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
+                        And {departmentOptions.length - FILTER_DISPLAY_LIMIT} more departments...
+                      </div>
+                    )}
+                  </>
                 )}
               </DropdownMenuGroup>
             </div>

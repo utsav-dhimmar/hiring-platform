@@ -16,6 +16,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { FILTER_DISPLAY_LIMIT } from "@/constants";
 
 interface CandidateTableFiltersProps {
   nameFilter: string;
@@ -117,12 +118,12 @@ export const CandidateTableFilters = ({
                   : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <span className="truncate mr-auto">
+              <span className="truncate mr-auto text-left">
                 {jobFilter.length === 0
                   ? "Jobs"
-                  : jobFilter.length === 1
-                    ? availableJobs.find((j) => j.id === jobFilter[0])?.title || "1 Job"
-                    : `${jobFilter.length} Jobs`}
+                  : jobFilter.length <= FILTER_DISPLAY_LIMIT
+                    ? jobFilter.map(id => availableJobs.find(j => j.id === id)?.title || "Job").join(", ")
+                    : `${jobFilter.slice(0, FILTER_DISPLAY_LIMIT).map(id => availableJobs.find(j => j.id === id)?.title || "Job").join(", ")} and ${jobFilter.length - FILTER_DISPLAY_LIMIT} more`}
               </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
             </DropdownMenuTrigger>
@@ -146,23 +147,30 @@ export const CandidateTableFilters = ({
                       not found "{jobSearch}"
                     </div>
                   ) : (
-                    jobOptions.map((j) => (
-                      <DropdownMenuCheckboxItem
-                        key={j.id}
-                        checked={jobFilter.includes(j.id)}
-                        onSelect={(e) => e.preventDefault()}
-                        onClick={() =>
-                          setJobFilter(
-                            jobFilter.includes(j.id)
-                              ? jobFilter.filter((v) => v !== j.id)
-                              : [...jobFilter, j.id]
-                          )
-                        }
-                        closeOnClick={true}
-                      >
-                        {j.title}
-                      </DropdownMenuCheckboxItem>
-                    ))
+                    <>
+                      {jobOptions.slice(0, FILTER_DISPLAY_LIMIT).map((j) => (
+                        <DropdownMenuCheckboxItem
+                          key={j.id}
+                          checked={jobFilter.includes(j.id)}
+                          onSelect={(e) => e.preventDefault()}
+                          onClick={() =>
+                            setJobFilter(
+                              jobFilter.includes(j.id)
+                                ? jobFilter.filter((v) => v !== j.id)
+                                : [...jobFilter, j.id]
+                            )
+                          }
+                          closeOnClick={true}
+                        >
+                          {j.title}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                      {jobOptions.length > FILTER_DISPLAY_LIMIT && (
+                        <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
+                          And {jobOptions.length - FILTER_DISPLAY_LIMIT} more jobs...
+                        </div>
+                      )}
+                    </>
                   )}
                 </DropdownMenuGroup>
               </div>
@@ -193,12 +201,12 @@ export const CandidateTableFilters = ({
                   : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <span className="truncate mr-auto">
+              <span className="truncate mr-auto text-left">
                 {locationFilter.length === 0
                   ? "Locations"
-                  : locationFilter.length === 1
-                    ? locationFilter[0]
-                    : `${locationFilter.length} locations`}
+                  : locationFilter.length <= FILTER_DISPLAY_LIMIT
+                    ? locationFilter.join(", ")
+                    : `${locationFilter.slice(0, FILTER_DISPLAY_LIMIT).join(", ")} and ${locationFilter.length - FILTER_DISPLAY_LIMIT} more`}
               </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
             </DropdownMenuTrigger>
@@ -222,23 +230,30 @@ export const CandidateTableFilters = ({
                       not found "{locationSearch}"
                     </div>
                   ) : (
-                    locationOptions.map((l) => (
-                      <DropdownMenuCheckboxItem
-                        key={l}
-                        checked={locationFilter.includes(l)}
-                        onSelect={(e) => e.preventDefault()}
-                        onClick={() =>
-                          setLocationFilter(
-                            locationFilter.includes(l)
-                              ? locationFilter.filter((v) => v !== l)
-                              : [...locationFilter, l]
-                          )
-                        }
-                        closeOnClick={true}
-                      >
-                        {l}
-                      </DropdownMenuCheckboxItem>
-                    ))
+                    <>
+                      {locationOptions.slice(0, FILTER_DISPLAY_LIMIT).map((l) => (
+                        <DropdownMenuCheckboxItem
+                          key={l}
+                          checked={locationFilter.includes(l)}
+                          onSelect={(e) => e.preventDefault()}
+                          onClick={() =>
+                            setLocationFilter(
+                              locationFilter.includes(l)
+                                ? locationFilter.filter((v) => v !== l)
+                                : [...locationFilter, l]
+                            )
+                          }
+                          closeOnClick={true}
+                        >
+                          {l}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                      {locationOptions.length > FILTER_DISPLAY_LIMIT && (
+                        <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
+                          And {locationOptions.length - FILTER_DISPLAY_LIMIT} more locations...
+                        </div>
+                      )}
+                    </>
                   )}
                 </DropdownMenuGroup>
               </div>
@@ -309,6 +324,7 @@ export const CandidateTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setHrDecisionFilter([])}
+                    closeOnClick={true}
                   >
                     Clear selection
                   </DropdownMenuCheckboxItem>
@@ -367,6 +383,7 @@ export const CandidateTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setResumeScreeningFilter([])}
+                    closeOnClick={true}
                   >
                     Clear selection
                   </DropdownMenuCheckboxItem>
@@ -428,6 +445,7 @@ export const CandidateTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setStageFilter([])}
+                    closeOnClick={true}
                   >
                     Clear selection
                   </DropdownMenuCheckboxItem>

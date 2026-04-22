@@ -203,7 +203,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           const decision = row.original.hr_decision;
           if (!decision) {
             return (
-              <span className="text-muted-foreground text-sm">Pending</span>
+              <span className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider text-muted-foreground text-sm bg-slate-200">Pending</span>
             );
           }
 
