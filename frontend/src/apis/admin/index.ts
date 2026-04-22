@@ -15,3 +15,4 @@ export * from "./candidate";
 export * from "./department";
 export * from "./location";
 export * from "./jobPriority";
+export * from "./prompt";

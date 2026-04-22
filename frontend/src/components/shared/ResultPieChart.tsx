@@ -10,14 +10,11 @@ import { RESUME_SCREENING_RESULT } from "@/constants";
 const chartConfig = {
   pass: {
     label: RESUME_SCREENING_RESULT.PASS,
-    // color: "hsl(142 71% 45%)",
-    // color: "var(--primary)",
-    color: "var(--chart-pass)"
+    color: "#4ade80"
   },
   fail: {
     label: RESUME_SCREENING_RESULT.FAIL,
-    // color: "hsl(0 72% 51%)",
-    color: "oklch(0.85 0.06 20)"
+    color: "#fca5a5"
   },
 } satisfies ChartConfig;
 
@@ -28,8 +25,8 @@ interface ResultPieChartProps {
 
 export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
   const data = [
-    { name: "Pass", value: passCount, fill: "url(#colorPass)" },
-    { name: "Fail", value: failCount, fill: "url(#colorFail)" },
+    { name: "Pass", value: passCount, fill: "#4ade80" },
+    { name: "Fail", value: failCount, fill: "#fca5a5" },
   ].filter((item) => item.value > 0);
 
   const total = passCount + failCount;
@@ -44,16 +41,6 @@ export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
         >
           {hasData ? (
             <RechartsPieChart>
-              <defs>
-                <linearGradient id="colorPass" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="oklch(0.75 0.15 166.72)" />
-                  <stop offset="100%" stopColor="oklch(0.55 0.2 166.72)" />
-                </linearGradient>
-                <linearGradient id="colorFail" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="oklch(0.75 0.15 25.331)" />
-                  <stop offset="100%" stopColor="oklch(0.55 0.2 25.331)" />
-                </linearGradient>
-              </defs>
               <ChartTooltip
                 content={<ChartTooltipContent nameKey="value" hideLabel />}
               />
@@ -92,15 +79,15 @@ export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
         <div className="flex flex-wrap justify-center gap-6 mt-2">
           <div className="flex items-center gap-2">
             <div
-              className="h-3 w-3 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.3)]"
-              style={{ background: "linear-gradient(to bottom, oklch(0.75 0.15 166.72), oklch(0.55 0.2 166.72))" }}
+              className="h-3 w-3 rounded-full shadow-[0_0_8px_rgba(74,222,128,0.3)]"
+              style={{ background: "#4ade80" }}
             />
             <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground"> <span className="capitalize">{RESUME_SCREENING_RESULT.PASS}</span>: {passCount}</span>
           </div>
           <div className="flex items-center gap-2">
             <div
-              className="h-3 w-3 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.3)]"
-              style={{ background: "linear-gradient(to bottom, oklch(0.75 0.15 25.331), oklch(0.55 0.2 25.331))" }}
+              className="h-3 w-3 rounded-full shadow-[0_0_8px_rgba(252,165,165,0.3)]"
+              style={{ background: "#fca5a5" }}
             />
             <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">
               <span className="capitalize">{RESUME_SCREENING_RESULT.FAIL}</span>: {failCount}</span>

@@ -121,20 +121,34 @@ const AdminJobs = () => {
     }
   };
 
-  /** Toggles `is_active` for a job via admin service and refreshes the list on success. */
   const handleToggleStatus = useCallback(
     async (job: Job) => {
+      setLoadingJobId(job.id);
+      // Optimistic update
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.id === job.id ? { ...j, is_active: !job.is_active } : j
+        )
+      );
+
       try {
         await adminJobService.updateJob(job.id, { is_active: !job.is_active });
         toast.success(`Job ${!job.is_active ? "activated" : "deactivated"} successfully`);
-        fetchJobs();
       } catch (error) {
+        // Rollback on error
+        setJobs((prev) =>
+          prev.map((j) =>
+            j.id === job.id ? { ...j, is_active: job.is_active } : j
+          )
+        );
         console.error("Failed to toggle job status:", error);
         const errorMessage = extractErrorMessage(error, "Failed to update job status");
         toast.error(errorMessage);
+      } finally {
+        setLoadingJobId(null);
       }
     },
-    [fetchJobs],
+    [],
   );
 
   /** Memoized column definitions. */

@@ -32,4 +32,7 @@ export interface CrossJobMatchResponse {
   resume_id: string;
   /** Dictionary of match records keyed by matched_job_id */
   matches: Record<string, CrossJobMatchRead>;
+  limit: number,
+  skip: number,
+  total: number
 }

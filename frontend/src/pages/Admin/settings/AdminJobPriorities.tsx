@@ -2,7 +2,7 @@
  * Admin page for managing job priorities.
  * Displays all job priorities with ability to create, edit, and delete.
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { adminJobPriorityService } from "@/apis/admin";
 import type { JobPriorityRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
@@ -11,9 +11,10 @@ import { useToast } from "@/components/shared/ToastProvider";
 import { DataTable } from "@/components/shared/DataTable";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import { CreateJobPriorityModal, DeleteModal } from "@/components/modal";
+import { useAdminData } from "@/hooks";
 import { Edit2, Trash2Icon, ArrowUpDown, Clock } from "lucide-react";
 import { extractErrorMessage } from "@/utils/error";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -23,27 +24,48 @@ const AdminJobPriorities = () => {
   const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [selectedPriority, setSelectedPriority] = useState<JobPriorityRead | null>(null);
-  const [priorities, setPriorities] = useState<JobPriorityRead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const fetchPriorities = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await adminJobPriorityService.getAllPriorities();
-      setPriorities(data);
-    } catch (err) {
-      setError(extractErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch]);
+
+  const {
+    data: priorities,
+    total,
+    loading,
+    error,
+    fetchData: fetchPriorities,
+  } = useAdminData<JobPriorityRead>(
+    () => adminJobPriorityService.getAllPriorities(pageIndex * pageSize, pageSize, debouncedSearch),
+    { fetchOnMount: false }
+  );
+
+  // Refetch when pagination or search changes
   useEffect(() => {
     fetchPriorities();
-  }, [fetchPriorities]);
+  }, [pageIndex, pageSize, debouncedSearch, fetchPriorities]);
+
+  const [overallTotal, setOverallTotal] = useState(0);
+  useEffect(() => {
+    if (!debouncedSearch) {
+      setOverallTotal(total);
+    }
+  }, [total, debouncedSearch]);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<JobPriorityRead | null>(null);
@@ -97,6 +119,11 @@ const AdminJobPriorities = () => {
           Name
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <span>{row.original.name}</span>
+        </div>
       ),
     },
     {
@@ -166,10 +193,6 @@ const AdminJobPriorities = () => {
     },
   ];
 
-  const filteredPriorities = priorities.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
     <AppPageShell width="wide">
       <PageHeader
@@ -189,16 +212,22 @@ const AdminJobPriorities = () => {
       ) : (
         <DataTable
           columns={columns}
-          data={filteredPriorities}
+          data={priorities}
           loading={loading}
           searchKey="name"
           searchValue={search}
           onSearchChange={setSearch}
           searchPlaceholder="Filter priorities by name..."
           initialSorting={[{ id: "name", desc: false }]}
+          isServerSide={true}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          pageCount={Math.ceil(total / pageSize)}
+          onPaginationChange={setPagination}
+          totalRecords={total}
+          totalCount={overallTotal}
+          resultCount={priorities.length}
           entityName="Priorities"
-          totalCount={priorities.length}
-          resultCount={filteredPriorities.length}
         />
       )}
 

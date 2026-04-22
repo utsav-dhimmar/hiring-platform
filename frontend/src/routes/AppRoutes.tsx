@@ -34,6 +34,7 @@ const AdminCandidateSearch = lazy(() => import("@/pages/Admin/AdminCandidateSear
 const AdminSkills = lazy(() => import("@/pages/Admin/AdminSkills"));
 const AdminDepartments = lazy(() => import("@/pages/Admin/AdminDepartments"));
 const AdminJobPriorities = lazy(() => import("@/pages/Admin/settings/AdminJobPriorities"));
+const AdminPrompts = lazy(() => import("@/pages/Admin/settings/AdminPrompts"));
 
 /**
  * Main routing component for the application.
@@ -220,6 +221,14 @@ const AppRoutes = () => {
               element={
                 <RoleRoute requiredPermissions={PERMISSIONS.ADMIN_ACCESS}>
                   <AdminJobPriorities />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="settings/prompts"
+              element={
+                <RoleRoute requiredPermissions={[PERMISSIONS.ADMIN_ACCESS, PERMISSIONS.ANALYTICS_READ]}>
+                  <AdminPrompts />
                 </RoleRoute>
               }
             />

@@ -89,7 +89,7 @@ export function JobActivityModal({ isOpen, onOpenChange, job, onSessionClick }: 
                       session.is_current ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/50",
                       onSessionClick && "cursor-pointer"
                     )}
-                    onClick={() => onSessionClick?.(session.start_date, session.end_date)}
+                    onClick={() => onSessionClick?.(session.start_date, session.end_date as string)}
                   >
                     <TableCell className="font-medium">#{session.session_id}</TableCell>
                     <TableCell>

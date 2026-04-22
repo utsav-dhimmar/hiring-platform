@@ -155,6 +155,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: "Priorities",
           url: "/dashboard/admin/settings/priorities",
           permission: PERMISSIONS.ADMIN_ACCESS, // TODO: adjust as per backend API
+        },
+        {
+          title: "Prompts",
+          url: "/dashboard/admin/settings/prompts",
+          permission: [PERMISSIONS.ADMIN_ACCESS, PERMISSIONS.ANALYTICS_READ], // TODO: adjust as per backend API
         }
       ],
     },

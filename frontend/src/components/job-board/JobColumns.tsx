@@ -123,10 +123,11 @@ export const getJobColumns = ({
         <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
           <div className="flex items-center justify-center gap-3 max-w-[100px] ">
             <Switch
-              checked={row.original.is_active}
+              checked={!!row.original.is_active}
               onCheckedChange={() => onToggleStatus(row.original)}
               id={`status-${row.original.id}`}
               size="sm"
+              disabled={loadingJobId === row.original.id}
             />
             <Label
               htmlFor={`status-${row.original.id}`}

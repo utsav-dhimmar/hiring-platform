@@ -2,10 +2,12 @@ import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   ArrowUpDown,
+  ExternalLink,
   // Loader2
 } from "lucide-react";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import StatusBadge from "@/components/shared/StatusBadge";
+import HRDecisionBadge from "@/components/shared/HRDecisionBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
@@ -53,7 +55,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold"
+            className="hover:bg-transparent p-0 font-semibold "
           >
             Candidate
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -69,7 +71,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           return (
             <div className="flex flex-col gap-0.5 min-w-[160px] max-w-[250px]">
               <span
-                className="font-bold  text-foreground truncate block"
+                className="font-bold  text-foreground truncate block capitalize"
                 title={fullName}
               >
                 {isProcessing && !c.first_name ? (
@@ -77,7 +79,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                     Processing…
                   </span>
                 ) : (
-                  fullName
+                  toTitleCase(fullName)
                 )}
               </span>
               <span className="text-muted-foreground truncate block" title={c.email || "N/A"}>
@@ -199,33 +201,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         id: "hr_decision",
         accessorKey: "hr_decision",
         header: "HR Decision",
-        cell: ({ row }) => {
-          const decision = row.original.hr_decision;
-          if (!decision) {
-            return (
-              <span className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider text-muted-foreground text-sm bg-slate-200">Pending</span>
-            );
-          }
-
-          return (
-            <StatusBadge
-              status={decision}
-              label={
-                decision === "approve"
-                  ? "approve"
-                  : decision === "reject"
-                    ? "reject"
-                    : decision
-              }
-              className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
-              mapping={{
-                approve: "default",
-                reject: "destructive",
-                maybe: "secondary",
-              }}
-            />
-          );
-        },
+        cell: ({ row }) => <HRDecisionBadge decision={row.original.hr_decision} />,
       },
 
       // CURRENT STAGE
@@ -277,28 +253,31 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
 
           // Separate links by type
           const liLinks = allLinks.filter((u) =>
-            u.toLowerCase().includes("linkedin.com"),
+            u.toLowerCase().includes("linkedin"),
           );
           const ghLinks = allLinks.filter((u) =>
-            u.toLowerCase().includes("github.com"),
-          );
-          // Handle links that don't match either (fallback to linkedin as per original logic)
-          const otherLinks = allLinks.filter(
-            (u) =>
-              !u.toLowerCase().includes("linkedin.com") &&
-              !u.toLowerCase().includes("github.com"),
+            u.toLowerCase().includes("github"),
           );
 
           const renderLink = (url: string, key: string) => {
-            const isGithub = url.toLowerCase().includes("github.com");
-            const isLinkedin = url.toLowerCase().includes("linkedin.com");
+            const lowUrl = url.toLowerCase();
+            const isGithub = lowUrl.includes("github");
+            const isLinkedin = lowUrl.includes("linkedin");
 
-            const type = isLinkedin ? "linkedin" : isGithub ? "github" : "linkedin";
-            const Logo = type === "linkedin" ? LinkedinLogo : GithubLogo;
+            const type = isLinkedin ? "linkedin" : isGithub ? "github" : "other";
+            const Logo =
+              type === "linkedin"
+                ? LinkedinLogo
+                : type === "github"
+                  ? GithubLogo
+                  : ExternalLink;
+
             const linkColor =
               type === "linkedin"
                 ? "text-blue-600 hover:text-blue-800"
-                : "text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white";
+                : type === "github"
+                  ? "text-gray-900 hover:text-black dark:text-gray-200 dark:hover:text-white"
+                  : "text-muted-foreground hover:text-foreground";
 
             return (
               <a
@@ -320,11 +299,9 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
 
           return (
             <div className="flex items-center gap-1">
-              {/* LinkedIn & fallback links */}
-              {liLinks.length > 0 || otherLinks.length > 0 ? (
-                [...liLinks, ...otherLinks].map((url, idx) =>
-                  renderLink(url, `li-${idx}`),
-                )
+              {/* LinkedIn links */}
+              {liLinks.length > 0 ? (
+                liLinks.map((url, idx) => renderLink(url, `li-${idx}`))
               ) : (
                 <Button
                   variant="ghost"

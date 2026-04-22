@@ -110,39 +110,41 @@ export function AnalysisContent({
           </h3>
 
           <div className="space-y-3">
-            {analysis?.missing_skills && analysis.missing_skills.length > 0 ? (
-              <>
-                {(showAllSkills
-                  ? analysis.missing_skills
-                  : analysis.missing_skills.slice(0, 4)
-                ).map((skill, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-1"
-                  >
-                    <span className="text-sm font-bold text-black dark:text-white">
-                      {skill.name}
-                    </span>
-                  </div>
-                ))}
-                {analysis.missing_skills.length > 4 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs font-bold  hover:bg-black/5 dark:hover:bg-white/5 mt-2"
-                    onClick={() => setShowAllSkills(!showAllSkills)}
-                  >
-                    {showAllSkills
-                      ? "Show Less"
-                      : `Show ${analysis.missing_skills.length - 4} More`}
-                  </Button>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground font-medium">
-                No major missing skills identify.
-              </p>
-            )}
+            <ul className="list-disc pl-4">
+              {analysis?.missing_skills && analysis.missing_skills.length > 0 ? (
+                <>
+                  {(showAllSkills
+                    ? analysis.missing_skills
+                    : analysis.missing_skills.slice(0, 4)
+                  ).map((skill, idx) => (
+                    <li
+                      key={idx}
+                      className=" "
+                    >
+                      <span className="text-sm font-bold text-black dark:text-white">
+                        {skill.name}
+                      </span>
+                    </li>
+                  ))}
+                  {analysis.missing_skills.length > 4 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs font-bold  hover:bg-black/5 dark:hover:bg-white/5 mt-2 border border-black dark:border-white"
+                      onClick={() => setShowAllSkills(!showAllSkills)}
+                    >
+                      {showAllSkills
+                        ? "Show Less"
+                        : `Show ${analysis.missing_skills.length - 4} More`}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <li className="text-sm text-muted-foreground font-medium">
+                  No major missing skills identify.
+                </li>
+              )}
+            </ul>
           </div>
         </section>
 

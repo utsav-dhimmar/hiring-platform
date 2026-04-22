@@ -486,6 +486,14 @@ export interface CandidateAnalysisResponse {
 }
 
 /**
+ * Detailed AI analysis of a resume.
+ */
+export interface PromptRead {
+  name: string;
+  content: string;
+}
+
+/**
  * AI resume-screening pass/fail breakdown for a job.
  */
 export interface JobResultStats {

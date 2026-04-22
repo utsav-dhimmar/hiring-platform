@@ -6,11 +6,23 @@ import type { JobPriorityRead } from "@/types/admin";
  */
 export const adminJobPriorityService = {
   /**
-   * Retrieves all job priorities.
-   * @returns Promise resolving to an array of job priorities
+   * Retrieves all job priorities with pagination.
+   * @param skip - Number of records to skip
+   * @param limit - Maximum number of records to return
+   * @param search - Search query
+   * @returns Promise resolving to job priorities and total count
    */
-  getAllPriorities: async (): Promise<JobPriorityRead[]> => {
-    const response = await client.get<JobPriorityRead[]>("/job-priorities");
+  getAllPriorities: async (
+    skip: number = 0,
+    limit: number = 100,
+    search?: string
+  ): Promise<{ data: JobPriorityRead[]; total: number }> => {
+    const response = await client.get<{ data: JobPriorityRead[]; total: number }>(
+      "/job-priorities",
+      {
+        params: { skip, limit, q: search ? search : undefined },
+      }
+    );
     return response.data;
   },
 

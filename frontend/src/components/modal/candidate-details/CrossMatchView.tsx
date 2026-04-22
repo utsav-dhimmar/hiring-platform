@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { crossMatchApi } from "@/apis/crossMatch";
-import { Loader2, Search, ExternalLink, RefreshCw, Compass, Filter } from "lucide-react";
+import { Loader2, Search, ExternalLink, RefreshCw, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -12,6 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { CrossJobMatchRead } from "@/types/crossMatch";
+import AdminDataTable, { type Column } from "@/components/shared/AdminDataTable";
+
 import { useNavigate } from "react-router-dom";
 import { slugify } from "@/utils/slug";
 import { capitalize } from "@/lib/utils";
@@ -35,14 +37,19 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 10;
   const navigate = useNavigate();
 
-  const fetchMatches = useCallback(async () => {
+  const fetchMatches = useCallback(async (currentPage: number) => {
     if (!resumeId) return;
     try {
-      const data = await crossMatchApi.getCrossMatches(resumeId);
+      const skip = (currentPage - 1) * pageSize;
+      const data = await crossMatchApi.getCrossMatches(resumeId, skip, pageSize);
       const matchesArray = Object.values(data.matches);
       setMatches(matchesArray);
+      setTotal(data.total || 0);
 
       // Check if any match is "new" (created after our start time)
       if (isDiscovering && startTime) {
@@ -61,17 +68,17 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [resumeId, isDiscovering, startTime]);
+  }, [resumeId, isDiscovering, startTime, pageSize]);
 
   useEffect(() => {
-    fetchMatches();
-  }, [fetchMatches]);
+    fetchMatches(page);
+  }, [fetchMatches, page]);
 
   // Polling logic
   useEffect(() => {
     if (isDiscovering) {
       const interval = setInterval(() => {
-        fetchMatches();
+        fetchMatches(page);
       }, 3000);
 
       // Automatic timeout after 25 seconds
@@ -115,6 +122,79 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     const isPassed = match.match_score >= (match.matched_job?.passing_threshold ?? DEFAULT_PASSING_THRESHOLD);
     return statusFilter === "pass" ? isPassed : !isPassed;
   });
+
+  // Note: With server-side pagination, client-side filtering only applies to the current page.
+  // Ideally, statusFilter should also be passed as a param to getCrossMatches.
+
+  const columns: Column<CrossJobMatchRead>[] = [
+    {
+      header: "Job & Department",
+      accessor: (match) => (
+        <div className="flex flex-col gap-1">
+          <span className="font-bold text-foreground">
+            {match.matched_job?.title || "Unknown Job"}
+          </span>
+          <div>
+            <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
+              {match.matched_job?.department_name || "N/A"}
+            </Badge>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Match Score",
+      accessor: (match) => (
+        <div className="flex items-center gap-1.5 min-w-[140px]">
+          <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-600 rounded-full"
+              style={{ width: `${match.match_score}%` }}
+            />
+          </div>
+          <span className="font-black text-blue-600 tracking-tight text-xs">
+            {match.match_score}%
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Status",
+      accessor: (match) => {
+        const threshold = match.matched_job?.passing_threshold ?? DEFAULT_PASSING_THRESHOLD;
+        const passed = match.match_score >= threshold;
+        return (
+          <Badge
+            variant="secondary"
+            className={`
+              text-[10px] h-5 px-2 font-black border-none transition-all
+              ${passed
+                ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20"
+                : "bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/20"
+              }
+            `}
+          >
+            {passed ? "PASS" : "FAIL"}
+          </Badge>
+        );
+      },
+    },
+    {
+      header: "Actions",
+      accessor: (match) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="rounded-lg h-8 border border-border"
+          onClick={() => handleGoToJob(match.matched_job?.title || "", match.matched_job_id)}
+        >
+          View Job
+          <ExternalLink className="ml-2 h-3.5 w-3.5" />
+        </Button>
+      ),
+      className: "text-right",
+    },
+  ];
 
   if (!resumeId) {
     return (
@@ -195,67 +275,19 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           <p className="text-sm text-muted-foreground animate-pulse">Loading matches...</p>
         </div>
       ) : matches.length > 0 ? (
-        <div className="max-h-[400px] w-full rounded-2xl border border-border bg-muted/5 p-4 overflow-y-auto custom-scrollbar ">
-          {filteredMatches.length > 0 ? (
-            <div className="grid gap-2">
-              {filteredMatches.map((match) => (
-                <div
-                  key={match.matched_job_id}
-                  className="group p-1 bg-card hover:bg-muted/40 border border-border rounded-xl transition-all duration-300 flex items-center justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground  transition-colors">
-                        {match.matched_job?.title || "Unknown Job"}
-                      </span>
-                      <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
-                        {match.matched_job?.department_name || "N/A"}
-                      </Badge>
-
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-600 rounded-full"
-                              style={{ width: `${match.match_score}%` }}
-                            />
-                          </div>
-                          <span className="font-black text-blue-600 tracking-tight">{(match.match_score)}% Match</span>
-                        </div>
-
-                        <Badge
-                          variant="secondary"
-                          className={`
-                        text-[10px] h-4.5 px-2 font-black border-none transition-all
-                        ${match.match_score >= (match.matched_job?.passing_threshold ?? DEFAULT_PASSING_THRESHOLD)
-                              ? "bg-emerald-500/10  ring-1 ring-emerald-500/20"
-                              : "bg-rose-500/10  ring-1 ring-rose-500/20"
-                            }
-                      `}
-                        >
-                          {match.match_score >= (match.matched_job?.passing_threshold ?? DEFAULT_PASSING_THRESHOLD) ? "PASS" : "FAIL"}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-lg h-9  border border-border"
-                    onClick={() => handleGoToJob(match.matched_job?.title || "", match.matched_job_id)}
-                  >
-                    View Job
-                    <ExternalLink className="ml-2 h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Filter className="h-8 w-8 text-muted-foreground/20 mb-2" />
-              <p className="text-sm text-muted-foreground">No matches found for the "{statusFilter}" filter.</p>
-            </div>
-          )}
+        <div className="w-full">
+          <AdminDataTable
+            columns={columns}
+            data={filteredMatches}
+            loading={loading}
+            rowKey="matched_job_id"
+            emptyMessage={`No matches found for the "${statusFilter}" filter.`}
+            className="border-0 shadow-none bg-transparent"
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+          />
         </div>
       ) : !isDiscovering && (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/5 rounded-2xl border border-dashed border-border">

@@ -26,6 +26,7 @@ import {
   Building2,
   ListTodo,
   type LucideIcon,
+  ReceiptText
 } from "lucide-react";
 
 /**
@@ -51,6 +52,7 @@ const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   profile: { label: "Profile", icon: UserCog },
   settings: { label: "Settings", icon: Settings },
   priorities: { label: "Priorities", icon: ListTodo },
+  prompts: { label: "Prompts", icon: ReceiptText },
 };
 
 const HIDE_DYNAMIC_BEFORE = new Set(["edit", "candidates", "versions"]);
