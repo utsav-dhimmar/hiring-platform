@@ -87,7 +87,7 @@ class JobVersion(Base):
 
     passing_threshold: Mapped[float] = mapped_column(
         Numeric(10, 2),
-        default=65.0,
+        default=70.0,
         nullable=False,
     )
 

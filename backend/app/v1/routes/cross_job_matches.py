@@ -98,7 +98,7 @@ async def get_cross_job_matches(
     for m in matches:
         validated = CrossJobMatchRead.model_validate(m)
         score_val = float(m.match_score) if m.match_score is not None else 0.0
-        thresh_val = float(m.matched_job.passing_threshold) if m.matched_job and m.matched_job.passing_threshold else 65.0
+        thresh_val = float(m.matched_job.passing_threshold) if m.matched_job and m.matched_job.passing_threshold else 70.0
         validated.pass_fail = "passed" if score_val >= thresh_val else "failed"
         match_dict[m.matched_job_id] = validated
 

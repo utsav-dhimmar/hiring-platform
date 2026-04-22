@@ -147,6 +147,10 @@ class HRDecisionService:
             f"by user {user_id}"
         )
 
+        # NEW: Handle auto-rejection from other jobs if this one is approved
+        if decision_data.decision.lower() == "approve" and actual_job_id:
+            await self._handle_multi_job_auto_rejection(db, candidate_id, actual_job_id, user_id)
+
         # Trigger stage advancement in the pipeline
         if decision_data.decision.lower() in ["approve", "reject"]:
             from app.v1.db.models.candidate_stages import CandidateStage
@@ -171,11 +175,6 @@ class HRDecisionService:
                 success = decision_data.decision.lower() == "approve"
                 await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_advance.id, success=success)
                 await db.commit()
-
-        # Trigger cross-match in background if candidate is rejected (case-insensitive)
-        if decision_data.decision.lower() == "reject":
-            logger.info(f"Decision is 'reject'. Triggering automatic cross-job discovery for candidate {candidate_id} from job context {actual_job_id}.")
-            _trigger_cross_match_for_candidate(candidate, job_id=actual_job_id)
 
         return HRDecisionResponse.model_validate(hr_decision)
 
@@ -299,6 +298,10 @@ class HRDecisionService:
             f"Updated HR decision {decision_id} to {decision_data.decision} "
             f"by user {user_id}"
         )
+
+        # NEW: Handle auto-rejection from other jobs if this one is now approved
+        if decision_data.decision.lower() == "approve" and old_decision != "approve" and actual_job_id:
+            await self._handle_multi_job_auto_rejection(db, decision.candidate_id, actual_job_id, user_id)
 
         # Trigger stage advancement in the pipeline if it hasn't happened yet
         # (transitioning from 'May Be' or None to 'approve'/'reject')
@@ -506,7 +509,7 @@ class HRDecisionService:
 
         from app.v1.db.models.jobs import Job
         job = await db.get(Job, job_id)
-        threshold = float(job.passing_threshold) if job and job.passing_threshold else 65.0
+        threshold = float(job.passing_threshold) if job and job.passing_threshold else 70.0
 
         # Combine results: prioritization (Native > Cross)
         # We'll fetch all and deduplicate in Python for simplicity and precision in this specific helper
@@ -564,17 +567,17 @@ class HRDecisionService:
         )
         
         # 2. Cross-match status per unique person
-        # (Using a standard 65.0 threshold for global cross-match counting simplicity)
+        # (Using a standard 70.0 threshold for global cross-match counting simplicity)
         cross_stmt = (
             select(
                 func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
-                case((CrossJobMatch.match_score >= 65.0, "passed"), else_="failed").label("pass_fail")
+                case((CrossJobMatch.match_score >= 70.0, "passed"), else_="failed").label("pass_fail")
             )
             .join(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
             .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
             .order_by(
                 func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
-                case((CrossJobMatch.match_score >= 65.0, 0), else_=1)
+                case((CrossJobMatch.match_score >= 70.0, 0), else_=1)
             )
         )
 
@@ -609,6 +612,84 @@ class HRDecisionService:
             "maybe_count": summary.maybe_count,
             "undecided_count": summary.undecided_count,
         }
+
+    async def _handle_multi_job_auto_rejection(
+        self,
+        db: AsyncSession,
+        candidate_id: uuid.UUID,
+        approved_job_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> None:
+        """Automatically reject a candidate from all other jobs once approved for one."""
+        from app.v1.db.models.candidate_stages import CandidateStage
+        from app.v1.db.models.job_stage_configs import JobStageConfig
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
+        
+        # 1. Get all other job IDs where this candidate is active or has a match
+        candidate_stmt = select(Candidate).where(Candidate.id == candidate_id)
+        candidate_res = await db.execute(candidate_stmt)
+        candidate = candidate_res.scalar_one_or_none()
+        if not candidate:
+            return
+
+        other_job_ids = set()
+        if candidate.applied_job_id and candidate.applied_job_id != approved_job_id:
+            other_job_ids.add(candidate.applied_job_id)
+            
+        cross_res = await db.execute(
+            select(CrossJobMatch.matched_job_id).where(CrossJobMatch.candidate_id == candidate_id)
+        )
+        for row in cross_res.all():
+            if row[0] != approved_job_id:
+                other_job_ids.add(row[0])
+                
+        if not other_job_ids:
+            return
+
+        note = "Auto-rejected because the candidate was accepted for another job."
+
+        for job_id in other_job_ids:
+            # Check if already rejected for this job (avoid duplicate rejections)
+            latest_dec_stmt = (
+                select(HrDecision)
+                .where(HrDecision.candidate_id == candidate_id, HrDecision.job_id == job_id)
+                .order_by(HrDecision.decided_at.desc())
+                .limit(1)
+            )
+            latest_dec_res = await db.execute(latest_dec_stmt)
+            latest_dec = latest_dec_res.scalar_one_or_none()
+            
+            if latest_dec and latest_dec.decision.lower() == "reject":
+                continue
+                
+            # Create auto-rejection record
+            auto_reject = HrDecision(
+                candidate_id=candidate_id,
+                job_id=job_id,
+                user_id=user_id,
+                decision="reject",
+                notes=note
+            )
+            db.add(auto_reject)
+
+            # Advance/Fail candidate stage for this job if there is an active one
+            cs_stmt = (
+                select(CandidateStage)
+                .join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
+                .where(
+                    CandidateStage.candidate_id == candidate_id,
+                    JobStageConfig.job_id == job_id,
+                    CandidateStage.status == "active"
+                )
+            )
+            cs_res = await db.execute(cs_stmt)
+            cs_to_fail = cs_res.scalar_one_or_none()
+            
+            if cs_to_fail:
+                await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_fail.id, success=False)
+        
+        # Flush changes to DB
+        await db.flush()
 
 
 # Create service instance

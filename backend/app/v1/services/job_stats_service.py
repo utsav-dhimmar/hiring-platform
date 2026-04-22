@@ -42,22 +42,26 @@ class JobStatsService:
         self,
         db: AsyncSession,
         job_id: uuid.UUID,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> JobStatsResponse:
         """
         Returns a comprehensive stats snapshot for a job.
 
         Args:
-            db:     Async SQLAlchemy session.
-            job_id: UUID of the job to inspect.
+            db:         Async SQLAlchemy session.
+            job_id:     UUID of the job to inspect.
+            start_date: Optional start date for filtering.
+            end_date:   Optional end date for filtering.
 
         Returns:
             JobStatsResponse with result, location, stages, and hr_decisions.
         """
 
-        result = await self._get_result_stats(db, job_id)
-        location = await self._get_location_stats(db, job_id)
-        stages = await self._get_stage_stats(db, job_id)
-        hr_decisions = await self._get_hr_decision_stats(db, job_id)
+        result = await self._get_result_stats(db, job_id, start_date, end_date)
+        location = await self._get_location_stats(db, job_id, start_date, end_date)
+        stages = await self._get_stage_stats(db, job_id, start_date, end_date)
+        hr_decisions = await self._get_hr_decision_stats(db, job_id, start_date, end_date)
 
         return JobStatsResponse(
             result=result,
@@ -71,7 +75,7 @@ class JobStatsService:
     # -------------------------------------------------------------------------
 
     async def _get_result_stats(
-        self, db: AsyncSession, job_id: uuid.UUID
+        self, db: AsyncSession, job_id: uuid.UUID, start_date: datetime | None, end_date: datetime | None
     ) -> JobResultStats:
         """
         Count pass / fail / pending for unique candidates in this job.
@@ -80,8 +84,19 @@ class JobStatsService:
         from app.v1.db.models.jobs import Job
         job = await db.get(Job, job_id)
         threshold = (
-            float(job.passing_threshold) if job and job.passing_threshold else 65.0
+            float(job.passing_threshold) if job and job.passing_threshold else 70.0
         )
+
+        # Filters for native and cross-match
+        native_filter = Candidate.applied_job_id == job_id
+        cross_filter = CrossJobMatch.matched_job_id == job_id
+        
+        if start_date:
+            native_filter = and_(native_filter, Candidate.created_at >= start_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            native_filter = and_(native_filter, Candidate.created_at <= end_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
 
         # Subquery to get unique candidate identifiers (email) and their strongest source of screening info
         # Prioritize native (resumes) over cross matches
@@ -99,8 +114,8 @@ class JobStatsService:
             .outerjoin(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
             .where(
                 or_(
-                    Candidate.applied_job_id == job_id,
-                    CrossJobMatch.matched_job_id == job_id
+                    native_filter,
+                    cross_filter
                 )
             )
             # Order by is_native to ensure DISTINCT picks native record if available
@@ -125,20 +140,31 @@ class JobStatsService:
         )
 
     async def _get_location_stats(
-        self, db: AsyncSession, job_id: uuid.UUID
+        self, db: AsyncSession, job_id: uuid.UUID, start_date: datetime | None, end_date: datetime | None
     ) -> dict[str, int]:
         """
         Count unique candidates per location for this job.
         Includes cross-matches. Deduplicates by email.
         """
+        # Filters for native and cross-match
+        native_filter = Candidate.applied_job_id == job_id
+        cross_filter = CrossJobMatch.matched_job_id == job_id
+        
+        if start_date:
+            native_filter = and_(native_filter, Candidate.created_at >= start_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            native_filter = and_(native_filter, Candidate.created_at <= end_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
+
         stmt = (
             select(Location.name, func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
             .join(Candidate, Location.id == Candidate.location_id)
             .where(
                 or_(
-                    Candidate.applied_job_id == job_id,
+                    native_filter,
                     Candidate.id.in_(
-                        select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                        select(CrossJobMatch.candidate_id).where(cross_filter)
                     )
                 )
             )
@@ -152,7 +178,7 @@ class JobStatsService:
         return location_counts
 
     async def _get_stage_stats(
-        self, db: AsyncSession, job_id: uuid.UUID
+        self, db: AsyncSession, job_id: uuid.UUID, start_date: datetime | None, end_date: datetime | None
     ) -> dict[str, int]:
         """
         Count how many unique candidates are in each stage for this job.
@@ -163,6 +189,17 @@ class JobStatsService:
         #   - We prefer the highest order non-pending stage.
         #   - If all are pending, we prefer the lowest order pending stage (the first stage).
         
+        # Filters for native and cross-match
+        native_filter = Candidate.applied_job_id == job_id
+        cross_filter = CrossJobMatch.matched_job_id == job_id
+        
+        if start_date:
+            native_filter = and_(native_filter, Candidate.created_at >= start_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            native_filter = and_(native_filter, Candidate.created_at <= end_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
+
         # Deduplication subquery: Map each unique person (email) to their latest application record in this job context
         unique_candidates_subq = (
             select(
@@ -173,8 +210,8 @@ class JobStatsService:
             .outerjoin(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
             .where(
                 or_(
-                    Candidate.applied_job_id == job_id,
-                    CrossJobMatch.matched_job_id == job_id
+                    native_filter,
+                    cross_filter
                 )
             )
             .order_by(
@@ -251,29 +288,38 @@ class JobStatsService:
         return final_stats
 
     async def _get_hr_decision_stats(
-        self, db: AsyncSession, job_id: uuid.UUID
+        self, db: AsyncSession, job_id: uuid.UUID, start_date: datetime | None, end_date: datetime | None
     ) -> JobHRDecisionStats:
         """
         Compute unique HR decision breakdown for this job.
         Deduplicates by email.
         """
+        # Filters for native and cross-match
+        native_filter = Candidate.applied_job_id == job_id
+        cross_filter = CrossJobMatch.matched_job_id == job_id
+        
+        if start_date:
+            native_filter = and_(native_filter, Candidate.created_at >= start_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            native_filter = and_(native_filter, Candidate.created_at <= end_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
+
         # Deduplication by email
         total_unique_stmt = select(
             func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
         ).where(
             or_(
-                Candidate.applied_job_id == job_id,
+                native_filter,
                 Candidate.id.in_(
-                    select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
-                ),
-                Candidate.id.in_(
-                    select(HrDecision.candidate_id).where(HrDecision.job_id == job_id)
+                    select(CrossJobMatch.candidate_id).where(cross_filter)
                 )
             )
         )
         total_candidates = await db.scalar(total_unique_stmt) or 0
 
         # Latest decision per unique per-person (email)
+        # ONLY for candidates that are in the filtered population
         subq = (
             select(
                 func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
@@ -292,6 +338,15 @@ class JobStatsService:
                     and_(
                         HrDecision.job_id.is_(None),
                         Candidate.applied_job_id == job_id
+                    )
+                )
+            )
+            # IMPORTANT: The candidate must be one of those who applied/matched in the period
+            .where(
+                or_(
+                    native_filter,
+                    Candidate.id.in_(
+                        select(CrossJobMatch.candidate_id).where(cross_filter)
                     )
                 )
             )
