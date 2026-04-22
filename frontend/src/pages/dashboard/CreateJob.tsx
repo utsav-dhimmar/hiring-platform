@@ -27,6 +27,7 @@ import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { extractErrorMessage } from "@/utils/error";
+import { useAdminData } from "@/hooks";
 
 
 export default function CreateJob() {
@@ -54,6 +55,12 @@ export default function CreateJob() {
       custom_extraction_fields: [],
     },
   });
+  const {
+    fetchData: fetchSkills,
+  } = useAdminData<SkillRead>(
+    () => adminSkillService.getAllSkills(100, 0, ""),
+    { fetchOnMount: false }
+  )
 
 
   const fetchFormData = useCallback(async () => {
@@ -180,7 +187,7 @@ export default function CreateJob() {
               <BasicJobDetails departments={departments} />
               <JobSettingsSection />
               <CustomFieldsSection />
-              <SkillSelectorSection availableSkills={availableSkills} />
+              <SkillSelectorSection availableSkills={availableSkills} onSkillAdded={fetchSkills} />
 
               {/* Form Actions */}
               <div className="flex flex-wrap items-center justify-center gap-4 border-t pt-8">

@@ -62,11 +62,11 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card/95 backdrop-blur-xl border-muted-foreground/20 shadow-2xl rounded-3xl sm:rounded-[2rem]">
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card/95 backdrop-blur-xl border-muted-foreground/20 shadow-2xl rounded-3xl sm:rounded-[2rem] h-[600px]">
         <DialogHeader className="p-6 pb-4 border-b border-muted-foreground/10 bg-muted/30">
           <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-1.5">
-              <DialogTitle className="text-2xl font-black tracking-tight text-foreground">
+            <div className="flex flex-row items-center justify-center gap-2.5">
+              <DialogTitle className="text-xl font-black tracking-tight text-foreground">
                 {job.title}
               </DialogTitle>
               {job.department_name && (

@@ -17,7 +17,7 @@ const chartConfig = {
   fail: {
     label: RESUME_SCREENING_RESULT.FAIL,
     // color: "hsl(0 72% 51%)",
-    color: "var(--chart-fail)"
+    color: "oklch(0.85 0.06 20)"
   },
 } satisfies ChartConfig;
 
@@ -28,8 +28,8 @@ interface ResultPieChartProps {
 
 export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
   const data = [
-    { name: "Pass", value: passCount, fill: "var(--color-pass)" },
-    { name: "Fail", value: failCount, fill: "var(--color-fail)" },
+    { name: "Pass", value: passCount, fill: "url(#colorPass)" },
+    { name: "Fail", value: failCount, fill: "url(#colorFail)" },
   ].filter((item) => item.value > 0);
 
   const total = passCount + failCount;
@@ -44,6 +44,16 @@ export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
         >
           {hasData ? (
             <RechartsPieChart>
+              <defs>
+                <linearGradient id="colorPass" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="oklch(0.75 0.15 166.72)" />
+                  <stop offset="100%" stopColor="oklch(0.55 0.2 166.72)" />
+                </linearGradient>
+                <linearGradient id="colorFail" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="oklch(0.75 0.15 25.331)" />
+                  <stop offset="100%" stopColor="oklch(0.55 0.2 25.331)" />
+                </linearGradient>
+              </defs>
               <ChartTooltip
                 content={<ChartTooltipContent nameKey="value" hideLabel />}
               />
@@ -81,11 +91,17 @@ export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
       <div className="flex flex-col gap-2 text-sm pt-4 items-center">
         <div className="flex flex-wrap justify-center gap-6 mt-2">
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[hsl(142,71%,45%)] shadow-[0_0_8px_rgba(34,197,94,0.3)]" />
+            <div
+              className="h-3 w-3 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.3)]"
+              style={{ background: "linear-gradient(to bottom, oklch(0.75 0.15 166.72), oklch(0.55 0.2 166.72))" }}
+            />
             <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground"> <span className="capitalize">{RESUME_SCREENING_RESULT.PASS}</span>: {passCount}</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[hsl(0,72%,51%)] shadow-[0_0_8px_rgba(239,68,68,0.3)]" />
+            <div
+              className="h-3 w-3 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.3)]"
+              style={{ background: "linear-gradient(to bottom, oklch(0.75 0.15 25.331), oklch(0.55 0.2 25.331))" }}
+            />
             <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground">
               <span className="capitalize">{RESUME_SCREENING_RESULT.FAIL}</span>: {failCount}</span>
           </div>

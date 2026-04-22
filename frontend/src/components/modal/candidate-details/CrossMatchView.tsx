@@ -33,7 +33,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
   const [loading, setLoading] = useState(true);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | "passed" | "failed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
   const navigate = useNavigate();
 
   const fetchMatches = useCallback(async () => {
@@ -112,7 +112,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
   const filteredMatches = matches.filter((match) => {
     if (statusFilter === "all") return true;
     const isPassed = match.match_score >= (match.matched_job?.passing_threshold ?? 65);
-    return statusFilter === "passed" ? isPassed : !isPassed;
+    return statusFilter === "pass" ? isPassed : !isPassed;
   });
 
   if (!resumeId) {
@@ -151,8 +151,8 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
             </SelectTrigger>
             <SelectContent className="" align="end">
               <SelectItem value="all">Results</SelectItem>
-              <SelectItem value="passed">Pass</SelectItem>
-              <SelectItem value="failed">Fail</SelectItem>
+              <SelectItem value="pass">Pass</SelectItem>
+              <SelectItem value="fail">Fail</SelectItem>
             </SelectContent>
           </Select>
 
@@ -194,52 +194,53 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           <p className="text-sm text-muted-foreground animate-pulse">Loading matches...</p>
         </div>
       ) : matches.length > 0 ? (
-        <div className="max-h-[400px] w-full rounded-2xl border border-border bg-muted/5 p-4 overflow-y-auto custom-scrollbar">
+        <div className="max-h-[400px] w-full rounded-2xl border border-border bg-muted/5 p-4 overflow-y-auto custom-scrollbar ">
           {filteredMatches.length > 0 ? (
-            <div className="grid gap-4">
+            <div className="grid gap-2">
               {filteredMatches.map((match) => (
                 <div
                   key={match.matched_job_id}
-                  className="group p-4 bg-card hover:bg-muted/40 border border-border rounded-xl transition-all duration-300 flex items-center justify-between"
+                  className="group p-1 bg-card hover:bg-muted/40 border border-border rounded-xl transition-all duration-300 flex items-center justify-between"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground group-hover:text-primary transition-colors">
+                      <span className="font-bold text-foreground  transition-colors">
                         {match.matched_job?.title || "Unknown Job"}
                       </span>
                       <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
                         {match.matched_job?.department_name || "N/A"}
                       </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-blue-600 rounded-full"
-                            style={{ width: `${match.match_score}%` }}
-                          />
-                        </div>
-                        <span className="font-black text-blue-600 tracking-tight">{(match.match_score)}% Match</span>
-                      </div>
 
-                      <Badge
-                        variant="secondary"
-                        className={`
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-600 rounded-full"
+                              style={{ width: `${match.match_score}%` }}
+                            />
+                          </div>
+                          <span className="font-black text-blue-600 tracking-tight">{(match.match_score)}% Match</span>
+                        </div>
+
+                        <Badge
+                          variant="secondary"
+                          className={`
                         text-[10px] h-4.5 px-2 font-black border-none transition-all
                         ${match.match_score >= (match.matched_job?.passing_threshold ?? 65)
-                            ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20"
-                            : "bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/20"
-                          }
+                              ? "bg-emerald-500/10  ring-1 ring-emerald-500/20"
+                              : "bg-rose-500/10  ring-1 ring-rose-500/20"
+                            }
                       `}
-                      >
-                        {match.match_score >= (match.matched_job?.passing_threshold ?? 65) ? "PASS" : "FAIL"}
-                      </Badge>
+                        >
+                          {match.match_score >= (match.matched_job?.passing_threshold ?? 65) ? "PASS" : "FAIL"}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="rounded-lg h-9 hover:bg-primary/10 hover:text-primary border border-border"
+                    className="rounded-lg h-9  border border-border"
                     onClick={() => handleGoToJob(match.matched_job?.title || "", match.matched_job_id)}
                   >
                     View Job

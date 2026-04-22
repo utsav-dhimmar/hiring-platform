@@ -19,8 +19,8 @@ interface AnalysisStatsProps {
  */
 export function AnalysisStats({
   candidate,
-  onVersionClick,
-  activeTab,
+  // onVersionClick,
+  // activeTab,
   passing_threshold = 65,
 }: AnalysisStatsProps) {
   const analysis = candidate.resume_analysis;
@@ -28,15 +28,15 @@ export function AnalysisStats({
     candidate.pass_fail === true ||
     String(candidate.pass_fail).toLowerCase() === "pass" ||
     (candidate.resume_score ?? 0) >= passing_threshold;
-  const isVersionTab = activeTab === "version-result";
+  // const isVersionTab = activeTab === "version-result";
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
       <div className="flex items-center gap-2 sm:gap-3">
-        <span className="text-[10px] font-bold uppercase text-muted-foreground sm:text-xs whitespace-nowrap">
+        <span className="text-sm font-bold uppercase text-muted-foreground  whitespace-nowrap">
           Match Percentage
         </span>
-        <span className="text-sm font-black text-blue-600 leading-none sm:text-base">
+        <span className="text-sm font-semibold">
           {analysis?.match_percentage || 0}%
         </span>
       </div>
@@ -44,14 +44,14 @@ export function AnalysisStats({
       <div className="h-4 w-px bg-muted-foreground/20" />
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <span className="text-[10px] font-bold uppercase text-muted-foreground sm:text-xs whitespace-nowrap">
+        <span className="text-sm font-bold uppercase text-muted-foreground  whitespace-nowrap">
           Result
         </span>
         <Badge
           variant={isPassed ? "default" : "destructive"}
-          className={`rounded-full px-2.5 py-0.5 flex items-center gap-1.5 w-fit border-0 shadow-none ${isPassed
-            ? "bg-green-500/10 text-green-600"
-            : "bg-red-500/10 text-red-600"
+          className={`rounded-full px-2.5 py-0.5 flex items-center gap-1.5 w-fit border-0 shadow-none text-black ${isPassed
+            ? "bg-green-300 dark:bg-green-300"
+            : "bg-red-300 dark:bg-red-300"
             }`}
         >
           {isPassed ? (
@@ -74,21 +74,16 @@ export function AnalysisStats({
 
       <div className="h-4 w-px bg-muted-foreground/20" />
 
-      <button
-        type="button"
-        onClick={onVersionClick}
-        className={`flex items-center gap-2 rounded-lg py-1 px-2 transition-all outline-none active:scale-95 ${isVersionTab
-          ? "bg-purple-600/15 ring-2 ring-purple-600/30"
-          : "hover:bg-purple-600/5 hover:ring-1 hover:ring-purple-600/10"
-          }`}
+      <div
+        className={`flex items-center gap-2 rounded-lg py-1 px-2 transition-all outline-none `}
       >
-        <span className="text-[10px] font-bold uppercase text-muted-foreground sm:text-xs whitespace-nowrap">
+        <span className="text-sm font-bold uppercase text-muted-foreground  whitespace-nowrap">
           Analysis Version
         </span>
-        <span className="text-sm font-black text-purple-600 leading-none sm:text-base">
+        <span className="text-sm font-semibold">
           V{(candidate as any)?.applied_version_number || "N/A"}
         </span>
-      </button>
+      </div>
     </div>
   );
 }

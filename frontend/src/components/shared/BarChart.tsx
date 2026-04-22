@@ -44,11 +44,11 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
   ];
 
   const colors = {
-    Total: ["#3b82f6", "#2563eb"],
-    Approved: ["#22c55e", "#16a34a"],
-    Rejected: ["#ef4444", "#dc2626"],
-    Maybe: ["#f59e0b", "#d97706"],
-    Pending: ["#94a3b8", "#64748b"],
+    Total: ["#93c5fd", "#60a5fa"],     // soft blue
+    Approved: ["#86efac", "#4ade80"],  // soft green
+    Rejected: ["#fca5a5", "#f87171"],  // soft red
+    Maybe: ["#fde68a", "#fcd34d"],     // soft amber
+    Pending: ["#cbd5f5", "#a5b4fc"],   // soft slate/indigo
   };
 
   return (
@@ -219,12 +219,12 @@ export function StagesBarChart({ stages }: StagesBarChartProps) {
       gradientId: `gradientStage-${index}`,
     }));
   const colors = [
-    ["#8b5cf6", "#7c3aed"], // Violet
-    ["#6366f1", "#4f46e5"], // Indigo
-    ["#3b82f6", "#2563eb"], // Blue
-    ["#06b6d4", "#0891b2"], // Cyan
-    ["#14b8a6", "#0d9488"], // Teal
-    ["#10b981", "#059669"], // Emerald
+    ["#ddd6fe", "#c4b5fd"], // soft violet
+    ["#c7d2fe", "#a5b4fc"], // soft indigo
+    ["#bfdbfe", "#93c5fd"], // soft blue
+    ["#a5f3fc", "#67e8f9"], // soft cyan
+    ["#99f6e4", "#5eead4"], // soft teal
+    ["#a7f3d0", "#6ee7b7"], // soft emerald
   ];
 
   if (data.length === 0) {
@@ -377,11 +377,11 @@ export function LocationBarChart({ locations }: LocationBarChartProps) {
   }));
 
   const colors = [
-    ["#f97316", "#ea580c"], // Orange
-    ["#f59e0b", "#d97706"], // Amber
-    ["#eab308", "#ca8a04"], // Yellow
-    ["#fb923c", "#f97316"], // Light Orange
-    ["#fcd34d", "#d97706"], // Light Amber
+    ["#fed7aa", "#fdba74"], // soft orange
+    ["#fde68a", "#fcd34d"], // soft amber
+    ["#fef08a", "#fde047"], // soft yellow
+    ["#fdba74", "#fb923c"], // peach
+    ["#fcd34d", "#fbbf24"], // warm amber
   ];
 
   if (data.length === 0) {

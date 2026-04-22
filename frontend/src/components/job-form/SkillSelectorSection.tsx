@@ -9,27 +9,31 @@ import {
   FormMessage,
   Input,
   Badge,
+  Button,
 } from "@/components";
 import type { SkillRead } from "@/types/admin";
 import { cn } from "@/lib/utils";
 import { Required } from "@/components/job-form/Required";
+import { CreateSkillModal } from "../modal";
 
 interface SkillSelectorSectionProps {
   availableSkills: SkillRead[];
+  onSkillAdded: () => void;  // Optional callback for when a skill is added
 }
 
 export const SkillSelectorSection = ({
   availableSkills,
+  onSkillAdded,
 }: SkillSelectorSectionProps) => {
   const { control, setValue } = useFormContext();
   const [skillSearch, setSkillSearch] = useState("");
-
+  const [showModal, setShowModal] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState<SkillRead | null>(null);
   const selectedSkillIds = useWatch({
     control,
     name: "skill_ids",
     defaultValue: [],
   });
-
 
   const toggleSkill = (skillId: string) => {
     const current = [...selectedSkillIds];
@@ -55,14 +59,33 @@ export const SkillSelectorSection = ({
     skill.name.toLowerCase().includes(skillSearch.toLowerCase()),
   );
 
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedSkill(null);
+  };
   return (
     <div className="app-surface-card space-y-6 p-4 sm:p-5">
       <div className="space-y-1">
-        <h2 className="text-lg font-bold tracking-tight">Required Skills <Required /></h2>
-        <p className="text-muted-foreground text-base font-medium">
-          Select the skills that should be linked to this job. Click a skill to
-          toggle selection.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+
+            <h2 className="text-lg font-bold tracking-tight">Required Skills <Required /></h2>
+            <p className="text-muted-foreground text-base font-medium">
+              Select the skills that should be linked to this job. Click a skill to
+              toggle selection.
+            </p>
+          </div>
+
+          <Button
+            onClick={() => setShowModal(true)}
+            variant="secondary"
+            size="sm"
+
+          >
+            <Plus />
+            Add Skill
+          </Button>
+        </div>
         <FormField
           control={control}
           name="skill_ids"
@@ -158,7 +181,9 @@ export const SkillSelectorSection = ({
           </div>
         </div>
       )}
-
+      <CreateSkillModal show={showModal} handleClose={handleCloseModal}
+        onSkillSaved={onSkillAdded}
+        skill={selectedSkill} />
     </div>
   );
 };

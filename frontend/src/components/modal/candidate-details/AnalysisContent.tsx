@@ -104,7 +104,9 @@ export function AnalysisContent({
         <section className="space-y-2">
           <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
             <AlertCircle className="h-5 w-5 text-red-500/80" />
-            Missing Skills
+            <span className="text-red-500">
+              Missing Skills
+            </span>
           </h3>
 
           <div className="space-y-3">
@@ -116,9 +118,9 @@ export function AnalysisContent({
                 ).map((skill, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-red-500/5 border border-red-500/10 group hover:bg-red-500/10 transition-colors"
+                    className="flex items-center justify-between p-1"
                   >
-                    <span className="text-sm font-bold text-red-600/80">
+                    <span className="text-sm font-bold text-black dark:text-white">
                       {skill.name}
                     </span>
                   </div>
@@ -137,7 +139,7 @@ export function AnalysisContent({
                 )}
               </>
             ) : (
-              <p className="text-sm text-green-600 font-medium">
+              <p className="text-sm text-muted-foreground font-medium">
                 No major missing skills identify.
               </p>
             )}
@@ -148,26 +150,25 @@ export function AnalysisContent({
           <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
             Extraordinary Points
           </h3>
-          <div className="space-y-2">
+          <ul className="list-disc">
             {analysis?.extraordinary_points &&
               analysis.extraordinary_points.length > 0 ? (
               analysis.extraordinary_points.map((point, idx) => (
-                <div
+                <li
                   key={idx}
-                  className="flex gap-3 text-sm leading-relaxed text-muted-foreground group"
+                  className="text-sm leading-relaxed text-muted-foreground"
                 >
-                  <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500 shrink-0 group-hover:scale-150 transition-transform" />
-                  <p className="group-hover:text-foreground transition-colors">
+                  <span className="text-black dark:text-white">
                     {point}
-                  </p>
-                </div>
+                  </span>
+                </li>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground italic">
+              <li className="text-sm font-medium text-muted-foreground">
                 No extraordinary points found from the resume.
-              </p>
+              </li>
             )}
-          </div>
+          </ul>
         </section>
       </div>
     </div>
