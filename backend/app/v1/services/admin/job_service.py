@@ -1,4 +1,5 @@
 import uuid
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -22,6 +23,8 @@ from app.v1.services.user_service import user_service
 from app.v1.services.admin.job_priority_service import job_priority_service
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 
 class JobAdminService:
@@ -188,6 +191,7 @@ class JobAdminService:
 
         # Trigger background task to match all existing resumes to this new job
         from app.v1.services.admin.job_tasks import match_all_resumes_to_job_task
+        logger.info(f"Triggering mass matching task for new job: {job.id}")
         match_all_resumes_to_job_task.delay(str(job.id))
 
         return JobRead.model_validate(job)

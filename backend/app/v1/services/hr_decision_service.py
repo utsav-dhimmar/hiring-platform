@@ -176,6 +176,11 @@ class HRDecisionService:
                 await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_advance.id, success=success)
                 await db.commit()
 
+            # Trigger cross-match in background if rejected
+            if decision_data.decision.lower() == "reject":
+                logger.info(f"Initial rejection. Triggering automatic cross-job discovery for candidate {candidate_id} from job context {actual_job_id}.")
+                _trigger_cross_match_for_candidate(candidate, job_id=actual_job_id)
+
         return HRDecisionResponse.model_validate(hr_decision)
 
     async def get_decision_history(
