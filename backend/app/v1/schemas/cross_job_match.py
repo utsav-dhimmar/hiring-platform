@@ -25,6 +25,9 @@ class CrossJobMatchRead(CrossJobMatchBase):
     model_config = ConfigDict(from_attributes=True)
 
 class CrossJobMatchResponse(BaseModel):
-    """Response schema for a list of cross-job matches."""
+    """Response schema for a list of cross-job matches with pagination support (dictionary for frontend compatibility)."""
     resume_id: uuid.UUID
     matches: dict[uuid.UUID, CrossJobMatchRead]
+    total: int
+    skip: int
+    limit: int

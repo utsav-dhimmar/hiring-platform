@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.resumes import Resume
+from app.v1.db.models.cross_job_matches import CrossJobMatch
 from app.v1.schemas.hr_decision import (
     HRDecisionCreate,
     HRDecisionResponse,
@@ -147,10 +148,65 @@ class HRDecisionService:
             f"by user {user_id}"
         )
 
-        # NEW: Handle auto-rejection from other jobs if this one is approved
+        # Handle auto-rejection from other jobs if this one is approved (Global Email-based Exclusivity)
         if decision_data.decision.lower() == "approve" and actual_job_id:
-            await self._handle_multi_job_auto_rejection(db, candidate_id, actual_job_id, user_id)
+            try:
+                # 1. Find all candidate IDs associated with this candidate's email
+                all_ids_stmt = select(Candidate.id).where(Candidate.email == candidate.email)
+                all_ids_res = await db.execute(all_ids_stmt)
+                all_candidate_ids = [row[0] for row in all_ids_res.all()]
 
+                # 2. Find all unique jobs these IDs are linked to (Native or Cross-match)
+                all_linked_jobs = set()
+                
+                # Check native apps for all these IDs
+                for cid in all_candidate_ids:
+                    c_stmt = select(Candidate.applied_job_id).where(Candidate.id == cid)
+                    ajid = (await db.execute(c_stmt)).scalar()
+                    if ajid:
+                        all_linked_jobs.add(ajid)
+                    
+                    # Check cross-matches for all these IDs
+                    xm_res = await db.execute(
+                        select(CrossJobMatch.matched_job_id)
+                        .where(CrossJobMatch.candidate_id == cid)
+                    )
+                    for row in xm_res.all():
+                        if row[0]:
+                            all_linked_jobs.add(row[0])
+                
+                # 3. Remove the current job (the one we just approved)
+                all_linked_jobs.discard(actual_job_id)
+
+                if all_linked_jobs:
+                    for other_job_id in all_linked_jobs:
+                        # Reject ALL candidate records linked to this email from this OTHER job
+                        for cid in all_candidate_ids:
+                            # IMPORTANT: Check if there's already a decision for this candidate/job combo
+                            # If they are already rejected or approved manually, don't overwrite
+                            check_stmt = select(HrDecision.id).where(
+                                HrDecision.candidate_id == cid,
+                                HrDecision.job_id == other_job_id
+                            ).limit(1)
+                            if (await db.execute(check_stmt)).scalar():
+                                continue
+
+                            # Add a new "reject" as the latest status for this candidate/job combo
+                            auto_reject = HrDecision(
+                                candidate_id=cid,
+                                job_id=other_job_id,
+                                user_id=user_id,
+                                decision="reject",
+                                notes="Selected for another job"
+                            )
+                            db.add(auto_reject)
+                    
+                    await db.commit()
+                    logger.info(f"Global auto-reject for email {candidate.email}: Rejected from {len(all_linked_jobs)} other jobs.")
+            except Exception as e:
+                logger.error(f"Failed to global auto-reject candidate {candidate.email}: {e}")
+                # We don't raise here to avoid failing the main approval commit which already succeeded
+        
         # Trigger stage advancement in the pipeline
         if decision_data.decision.lower() in ["approve", "reject"]:
             from app.v1.db.models.candidate_stages import CandidateStage
@@ -178,7 +234,7 @@ class HRDecisionService:
 
             # Trigger cross-match in background if rejected
             if decision_data.decision.lower() == "reject":
-                logger.info(f"Initial rejection. Triggering automatic cross-job discovery for candidate {candidate_id} from job context {actual_job_id}.")
+                logger.info(f"Rejection detected. Triggering automatic cross-job discovery for candidate {candidate_id} from job context {actual_job_id}.")
                 _trigger_cross_match_for_candidate(candidate, job_id=actual_job_id)
 
         return HRDecisionResponse.model_validate(hr_decision)

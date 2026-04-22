@@ -28,7 +28,7 @@ async def create_priority(
     user: UserRead = Depends(check_permission("admin:access")),
 ):
     """Create a new job priority (Super Admin/HR Admin only)."""
-    return await job_priority_service.create_priority(db, priority_in)
+    return await job_priority_service.create_priority(db, user.id, priority_in)
 
 
 @router.patch("/{priority_id}", response_model=JobPriorityRead)
@@ -39,7 +39,7 @@ async def update_priority(
     user: UserRead = Depends(check_permission("admin:access")),
 ):
     """Update a job priority (Super Admin/HR Admin only)."""
-    priority = await job_priority_service.update_priority(db, priority_id, priority_in)
+    priority = await job_priority_service.update_priority(db, user.id, priority_id, priority_in)
     if not priority:
         raise HTTPException(status_code=404, detail="Priority not found")
     return priority
@@ -52,6 +52,6 @@ async def delete_priority(
     user: UserRead = Depends(check_permission("admin:access")),
 ):
     """Delete a job priority (Super Admin/HR Admin only)."""
-    success = await job_priority_service.delete_priority(db, priority_id)
+    success = await job_priority_service.delete_priority(db, user.id, priority_id)
     if not success:
         raise HTTPException(status_code=404, detail="Priority not found")

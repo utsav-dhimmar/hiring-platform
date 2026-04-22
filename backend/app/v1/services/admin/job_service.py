@@ -257,16 +257,22 @@ class JobAdminService:
         
         updated_fields_map = job_update.model_dump(exclude_unset=True)
         
-        # Log general update
+        # Log general update with values
+        log_details = {
+            "updated_fields": list(updated_fields_map.keys()),
+        }
+        # Add specific values for important fields to make audit logs readable
+        for field in ["priority_id", "title", "department_id", "is_active"]:
+            if field in updated_fields_map:
+                log_details[field] = str(updated_fields_map[field])
+
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
             action="update_job",
             target_type="job",
             target_id=job_id,
-            details={
-                "updated_fields": list(updated_fields_map.keys())
-            },
+            details=log_details,
         )
 
         # CRITICAL: If is_active was changed, log a specific update_job_status action

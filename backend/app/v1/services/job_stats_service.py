@@ -295,6 +295,7 @@ class JobStatsService:
         Deduplicates by email.
         """
         # Filters for native and cross-match
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
         native_filter = Candidate.applied_job_id == job_id
         cross_filter = CrossJobMatch.matched_job_id == job_id
         
@@ -318,15 +319,15 @@ class JobStatsService:
         )
         total_candidates = await db.scalar(total_unique_stmt) or 0
 
-        # Latest decision per unique per-person (email)
-        # ONLY for candidates that are in the filtered population
+        # Latest decision per unique candidate in this job
+        # We join HrDecision to the candidate and ensure it matches the specific job_id
         subq = (
             select(
-                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
-                HrDecision.decision,
+                Candidate.id.label("candidate_id"),
+                func.lower(HrDecision.decision).label("decision"),
                 func.row_number()
                 .over(
-                    partition_by=func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                    partition_by=Candidate.id,
                     order_by=HrDecision.decided_at.desc(),
                 )
                 .label("rn"),
@@ -337,11 +338,16 @@ class JobStatsService:
                     HrDecision.job_id == job_id,
                     and_(
                         HrDecision.job_id.is_(None),
-                        Candidate.applied_job_id == job_id
+                        or_(
+                            Candidate.applied_job_id == job_id,
+                            Candidate.id.in_(
+                                select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                            )
+                        )
                     )
                 )
             )
-            # IMPORTANT: The candidate must be one of those who applied/matched in the period
+            # Only look at candidates that are in our filtered pool for this job
             .where(
                 or_(
                     native_filter,
@@ -357,15 +363,34 @@ class JobStatsService:
             .where(subq.c.rn == 1)
             .group_by(subq.c.decision)
         )
-        counts: dict[str, int] = {row.decision: row.cnt for row in decision_rows.all()}
+        
+        # Normalize keys to lowercase for robust mapping
+        counts: dict[str, int] = {}
+        for row in decision_rows.all():
+            if row.decision:
+                d_key = str(row.decision).lower().strip().replace(" ", "") 
+                counts[d_key] = counts.get(d_key, 0) + row.cnt
+
         decided_total = sum(counts.values())
+
+        # Total unique candidates in pool (by ID)
+        total_unique_stmt = select(func.count(Candidate.id)).where(
+            or_(
+                native_filter,
+                Candidate.id.in_(
+                    select(CrossJobMatch.candidate_id).where(cross_filter)
+                )
+            )
+        )
+        total_candidates = await db.scalar(total_unique_stmt) or 0
 
         return JobHRDecisionStats(
             total_candidates=total_candidates,
-            approved=counts.get("approve", 0),
-            rejected=counts.get("reject", 0),
-            maybe=counts.get("May Be", 0),
+            approved=counts.get("approve", 0) or counts.get("approved", 0),
+            rejected=counts.get("reject", 0) or counts.get("rejected", 0),
+            maybe=counts.get("maybe", 0),
             pending=max(total_candidates - decided_total, 0),
+            undecidedCount=max(total_candidates - decided_total, 0)
         )
 
 
