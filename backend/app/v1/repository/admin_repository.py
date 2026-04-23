@@ -555,7 +555,7 @@ class AdminRepository:
         candidates_by_job = []
         for job in jobs:
             job_unique_stmt = select(
-                func.count(func.distinct(Candidate.id))
+                func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
             ).where(
                 or_(
                     Candidate.applied_job_id == job.id,

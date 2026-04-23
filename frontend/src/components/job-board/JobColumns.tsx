@@ -200,16 +200,28 @@ export const getJobColumns = ({
                         <DateDisplay date={s.start_date} />
                       </span>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className="cursor-pointer text-sm font-normal h-5 px-1.5 rounded-md border-muted-foreground/20 hover:border-primary/30 hover:bg-primary/5"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSessionCandidates(row.original, s.start_date, s.end_date as string);
-                      }}
-                    >
-                      <span className="font-bold group-hover/session:text-primary transition-colors" >  {s.candidate_count}</span> cand.
-                    </Badge>
+                    <HoverCard>
+                      <HoverCardTrigger
+                        render={(props) => (
+                          <Badge
+                            {...props}
+                            variant="outline"
+                            className="cursor-pointer text-sm font-normal h-5 px-1.5 rounded-md border-muted-foreground/20 hover:border-primary/30 hover:bg-primary/5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSessionCandidates(row.original, s.start_date, s.end_date as string);
+                            }}
+                          >
+                            <span className="font-bold group-hover/session:text-primary transition-colors" >  {s.candidate_count}</span> cand.
+                          </Badge>
+                        )}
+                      />
+                      <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                        <div className="text-[14px] font-semibold text-primary">
+                          Candidates for this session
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
                   </div>
                 ))}
                 {remainingCount > 0 && (

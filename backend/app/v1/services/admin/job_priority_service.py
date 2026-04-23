@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Optional
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.models.job_priorities import JobPriority
 from app.v1.db.models.jobs import Job
@@ -87,7 +87,7 @@ class JobPriorityService:
         if not db_obj:
             return False
         
-        # Check if any jobs are using this priority - fetch titles for clear error
+        # Check if any jobs are using this priority - fetch titles for clear error message
         stmt = select(Job.title).where(Job.priority_id == priority_id).limit(5)
         result = await db.execute(stmt)
         job_titles = result.scalars().all()

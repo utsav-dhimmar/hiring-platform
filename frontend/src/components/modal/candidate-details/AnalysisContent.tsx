@@ -121,7 +121,7 @@ export function AnalysisContent({
                       key={idx}
                       className=" "
                     >
-                      <span className="text-sm font-bold text-black dark:text-white">
+                      <span className="text-black dark:text-white">
                         {skill.name}
                       </span>
                     </li>

@@ -309,7 +309,7 @@ class JobStatsService:
             native_filter = and_(native_filter, Candidate.created_at <= end_date)
             cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
 
-        # Deduplication by email
+        # Total unique candidates in pool (deduplicated by email)
         total_unique_stmt = select(
             func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
         ).where(
@@ -322,15 +322,14 @@ class JobStatsService:
         )
         total_candidates = await db.scalar(total_unique_stmt) or 0
 
-        # Latest decision per unique candidate in this job
-        # We join HrDecision to the candidate and ensure it matches the specific job_id
+        # Latest decision per unique person in this job
         subq = (
             select(
-                Candidate.id.label("candidate_id"),
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("person_id"),
                 func.lower(HrDecision.decision).label("decision"),
                 func.row_number()
                 .over(
-                    partition_by=Candidate.id,
+                    partition_by=func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
                     order_by=HrDecision.decided_at.desc(),
                 )
                 .label("rn"),
@@ -350,7 +349,6 @@ class JobStatsService:
                     )
                 )
             )
-            # Only look at candidates that are in our filtered pool for this job
             .where(
                 or_(
                     native_filter,
@@ -367,7 +365,6 @@ class JobStatsService:
             .group_by(subq.c.decision)
         )
         
-        # Normalize keys to lowercase for robust mapping
         counts: dict[str, int] = {}
         for row in decision_rows.all():
             if row.decision:
@@ -375,17 +372,6 @@ class JobStatsService:
                 counts[d_key] = counts.get(d_key, 0) + row.cnt
 
         decided_total = sum(counts.values())
-
-        # Total unique candidates in pool (by ID)
-        total_unique_stmt = select(func.count(Candidate.id)).where(
-            or_(
-                native_filter,
-                Candidate.id.in_(
-                    select(CrossJobMatch.candidate_id).where(cross_filter)
-                )
-            )
-        )
-        total_candidates = await db.scalar(total_unique_stmt) or 0
 
         return JobHRDecisionStats(
             total_candidates=total_candidates,

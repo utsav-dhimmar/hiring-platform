@@ -138,6 +138,9 @@ class JobActivitySession(BaseModel):
     start_date: datetime
     end_date: datetime | None = None
     candidate_count: int
+    approved_count: int = 0
+    rejected_count: int = 0
+    pending_count: int = 0
     is_current: bool
 
     model_config = ConfigDict(from_attributes=True)
