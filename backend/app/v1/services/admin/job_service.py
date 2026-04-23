@@ -484,36 +484,69 @@ class JobAdminService:
                 continue
 
             # Build conditions dynamically to handle None end_dates
-            conditions = [
+            # Note: We filter candidates who were created/matched during this session's window
+            session_candidate_ids_stmt = select(Candidate.id).where(
                 or_(
-                    and_(Candidate.applied_job_id == job_id, Candidate.created_at >= s["start_date"]),
+                    and_(Candidate.applied_job_id == job_id, Candidate.created_at >= s["start_date"], Candidate.created_at <= (s["end_date"] if s["end_date"] else func.now())),
                     Candidate.id.in_(
                         select(CrossJobMatch.candidate_id).where(
-                            and_(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.created_at >= s["start_date"])
+                            and_(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.created_at >= s["start_date"], CrossJobMatch.created_at <= (s["end_date"] if s["end_date"] else func.now()))
                         )
                     )
                 )
-            ]
-            
-            if s.get("end_date") is not None:
-                conditions.append(
+            )
+
+            # Get latest decision per unique person (deduplicated by email) for this job
+            from app.v1.db.models.hr_decisions import HrDecision
+            subq = (
+                select(
+                    func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("person_id"),
+                    HrDecision.decision,
+                    func.row_number()
+                    .over(
+                        partition_by=func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                        order_by=HrDecision.decided_at.desc(),
+                    )
+                    .label("rn"),
+                )
+                .join(Candidate, HrDecision.candidate_id == Candidate.id)
+                .where(
                     or_(
-                        and_(Candidate.applied_job_id == job_id, Candidate.created_at <= s["end_date"]),
-                        Candidate.id.in_(
-                            select(CrossJobMatch.candidate_id).where(
-                                and_(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.created_at <= s["end_date"])
+                        HrDecision.job_id == job_id,
+                        and_(
+                            HrDecision.job_id.is_(None),
+                            or_(
+                                Candidate.applied_job_id == job_id,
+                                Candidate.id.in_(
+                                    select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                                )
                             )
                         )
                     )
                 )
+                .where(HrDecision.candidate_id.in_(session_candidate_ids_stmt))
+            ).subquery()
 
+            latest_decisions_stmt = select(subq.c.decision, func.count().label("cnt")).where(subq.c.rn == 1).group_by(subq.c.decision)
+            dec_result = await db.execute(latest_decisions_stmt)
+            dec_rows = dec_result.fetchall()
+            dec_counts = {row.decision.lower(): row.cnt for row in dec_rows}
+
+            # Total unique count for the session
             session_unique_stmt = select(
                 func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
-            ).where(and_(*conditions))
+            ).where(Candidate.id.in_(session_candidate_ids_stmt))
             
-            # Simplified session counting for accuracy
             count_val = await db.scalar(session_unique_stmt) or 0
+            
             s["candidate_count"] = count_val
+            s["approved_count"] = dec_counts.get("approve", 0)
+            s["rejected_count"] = dec_counts.get("reject", 0)
+            
+            # Pending is total unique minus those with final decisions (approve/reject)
+            # We use the total unique count for the session as the base
+            decided_total = s["approved_count"] + s["rejected_count"] + dec_counts.get("may be", 0)
+            s["pending_count"] = max(0, count_val - decided_total) + dec_counts.get("may be", 0)
             
             if s["is_current"]:
                 current_session_count = count_val

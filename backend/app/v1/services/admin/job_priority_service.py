@@ -55,10 +55,20 @@ class JobPriorityService:
         return db_obj
 
     async def delete_priority(self, db: AsyncSession, admin_user_id: uuid.UUID, priority_id: uuid.UUID) -> bool:
+        from app.v1.db.models.jobs import Job
+        from sqlalchemy import func
+
         db_obj = await self.get_priority_by_id(db, priority_id)
         if not db_obj:
             return False
         
+        # Check if any jobs are using this priority
+        usage_stmt = select(func.count(Job.id)).where(Job.priority_id == priority_id)
+        usage_count = await db.scalar(usage_stmt) or 0
+        
+        if usage_count > 0:
+            raise ValueError(f"Cannot delete priority '{db_obj.name}' because it is currently assigned to {usage_count} job(s). Please unassign it first.")
+
         priority_name = db_obj.name
         await db.delete(db_obj)
         await db.commit()

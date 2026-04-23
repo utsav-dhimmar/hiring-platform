@@ -52,6 +52,9 @@ async def delete_priority(
     user: UserRead = Depends(check_permission("admin:access")),
 ):
     """Delete a job priority (Super Admin/HR Admin only)."""
-    success = await job_priority_service.delete_priority(db, user.id, priority_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Priority not found")
+    try:
+        success = await job_priority_service.delete_priority(db, user.id, priority_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Priority not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
