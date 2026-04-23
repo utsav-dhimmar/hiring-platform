@@ -330,6 +330,7 @@ class CrossJobMatchService:
                     db.add(CrossJobMatch(
                         resume_id=m["resume_id"],
                         candidate_id=m["candidate_id"],
+                        original_job_id=resume.candidate.applied_job_id if resume.candidate else None,
                         matched_job_id=job_id,
                         match_score=m["match_score"]
                     ))
