@@ -636,6 +636,19 @@ class CandidateAdminService:
         if not candidate:
             return False
 
+        # Manually delete resume_chunks first (no cascade in DB constraint)
+        from sqlalchemy import text
+        from app.v1.db.models.resumes import Resume
+        resume_ids_result = await db.execute(
+            select(Resume.id).where(Resume.candidate_id == candidate.id)
+        )
+        resume_ids = [row[0] for row in resume_ids_result.all()]
+        if resume_ids:
+            await db.execute(
+                text("DELETE FROM resume_chunks WHERE resume_id = ANY(:ids)"),
+                {"ids": resume_ids}
+            )
+
         await db.delete(candidate)
         await db.commit()
         return True

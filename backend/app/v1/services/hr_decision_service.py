@@ -276,13 +276,32 @@ class HRDecisionService:
         )
         decisions = decisions_result.scalars().all()
 
-        # Count "May Be" decisions
-        may_be_count = sum(1 for d in decisions if d.decision == "May Be")
+        # Group/Deduplicate "Selected for another job" rejections to avoid clutter
+        final_decisions = []
+        auto_reject_seen = False
+        
+        for d in decisions:
+            is_auto_reject = (
+                d.decision.lower() == "reject" and 
+                d.notes and 
+                "Selected for another job" in d.notes
+            )
+            
+            if is_auto_reject:
+                if not auto_reject_seen:
+                    final_decisions.append(d)
+                    auto_reject_seen = True
+                # If we've already seen an auto-reject, skip the others
+            else:
+                final_decisions.append(d)
+
+        # Count "May Be" decisions from the filtered list
+        may_be_count = sum(1 for d in final_decisions if d.decision == "May Be")
 
         return HRDecisionHistoryResponse(
             candidate_id=candidate_id,
-            decisions=[HRDecisionResponse.model_validate(d) for d in decisions],
-            total_decisions=len(decisions),
+            decisions=[HRDecisionResponse.model_validate(d) for d in final_decisions],
+            total_decisions=len(final_decisions),
             may_be_count=may_be_count,
         )
 
