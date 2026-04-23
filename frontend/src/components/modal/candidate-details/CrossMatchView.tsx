@@ -33,6 +33,7 @@ interface CrossMatchViewProps {
  * Allows triggering a background matching process and polls for results.
  */
 export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
+  const [isPolling, setIsPolling] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
 
   const navigate = useNavigate();
@@ -59,17 +60,18 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     }
   }, [resumeId, pageIndex, pageSize, fetchMatches]);
 
-  // Continuous polling every 3 seconds while modal is open
+  // Polling logic: only active after a trigger, every 6 seconds
   useEffect(() => {
-    if (!resumeId) return;
+    if (!resumeId || !isPolling) return;
     const interval = setInterval(() => {
       fetchMatches();
     }, 6000);
     return () => clearInterval(interval);
-  }, [resumeId, fetchMatches]);
+  }, [resumeId, isPolling, fetchMatches]);
 
   const handleTrigger = async () => {
     if (!resumeId) return;
+    setIsPolling(true);
     try {
       await crossMatchApi.triggerCrossMatch(resumeId);
       toast.info("Cross Job Match triggered. Scanning all active jobs...");
@@ -77,6 +79,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     } catch (error) {
       const errorMessage = extractErrorMessage(error)
       toast.error(errorMessage || "Failed to trigger Cross Job Match.");
+      setIsPolling(false);
     }
   };
 
