@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { crossMatchApi } from "@/apis/crossMatch";
-import { Loader2, Search, ExternalLink, RefreshCw, Compass } from "lucide-react";
+import { Loader2, Search, ExternalLink, RefreshCw, Compass, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -12,13 +12,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { CrossJobMatchRead } from "@/types/crossMatch";
-import AdminDataTable, { type Column } from "@/components/shared/AdminDataTable";
-
 import { useNavigate } from "react-router-dom";
 import { slugify } from "@/utils/slug";
 import { capitalize } from "@/lib/utils";
 import { extractErrorMessage } from "@/utils/error";
 import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { DataTable } from "@/components/shared";
+import { useAdminData } from "@/hooks";
 interface CrossMatchViewProps {
   resumeId?: string;
   candidateId?: string;
@@ -37,10 +38,28 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
+  // TODO: fix later when backend response same follow same response as other apis
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const pageSize = 10;
+
   const navigate = useNavigate();
+
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // const {
+  //   data: matches,
+  //   total,
+  //   loading,
+  //   error,
+  //   fetchData: fetchMatches,
+  // } = useAdminData<CrossJobMatchResponse>(
+  //   () => crossMatchApi.getCrossMatches(resumeId, pageIndex * pageSize, pageSize),
+  //   { fetchOnMount: false }
+  // );
+
 
   const fetchMatches = useCallback(async (currentPage: number) => {
     if (!resumeId) return;
@@ -126,43 +145,65 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
   // Note: With server-side pagination, client-side filtering only applies to the current page.
   // Ideally, statusFilter should also be passed as a param to getCrossMatches.
 
-  const columns: Column<CrossJobMatchRead>[] = [
+  const columns: ColumnDef<CrossJobMatchRead>[] = [
     {
       header: "Job & Department",
-      accessor: (match) => (
+      accessorKey: "job_title",
+      cell: ({ row }) => (
         <div className="flex flex-col gap-1">
           <span className="font-bold text-foreground">
-            {match.matched_job?.title || "Unknown Job"}
+            {row.original.matched_job?.title || "Unknown Job"}
           </span>
           <div>
             <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
-              {match.matched_job?.department_name || "N/A"}
+              {row.original.matched_job?.department_name || "N/A"}
             </Badge>
           </div>
         </div>
       ),
     },
     {
-      header: "Match Score",
-      accessor: (match) => (
+      header: ({ column }) => <>
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Match Score
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button></>,
+      accessorKey: "match_score",
+      cell: ({ row }) => (
         <div className="flex items-center gap-1.5 min-w-[140px]">
           <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-600 rounded-full"
-              style={{ width: `${match.match_score}%` }}
+              style={{ width: `${row.original.match_score}%` }}
             />
           </div>
           <span className="font-black text-blue-600 tracking-tight text-xs">
-            {match.match_score}%
+            {row.original.match_score}%
           </span>
         </div>
-      ),
+      )
     },
     {
-      header: "Status",
-      accessor: (match) => {
+      accessorKey: "status",
+      header: ({ column }) => <>
+        <Button
+          variant="ghost"
+          className="hover:bg-transparent p-0 font-semibold"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Status
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      </>,
+      cell: ({ row }) => {
+        const match = row.original;
         const threshold = match.matched_job?.passing_threshold ?? DEFAULT_PASSING_THRESHOLD;
         const passed = match.match_score >= threshold;
+
         return (
           <Badge
             variant="secondary"
@@ -180,20 +221,20 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
       },
     },
     {
+      accessorKey: "actions",
       header: "Actions",
-      accessor: (match) => (
+      cell: ({ row }) => (
         <Button
           variant="ghost"
           size="sm"
           className="rounded-lg h-8 border border-border"
-          onClick={() => handleGoToJob(match.matched_job?.title || "", match.matched_job_id)}
+          onClick={() => handleGoToJob(row.original.matched_job?.title || "", row.original.matched_job_id)}
         >
           View Job
           <ExternalLink className="ml-2 h-3.5 w-3.5" />
         </Button>
-      ),
-      className: "text-right",
-    },
+      )
+    }
   ];
 
   if (!resumeId) {
@@ -276,17 +317,12 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
         </div>
       ) : matches.length > 0 ? (
         <div className="w-full">
-          <AdminDataTable
+          <DataTable
             columns={columns}
             data={filteredMatches}
             loading={loading}
-            rowKey="matched_job_id"
             emptyMessage={`No matches found for the "${statusFilter}" filter.`}
-            className="border-0 shadow-none bg-transparent"
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={setPage}
+
           />
         </div>
       ) : !isDiscovering && (
