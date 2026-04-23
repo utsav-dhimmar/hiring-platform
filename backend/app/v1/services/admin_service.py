@@ -156,6 +156,9 @@ class AdminService:
     async def search_candidates(self, *args, **kwargs) -> list[CandidateResponse]:
         return await candidate_admin_service.search_candidates(*args, **kwargs)
 
+    async def delete_candidate(self, *args, **kwargs) -> bool:
+        return await candidate_admin_service.delete_candidate_by_identifier(*args, **kwargs)
+
     # Candidate evaluations removed as part of resume-screening focus.
 
 

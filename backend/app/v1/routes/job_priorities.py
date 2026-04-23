@@ -39,10 +39,13 @@ async def update_priority(
     user: UserRead = Depends(check_permission("admin:access")),
 ):
     """Update a job priority (Super Admin/HR Admin only)."""
-    priority = await job_priority_service.update_priority(db, user.id, priority_id, priority_in)
-    if not priority:
-        raise HTTPException(status_code=404, detail="Priority not found")
-    return priority
+    try:
+        priority = await job_priority_service.update_priority(db, user.id, priority_id, priority_in)
+        if not priority:
+            raise HTTPException(status_code=404, detail="Priority not found")
+        return priority
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{priority_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -52,6 +55,9 @@ async def delete_priority(
     user: UserRead = Depends(check_permission("admin:access")),
 ):
     """Delete a job priority (Super Admin/HR Admin only)."""
-    success = await job_priority_service.delete_priority(db, user.id, priority_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Priority not found")
+    try:
+        success = await job_priority_service.delete_priority(db, user.id, priority_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Priority not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

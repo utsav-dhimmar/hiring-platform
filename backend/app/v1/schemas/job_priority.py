@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict
 
 
 class JobPriorityBase(BaseModel):
-    name: str
     duration_days: int
 
 
@@ -13,12 +12,12 @@ class JobPriorityCreate(JobPriorityBase):
 
 
 class JobPriorityUpdate(BaseModel):
-    name: str | None = None
     duration_days: int | None = None
 
 
 class JobPriorityRead(JobPriorityBase):
     id: uuid.UUID
+    name: str
     created_at: datetime
     updated_at: datetime
 

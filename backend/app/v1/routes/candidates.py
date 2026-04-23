@@ -233,3 +233,17 @@ async def update_candidate_decision(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+
+@router.delete("/{identifier}/test", tags=["Testing"])
+async def delete_candidate_test(
+    identifier: str,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:decide")),
+) -> Any:
+    """
+    [FOR TESTING ONLY] Delete a candidate and all related records by ID or email.
+    """
+    success = await admin_service.delete_candidate(db=db, identifier=identifier)
+    if not success:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    return {"message": "Candidate and all related records deleted successfully"}

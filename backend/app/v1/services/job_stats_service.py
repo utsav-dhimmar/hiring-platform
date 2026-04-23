@@ -15,8 +15,8 @@ existing service or route. It queries the DB directly using SQLAlchemy core.
 from __future__ import annotations
 
 import uuid
-
-from sqlalchemy import func, select, or_, and_, case, Text
+from datetime import datetime, timezone
+from sqlalchemy import func, select, or_, and_, case, Text, cast, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +31,7 @@ from app.v1.db.models.locations import Location
 from app.v1.schemas.job_stats import (
     JobResultStats,
     JobHRDecisionStats,
+    JobPriorityTimeline,
     JobStatsResponse,
 )
 
@@ -62,12 +63,14 @@ class JobStatsService:
         location = await self._get_location_stats(db, job_id, start_date, end_date)
         stages = await self._get_stage_stats(db, job_id, start_date, end_date)
         hr_decisions = await self._get_hr_decision_stats(db, job_id, start_date, end_date)
+        priority_timeline = await self._get_priority_timeline(db, job_id)
 
         return JobStatsResponse(
             result=result,
             location=location,
             stages=stages,
             hr_decisions=hr_decisions,
+            priority_timeline=priority_timeline,
         )
 
     # -------------------------------------------------------------------------
@@ -391,6 +394,68 @@ class JobStatsService:
             maybe=counts.get("maybe", 0),
             pending=max(total_candidates - decided_total, 0),
             undecidedCount=max(total_candidates - decided_total, 0)
+        )
+
+    async def _get_priority_timeline(
+        self, db: AsyncSession, job_id: uuid.UUID
+    ) -> JobPriorityTimeline | None:
+        """
+        Build priority timeline data for graph display.
+        Returns None if the job has no priority assigned.
+
+        Provides:
+          - Progress metrics (days_total, days_elapsed, days_remaining, progress_pct)
+          - Per-day candidate arrivals within priority period (daily_candidates)
+        """
+        from app.v1.db.models.jobs import Job
+        from app.v1.db.models.job_priorities import JobPriority
+
+        job = await db.get(Job, job_id)
+        if not job or not job.priority_id:
+            return None
+
+        priority = await db.get(JobPriority, job.priority_id)
+        if not priority:
+            return None
+
+        today = datetime.now(timezone.utc).date()
+        start_dt = job.priority_start_date.date() if job.priority_start_date else None
+        end_dt = job.priority_end_date.date() if job.priority_end_date else None
+
+        # Compute days stats
+        days_total = None
+        days_elapsed = None
+        days_remaining = None
+        progress_pct = None
+        status = "not_set"
+
+        if start_dt and end_dt:
+            days_total = (end_dt - start_dt).days
+            if today < start_dt:
+                status = "not_started"
+                days_elapsed = 0
+                days_remaining = (end_dt - today).days
+                progress_pct = 0.0
+            elif today > end_dt:
+                status = "expired"
+                days_elapsed = days_total
+                days_remaining = 0
+                progress_pct = 100.0
+            else:
+                status = "active"
+                days_elapsed = (today - start_dt).days
+                days_remaining = (end_dt - today).days
+                progress_pct = round((days_elapsed / days_total) * 100, 1) if days_total > 0 else 0.0
+
+        return JobPriorityTimeline(
+            name=priority.name,
+            start_date=str(start_dt) if start_dt else None,
+            due_date=str(end_dt) if end_dt else None,
+            days_total=days_total,
+            days_elapsed=days_elapsed,
+            days_remaining=days_remaining,
+            progress_pct=progress_pct,
+            status=status,
         )
 
 

@@ -112,19 +112,16 @@ async def get_cross_job_matches(
 
     result = await db.execute(query)
     matches = result.scalars().all()
-    
-    match_dict = {}
+
+    data = []
     for m in matches:
         validated = CrossJobMatchRead.model_validate(m)
         score_val = float(m.match_score) if m.match_score is not None else 0.0
         thresh_val = float(m.matched_job.passing_threshold) if m.matched_job and m.matched_job.passing_threshold else 70.0
         validated.pass_fail = "passed" if score_val >= thresh_val else "failed"
-        match_dict[m.matched_job_id] = validated
+        data.append(validated)
 
     return CrossJobMatchResponse(
-        resume_id=resume_id,
-        matches=match_dict,
+        data=data,
         total=total or 0,
-        skip=skip,
-        limit=limit
     )

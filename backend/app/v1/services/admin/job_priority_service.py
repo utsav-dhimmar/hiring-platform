@@ -3,6 +3,7 @@ from typing import List, Optional
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.v1.db.models.job_priorities import JobPriority
+from app.v1.db.models.jobs import Job
 from app.v1.schemas.job_priority import JobPriorityCreate, JobPriorityUpdate
 from app.v1.services.admin.audit_service import audit_service
 
@@ -17,7 +18,26 @@ class JobPriorityService:
         return await db.get(JobPriority, priority_id)
 
     async def create_priority(self, db: AsyncSession, admin_user_id: uuid.UUID, obj_in: JobPriorityCreate) -> JobPriority:
-        db_obj = JobPriority(**obj_in.model_dump())
+        # Auto-generate name (P1, P2, P3...)
+        stmt = select(JobPriority.name)
+        result = await db.execute(stmt)
+        names = result.scalars().all()
+        
+        max_num = 0
+        import re
+        for name in names:
+            match = re.match(r"P(\d+)", name)
+            if match:
+                num = int(match.group(1))
+                if num > max_num:
+                    max_num = num
+        
+        new_name = f"P{max_num + 1}"
+        
+        db_obj = JobPriority(
+            name=new_name,
+            **obj_in.model_dump()
+        )
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)
@@ -37,6 +57,14 @@ class JobPriorityService:
         if not db_obj:
             return None
         
+        # Check for usage before updating - fetch job titles for clear error message
+        usage_stmt = select(Job.title).where(Job.priority_id == priority_id).limit(5)
+        usage_result = await db.execute(usage_stmt)
+        job_titles = usage_result.scalars().all()
+        if job_titles:
+            jobs_list = ", ".join(f'"{t}"' for t in job_titles)
+            raise ValueError(f"Priority '{db_obj.name}' cannot be edited because it is assigned to: {jobs_list}. Please reassign those jobs first.")
+
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_obj, field, value)
@@ -59,6 +87,14 @@ class JobPriorityService:
         if not db_obj:
             return False
         
+        # Check if any jobs are using this priority - fetch titles for clear error
+        stmt = select(Job.title).where(Job.priority_id == priority_id).limit(5)
+        result = await db.execute(stmt)
+        job_titles = result.scalars().all()
+        if job_titles:
+            jobs_list = ", ".join(f'"{t}"' for t in job_titles)
+            raise ValueError(f"Cannot delete priority '{db_obj.name}' because it is assigned to: {jobs_list}. Please reassign those jobs before deleting.")
+
         priority_name = db_obj.name
         await db.delete(db_obj)
         await db.commit()

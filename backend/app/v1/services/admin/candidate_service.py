@@ -576,10 +576,16 @@ class CandidateAdminService:
         else:
             mapping_job_name = candidate.applied_job.title if candidate.applied_job else None
 
+        def _title(val: str | None) -> str | None:
+            """Format name to Title Case."""
+            if not val:
+                return val
+            return val.strip().title()
+
         return CandidateResponse(
             id=candidate.id,
-            first_name=candidate.first_name,
-            last_name=candidate.last_name,
+            first_name=_title(candidate.first_name),
+            last_name=_title(candidate.last_name),
             email=candidate.email,
             phone=candidate.phone,
             location=location,
@@ -604,6 +610,35 @@ class CandidateAdminService:
             current_stage=current_stage,
             pipeline=pipeline,
         )
+
+
+    async def delete_candidate_by_identifier(
+        self, db: AsyncSession, identifier: str
+    ) -> bool:
+        """
+        Delete a candidate by ID or Email for testing purposes.
+        """
+        # Try to parse identifier as UUID
+        candidate_id = None
+        try:
+            candidate_id = uuid.UUID(identifier)
+        except ValueError:
+            pass
+
+        if candidate_id:
+            stmt = select(Candidate).where(Candidate.id == candidate_id)
+        else:
+            stmt = select(Candidate).where(Candidate.email == identifier)
+
+        result = await db.execute(stmt)
+        candidate = result.scalar_one_or_none()
+
+        if not candidate:
+            return False
+
+        await db.delete(candidate)
+        await db.commit()
+        return True
 
 
 candidate_admin_service = CandidateAdminService()
