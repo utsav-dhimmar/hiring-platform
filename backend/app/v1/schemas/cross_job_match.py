@@ -6,7 +6,7 @@ from .job import JobRead
 class CrossJobMatchBase(BaseModel):
     """Base schema for CrossJobMatch."""
     resume_id: uuid.UUID
-    original_job_id: uuid.UUID
+    original_job_id: uuid.UUID | None = None
     matched_job_id: uuid.UUID
     match_score: float
 
