@@ -12,10 +12,11 @@ import { DataTable } from "@/components/shared/DataTable";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import { CreateJobPriorityModal, DeleteModal } from "@/components/modal";
 import { useAdminData } from "@/hooks";
-import { Edit2, Trash2Icon, ArrowUpDown, Clock } from "lucide-react";
+import { Edit2, Trash2Icon, ArrowUpDown, Clock, AlertCircle } from "lucide-react";
 import { extractErrorMessage } from "@/utils/error";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
+import { Badge } from "@/components/ui/badge";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
 import { DateDisplay } from "@/components/shared";
@@ -51,7 +52,7 @@ const AdminJobPriorities = () => {
     error,
     fetchData: fetchPriorities,
   } = useAdminData<JobPriorityRead>(
-    () => adminJobPriorityService.getAllPriorities(pageIndex * pageSize, pageSize, debouncedSearch),
+    () => adminJobPriorityService.getAllPriorities(pageIndex * pageSize, pageSize),
     { fetchOnMount: false }
   );
 
@@ -67,29 +68,81 @@ const AdminJobPriorities = () => {
     }
   }, [total, debouncedSearch]);
 
+  const [_deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<JobPriorityRead | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDeleteClick = (priority: JobPriorityRead) => {
-    setItemToDelete(priority);
-    setShowDeleteModal(true);
+  /**
+   * Performs immediate deletion of a priority.
+   * If failure occurs, displays reason in a modal.
+   */
+  const handleDeleteClick = async (priority: JobPriorityRead) => {
+    try {
+      setDeletingId(priority.id);
+      setDeleteError(null);
+      await adminJobPriorityService.deletePriority(priority.id);
+      fetchPriorities();
+      toast.success("Priority deleted successfully");
+    } catch (err) {
+      const errMsg = extractErrorMessage(err);
+      setDeleteError(errMsg);
+      setItemToDelete(priority);
+      setShowDeleteModal(true);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!itemToDelete) return;
-    try {
-      setIsDeleting(true);
-      await adminJobPriorityService.deletePriority(itemToDelete.id);
-      toast.success("Priority deleted successfully");
-      fetchPriorities();
-      setShowDeleteModal(false);
-    } catch (err) {
-      toast.error(extractErrorMessage(err));
-    } finally {
-      setIsDeleting(false);
-      setItemToDelete(null);
-    }
+  /**
+   * Parses the backend error message to extract job names if the priority is in use.
+   */
+  const renderFormattedError = (error: string | null) => {
+    if (!error) return null;
+
+    // Get job names
+    const jobMatch = error.match(/ACTIVE Job\(s\): \[(.*?)\]/);
+    if (!jobMatch) return error;
+
+    // Get priority delete main message
+    const mainMessage = error.split(/active job\(s\):/i)[0].trim();
+    // job name [a, b]
+    const jobNamesStr = jobMatch[1];
+
+    // Simple parser for comma-separated job names: [Job A, Job B]
+    const jobNames = jobNamesStr
+      .split(",")
+      .map((name) => {
+        let trimmed = name.trim();
+        // remove quotes if they exist (for robustness)
+        if (
+          (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+          (trimmed.startsWith('"') && trimmed.endsWith('"'))
+        ) {
+          return trimmed.slice(1, -1);
+        }
+        return trimmed;
+      })
+      .filter(Boolean);
+
+    return (
+      <div className="space-y-3 font-medium">
+        <div className="flex items-start gap-2 text-destructive">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <p className="text-sm font-semibold">{mainMessage}</p>
+        </div>
+        <div className="flex flex-wrap gap-2 pl-6">
+          {jobNames.map((job, idx) => (
+            <Badge key={idx} variant="outline" className="border-destructive/30 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-colors">
+              {job}
+            </Badge>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground pl-6 italic">
+          Please deactivate or remove this priority from these jobs before deleting.
+        </p>
+      </div>
+    );
   };
 
   const handleCreateClick = () => {
@@ -241,10 +294,12 @@ const AdminJobPriorities = () => {
       <DeleteModal
         show={showDeleteModal}
         handleClose={() => setShowDeleteModal(false)}
-        handleConfirm={handleConfirmDelete}
-        title="Delete Priority"
-        message={`Are you sure you want to delete priority "${itemToDelete?.name}"? This action cannot be undone.`}
-        isLoading={isDeleting}
+        handleConfirm={() => { }} // Not used as we delete before opening modal
+        title="Delete Priority Error"
+        message={itemToDelete ? `Unable to delete priority "${itemToDelete.name}"` : ""}
+        isLoading={false}
+        error={renderFormattedError(deleteError)}
+        showFooterButtons={false}
       />
     </AppPageShell>
   );

@@ -16,7 +16,8 @@ import {
 } from "@/components";
 import type { DepartmentRead, JobPriorityRead } from "@/types/admin";
 import { Required } from "@/components/job-form/Required";
-
+import { addDays } from "date-fns";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 interface BasicJobDetailsProps {
   departments: DepartmentRead[];
   priorities?: JobPriorityRead[];
@@ -146,8 +147,14 @@ export const BasicJobDetails = ({ departments, priorities = [] }: BasicJobDetail
                 ))}
               </SelectContent>
             </Select>
-            <FormDescription>
+            <FormDescription className="flex flex-col gap-2">
               Determines how long this job will stay active.
+              {field.value && <span className="font-semibold gap-2">
+                <span className="text-muted-foreground">Due date:</span>{" "}
+                <DateDisplay
+                  date={field.value ? addDays(new Date(), Number(priorities.find((p) => p.id === field.value)?.duration_days)) : null}
+                />
+              </span>}
             </FormDescription>
             <FormMessage />
           </FormItem>

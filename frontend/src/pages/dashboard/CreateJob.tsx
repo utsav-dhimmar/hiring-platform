@@ -20,15 +20,13 @@ import {
 
 import jobService from "@/apis/job";
 import { adminDepartmentService } from "@/apis/admin/department";
-import { adminSkillService } from "@/apis/admin/skill";
 import { adminJobPriorityService } from "@/apis/admin/jobPriority";
-import type { DepartmentRead, SkillRead, JobPriorityRead } from "@/types/admin";
+import type { DepartmentRead, JobPriorityRead, SkillBase } from "@/types/admin";
 import { slugify } from "@/utils/slug";
 import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { extractErrorMessage } from "@/utils/error";
-import { useAdminData } from "@/hooks";
 import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
 
 
@@ -38,8 +36,8 @@ export default function CreateJob() {
   const location = useLocation();
 
   const [departments, setDepartments] = useState<DepartmentRead[]>([]);
-  const [availableSkills, setAvailableSkills] = useState<SkillRead[]>([]);
   const [priorities, setPriorities] = useState<JobPriorityRead[]>([]);
+  const [jobSkills, setJobSkills] = useState<SkillBase[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -59,28 +57,18 @@ export default function CreateJob() {
       priority_id: "",
     },
   });
-  const {
-    fetchData: fetchSkills,
-  } = useAdminData<SkillRead>(
-    () => adminSkillService.getAllSkills(),
-    { fetchOnMount: false }
-  )
-
-
   const fetchFormData = useCallback(async () => {
     try {
-      const [deptRes, skillRes, priorityRes] = await Promise.all([
+      const [deptRes, priorityRes] = await Promise.all([
         adminDepartmentService.getAllDepartments(),
-        adminSkillService.getAllSkills(),
         adminJobPriorityService.getAllPriorities(),
       ]);
       setDepartments(deptRes.data);
-      setAvailableSkills(skillRes.data);
       setPriorities(priorityRes);
-      return { skills: skillRes.data };
+      return { departments: deptRes.data, priorities: priorityRes };
     } catch (error) {
       console.error("Failed to fetch form data:", error);
-      toast.error("Failed to load departments, skills, or priorities.");
+      toast.error("Failed to load departments or priorities.");
       return null;
     }
   }, []);
@@ -114,6 +102,7 @@ export default function CreateJob() {
 
             if (jobData) {
               setJobId(id);
+              setJobSkills(jobData.skills as SkillBase[] || []);
               form.reset({
                 title: jobData.title,
                 vacancy: jobData.vacancy || undefined,
@@ -194,7 +183,7 @@ export default function CreateJob() {
               <BasicJobDetails departments={departments} priorities={priorities} />
               <JobSettingsSection />
               <CustomFieldsSection />
-              <SkillSelectorSection availableSkills={availableSkills} onSkillAdded={fetchSkills} />
+              <SkillSelectorSection initialSelectedSkills={jobSkills} />
 
               {/* Form Actions */}
               <div className="flex flex-wrap items-center justify-center gap-4 border-t pt-8">

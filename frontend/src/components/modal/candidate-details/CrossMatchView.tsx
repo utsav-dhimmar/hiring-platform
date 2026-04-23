@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { crossMatchApi } from "@/apis/crossMatch";
-import { Loader2, Search, ExternalLink, RefreshCw, Compass, ArrowUpDown } from "lucide-react";
+import { Search, ExternalLink, RefreshCw, Compass, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -33,14 +33,7 @@ interface CrossMatchViewProps {
  * Allows triggering a background matching process and polls for results.
  */
 export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
-  const [matches, setMatches] = useState<CrossJobMatchRead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isDiscovering, setIsDiscovering] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "pass" | "fail">("all");
-  // TODO: fix later when backend response same follow same response as other apis
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
 
   const navigate = useNavigate();
 
@@ -49,85 +42,41 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     pageSize: 10,
   });
 
-  // const {
-  //   data: matches,
-  //   total,
-  //   loading,
-  //   error,
-  //   fetchData: fetchMatches,
-  // } = useAdminData<CrossJobMatchResponse>(
-  //   () => crossMatchApi.getCrossMatches(resumeId, pageIndex * pageSize, pageSize),
-  //   { fetchOnMount: false }
-  // );
+  const {
+    data: matches,
+    total,
+    loading,
+    fetchData: fetchMatches,
+  } = useAdminData<CrossJobMatchRead>(
+    () => crossMatchApi.getCrossMatches(resumeId!, pageIndex * pageSize, pageSize),
+    { fetchOnMount: false, initialLoading: !!resumeId }
+  );
 
+  // Initial fetch and refetch on pagination change
+  useEffect(() => {
+    if (resumeId) {
+      fetchMatches();
+    }
+  }, [resumeId, pageIndex, pageSize, fetchMatches]);
 
-  const fetchMatches = useCallback(async (currentPage: number) => {
+  // Continuous polling every 3 seconds while modal is open
+  useEffect(() => {
     if (!resumeId) return;
-    try {
-      const skip = (currentPage - 1) * pageSize;
-      const data = await crossMatchApi.getCrossMatches(resumeId, skip, pageSize);
-      const matchesArray = Object.values(data.matches);
-      setMatches(matchesArray);
-      setTotal(data.total || 0);
-
-      // Check if any match is "new" (created after our start time)
-      if (isDiscovering && startTime) {
-        const hasNewMatches = matchesArray.some(
-          (m) => new Date(m.created_at).getTime() > (startTime - 5000) // Small buffer
-        );
-        if (hasNewMatches) {
-          setIsDiscovering(false);
-          setStartTime(null);
-          toast.success("Cross Job Match complete! Found potential matches.");
-        }
-      }
-    } catch (error) {
-      const errorMessage = extractErrorMessage(error)
-      console.error(errorMessage || "Failed to fetch matches:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [resumeId, isDiscovering, startTime, pageSize]);
-
-  useEffect(() => {
-    fetchMatches(page);
-  }, [fetchMatches, page]);
-
-  // Polling logic
-  useEffect(() => {
-    if (isDiscovering) {
-      const interval = setInterval(() => {
-        fetchMatches(page);
-      }, 3000);
-
-      // Automatic timeout after 25 seconds
-      const timeout = setTimeout(() => {
-        if (isDiscovering) {
-          setIsDiscovering(false);
-          setStartTime(null);
-          toast.info("Scanning complete. Check results below.");
-        }
-      }, 25000);
-
-      return () => {
-        clearInterval(interval);
-        clearTimeout(timeout);
-      };
-    }
-  }, [isDiscovering, fetchMatches]);
+    const interval = setInterval(() => {
+      fetchMatches();
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [resumeId, fetchMatches]);
 
   const handleTrigger = async () => {
     if (!resumeId) return;
-    setIsDiscovering(true);
-    setStartTime(Date.now());
     try {
       await crossMatchApi.triggerCrossMatch(resumeId);
       toast.info("Cross Job Match triggered. Scanning all active jobs...");
+      fetchMatches();
     } catch (error) {
       const errorMessage = extractErrorMessage(error)
       toast.error(errorMessage || "Failed to trigger Cross Job Match.");
-      setIsDiscovering(false);
-      setStartTime(null);
     }
   };
 
@@ -142,12 +91,11 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     return statusFilter === "pass" ? isPassed : !isPassed;
   });
 
-  // Note: With server-side pagination, client-side filtering only applies to the current page.
-  // Ideally, statusFilter should also be passed as a param to getCrossMatches.
+  // Note: With  client-side filtering only applies to the current page
 
   const columns: ColumnDef<CrossJobMatchRead>[] = [
     {
-      header: "Job & Department",
+      header: "Job",
       accessorKey: "job_title",
       cell: ({ row }) => (
         <div className="flex flex-col gap-1">
@@ -206,14 +154,11 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
 
         return (
           <Badge
-            variant="secondary"
-            className={`
-              text-[10px] h-5 px-2 font-black border-none transition-all
-              ${passed
-                ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20"
-                : "bg-rose-500/10 text-rose-600 ring-1 ring-rose-500/20"
-              }
-            `}
+            variant={passed ? "default" : "destructive"}
+            className={`rounded-full px-2.5 py-0.5 flex items-center gap-1.5 w-fit border-0 shadow-none text-black ${passed
+              ? "bg-green-300 dark:bg-green-300"
+              : "bg-red-300 dark:bg-red-300"
+              }`}
           >
             {passed ? "PASS" : "FAIL"}
           </Badge>
@@ -280,52 +225,31 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
 
           <Button
             onClick={handleTrigger}
-            disabled={isDiscovering}
             className="rounded-xl h-10 px-4 bg-primary hover:bg-primary/90 text-primary-foreground transition-all shadow-md active:scale-95 whitespace-nowrap"
           >
-            {isDiscovering ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Scanning...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                {matches.length > 0 ? "Re-Cross Job Match" : "Cross Job Match"}
-              </>
-            )}
+            <RefreshCw className="mr-2 h-4 w-4" />
+            {matches.length > 0 ? "Re-Cross Job Match" : "Cross Job Match"}
           </Button>
         </div>
       </div>
 
-      {isDiscovering && (
-        <div className="p-6 bg-primary/5 border border-primary/10 rounded-2xl flex flex-col items-center gap-4 animate-pulse">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 text-primary animate-spin" />
-            <span className="text-primary font-semibold text-sm">Analyzing all active jobs...</span>
-          </div>
-          <p className="text-xs text-muted-foreground text-center max-w-sm">
-            This will check against all active jobs and find matches for this candidate.
-          </p>
-        </div>
-      )}
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="h-8 w-8 text-primary animate-spin" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading matches...</p>
-        </div>
-      ) : matches.length > 0 ? (
+      {matches.length > 0 || loading ? (
         <div className="w-full">
           <DataTable
             columns={columns}
             data={filteredMatches}
             loading={loading}
             emptyMessage={`No matches found for the "${statusFilter}" filter.`}
-
+            isServerSide={true}
+            pageIndex={pageIndex}
+            pageSize={pageSize}
+            pageCount={Math.ceil(total / pageSize)}
+            onPaginationChange={setPagination}
+            totalRecords={total}
           />
         </div>
-      ) : !isDiscovering && (
+      ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/5 rounded-2xl border border-dashed border-border">
           <Compass className="h-12 w-12 text-muted-foreground/20 mb-4" />
           <h4 className="font-bold text-foreground">No matches found yet</h4>

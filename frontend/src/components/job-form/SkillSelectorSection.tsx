@@ -1,8 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-
-
-import { X, Plus, Check, Search } from "lucide-react";
+import { X, Plus, Check, Search, Loader2 } from "lucide-react";
 import {
   FormField,
   FormItem,
@@ -15,15 +13,15 @@ import type { SkillRead } from "@/types/admin";
 import { cn } from "@/lib/utils";
 import { Required } from "@/components/job-form/Required";
 import { CreateSkillModal } from "../modal";
+import { adminSkillService } from "@/apis/admin/skill";
+import { useAdminData } from "@/hooks";
 
 interface SkillSelectorSectionProps {
-  availableSkills: SkillRead[];
-  onSkillAdded: () => void;  // Optional callback for when a skill is added
+  initialSelectedSkills?: SkillRead[];
 }
 
 export const SkillSelectorSection = ({
-  availableSkills,
-  onSkillAdded,
+  initialSelectedSkills = [],
 }: SkillSelectorSectionProps) => {
   const { control, setValue } = useFormContext();
   const [skillSearch, setSkillSearch] = useState("");
@@ -51,13 +49,33 @@ export const SkillSelectorSection = ({
   };
 
 
-  const selectedSkills = availableSkills.filter((s) =>
-    selectedSkillIds.includes(s.id),
+  const {
+    data: skills,
+    fetchData: fetchSkills,
+    loading: isLoading,
+  } = useAdminData<SkillRead>(
+    () => adminSkillService.getAllSkills(0, 100, skillSearch),
+    { fetchOnMount: true, initialData: [] },
   );
 
-  const filteredSkills = availableSkills.filter((skill) =>
-    skill.name.toLowerCase().includes(skillSearch.toLowerCase()),
-  );
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchSkills();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [skillSearch, fetchSkills]);
+
+  const displaySkills = skills;
+
+  const selectedSkills = useMemo(() => {
+    const pool = [...initialSelectedSkills, ...skills];
+    const uniqueMap = new Map(pool.map((s) => [s.id, s]));
+    return selectedSkillIds
+      .map((id: string) => uniqueMap.get(id))
+      .filter(Boolean) as SkillRead[];
+  }, [initialSelectedSkills, skills, selectedSkillIds]);
+
+  const filteredSkills = displaySkills;
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -80,7 +98,7 @@ export const SkillSelectorSection = ({
             onClick={() => setShowModal(true)}
             variant="secondary"
             size="sm"
-
+            type="button"
           >
             <Plus />
             Add Skill
@@ -106,6 +124,11 @@ export const SkillSelectorSection = ({
           onChange={(e) => setSkillSearch(e.target.value)}
           className="pl-10 h-10 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
         />
+        {isLoading && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 max-h-100 overflow-y-auto p-2 pr-4 custom-scrollbar">
@@ -148,7 +171,7 @@ export const SkillSelectorSection = ({
         ) : (
           <div className="col-span-full py-10 text-center bg-muted/20 rounded-2xl border-2 border-dashed border-muted-foreground/10">
             <p className="text-muted-foreground font-medium italic">
-              {availableSkills.length === 0
+              {initialSelectedSkills.length === 0
                 ? "No skills found in database."
                 : "No skills match your search."}
             </p>
@@ -182,7 +205,7 @@ export const SkillSelectorSection = ({
         </div>
       )}
       <CreateSkillModal show={showModal} handleClose={handleCloseModal}
-        onSkillSaved={onSkillAdded}
+        onSkillSaved={fetchSkills}
         skill={selectedSkill} />
     </div>
   );
