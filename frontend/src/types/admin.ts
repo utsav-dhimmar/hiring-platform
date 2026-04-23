@@ -255,6 +255,7 @@ export interface JobUpdate {
  * Base fields for a skill.
  */
 export interface SkillBase {
+  id: string;
   name: string;
   description?: string;
 }
@@ -262,22 +263,17 @@ export interface SkillBase {
 /**
  * Payload for creating a new skill.
  */
-export interface SkillCreate extends SkillBase { }
+export interface SkillCreate extends Omit<SkillBase, "id"> { }
 
 /**
  * Payload for updating an existing skill.
  */
-export interface SkillUpdate {
-  name?: string;
-  description?: string;
-}
+export interface SkillUpdate extends Partial<SkillCreate> { }
 
 /**
  * Skill returned from read operations.
  */
-export interface SkillRead extends SkillBase {
-  id: string;
-}
+export interface SkillRead extends SkillBase { }
 
 /**
  * Department Management Types
@@ -513,6 +509,16 @@ export interface JobHRDecisionStats {
   pending: number;
 }
 
+export interface PriorityTimeline {
+  name: string,
+  start_date: string,
+  due_date: string,
+  days_total: number,
+  days_elapsed: number,
+  days_remaining: number,
+  progress_pct: number,
+  status: string,
+}
 /**
  * Comprehensive statistics for a specific job.
  */
@@ -521,5 +527,6 @@ export interface JobStatsResponse {
   location: Record<string, number>;
   stages: Record<string, number>;
   hr_decisions: JobHRDecisionStats;
+  priority_timeline: PriorityTimeline
 }
 
