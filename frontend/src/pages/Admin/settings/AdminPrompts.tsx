@@ -12,7 +12,7 @@ import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
-import { ArrowUpDown, FileText, Info } from "lucide-react";
+import { ArrowUpDown, Check, Clipboard, FileText, Info } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -37,6 +37,7 @@ const AdminPrompts = () => {
         setIsViewModalOpen(true);
     };
 
+    const [isCopied, setIsCopied] = useState(false);
     useEffect(() => {
         fetchData();
     }, [pageIndex, pageSize, search, fetchData]);
@@ -102,6 +103,14 @@ const AdminPrompts = () => {
         setSearch(value);
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     };
+    const handleCopy = async () => {
+        if (!selectedPrompt?.content) return;
+        await navigator.clipboard.writeText(selectedPrompt.content);
+        setIsCopied(true);
+        setTimeout(() => {
+            setIsCopied(false);
+        }, 2000);
+    };
 
     return (
         <AppPageShell width="wide">
@@ -150,6 +159,11 @@ const AdminPrompts = () => {
 
                         <ScrollArea className="flex-1 min-h-0 w-full border-y bg-muted/5">
                             <div className="p-1">
+                                <Button className="float-right m-1" size={"icon"} variant={"ghost"}
+                                    onClick={handleCopy}
+                                >
+                                    {isCopied ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
+                                </Button>
                                 <pre className="p-4 bg-muted/50 rounded-xl font-mono text-sm whitespace-pre-wrap border border-muted-foreground/10 leading-relaxed">
                                     {selectedPrompt?.content.trim()}
                                 </pre>
