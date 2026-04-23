@@ -432,65 +432,78 @@ class AdminRepository:
             select(func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
         ) or 0
         
-        # 1a. Total Job Opportunities (Apps + CrossMatches + Decisions) - for internal use if needed
-        # stmt1 = select(Candidate.id.label("candidate_id"), Candidate.applied_job_id.label("job_id")).where(Candidate.applied_job_id.isnot(None))
-        # stmt2 = select(CrossJobMatch.candidate_id, CrossJobMatch.matched_job_id.label("job_id"))
-        # stmt3 = select(HrDecision.candidate_id, HrDecision.job_id)
-        # from sqlalchemy import union
-        # union_stmt = union(stmt1, stmt2, stmt3).subquery()
-        # total_opportunities = await db.scalar(select(func.count()).select_from(union_stmt)) or 0
-        
-        # 2. Screening Stats - Deduplicated globally
-        unique_screening_subq = (
+        # 2. Screening Stats - Strict Deduplication by Unique Individual
+        # Pick the 'best' status for each person: Passed (0) > Failed (1) > Pending (2)
+        screening_subq = (
             select(
                 func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
-                Resume.pass_fail
+                Resume.pass_fail,
+                Resume.parsed,
+                func.row_number()
+                .over(
+                    partition_by=func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                    order_by=(
+                        case((Resume.parsed.is_(True), 0), else_=1), # Prefer parsed resumes
+                        case((Resume.pass_fail == "passed", 0), (Resume.pass_fail == "failed", 1), else_=2),
+                        Resume.uploaded_at.desc()
+                    )
+                )
+                .label("rn"),
             )
             .join(Resume, Resume.candidate_id == Candidate.id)
-            .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
-            .order_by(
-                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
-                case((Resume.pass_fail == "passed", 0), (Resume.pass_fail == "pending", 1), else_=2)
-            )
-            .subquery()
+        ).subquery()
+
+        # Count those with at least one parsed resume
+        processed_res = await db.execute(
+            select(screening_subq.c.pass_fail, func.count())
+            .where(screening_subq.c.rn == 1, screening_subq.c.parsed.is_(True))
+            .group_by(screening_subq.c.pass_fail)
         )
-        
-        screening_res = await db.execute(
-            select(unique_screening_subq.c.pass_fail, func.count()).group_by(unique_screening_subq.c.pass_fail)
-        )
-        counts = {row[0]: row[1] for row in screening_res.all()}
+        counts = {row[0]: row[1] for row in processed_res.all()}
         
         total_passed = counts.get("passed", 0)
         total_failed = counts.get("failed", 0)
         total_pending = counts.get("pending", 0)
-        total_resumes = total_passed + total_failed + total_pending
+        
+        # Count those who ONLY have unprocessed resumes
+        total_unprocessed = await db.scalar(
+            select(func.count())
+            .select_from(screening_subq)
+            .where(screening_subq.c.rn == 1, screening_subq.c.parsed.is_(False))
+        ) or 0
 
-        total_unprocessed = (
-            await db.scalar(
-                select(func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
-                .join(Resume, Resume.candidate_id == Candidate.id)
-                .where(Resume.parsed.is_(False))
-            )
-            or 0
-        )
+        total_resumes = total_passed + total_failed + total_pending + total_unprocessed
 
-        # 3. HR Decisions - All decisions across all jobs (case-insensitive)
-        all_decisions_stmt = (
+        # 3. HR Decisions - Strict Deduplication by Unique Individual
+        # Prioritize: Approved (0) > Maybe (1) > Rejected (2)
+        decision_subq = (
             select(
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
                 func.lower(HrDecision.decision).label("decision"),
-                func.count().label("count")
+                func.row_number()
+                .over(
+                    partition_by=func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                    order_by=(
+                        case((func.lower(HrDecision.decision) == "approve", 0), (func.lower(HrDecision.decision) == "may be", 1), else_=2),
+                        HrDecision.decided_at.desc()
+                    )
+                )
+                .label("rn"),
             )
-            .group_by(func.lower(HrDecision.decision))
+            .join(Candidate, HrDecision.candidate_id == Candidate.id)
         ).subquery()
 
-        decision_rows = await db.execute(
-            select(all_decisions_stmt.c.decision, all_decisions_stmt.c.count)
+        decision_res = await db.execute(
+            select(decision_subq.c.decision, func.count())
+            .where(decision_subq.c.rn == 1)
+            .group_by(decision_subq.c.decision)
         )
-        decision_counts = {row[0]: row[1] for row in decision_rows.all()}
+        decision_counts = {row[0]: row[1] for row in decision_res.all()}
         
         approved_count = decision_counts.get("approve", 0)
         maybe_count = decision_counts.get("may be", 0)
         reject_count = decision_counts.get("reject", 0)
+        
         hr_decision_count = approved_count + maybe_count + reject_count
         pending_decision_count = max(0, total_candidates - hr_decision_count)
 
@@ -540,10 +553,9 @@ class AdminRepository:
             select(func.avg(Resume.resume_score)).where(Resume.resume_score.isnot(None))
         )
 
-        # Reuse screening stats logic
+        # Reuse deduplicated screening stats logic
         analytics = await self.get_analytics_summary(db)
         
-        # HR Decisions (Deduplicated by email)
         hr_decided_count = analytics["hr_decision_count"]
         pending_count = analytics["pending_decision_count"]
 

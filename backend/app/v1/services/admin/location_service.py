@@ -43,9 +43,14 @@ class LocationService:
         total_stmt = select(func.count()).select_from(query.subquery())
         total = await db.scalar(total_stmt)
 
+        from sqlalchemy import case
+
         locations = (
             await db.scalars(
-                query.order_by(Location.name.asc())
+                query.order_by(
+                    case((func.lower(Location.name) == "surat", 0), else_=1),
+                    Location.name.asc()
+                )
                 .offset(skip)
                 .limit(limit)
             )
