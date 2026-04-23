@@ -60,9 +60,13 @@ export const candidateDecisionApi = {
     return response.data.decisions.length > 0 ? response.data.decisions[0] : null;
   },
 
-  getDecisionHistory: async (candidateId: string) => {
+  getDecisionHistory: async (candidateId: string, jobId?: string) => {
     const response = await apiClient.get<HrDecisionHistoryResponse>(
-      `/candidates/${candidateId}/decisions`
+      `/candidates/${candidateId}/decisions`, {
+      params: {
+        job_id: jobId
+      }
+    }
     );
     return response.data;
   },

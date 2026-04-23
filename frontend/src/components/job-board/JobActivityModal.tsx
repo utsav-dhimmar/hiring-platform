@@ -33,7 +33,10 @@ export function JobActivityModal({ isOpen, onOpenChange, job, onSessionClick }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="flex w-[calc(100vw-1rem)]  flex-col sm:w-[92vw] sm:max-w-[92vw] lg:max-w-150 max-h-[calc(100vh-1rem)] sm:max-h-[92vh] p-0 overflow-hidden rounded-[1.75rem] sm:rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl h-[650px]
+      max-w-150
+      
+      ">
         <div className="p-6 pb-2 shrink-0">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-1">
@@ -46,14 +49,14 @@ export function JobActivityModal({ isOpen, onOpenChange, job, onSessionClick }: 
           </DialogHeader>
 
           <div className="mt-4 grid grid-cols-2 gap-4">
-            <div className="app-surface-card p-3 flex flex-col items-center justify-center text-center bg-primary/5 border-primary/10">
+            <div className="app-surface-card p-3 flex flex-col items-center justify-center text-center  border-primary/10">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Candidates</span>
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
                 <span className="text-2xl font-bold">{job.total_candidates || 0}</span>
               </div>
             </div>
-            <div className="app-surface-card p-3 flex flex-col items-center justify-center text-center bg-blue-500/5 border-blue-500/10">
+            <div className="app-surface-card p-3 flex flex-col items-center justify-center text-center  border-blue-500/10">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Sessions</span>
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-blue-500" />
@@ -67,16 +70,19 @@ export function JobActivityModal({ isOpen, onOpenChange, job, onSessionClick }: 
           <Table className="border-separate border-spacing-0">
             <TableHeader className="sticky top-0 bg-background z-20 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[100px] bg-background border-b">ID</TableHead>
+                <TableHead className="w-[80px] bg-background border-b">ID</TableHead>
                 <TableHead className="bg-background border-b">Period</TableHead>
-                <TableHead className="text-right bg-background border-b">Candidates</TableHead>
-                <TableHead className="w-[100px] text-center bg-background border-b">Status</TableHead>
+                <TableHead className="text-right bg-background border-b">Total</TableHead>
+                <TableHead className="text-center bg-background border-b">Approve</TableHead>
+                <TableHead className="text-center bg-background border-b">Reject</TableHead>
+                <TableHead className="text-center bg-background border-b">Pending</TableHead>
+                <TableHead className="w-[120px] text-center bg-background border-b">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sessions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic">
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground italic">
                     No activity sessions found for this job.
                   </TableCell>
                 </TableRow>
@@ -103,7 +109,7 @@ export function JobActivityModal({ isOpen, onOpenChange, job, onSessionClick }: 
                           {session.end_date ? (
                             <DateDisplay date={session.end_date} />
                           ) : (
-                            <span className="text-primary font-medium italic">Ongoing</span>
+                            <span className="text-primary font-medium">Ongoing</span>
                           )}
                         </div>
                       </div>
@@ -111,6 +117,21 @@ export function JobActivityModal({ isOpen, onOpenChange, job, onSessionClick }: 
                     <TableCell className="text-right">
                       <Badge variant="outline" className="font-mono text-sm px-2">
                         {session.candidate_count}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="font-mono text-sm px-2">
+                        {session.approved_count}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="font-mono text-sm px-2">
+                        {session.rejected_count}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="font-mono text-sm px-2">
+                        {session.pending_count}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">

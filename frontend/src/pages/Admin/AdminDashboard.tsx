@@ -91,7 +91,7 @@ const AdminDashboard = () => {
             loading={loading}
           />
           <StatCard
-            label="No Action (HR)"
+            label="HR Decision pending"
             value={report?.pending_count ?? 0}
             loading={loading}
           />

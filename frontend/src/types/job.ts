@@ -16,6 +16,9 @@ export interface JobActivitySession {
   end_date: string | null;
   candidate_count: number;
   is_current: boolean;
+  approved_count: number,
+  rejected_count: number,
+  pending_count: number
 }
 
 /**

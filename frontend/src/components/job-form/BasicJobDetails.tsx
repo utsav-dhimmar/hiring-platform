@@ -127,11 +127,10 @@ export const BasicJobDetails = ({ departments, priorities = [] }: BasicJobDetail
               <FormControl>
                 <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full">
                   <SelectValue placeholder="Select priority" className="w-full">
-                    {
-                      priorities.find(
-                        (p) => p.id === field.value,
-                      )?.name
-                    }
+                    {(() => {
+                      const priority = priorities.find((p) => p.id === field.value);
+                      return priority ? `${priority.name} (${priority.duration_days} days)` : null;
+                    })()}
                   </SelectValue>
                 </SelectTrigger>
               </FormControl>
@@ -149,10 +148,11 @@ export const BasicJobDetails = ({ departments, priorities = [] }: BasicJobDetail
             </Select>
             <FormDescription className="flex flex-col gap-2">
               Determines how long this job will stay active.
-              {field.value && <span className="font-semibold gap-2">
-                <span className="text-muted-foreground">Due date:</span>{" "}
+              {field.value && <span className="gap-2">
+                <span className="">Due date:</span>{" "}
                 <DateDisplay
                   date={field.value ? addDays(new Date(), Number(priorities.find((p) => p.id === field.value)?.duration_days)) : null}
+                  className="font-bold"
                 />
               </span>}
             </FormDescription>
