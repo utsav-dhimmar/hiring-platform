@@ -121,20 +121,34 @@ const AdminJobs = () => {
     }
   };
 
-  /** Toggles `is_active` for a job via admin service and refreshes the list on success. */
   const handleToggleStatus = useCallback(
     async (job: Job) => {
+      setLoadingJobId(job.id);
+      // Optimistic update
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.id === job.id ? { ...j, is_active: !job.is_active } : j
+        )
+      );
+
       try {
         await adminJobService.updateJob(job.id, { is_active: !job.is_active });
         toast.success(`Job ${!job.is_active ? "activated" : "deactivated"} successfully`);
-        fetchJobs();
       } catch (error) {
+        // Rollback on error
+        setJobs((prev) =>
+          prev.map((j) =>
+            j.id === job.id ? { ...j, is_active: job.is_active } : j
+          )
+        );
         console.error("Failed to toggle job status:", error);
         const errorMessage = extractErrorMessage(error, "Failed to update job status");
         toast.error(errorMessage);
+      } finally {
+        setLoadingJobId(null);
       }
     },
-    [fetchJobs],
+    [],
   );
 
   /** Memoized column definitions. */
@@ -157,6 +171,16 @@ const AdminJobs = () => {
         onViewSessions: (job) => {
           setSelectedJobForActivity(job);
           setIsActivityModalOpen(true);
+        },
+        onSessionCandidates: (job, startDate, endDate) => {
+          const slug = slugify(job.title);
+          const params = new URLSearchParams();
+          if (startDate) params.set("start_date", startDate);
+          if (endDate) params.set("end_date", endDate);
+
+          navigate(`/dashboard/jobs/${slug}/candidates?${params.toString()}`, {
+            state: { jobId: job.id },
+          });
         },
         loadingJobId,
       }),
@@ -223,6 +247,18 @@ const AdminJobs = () => {
         isOpen={isActivityModalOpen}
         onOpenChange={setIsActivityModalOpen}
         job={selectedJobForActivity}
+        onSessionClick={(start, end) => {
+          if (!selectedJobForActivity) return;
+          const slug = slugify(selectedJobForActivity.title);
+          const params = new URLSearchParams();
+          if (start) params.set("start_date", start);
+          if (end) params.set("end_date", end);
+
+          navigate(`/dashboard/jobs/${slug}/candidates?${params.toString()}`, {
+            state: { jobId: selectedJobForActivity.id },
+          });
+          setIsActivityModalOpen(false);
+        }}
       />
     </AppPageShell>
   );

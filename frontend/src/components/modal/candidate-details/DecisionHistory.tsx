@@ -8,11 +8,11 @@ interface DecisionHistoryProps {
   decisions: HrDecisionHistoryItem[];
 }
 
-function getDecisionBadgeVariant(decision: HrDecisionHistoryItem["decision"]) {
-  if (decision === "approve") return "default";
-  if (decision === "reject") return "destructive";
-  return "secondary";
-}
+// function getDecisionBadgeVariant(decision: HrDecisionHistoryItem["decision"]) {
+//   if (decision === "approve") return "default";
+//   if (decision === "reject") return "destructive";
+//   return "secondary";
+// }
 
 export function DecisionHistory({ decisions }: DecisionHistoryProps) {
   if (decisions.length === 0) {
@@ -48,10 +48,13 @@ export function DecisionHistory({ decisions }: DecisionHistoryProps) {
                   #{decisions.length - index}
                 </span>
                 <Badge
-                  variant={getDecisionBadgeVariant(decision.decision)}
-                  className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase"
+                  variant={decision.decision === "approve" ? "default" : "destructive"}
+                  className={`rounded-full px-2.5 py-0.5 flex items-center gap-1.5 w-fit border-0 shadow-none text-black ${decision.decision === "approve"
+                    ? "bg-green-300 dark:bg-green-300"
+                    : "bg-red-300 dark:bg-red-300"
+                    }`}
                 >
-                  {decision.decision}
+                  {decision.decision.replace("maybe", "may be")}
                 </Badge>
               </div>
               <span className="text-[11px] font-medium text-muted-foreground">

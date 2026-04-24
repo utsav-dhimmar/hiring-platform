@@ -16,6 +16,8 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { FILTER_DISPLAY_LIMIT } from "@/constants";
+import { useMemo } from "react";
 
 interface CandidateTableFiltersProps {
   nameFilter: string;
@@ -54,7 +56,12 @@ interface CandidateTableFiltersProps {
     id: string;
     title: string;
     slug: string;
-  }[]
+  }[];
+  activitySession: string[];
+  setActivitySession: (value: string[]) => void;
+  activitySearch: string;
+  setActivitySearch: (value: string) => void;
+  activitySessionOptions?: [number, { start_date: string; end_date: string }][];
 }
 
 export const CandidateTableFilters = ({
@@ -87,8 +94,24 @@ export const CandidateTableFilters = ({
   minDate,
   availableJobs,
   showLocationFilter = true,
-
+  activitySession,
+  setActivitySession,
+  activitySearch,
+  setActivitySearch,
+  activitySessionOptions,
 }: CandidateTableFiltersProps) => {
+
+  const filteredActivityOptions = useMemo(() => {
+    if (!activitySessionOptions) return [];
+    if (!activitySearch.trim()) return activitySessionOptions;
+    const query = activitySearch.toLowerCase();
+    return activitySessionOptions.filter(([sessionId, dates]) => {
+      const idStr = String(sessionId).toLowerCase();
+      const startStr = dates.start_date ? format(new Date(dates.start_date), "MMM d").toLowerCase() : "";
+      const endStr = dates.end_date ? format(new Date(dates.end_date), "MMM d").toLowerCase() : "present";
+      return idStr.includes(query) || startStr.includes(query) || endStr.includes(query);
+    });
+  }, [activitySessionOptions, activitySearch]);
 
 
   return (
@@ -117,12 +140,12 @@ export const CandidateTableFilters = ({
                   : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <span className="truncate mr-auto">
+              <span className="truncate mr-auto text-left">
                 {jobFilter.length === 0
                   ? "Jobs"
-                  : jobFilter.length === 1
-                    ? availableJobs.find((j) => j.id === jobFilter[0])?.title || "1 Job"
-                    : `${jobFilter.length} Jobs`}
+                  : jobFilter.length <= FILTER_DISPLAY_LIMIT
+                    ? jobFilter.map(id => availableJobs.find(j => j.id === id)?.title || "Job").join(", ")
+                    : `${jobFilter.slice(0, FILTER_DISPLAY_LIMIT).map(id => availableJobs.find(j => j.id === id)?.title || "Job").join(", ")} and ${jobFilter.length - FILTER_DISPLAY_LIMIT} more`}
               </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
             </DropdownMenuTrigger>
@@ -146,23 +169,30 @@ export const CandidateTableFilters = ({
                       not found "{jobSearch}"
                     </div>
                   ) : (
-                    jobOptions.map((j) => (
-                      <DropdownMenuCheckboxItem
-                        key={j.id}
-                        checked={jobFilter.includes(j.id)}
-                        onSelect={(e) => e.preventDefault()}
-                        onClick={() =>
-                          setJobFilter(
-                            jobFilter.includes(j.id)
-                              ? jobFilter.filter((v) => v !== j.id)
-                              : [...jobFilter, j.id]
-                          )
-                        }
-                        closeOnClick={true}
-                      >
-                        {j.title}
-                      </DropdownMenuCheckboxItem>
-                    ))
+                    <>
+                      {jobOptions.slice(0, FILTER_DISPLAY_LIMIT).map((j) => (
+                        <DropdownMenuCheckboxItem
+                          key={j.id}
+                          checked={jobFilter.includes(j.id)}
+                          onSelect={(e) => e.preventDefault()}
+                          onClick={() =>
+                            setJobFilter(
+                              jobFilter.includes(j.id)
+                                ? jobFilter.filter((v) => v !== j.id)
+                                : [...jobFilter, j.id]
+                            )
+                          }
+                          closeOnClick={true}
+                        >
+                          {j.title}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                      {jobOptions.length > FILTER_DISPLAY_LIMIT && (
+                        <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
+                          And {jobOptions.length - FILTER_DISPLAY_LIMIT} more jobs...
+                        </div>
+                      )}
+                    </>
                   )}
                 </DropdownMenuGroup>
               </div>
@@ -193,12 +223,12 @@ export const CandidateTableFilters = ({
                   : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <span className="truncate mr-auto">
+              <span className="truncate mr-auto text-left">
                 {locationFilter.length === 0
                   ? "Locations"
-                  : locationFilter.length === 1
-                    ? locationFilter[0]
-                    : `${locationFilter.length} locations`}
+                  : locationFilter.length <= FILTER_DISPLAY_LIMIT
+                    ? locationFilter.join(", ")
+                    : `${locationFilter.slice(0, FILTER_DISPLAY_LIMIT).join(", ")} and ${locationFilter.length - FILTER_DISPLAY_LIMIT} more`}
               </span>
               <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
             </DropdownMenuTrigger>
@@ -222,23 +252,30 @@ export const CandidateTableFilters = ({
                       not found "{locationSearch}"
                     </div>
                   ) : (
-                    locationOptions.map((l) => (
-                      <DropdownMenuCheckboxItem
-                        key={l}
-                        checked={locationFilter.includes(l)}
-                        onSelect={(e) => e.preventDefault()}
-                        onClick={() =>
-                          setLocationFilter(
-                            locationFilter.includes(l)
-                              ? locationFilter.filter((v) => v !== l)
-                              : [...locationFilter, l]
-                          )
-                        }
-                        closeOnClick={true}
-                      >
-                        {l}
-                      </DropdownMenuCheckboxItem>
-                    ))
+                    <>
+                      {locationOptions.slice(0, FILTER_DISPLAY_LIMIT).map((l) => (
+                        <DropdownMenuCheckboxItem
+                          key={l}
+                          checked={locationFilter.includes(l)}
+                          onSelect={(e) => e.preventDefault()}
+                          onClick={() =>
+                            setLocationFilter(
+                              locationFilter.includes(l)
+                                ? locationFilter.filter((v) => v !== l)
+                                : [...locationFilter, l]
+                            )
+                          }
+                          closeOnClick={true}
+                        >
+                          {l}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                      {locationOptions.length > FILTER_DISPLAY_LIMIT && (
+                        <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
+                          And {locationOptions.length - FILTER_DISPLAY_LIMIT} more locations...
+                        </div>
+                      )}
+                    </>
                   )}
                 </DropdownMenuGroup>
               </div>
@@ -309,6 +346,7 @@ export const CandidateTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setHrDecisionFilter([])}
+                    closeOnClick={true}
                   >
                     Clear selection
                   </DropdownMenuCheckboxItem>
@@ -367,6 +405,7 @@ export const CandidateTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setResumeScreeningFilter([])}
+                    closeOnClick={true}
                   >
                     Clear selection
                   </DropdownMenuCheckboxItem>
@@ -428,6 +467,7 @@ export const CandidateTableFilters = ({
                   <DropdownMenuCheckboxItem
                     checked={false}
                     onClick={() => setStageFilter([])}
+                    closeOnClick={true}
                   >
                     Clear selection
                   </DropdownMenuCheckboxItem>
@@ -436,6 +476,96 @@ export const CandidateTableFilters = ({
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Hiring Activity multi-select dropdown */}
+        {activitySessionOptions && activitySessionOptions.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(
+                "inline-flex items-center justify-between gap-2 h-9 px-3 w-full lg:min-w-[120px] lg:max-w-[180px] rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+                activitySession.length > 0
+                  ? "border-primary/40 bg-primary/5 text-foreground"
+                  : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              <span className="truncate mr-auto">
+                {activitySession.length === 0
+                  ? "Hiring Activity"
+                  : activitySession.length === 1
+                    ? `Activity ${activitySession[0]}`
+                    : `${activitySession.length} Activities`}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[200px] p-2">
+              <div className="px-1 pb-2">
+                <div className="relative">
+                  <Input
+                    placeholder="Search activity ids"
+                    value={activitySearch}
+                    onChange={(e) => setActivitySearch(e.target.value)}
+                    className="h-9 rounded-xl text-xs pl-2"
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <div className="max-h-[300px]">
+                <DropdownMenuGroup>
+                  {/* <DropdownMenuLabel>Hiring Activity</DropdownMenuLabel> */}
+
+                  {filteredActivityOptions.length === 0 ? (
+                    <div className="px-2 py-4 text-xs text-center text-muted-foreground">
+                      not found "{activitySearch}"
+                    </div>
+                  ) : (
+                    <>
+                      {filteredActivityOptions.reverse().slice(0, FILTER_DISPLAY_LIMIT).map(([sessionId, dates]) => (
+                        <DropdownMenuCheckboxItem
+                          key={sessionId}
+                          checked={activitySession.includes(String(sessionId))}
+                          onSelect={(e) => e.preventDefault()}
+                          onClick={() =>
+                            setActivitySession(
+                              activitySession.includes(String(sessionId))
+                                ? activitySession.filter((v) => v !== String(sessionId))
+                                : [...activitySession, String(sessionId)]
+                            )
+                          }
+                          closeOnClick={true}
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-medium">Activity {sessionId}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {dates.start_date ? format(new Date(dates.start_date), "MMM d") : "N/A"} - {dates.end_date ? format(new Date(dates.end_date), "MMM d") : "Present"}
+                            </span>
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                      {filteredActivityOptions.length > FILTER_DISPLAY_LIMIT && (
+                        <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
+                          And {filteredActivityOptions.length - FILTER_DISPLAY_LIMIT} more activities...
+                        </div>
+                      )}
+                    </>
+                  )}
+                </DropdownMenuGroup>
+              </div>
+              {activitySession.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={false}
+                    onClick={() => setActivitySession([])}
+                    closeOnClick={true}
+                  >
+                    Clear selection
+                  </DropdownMenuCheckboxItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {/* Date range picker */}
         <div className="flex items-center gap-1.5 px-3 h-9 w-full lg:min-w-[180px] lg:max-w-[240px] rounded-xl border border-input text-sm bg-background">

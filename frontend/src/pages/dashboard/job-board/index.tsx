@@ -124,20 +124,34 @@ export default function JobBoard() {
     }
   };
 
-  /** Toggles `is_active` for a job and refreshes the list on success. */
   const handleToggleStatus = useCallback(
     async (job: Job) => {
+      setLoadingJobId(job.id);
+      // Optimistic update
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.id === job.id ? { ...j, is_active: !job.is_active } : j
+        )
+      );
+
       try {
         await jobService.updateJob(job.id, { is_active: !job.is_active });
         toast.success(`Job ${!job.is_active ? "activated" : "deactivated"} successfully`);
-        fetchJobs();
       } catch (error) {
+        // Rollback on error
+        setJobs((prev) =>
+          prev.map((j) =>
+            j.id === job.id ? { ...j, is_active: job.is_active } : j
+          )
+        );
         console.error("Failed to toggle job status:", error);
         const errorMessage = extractErrorMessage(error, "Failed to update job status");
         toast.error(errorMessage);
+      } finally {
+        setLoadingJobId(null);
       }
     },
-    [fetchJobs],
+    [],
   );
 
   /** Memoized column definitions that bind table row actions to navigation and mutation handlers. */
@@ -161,6 +175,16 @@ export default function JobBoard() {
           setSelectedJobForActivity(job);
           setIsActivityModalOpen(true);
         },
+        onSessionCandidates: (job, startDate, endDate) => {
+          const slug = slugify(job.title);
+          const params = new URLSearchParams();
+          if (startDate) params.set("start_date", startDate);
+          if (endDate) params.set("end_date", endDate);
+
+          navigate(`/dashboard/jobs/${slug}/candidates?${params.toString()}`, {
+            state: { jobId: job.id },
+          });
+        },
         loadingJobId,
       }),
     [navigate, handleToggleStatus, loadingJobId],
@@ -171,7 +195,7 @@ export default function JobBoard() {
       <JobBoardHeader />
 
       <div className="app-surface-card">
-        {loading ? (
+        {loading && jobs.length === 0 ? (
           <div className="flex flex-col gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <JobSkeleton key={i} />
@@ -225,6 +249,18 @@ export default function JobBoard() {
         isOpen={isActivityModalOpen}
         onOpenChange={setIsActivityModalOpen}
         job={selectedJobForActivity}
+        onSessionClick={(start, end) => {
+          if (!selectedJobForActivity) return;
+          const slug = slugify(selectedJobForActivity.title);
+          const params = new URLSearchParams();
+          if (start) params.set("start_date", start);
+          if (end) params.set("end_date", end);
+
+          navigate(`/dashboard/jobs/${slug}/candidates?${params.toString()}`, {
+            state: { jobId: selectedJobForActivity.id },
+          });
+          setIsActivityModalOpen(false);
+        }}
       />
     </AppPageShell>
   );

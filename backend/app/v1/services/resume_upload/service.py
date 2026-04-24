@@ -11,6 +11,7 @@ from pathlib import Path
 from app.v1.utils.uuid import UUIDHelper
 
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings
@@ -120,29 +121,89 @@ class ResumeUploadService:
             )
 
         content_hash = hashlib.sha256(content).hexdigest()
-        existing_file = await resume_upload_repository.get_file_by_content_hash_for_job(
-            db,
-            job_id=job_id,
-            content_hash=content_hash,
+        
+        # 1. Global Deduplication Check
+        existing_global_file = await resume_upload_repository.get_file_by_content_hash_global(
+            db, content_hash=content_hash
         )
-        if existing_file is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="This resume has already been uploaded for this job.",
+        
+        candidate = None
+        existing_resume_id = None
+        if existing_global_file:
+            # Re-use existing candidate
+            from app.v1.db.models.candidates import Candidate
+            candidate = await db.get(Candidate, existing_global_file.candidate_id)
+            _log.info(f"Re-using existing candidate {candidate.id} for global hash match {content_hash}")
+            
+            # Check if they are already in THIS job pool (Applied or Matched)
+            if candidate.applied_job_id == job_id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="This resume has already been uploaded for this job.",
+                )
+            
+            from app.v1.db.models.cross_job_matches import CrossJobMatch
+            from app.v1.db.models.resumes import Resume
+            existing_xm = await db.execute(
+                select(CrossJobMatch.id).where(
+                    CrossJobMatch.candidate_id == candidate.id,
+                    CrossJobMatch.matched_job_id == job_id
+                )
             )
+            if existing_xm.scalar_one_or_none():
+                 raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="This candidate is already linked to this job.",
+                )
+            
+            # Find the resume record for this file (only fully parsed ones)
+            resume_stmt = select(Resume.id).where(Resume.file_id == existing_global_file.id, Resume.parsed == True)
+            existing_resume_id = (await db.execute(resume_stmt)).scalar()
 
-        candidate = await resume_upload_repository.create_candidate(
-            db,
-            job_id=job_id,
-            email=None,
-            first_name="Parsing...",
-            last_name="",
-        )
-        # Initialize hiring pipeline stages
-        await candidate_stage_service.initiate_candidate_pipeline(db, candidate.id, job_id)
+            # Link existing candidate to this new job via CrossJobMatch
+            new_xm = CrossJobMatch(
+                candidate_id=candidate.id,
+                matched_job_id=job_id,
+                resume_id=existing_resume_id,
+                match_score=0.0, # Will be updated by processor
+                match_analysis={}
+            )
+            db.add(new_xm)
+
+            # Check if this candidate is already APPROVED for any other job
+            from app.v1.db.models.hr_decisions import HrDecision
+            approval_stmt = select(HrDecision.id).where(
+                HrDecision.candidate_id == candidate.id,
+                HrDecision.decision.ilike("approve")
+            ).limit(1)
+            is_already_hired = (await db.execute(approval_stmt)).scalar()
+            
+            if is_already_hired:
+                _log.info(f"Candidate {candidate.id} already approved elsewhere. Auto-rejecting for new job {job_id}")
+                auto_reject = HrDecision(
+                    candidate_id=candidate.id,
+                    job_id=job_id,
+                    user_id=current_user.id,
+                    decision="reject",
+                    notes="Selected for another job"
+                )
+                db.add(auto_reject)
+
+            await db.flush()
+        else:
+            # 2. Create new candidate if no global match found
+            candidate = await resume_upload_repository.create_candidate(
+                db,
+                job_id=job_id,
+                email=None,
+                first_name="Parsing...",
+                last_name="",
+            )
+            # Initialize hiring pipeline stages
+            await candidate_stage_service.initiate_candidate_pipeline(db, candidate.id, job_id)
 
         log_stage(
-            stage="upload_create_placeholder_candidate",
+            stage="upload_ensure_candidate",
             started_at=stage_started_at,
             job_id=job_id,
             candidate_id=candidate.id,
@@ -227,6 +288,7 @@ class ResumeUploadService:
             job_id=job_id,
             resume_id=resume_record.id,
             file_path=stored_file_path,
+            existing_resume_id=existing_resume_id if existing_global_file else None,
         )
         log_stage(
             stage="upload_total",

@@ -3,6 +3,7 @@ API routes for candidate-related operations in version 1.
 """
 
 import uuid
+from datetime import datetime
 from typing import Any
 
 from app.v1.db.session import get_db
@@ -38,6 +39,8 @@ async def get_job_stats(
     job_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
 ) -> JobStatsResponse:
     """
     Returns a full stats breakdown for a job:
@@ -47,7 +50,12 @@ async def get_job_stats(
       - hr_decisions: HR decision summary (total, approved, rejected, maybe, pending)
     """
     try:
-        return await job_stats_service.get_job_stats(db=db, job_id=job_id)
+        return await job_stats_service.get_job_stats(
+            db=db, 
+            job_id=job_id,
+            start_date=start_date,
+            end_date=end_date
+        )
     except Exception as e:
         print(f"Error in get_job_stats: {e}")
         import traceback
@@ -63,6 +71,8 @@ async def search_candidates(
     city: str | None = Query(None, description="City/Location name"),
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ) -> Any:
@@ -73,6 +83,8 @@ async def search_candidates(
         job=job,
         hr_decision=hr_decision,
         city=city,
+        start_date=start_date,
+        end_date=end_date,
         skip=skip, 
         limit=limit
     )
@@ -88,6 +100,8 @@ async def get_job_candidates(
     query: str | None = Query(None, description="Search candidates by first name, last name, or email"),
     hr_decision: str | None = Query(None, description="Filter by HR decision: 'approve', 'reject', or 'May Be'"),
     jd_version: int | None = Query(None, description="Filter by original JD version number"),
+    start_date: datetime | None = Query(None),
+    end_date: datetime | None = Query(None),
 ) -> Any:
     """Get all candidates for a specific job, with optional searching and filtering."""
     return await admin_service.get_candidates_for_job(
@@ -98,6 +112,8 @@ async def get_job_candidates(
         query=query,
         hr_decision=hr_decision,
         jd_version=jd_version,
+        start_date=start_date,
+        end_date=end_date,
     )
 
 
@@ -217,3 +233,17 @@ async def update_candidate_decision(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+
+@router.delete("/{identifier}/test", tags=["Testing"])
+async def delete_candidate_test(
+    identifier: str,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:decide")),
+) -> Any:
+    """
+    [FOR TESTING ONLY] Delete a candidate and all related records by ID or email.
+    """
+    success = await admin_service.delete_candidate(db=db, identifier=identifier)
+    if not success:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    return {"message": "Candidate and all related records deleted successfully"}

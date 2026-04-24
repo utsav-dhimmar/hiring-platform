@@ -15,6 +15,7 @@ import {
 import { adminJobService } from "@/apis/admin";
 import type { JobResumeInfoResponse } from "@/types/resume";
 import { extractErrorMessage } from "@/utils/error";
+import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
 
 interface CandidateAnalysisModalProps {
   show: boolean;
@@ -29,7 +30,7 @@ const CandidateAnalysisModal = ({
   onHide,
   jobId,
   resumeId,
-  passing_threshold = 65,
+  passing_threshold = DEFAULT_PASSING_THRESHOLD,
 }: CandidateAnalysisModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -25,6 +25,8 @@ from app.v1.utils.text import (
 )
 
 from .logging import log_stage, log_event
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ResumeProcessor:
@@ -138,26 +140,30 @@ class ResumeProcessor:
                 await cache.set(f"job_embedding:{job_id}", job_embedding)
         # ---------------------------------------
 
+        logger.info("[INSIGHTS] Starting Candidate Embedding for resume_id=%s", getattr(job, "id", "unknown"))
         stage_started_at = time.perf_counter()
         candidate_embedding = (
             embedding_service.encode_resume(candidate_text) if candidate_text else None
         )
+        logger.info("[INSIGHTS] Candidate Embedding complete for resume_id=%s in %.2fs", getattr(job, "id", "unknown"), time.perf_counter() - stage_started_at)
         log_stage(
             stage="candidate_embedding",
             started_at=stage_started_at,
             resume_chars=len(candidate_text),
         )
 
-        stage_started_at = time.perf_counter()
         raw_chunks = split_into_chunks(raw_text) or [candidate_text]
+        logger.info("[INSIGHTS] Starting Chunk Embeddings (count=%d) for resume_id=%s", len(raw_chunks), getattr(job, "id", "unknown"))
+        stage_started_at = time.perf_counter()
         chunk_embeddings = []
-        for chunk_txt in raw_chunks:
+        for i, chunk_txt in enumerate(raw_chunks):
             chunk_embeddings.append(
                 {
                     "text": chunk_txt,
                     "embedding": embedding_service.encode_resume(chunk_txt),
                 }
             )
+        logger.info("[INSIGHTS] Chunk Embeddings complete for resume_id=%s in %.2fs", getattr(job, "id", "unknown"), time.perf_counter() - stage_started_at)
 
         log_stage(
             stage="multi_chunk_embedding",
@@ -201,6 +207,7 @@ class ResumeProcessor:
             semantic_score=semantic_score,
         )
 
+        logger.info("[INSIGHTS] Starting LLM Analyzer for resume_id=%s", getattr(job, "id", "unknown"))
         stage_started_at = time.perf_counter()
         analysis = self.analyzer.analyze(
             raw_text=raw_text,
@@ -211,6 +218,7 @@ class ResumeProcessor:
             candidate_skills=candidate_skills,
             semantic_score=semantic_score,
         )
+        logger.info("[INSIGHTS] LLM Analyzer complete for resume_id=%s in %.2fs", getattr(job, "id", "unknown"), time.perf_counter() - stage_started_at)
         log_stage(
             stage="llm_resume_analysis",
             started_at=stage_started_at,

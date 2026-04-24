@@ -1,3 +1,4 @@
+import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
 import * as z from "zod";
 
 /**
@@ -141,11 +142,17 @@ const jobBaseSchema = z.object({
   /** Whether the job is active */
   is_active: z.boolean(),
   /** Threshold score (0-100) for considering a candidate as 'pass' */
-  passing_threshold: z.number().min(0).max(100),
+  passing_threshold: z.number().min(0).max(100).default(DEFAULT_PASSING_THRESHOLD),
   /** Array of skill UUIDs required for this job */
   skill_ids: z.array(uuidSchema("Invalid skill ID")).min(1, "Please select at least one skill"),
   /** Optional custom extraction fields used during resume parsing */
   custom_extraction_fields: z.array(z.string()).optional(),
+  /** UUID of the job priority */
+  priority_id: z.string().uuid().or(z.literal("")).transform(val => val === "" ? undefined : val).optional(),
+  /** Priority start date */
+  priority_start_date: z.string().optional().nullable(),
+  /** Priority end date */
+  priority_end_date: z.string().optional().nullable(),
 });
 
 /**
@@ -153,7 +160,7 @@ const jobBaseSchema = z.object({
  */
 export const jobCreateSchema = jobBaseSchema.extend({
   is_active: z.boolean().default(true),
-  passing_threshold: z.number().min(0).max(100).default(65),
+  passing_threshold: z.number().min(0).max(100).default(DEFAULT_PASSING_THRESHOLD),
   custom_extraction_fields: z.array(z.string().trim()).optional().default([]),
 });
 
@@ -293,3 +300,30 @@ export const jobCriteriaUpdateSchema = jobCriteriaBaseSchema.partial();
 
 /** Type inferred from jobCriteriaUpdateSchema. */
 export type JobCriteriaUpdateFormValues = z.infer<typeof jobCriteriaUpdateSchema>;
+
+// --- Job Priority Schemas ---
+
+const jobPriorityBaseSchema = z.object({
+  /** Name of the priority (minimum 2 characters) */
+  name: nameSchema(2, "Priority name"),
+  /** Duration in days (minimum 1 day) */
+  duration_days: z.coerce.number({
+    error: "Duration is required",
+  }).int().min(1, "Duration must be at least 1 day"),
+});
+
+/**
+ * Schema for creating a new job priority.
+ */
+export const jobPriorityCreateSchema = jobPriorityBaseSchema;
+
+/** Type inferred from jobPriorityCreateSchema. */
+export type JobPriorityCreateFormValues = z.infer<typeof jobPriorityCreateSchema>;
+
+/**
+ * Schema for updating an existing job priority.
+ */
+export const jobPriorityUpdateSchema = jobPriorityBaseSchema.partial();
+
+/** Type inferred from jobPriorityUpdateSchema. */
+export type JobPriorityUpdateFormValues = z.infer<typeof jobPriorityUpdateSchema>;

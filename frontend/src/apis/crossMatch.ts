@@ -22,8 +22,14 @@ export const crossMatchApi = {
    * @param resumeId - The UUID of the resume
    * @returns Promise resolving to the match results
    */
-  getCrossMatches: async (resumeId: string): Promise<CrossJobMatchResponse> => {
-    const response = await client.get<CrossJobMatchResponse>(`/cross-match/${resumeId}`);
+  getCrossMatches: async (resumeId: string, skip = 0, limit = 20): Promise<CrossJobMatchResponse> => {
+    const response = await client.get<CrossJobMatchResponse>(`/cross-match/${resumeId}`, {
+
+      params: {
+        skip: skip,
+        limit: limit
+      }
+    });
     return response.data;
   },
 };

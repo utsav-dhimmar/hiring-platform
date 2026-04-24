@@ -218,11 +218,16 @@ export interface HiringReport {
  */
 export interface JobCreate {
   title: string;
-  department?: string;
-  jd_text?: string;
-  jd_json?: Record<string, unknown>;
+  vacancy: number;
+  department_id: string;
+  jd_text: string;
   is_active?: boolean;
-  skill_ids?: string[];
+  skill_ids: string[];
+  passing_threshold?: number;
+  custom_extraction_fields?: string[];
+  priority_id?: string | null;
+  priority_start_date?: string | null;
+  priority_end_date?: string | null;
 }
 
 /**
@@ -230,11 +235,16 @@ export interface JobCreate {
  */
 export interface JobUpdate {
   title?: string;
-  department?: string;
+  vacancy?: number;
+  department_id?: string;
   jd_text?: string;
-  jd_json?: Record<string, unknown>;
   is_active?: boolean;
   skill_ids?: string[];
+  passing_threshold?: number;
+  custom_extraction_fields?: string[];
+  priority_id?: string | null;
+  priority_start_date?: string | null;
+  priority_end_date?: string | null;
 }
 
 /**
@@ -245,6 +255,7 @@ export interface JobUpdate {
  * Base fields for a skill.
  */
 export interface SkillBase {
+  id: string;
   name: string;
   description?: string;
 }
@@ -252,22 +263,17 @@ export interface SkillBase {
 /**
  * Payload for creating a new skill.
  */
-export interface SkillCreate extends SkillBase { }
+export interface SkillCreate extends Omit<SkillBase, "id"> { }
 
 /**
  * Payload for updating an existing skill.
  */
-export interface SkillUpdate {
-  name?: string;
-  description?: string;
-}
+export interface SkillUpdate extends Partial<SkillCreate> { }
 
 /**
  * Skill returned from read operations.
  */
-export interface SkillRead extends SkillBase {
-  id: string;
-}
+export interface SkillRead extends SkillBase { }
 
 /**
  * Department Management Types
@@ -300,6 +306,21 @@ export interface DepartmentUpdate {
 export interface DepartmentRead extends DepartmentBase {
 
   id: string;
+}
+
+/**
+ * Job Priority Management Types
+ */
+
+/**
+ * Job priority returned from read operations.
+ */
+export interface JobPriorityRead {
+  id: string;
+  name: string;
+  duration_days: number;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -461,6 +482,14 @@ export interface CandidateAnalysisResponse {
 }
 
 /**
+ * Detailed AI analysis of a resume.
+ */
+export interface PromptRead {
+  name: string;
+  content: string;
+}
+
+/**
  * AI resume-screening pass/fail breakdown for a job.
  */
 export interface JobResultStats {
@@ -480,6 +509,16 @@ export interface JobHRDecisionStats {
   pending: number;
 }
 
+export interface PriorityTimeline {
+  name: string,
+  start_date: string,
+  due_date: string,
+  days_total: number,
+  days_elapsed: number,
+  days_remaining: number,
+  progress_pct: number,
+  status: string,
+}
 /**
  * Comprehensive statistics for a specific job.
  */
@@ -488,5 +527,6 @@ export interface JobStatsResponse {
   location: Record<string, number>;
   stages: Record<string, number>;
   hr_decisions: JobHRDecisionStats;
+  priority_timeline: PriorityTimeline
 }
 

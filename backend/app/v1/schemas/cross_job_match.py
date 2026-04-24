@@ -6,7 +6,7 @@ from .job import JobRead
 class CrossJobMatchBase(BaseModel):
     """Base schema for CrossJobMatch."""
     resume_id: uuid.UUID
-    original_job_id: uuid.UUID
+    original_job_id: uuid.UUID | None = None
     matched_job_id: uuid.UUID
     match_score: float
 
@@ -25,6 +25,6 @@ class CrossJobMatchRead(CrossJobMatchBase):
     model_config = ConfigDict(from_attributes=True)
 
 class CrossJobMatchResponse(BaseModel):
-    """Response schema for a list of cross-job matches."""
-    resume_id: uuid.UUID
-    matches: dict[uuid.UUID, CrossJobMatchRead]
+    """Standard paginated response for cross-job matches."""
+    data: list[CrossJobMatchRead]
+    total: int

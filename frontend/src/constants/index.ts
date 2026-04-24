@@ -32,5 +32,12 @@ export const CHART_TEXTS = {
     label: "Locations",
     description: "Shows candidate distribution by location",
   },
+  priorityTimeline: {
+    label: "Hiring Priority",
+    description: "Shows job priority timeline",
+  },
 } as const;
 
+// Max number of items to display in a dropdown before showing "...and X more"
+export const FILTER_DISPLAY_LIMIT = 5;
+export const DEFAULT_PASSING_THRESHOLD = 70.0;

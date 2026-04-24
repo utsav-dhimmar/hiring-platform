@@ -61,15 +61,19 @@ export const useAdminData = <T>(
       if (Array.isArray(result)) {
         setData(result);
         setTotal(result.length);
+        return result;
       } else if (result && typeof result === "object" && Array.isArray((result as any).data)) {
         setData((result as any).data);
         setTotal(typeof (result as any).total === "number" ? (result as any).total : 0);
+        return result;
       } else {
         setData([]);
         setTotal(0);
+        return result;
       }
     } catch (err) {
       setError(extractErrorMessage(err, "Failed to load data."));
+      throw err;
     } finally {
       setLoading(false);
     }

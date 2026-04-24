@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button, Input } from "@/components/";
 import { RotateCw, Info, Users, BarChart3, Layers } from "lucide-react";
 import { CandidateDetailsModal, JobInfoModal, DeleteModal } from "@/components/modal";
@@ -16,8 +16,7 @@ import AppPageShell from "@/components/shared/AppPageShell";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { PaginationState } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
-
-/**
+import type { CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";/**
  * Page component for managing job candidates with toggle between candidates list and analytics views.
  * Provides candidate table with filtering, search, and bulk reanalyze functionality.
  */
@@ -31,6 +30,13 @@ export default function JobCandidates() {
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
+  });
+
+  const [activeFilters, setActiveFilters] = useState<CandidateActiveFilters>({
+    status: [],
+    city: [],
+    job: [],
+    hr_decision: [],
   });
 
   const {
@@ -58,18 +64,22 @@ export default function JobCandidates() {
     deleteError,
     deleteMessage,
     jobStats,
-  } = useJobCandidates(jobSlug, pageIndex, pageSize);
+    activitySession
+  } = useJobCandidates(jobSlug, pageIndex, pageSize, {
+    query: activeFilters.q,
+    hr_decision: activeFilters.hr_decision,
+    start_date: activeFilters.dateRange?.from,
+    end_date: activeFilters.dateRange?.to,
+    activity_session: activeFilters.activity_session,
+  });
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<"analysis" | "jd" | "cross-job-match">("analysis");
-  const [searchParams] = useSearchParams();
-
-
-  // Reset pagination when filters change
-  useEffect(() => {
+  const handleFiltersChange = (filters: CandidateActiveFilters) => {
+    setActiveFilters(filters);
     setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
-  }, [searchParams]);
+  };
 
   const handleUploadClick = () => {
     if (!job?.is_active) return;
@@ -177,6 +187,8 @@ export default function JobCandidates() {
                       onPaginationChange={setPagination}
                       pageCount={Math.ceil(totalCandidates / pageSize)}
                       total={totalCandidates}
+                      activitySessions={activitySession}
+                      onFiltersChange={handleFiltersChange}
                       headerActions={
                         <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
                           <Button

@@ -1,0 +1,140 @@
+/**
+ * Modal for creating or updating a job priority.
+ * Uses Zod for form validation and shadcn components.
+ */
+
+import { useCallback } from "react";
+import { adminJobPriorityService } from "@/apis/admin";
+import type { JobPriorityRead } from "@/types/admin";
+import {
+  Button,
+  Input,
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useFormModal } from "@/hooks";
+import { jobPriorityCreateSchema, type JobPriorityCreateFormValues } from "@/schemas/admin";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
+
+interface CreateJobPriorityModalProps {
+  show: boolean;
+  handleClose: () => void;
+  onPrioritySaved: () => void;
+  priority: JobPriorityRead | null;
+}
+
+const DEFAULT_PRIORITY_VALUES: JobPriorityCreateFormValues = {
+  name: "",
+  duration_days: 7,
+};
+
+const CreateJobPriorityModal = ({
+  show,
+  handleClose,
+  onPrioritySaved,
+  priority,
+}: CreateJobPriorityModalProps) => {
+  const isEditMode = !!priority;
+
+  const mapItemToValues = useCallback(
+    (p: JobPriorityRead): JobPriorityCreateFormValues => ({
+      name: p.name,
+      duration_days: p.duration_days,
+    }),
+    [],
+  );
+
+  const onSubmit = useCallback(
+    async (data: JobPriorityCreateFormValues) => {
+      if (isEditMode && priority) {
+        await adminJobPriorityService.updatePriority(priority.id, data);
+      } else {
+        await adminJobPriorityService.createPriority(data);
+      }
+      onPrioritySaved();
+      handleClose();
+    },
+    [isEditMode, priority, onPrioritySaved, handleClose],
+  );
+
+  const formModal = useFormModal<JobPriorityCreateFormValues, JobPriorityRead>({
+    schema: jobPriorityCreateSchema,
+    defaultValues: DEFAULT_PRIORITY_VALUES,
+    item: priority,
+    show,
+    mapItemToValues,
+    onSubmit,
+  });
+
+  const { handleFormSubmit, isSubmitting, submitError, control } = formModal;
+
+  return (
+    <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditMode ? "Edit Job Priority" : "Create New Job Priority"}</DialogTitle>
+        </DialogHeader>
+
+        {submitError && <ErrorDisplay message={submitError} />}
+
+        <Form {...formModal}>
+          <form id="create-priority-form" onSubmit={handleFormSubmit} className="space-y-4">
+            <FormField
+              control={control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Priority Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Urgent, High, Standard" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={control}
+              name="duration_days"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duration (Days)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Number of days"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} type="button" disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="create-priority-form" isLoading={isSubmitting}>
+            {isEditMode ? "Update Priority" : "Create Priority"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default CreateJobPriorityModal;

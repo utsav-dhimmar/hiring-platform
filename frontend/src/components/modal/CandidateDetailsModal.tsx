@@ -20,8 +20,11 @@ import {
 
 // Sub-components
 import { CandidateHeader } from "@/components/modal/candidate-details/CandidateHeader";
-import { AnalysisStats } from "@/components/modal/candidate-details/AnalysisStats";
-import { AnalysisTabs, type AnalysisTab } from "@/components/modal/candidate-details/AnalysisTabs";
+// import { AnalysisStats } from "@/components/modal/candidate-details/AnalysisStats";
+import {
+  // AnalysisTabs,
+  type AnalysisTab
+} from "@/components/modal/candidate-details/AnalysisTabs";
 import { AnalysisContent } from "@/components/modal/candidate-details/AnalysisContent";
 import { DecisionHistory } from "@/components/modal/candidate-details/DecisionHistory";
 import { JobDescriptionView } from "@/components/modal/candidate-details/JobDescriptionView";
@@ -153,7 +156,7 @@ export function CandidateDetailsModal({
   useEffect(() => {
     if (isOpen && candidate?.id) {
       candidateDecisionApi
-        .getDecisionHistory(candidate.id)
+        .getDecisionHistory(candidate.id, jobId)
         .then((data) => {
           setDecisionHistory(data.decisions);
           // The first item in history is the latest decision
@@ -198,12 +201,13 @@ export function CandidateDetailsModal({
       setHrDecision(result);
       // Refresh history to include the new decision
       const historyResponse = await candidateDecisionApi.getDecisionHistory(
-        candidate.id,
+        candidate.id, jobId
       );
       setDecisionHistory(historyResponse.decisions);
       await onDecisionSubmitted?.();
       toast.success("Decision submitted successfully");
       setShowFeedbackModal(false);
+      form.reset({ note: "" })
     } catch (error) {
       const errorMessage = extractErrorMessage(error)
       toast.error(errorMessage || "Failed to submit decision");
@@ -222,29 +226,11 @@ export function CandidateDetailsModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="flex w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col sm:w-[92vw] sm:max-w-[92vw] lg:max-w-250 max-h-[calc(100vh-1rem)] sm:max-h-[92vh] p-0 overflow-hidden rounded-[1.75rem] sm:rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl">
+    <Dialog open={isOpen} onOpenChange={onClose} >
+      <DialogContent className="flex w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col sm:w-[92vw] sm:max-w-[92vw] lg:max-w-250 max-h-[calc(100vh-1rem)] sm:max-h-[92vh] p-0 overflow-hidden rounded-[1.75rem] sm:rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl h-[650px]">
         <DialogHeader className="pt-3 px-2 pb-2 sm:pt-4 sm:px-3">
-          <CandidateHeader candidate={candidate} />
+          <CandidateHeader candidate={candidate} activeTab={activeTab} passing_threshold={passing_threshold ?? 0} setActiveTab={setActiveTab} />
         </DialogHeader>
-
-        <div className="px-2 py-1.5 sm:px-4 border-y border-muted-foreground/10 bg-muted/20 flex flex-col items-start justify-center gap-3 self-center">
-          <AnalysisStats
-            candidate={candidate}
-            activeTab={activeTab}
-            onVersionClick={() => setActiveTab("version-result")}
-            passing_threshold={passing_threshold}
-          />
-
-          <div className="flex w-full items-center justify-center gap-3">
-            {/* <Separator
-              orientation="vertical"
-              className="hidden h-10 bg-muted-foreground/10 sm:block"
-            /> */}
-            <AnalysisTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-          </div>
-        </div>
-
         <div className="min-h-0 flex-1 overflow-y-auto p-2 pb-4 sm:p-3">
           {activeTab === "analysis" ? (
             <AnalysisContent

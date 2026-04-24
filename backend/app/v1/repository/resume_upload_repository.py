@@ -69,18 +69,7 @@ class ResumeUploadRepository:
         job_id: uuid.UUID,
         content_hash: str,
     ) -> FileRecord | None:
-        """Find an existing file record for a job that matches the given content hash.
-
-        Used to prevent the same file from being uploaded twice to the same job.
-
-        Args:
-            db: The async database session.
-            job_id: The ID of the target job.
-            content_hash: SHA-256 hex digest of the raw file bytes.
-
-        Returns:
-            The existing FileRecord if a duplicate is found, None otherwise.
-        """
+        """Find an existing file record for a job that matches the given content hash."""
         return await db.scalar(
             select(FileRecord)
             .join(Candidate, Candidate.id == FileRecord.candidate_id)
@@ -88,6 +77,19 @@ class ResumeUploadRepository:
                 Candidate.applied_job_id == job_id,
                 FileRecord.content_hash == content_hash,
             )
+        )
+
+    async def get_file_by_content_hash_global(
+        self,
+        db: AsyncSession,
+        *,
+        content_hash: str,
+    ) -> FileRecord | None:
+        """Find ANY existing file record in the database with this hash."""
+        return await db.scalar(
+            select(FileRecord)
+            .where(FileRecord.content_hash == content_hash)
+            .limit(1)
         )
 
     async def get_resume_by_text_hash_for_job(
@@ -401,10 +403,8 @@ class ResumeUploadRepository:
                 selectinload(Resume.file),
                 selectinload(Resume.version_results),
             )
-            .join(Candidate, Candidate.id == Resume.candidate_id)
             .where(
                 Resume.id == resume_id,
-                Candidate.applied_job_id == job_id,
             )
         )
         if owner_id is not None:
@@ -583,6 +583,18 @@ class ResumeUploadRepository:
                 )
             ).all()
         )
+
+    async def get_resume_full_text(self, db: AsyncSession, resume_id: uuid.UUID) -> str:
+        """Fetch and combine all raw_text from ResumeChunks for a given resume_id."""
+        from app.v1.db.models.resume_chunks import ResumeChunk
+        stmt = (
+            select(ResumeChunk.raw_text)
+            .where(ResumeChunk.resume_id == resume_id)
+            .order_by(ResumeChunk.id.asc()) # Assuming UUID7 order is chronological
+        )
+        result = await db.execute(stmt)
+        chunks = result.scalars().all()
+        return "\n\n".join([c for c in chunks if c])
 
     async def get_resumes_for_job(
         self,

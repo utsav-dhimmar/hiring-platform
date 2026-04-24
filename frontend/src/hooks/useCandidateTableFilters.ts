@@ -6,6 +6,7 @@ import { toTitleCase } from "@/lib/utils";
 import { adminLocationService } from "@/apis/admin/location";
 import jobService from "@/apis/job";
 import { slugify } from "@/utils/slug";
+import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
 
 export interface CandidateActiveFilters {
   status: string[];
@@ -15,6 +16,8 @@ export interface CandidateActiveFilters {
   dateRange?: { from?: Date; to?: Date };
   resumeScreening?: string[];
   stage?: string[];
+  activity_session?: string[];
+  q?: string;
 }
 
 export const useCandidateTableFilters = <T extends UnifiedCandidate>(
@@ -26,13 +29,19 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   fetchJobTitles = true,
   isServerSide = false,
   onFiltersChange?: (filters: CandidateActiveFilters) => void,
-  passingThreshold = 65,
-  stageOptionsProp?: string[]
+  passingThreshold = DEFAULT_PASSING_THRESHOLD,
+  stageOptionsProp?: string[],
+  activitySessionsData?: [number, { start_date: string; end_date: string }][]
 ) => {
   const [internalNameFilter, setInternalNameFilter] = useState("");
 
   const nameFilter = externalNameFilter !== undefined ? externalNameFilter : internalNameFilter;
   const setNameFilter = onNameFilterChange !== undefined ? onNameFilterChange : setInternalNameFilter;
+
+  // Sync internal name filter with state on mount (removed URL sync)
+  useEffect(() => {
+    // URL sync removed
+  }, []); // Only once on mount
 
   // Debounced name filter for URL syncing and filtering
   const [debouncedNameFilter, setDebouncedNameFilter] = useState(nameFilter);
@@ -48,7 +57,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   const [locationFilter, setLocationFilter] = useState<string[]>([]);
   const [hrDecisionFilter, setHrDecisionFilter] = useState<string[]>([]);
 
-  // jobFilter stores IDs internally for filtering and API calls, but we sync slugs to URL
+  // jobFilter stores IDs internally for filtering and API calls
   const [jobFilter, setJobFilter] = useState<string[]>([]);
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -59,6 +68,35 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   const [jobSearch, setJobSearch] = useState("");
   const [resumeScreeningFilter, setResumeScreeningFilter] = useState<string[]>([]);
   const [stageFilter, setStageFilter] = useState<string[]>([]);
+  const [activitySessionFilter, setActivitySessionFilter] = useState<string[]>([]);
+  const [activitySearch, setActivitySearch] = useState("");
+
+  // Handler to update activity session and sync date range in one batch
+  const handleActivitySessionChange = (ids: string[]) => {
+    setActivitySessionFilter(ids);
+    
+    if (ids.length > 0 && activitySessionsData) {
+      let minStart: Date | null = null;
+      let maxEnd: Date | null = null;
+
+      ids.forEach((id) => {
+        const session = activitySessionsData.find(([sid]) => String(sid) === id);
+        if (session) {
+          const start = new Date(session[1].start_date);
+          const end = session[1].end_date ? new Date(session[1].end_date) : new Date();
+
+          if (!minStart || start < minStart) minStart = start;
+          if (!maxEnd || end > maxEnd) maxEnd = end;
+        }
+      });
+
+      if (minStart) {
+        setDateRange({ from: minStart, to: maxEnd || undefined });
+      }
+    }
+  };
+
+
 
   // Memoized job options filtered by search query
   const jobOptions = useMemo(() => {
@@ -101,10 +139,12 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
         hr_decision: hrDecisionFilter,
         dateRange: dateRange,
         resumeScreening: resumeScreeningFilter,
-        stage: stageFilter
+        stage: stageFilter,
+        activity_session: activitySessionFilter,
+        q: debouncedNameFilter
       });
     }
-  }, [statusFilter, locationFilter, jobFilter, hrDecisionFilter, dateRange, resumeScreeningFilter, stageFilter, onFiltersChange]);
+  }, [statusFilter, locationFilter, jobFilter, hrDecisionFilter, dateRange, resumeScreeningFilter, stageFilter, activitySessionFilter, debouncedNameFilter, onFiltersChange]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -112,9 +152,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
         try {
           const response = await adminLocationService.getAllLocations(0, 500, locationSearch);
           const names = response.data.map((loc) => toTitleCase(loc.name.trim()));
-          // Ensure unique and sorted names
-          const uniqueNames = Array.from(new Set(names)).sort();
-          setLocationOptions(uniqueNames);
+          setLocationOptions(names);
         } catch (error) {
           console.error("Failed to fetch locations for filter:", error);
         }
@@ -159,6 +197,8 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   }, [candidates]);
 
   const filteredCandidates = useMemo(() => {
+    if (isServerSide) return candidates;
+
     return candidates.filter((c) => {
       // Name / email filter
       const fullName = `${c.first_name || ""} ${c.last_name || ""}`.toLowerCase().trim();
@@ -228,9 +268,19 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
         if (!stageFilter.includes(candidateStage)) return false;
       }
 
+      // Activity session filter (multi-select)
+      if (activitySessionFilter.length > 0) {
+        // Assuming candidate has an activity_session_id or similar field. 
+        // Based on useJobCandidates, it seems we might need to check if the candidate's creation date 
+        // falls within the session range if session_id is not directly on the candidate.
+        // However, for now let's assume session_id is a field.
+        const candidateSessionId = String((c as any).activity_session_id || "");
+        if (!activitySessionFilter.includes(candidateSessionId)) return false;
+      }
+
       return true;
     });
-  }, [candidates, debouncedNameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, resumeScreeningFilter, stageFilter, isServerSide]);
+  }, [candidates, debouncedNameFilter, statusFilter, locationFilter, hrDecisionFilter, jobFilter, dateRange, resumeScreeningFilter, stageFilter, activitySessionFilter, isServerSide]);
 
   const hasActiveFilters =
     !!debouncedNameFilter ||
@@ -239,6 +289,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     hrDecisionFilter.length > 0 ||
     jobFilter.length > 0 ||
     resumeScreeningFilter.length > 0 ||
+    activitySessionFilter.length > 0 ||
     !!dateRange?.from ||
     !!dateRange?.to;
 
@@ -252,6 +303,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     setDateRange({ from: undefined, to: undefined });
     setResumeScreeningFilter([]);
     setStageFilter([]);
+    setActivitySessionFilter([]);
   };
 
   return {
@@ -284,5 +336,9 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     hasActiveFilters,
     clearFilters,
     availableJobs,
+    activitySession: activitySessionFilter,
+    setActivitySession: handleActivitySessionChange,
+    activitySearch,
+    setActivitySearch,
   };
 };

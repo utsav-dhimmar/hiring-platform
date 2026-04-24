@@ -1,4 +1,6 @@
 import uuid
+import logging
+from datetime import datetime, timedelta
 from typing import Any
 
 from app.v1.db.models.jobs import Job
@@ -18,8 +20,11 @@ from app.v1.services.admin.audit_service import audit_service
 from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.skill_service import skill_service
 from app.v1.services.user_service import user_service
+from app.v1.services.admin.job_priority_service import job_priority_service
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 
 class JobAdminService:
@@ -158,6 +163,16 @@ class JobAdminService:
                 detail=f"Job with title '{job_in.title}' already exists.",
             )
 
+        # Handle priority dates calculation
+        if job_in.priority_id:
+            if not job_in.priority_start_date:
+                job_in.priority_start_date = datetime.now()
+            
+            if not job_in.priority_end_date:
+                priority = await job_priority_service.get_priority_by_id(db, job_in.priority_id)
+                if priority:
+                    job_in.priority_end_date = job_in.priority_start_date + timedelta(days=priority.duration_days)
+
         job = await job_repository.create(
             db=db, object=job_in, created_by=admin_user_id
         )
@@ -173,6 +188,12 @@ class JobAdminService:
             target_id=job.id,
             details={"title": job.title},
         )
+
+        # Trigger background task to match all existing resumes to this new job
+        from app.v1.services.admin.job_tasks import match_all_resumes_to_job_task
+        logger.info(f"Triggering mass matching task for new job: {job.id}")
+        match_all_resumes_to_job_task.delay(str(job.id))
+
         return JobRead.model_validate(job)
 
     async def update_job(
@@ -221,20 +242,37 @@ class JobAdminService:
                         detail=f"Job with title '{job_update.title}' already exists.",
                     )
 
+        # Handle priority dates calculation on update
+        if job_update.priority_id:
+            # If priority changed or start date is not set, set it
+            if not job_update.priority_start_date:
+                job_update.priority_start_date = datetime.now()
+            
+            if not job_update.priority_end_date:
+                priority = await job_priority_service.get_priority_by_id(db, job_update.priority_id)
+                if priority:
+                    job_update.priority_end_date = job_update.priority_start_date + timedelta(days=priority.duration_days)
+
         updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
         
         updated_fields_map = job_update.model_dump(exclude_unset=True)
         
-        # Log general update
+        # Log general update with values
+        log_details = {
+            "updated_fields": list(updated_fields_map.keys()),
+        }
+        # Add specific values for important fields to make audit logs readable
+        for field in ["priority_id", "title", "department_id", "is_active"]:
+            if field in updated_fields_map:
+                log_details[field] = str(updated_fields_map[field])
+
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
             action="update_job",
             target_type="job",
             target_id=job_id,
-            details={
-                "updated_fields": list(updated_fields_map.keys())
-            },
+            details=log_details,
         )
 
         # CRITICAL: If is_active was changed, log a specific update_job_status action
@@ -446,36 +484,69 @@ class JobAdminService:
                 continue
 
             # Build conditions dynamically to handle None end_dates
-            conditions = [
+            # Note: We filter candidates who were created/matched during this session's window
+            session_candidate_ids_stmt = select(Candidate.id).where(
                 or_(
-                    and_(Candidate.applied_job_id == job_id, Candidate.created_at >= s["start_date"]),
+                    and_(Candidate.applied_job_id == job_id, Candidate.created_at >= s["start_date"], Candidate.created_at <= (s["end_date"] if s["end_date"] else func.now())),
                     Candidate.id.in_(
                         select(CrossJobMatch.candidate_id).where(
-                            and_(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.created_at >= s["start_date"])
+                            and_(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.created_at >= s["start_date"], CrossJobMatch.created_at <= (s["end_date"] if s["end_date"] else func.now()))
                         )
                     )
                 )
-            ]
-            
-            if s.get("end_date") is not None:
-                conditions.append(
+            )
+
+            # Get latest decision per unique person (deduplicated by email) for this job
+            from app.v1.db.models.hr_decisions import HrDecision
+            subq = (
+                select(
+                    func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("person_id"),
+                    HrDecision.decision,
+                    func.row_number()
+                    .over(
+                        partition_by=func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
+                        order_by=HrDecision.decided_at.desc(),
+                    )
+                    .label("rn"),
+                )
+                .join(Candidate, HrDecision.candidate_id == Candidate.id)
+                .where(
                     or_(
-                        and_(Candidate.applied_job_id == job_id, Candidate.created_at <= s["end_date"]),
-                        Candidate.id.in_(
-                            select(CrossJobMatch.candidate_id).where(
-                                and_(CrossJobMatch.matched_job_id == job_id, CrossJobMatch.created_at <= s["end_date"])
+                        HrDecision.job_id == job_id,
+                        and_(
+                            HrDecision.job_id.is_(None),
+                            or_(
+                                Candidate.applied_job_id == job_id,
+                                Candidate.id.in_(
+                                    select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                                )
                             )
                         )
                     )
                 )
+                .where(HrDecision.candidate_id.in_(session_candidate_ids_stmt))
+            ).subquery()
 
+            latest_decisions_stmt = select(subq.c.decision, func.count().label("cnt")).where(subq.c.rn == 1).group_by(subq.c.decision)
+            dec_result = await db.execute(latest_decisions_stmt)
+            dec_rows = dec_result.fetchall()
+            dec_counts = {row.decision.lower(): row.cnt for row in dec_rows}
+
+            # Total unique count for the session
             session_unique_stmt = select(
                 func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
-            ).where(and_(*conditions))
+            ).where(Candidate.id.in_(session_candidate_ids_stmt))
             
-            # Simplified session counting for accuracy
             count_val = await db.scalar(session_unique_stmt) or 0
+            
             s["candidate_count"] = count_val
+            s["approved_count"] = dec_counts.get("approve", 0)
+            s["rejected_count"] = dec_counts.get("reject", 0)
+            
+            # Pending is total unique minus those with final decisions (approve/reject)
+            # We use the total unique count for the session as the base
+            decided_total = s["approved_count"] + s["rejected_count"] + dec_counts.get("may be", 0)
+            s["pending_count"] = max(0, count_val - decided_total) + dec_counts.get("may be", 0)
             
             if s["is_current"]:
                 current_session_count = count_val

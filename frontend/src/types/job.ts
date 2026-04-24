@@ -1,4 +1,5 @@
 import type { JobStageConfig } from "@/types/stage";
+import type { JobPriorityRead } from "@/types/admin";
 
 export interface JobDecisionSummary {
   job_id: string;
@@ -15,6 +16,9 @@ export interface JobActivitySession {
   end_date: string | null;
   candidate_count: number;
   is_current: boolean;
+  approved_count: number,
+  rejected_count: number,
+  pending_count: number
 }
 
 /**
@@ -84,6 +88,10 @@ export interface Job {
   current_session_candidates: number;
   activity_sessions?: JobActivitySession[] | null;
   vacancy: number | null;
+  priority_id: string | null;
+  priority_start_date: string | null;
+  priority_end_date: string | null;
+  priority?: JobPriorityRead | null;
 }
 
 /**

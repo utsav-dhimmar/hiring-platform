@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from app.v1.db.models.skills import Skill
     from app.v1.db.models.user import User
     from app.v1.db.models.job_versions import JobVersion
+    from app.v1.db.models.job_priorities import JobPriority
 
 from app.v1.db.models.job_skills import job_skills
 from app.v1.utils.uuid import UUIDHelper
@@ -109,7 +110,7 @@ class Job(Base):
 
     passing_threshold: Mapped[float] = mapped_column(
         Numeric(10, 2),
-        default=65.0,
+        default=70.0,
         nullable=False,
     )
 
@@ -123,6 +124,23 @@ class Job(Base):
         Integer,
         default=1,
         nullable=False,
+    )
+
+    # PRIORITY FIELDS
+    priority_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("job_priorities.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    priority_start_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    priority_end_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     # RELATIONSHIPS
@@ -158,6 +176,11 @@ class Job(Base):
         "Department",
         back_populates="jobs",
         foreign_keys=[department_id],
+        lazy="joined",
+    )
+    priority: Mapped[Optional["JobPriority"]] = relationship(
+        "JobPriority",
+        foreign_keys=[priority_id],
         lazy="joined",
     )
 

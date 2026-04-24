@@ -33,6 +33,7 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   showStatusFilter?: boolean;
   onFiltersChange?: (filters: CandidateActiveFilters) => void;
   stageOptions?: string[];
+  activitySessions?: [number, { start_date: string; end_date: string }][];
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -53,6 +54,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   showStatusFilter = true,
   onFiltersChange,
   stageOptions: stageOptionsProp,
+  activitySessions,
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -84,7 +86,11 @@ export function CandidateTable<T extends UnifiedCandidate>({
     stageFilter,
     setStageFilter,
     stageOptions,
-  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold, stageOptionsProp);
+    activitySession,
+    setActivitySession,
+    activitySearch,
+    setActivitySearch,
+  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold, stageOptionsProp, activitySessions);
 
   const columns = useCandidateTableColumns({
     renderActions,
@@ -122,6 +128,11 @@ export function CandidateTable<T extends UnifiedCandidate>({
         stageFilter={stageFilter}
         setStageFilter={setStageFilter}
         stageOptions={stageOptions}
+        activitySession={activitySession}
+        setActivitySession={setActivitySession}
+        activitySearch={activitySearch}
+        setActivitySearch={setActivitySearch}
+        activitySessionOptions={activitySessions}
         hasActiveFilters={hasActiveFilters}
         clearFilters={clearFilters}
         resultCount={filteredCandidates.length}

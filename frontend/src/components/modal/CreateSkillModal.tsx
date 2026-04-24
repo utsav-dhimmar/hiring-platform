@@ -120,7 +120,7 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
           <Button variant="outline" onClick={handleClose} type="button" disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" form="create-skill-form" isLoading={isSubmitting}>
+          <Button type="button" onClick={handleFormSubmit} disabled={isSubmitting}>
             {isEditMode ? "Update Skill" : "Create Skill"}
           </Button>
         </DialogFooter>

@@ -22,6 +22,7 @@ interface ColumnHandlers {
   onEdit: (job: Job) => void;
   onCandidates: (job: Job) => void;
   onViewSessions: (job: Job) => void;
+  onSessionCandidates: (job: Job, startDate: string, endDate?: string) => void;
   loadingJobId?: string | null;
 }
 
@@ -41,6 +42,7 @@ export const getJobColumns = ({
   onEdit,
   onCandidates,
   onViewSessions,
+  onSessionCandidates,
   loadingJobId,
 }: ColumnHandlers): ColumnDef<Job>[] => [
     {
@@ -121,10 +123,11 @@ export const getJobColumns = ({
         <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
           <div className="flex items-center justify-center gap-3 max-w-[100px] ">
             <Switch
-              checked={row.original.is_active}
+              checked={!!row.original.is_active}
               onCheckedChange={() => onToggleStatus(row.original)}
               id={`status-${row.original.id}`}
               size="sm"
+              disabled={loadingJobId === row.original.id}
             />
             <Label
               htmlFor={`status-${row.original.id}`}
@@ -176,7 +179,14 @@ export const getJobColumns = ({
             ) : (
               <>
                 {displaySessions.map((s) => (
-                  <div key={s.session_id} className="flex items-center text-xs">
+                  <div
+                    key={s.session_id}
+                    className="flex items-center text-xs"
+                  // onClick={(e) => {
+                  //   e.stopPropagation();
+                  //   onSessionCandidates(row.original, s.start_date, s.end_date);
+                  // }}
+                  >
                     <div className="flex items-center gap-1 overflow-hidden">
                       {displaySessions.length > 1 && (
                         <Badge
@@ -190,12 +200,28 @@ export const getJobColumns = ({
                         <DateDisplay date={s.start_date} />
                       </span>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className="text-sm font-normal h-5 px-1.5 rounded-md border-muted-foreground/20"
-                    >
-                      <span className="font-bold">  {s.candidate_count}</span> cand.
-                    </Badge>
+                    <HoverCard>
+                      <HoverCardTrigger
+                        render={(props) => (
+                          <Badge
+                            {...props}
+                            variant="outline"
+                            className="cursor-pointer text-sm font-normal h-5 px-1.5 rounded-md border-muted-foreground/20 hover:border-primary/30 hover:bg-primary/5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSessionCandidates(row.original, s.start_date, s.end_date as string);
+                            }}
+                          >
+                            <span className="font-bold group-hover/session:text-primary transition-colors" >  {s.candidate_count}</span> cand.
+                          </Badge>
+                        )}
+                      />
+                      <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                        <div className="text-[14px] font-semibold text-primary">
+                          Candidates for this session
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
                   </div>
                 ))}
                 {remainingCount > 0 && (

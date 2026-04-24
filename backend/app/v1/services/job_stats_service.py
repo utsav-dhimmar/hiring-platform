@@ -15,8 +15,8 @@ existing service or route. It queries the DB directly using SQLAlchemy core.
 from __future__ import annotations
 
 import uuid
-
-from sqlalchemy import func, select, or_, and_, case, Text
+from datetime import datetime, timezone
+from sqlalchemy import func, select, or_, and_, case, Text, cast, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +31,7 @@ from app.v1.db.models.locations import Location
 from app.v1.schemas.job_stats import (
     JobResultStats,
     JobHRDecisionStats,
+    JobPriorityTimeline,
     JobStatsResponse,
 )
 
@@ -42,28 +43,34 @@ class JobStatsService:
         self,
         db: AsyncSession,
         job_id: uuid.UUID,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> JobStatsResponse:
         """
         Returns a comprehensive stats snapshot for a job.
 
         Args:
-            db:     Async SQLAlchemy session.
-            job_id: UUID of the job to inspect.
+            db:         Async SQLAlchemy session.
+            job_id:     UUID of the job to inspect.
+            start_date: Optional start date for filtering.
+            end_date:   Optional end date for filtering.
 
         Returns:
             JobStatsResponse with result, location, stages, and hr_decisions.
         """
 
-        result = await self._get_result_stats(db, job_id)
-        location = await self._get_location_stats(db, job_id)
-        stages = await self._get_stage_stats(db, job_id)
-        hr_decisions = await self._get_hr_decision_stats(db, job_id)
+        result = await self._get_result_stats(db, job_id, start_date, end_date)
+        location = await self._get_location_stats(db, job_id, start_date, end_date)
+        stages = await self._get_stage_stats(db, job_id, start_date, end_date)
+        hr_decisions = await self._get_hr_decision_stats(db, job_id, start_date, end_date)
+        priority_timeline = await self._get_priority_timeline(db, job_id)
 
         return JobStatsResponse(
             result=result,
             location=location,
             stages=stages,
             hr_decisions=hr_decisions,
+            priority_timeline=priority_timeline,
         )
 
     # -------------------------------------------------------------------------
@@ -71,7 +78,7 @@ class JobStatsService:
     # -------------------------------------------------------------------------
 
     async def _get_result_stats(
-        self, db: AsyncSession, job_id: uuid.UUID
+        self, db: AsyncSession, job_id: uuid.UUID, start_date: datetime | None, end_date: datetime | None
     ) -> JobResultStats:
         """
         Count pass / fail / pending for unique candidates in this job.
@@ -80,8 +87,19 @@ class JobStatsService:
         from app.v1.db.models.jobs import Job
         job = await db.get(Job, job_id)
         threshold = (
-            float(job.passing_threshold) if job and job.passing_threshold else 65.0
+            float(job.passing_threshold) if job and job.passing_threshold else 70.0
         )
+
+        # Filters for native and cross-match
+        native_filter = Candidate.applied_job_id == job_id
+        cross_filter = CrossJobMatch.matched_job_id == job_id
+        
+        if start_date:
+            native_filter = and_(native_filter, Candidate.created_at >= start_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            native_filter = and_(native_filter, Candidate.created_at <= end_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
 
         # Subquery to get unique candidate identifiers (email) and their strongest source of screening info
         # Prioritize native (resumes) over cross matches
@@ -99,8 +117,8 @@ class JobStatsService:
             .outerjoin(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
             .where(
                 or_(
-                    Candidate.applied_job_id == job_id,
-                    CrossJobMatch.matched_job_id == job_id
+                    native_filter,
+                    cross_filter
                 )
             )
             # Order by is_native to ensure DISTINCT picks native record if available
@@ -125,20 +143,31 @@ class JobStatsService:
         )
 
     async def _get_location_stats(
-        self, db: AsyncSession, job_id: uuid.UUID
+        self, db: AsyncSession, job_id: uuid.UUID, start_date: datetime | None, end_date: datetime | None
     ) -> dict[str, int]:
         """
         Count unique candidates per location for this job.
         Includes cross-matches. Deduplicates by email.
         """
+        # Filters for native and cross-match
+        native_filter = Candidate.applied_job_id == job_id
+        cross_filter = CrossJobMatch.matched_job_id == job_id
+        
+        if start_date:
+            native_filter = and_(native_filter, Candidate.created_at >= start_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            native_filter = and_(native_filter, Candidate.created_at <= end_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
+
         stmt = (
             select(Location.name, func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))))
             .join(Candidate, Location.id == Candidate.location_id)
             .where(
                 or_(
-                    Candidate.applied_job_id == job_id,
+                    native_filter,
                     Candidate.id.in_(
-                        select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                        select(CrossJobMatch.candidate_id).where(cross_filter)
                     )
                 )
             )
@@ -152,7 +181,7 @@ class JobStatsService:
         return location_counts
 
     async def _get_stage_stats(
-        self, db: AsyncSession, job_id: uuid.UUID
+        self, db: AsyncSession, job_id: uuid.UUID, start_date: datetime | None, end_date: datetime | None
     ) -> dict[str, int]:
         """
         Count how many unique candidates are in each stage for this job.
@@ -163,6 +192,17 @@ class JobStatsService:
         #   - We prefer the highest order non-pending stage.
         #   - If all are pending, we prefer the lowest order pending stage (the first stage).
         
+        # Filters for native and cross-match
+        native_filter = Candidate.applied_job_id == job_id
+        cross_filter = CrossJobMatch.matched_job_id == job_id
+        
+        if start_date:
+            native_filter = and_(native_filter, Candidate.created_at >= start_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            native_filter = and_(native_filter, Candidate.created_at <= end_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
+
         # Deduplication subquery: Map each unique person (email) to their latest application record in this job context
         unique_candidates_subq = (
             select(
@@ -173,8 +213,8 @@ class JobStatsService:
             .outerjoin(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
             .where(
                 or_(
-                    Candidate.applied_job_id == job_id,
-                    CrossJobMatch.matched_job_id == job_id
+                    native_filter,
+                    cross_filter
                 )
             )
             .order_by(
@@ -251,33 +291,42 @@ class JobStatsService:
         return final_stats
 
     async def _get_hr_decision_stats(
-        self, db: AsyncSession, job_id: uuid.UUID
+        self, db: AsyncSession, job_id: uuid.UUID, start_date: datetime | None, end_date: datetime | None
     ) -> JobHRDecisionStats:
         """
         Compute unique HR decision breakdown for this job.
         Deduplicates by email.
         """
-        # Deduplication by email
+        # Filters for native and cross-match
+        from app.v1.db.models.cross_job_matches import CrossJobMatch
+        native_filter = Candidate.applied_job_id == job_id
+        cross_filter = CrossJobMatch.matched_job_id == job_id
+        
+        if start_date:
+            native_filter = and_(native_filter, Candidate.created_at >= start_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            native_filter = and_(native_filter, Candidate.created_at <= end_date)
+            cross_filter = and_(cross_filter, CrossJobMatch.created_at <= end_date)
+
+        # Total unique candidates in pool (deduplicated by email)
         total_unique_stmt = select(
             func.count(func.distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text))))
         ).where(
             or_(
-                Candidate.applied_job_id == job_id,
+                native_filter,
                 Candidate.id.in_(
-                    select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
-                ),
-                Candidate.id.in_(
-                    select(HrDecision.candidate_id).where(HrDecision.job_id == job_id)
+                    select(CrossJobMatch.candidate_id).where(cross_filter)
                 )
             )
         )
         total_candidates = await db.scalar(total_unique_stmt) or 0
 
-        # Latest decision per unique per-person (email)
+        # Latest decision per unique person in this job
         subq = (
             select(
-                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
-                HrDecision.decision,
+                func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("person_id"),
+                func.lower(HrDecision.decision).label("decision"),
                 func.row_number()
                 .over(
                     partition_by=func.coalesce(Candidate.email, func.cast(Candidate.id, Text)),
@@ -291,7 +340,20 @@ class JobStatsService:
                     HrDecision.job_id == job_id,
                     and_(
                         HrDecision.job_id.is_(None),
-                        Candidate.applied_job_id == job_id
+                        or_(
+                            Candidate.applied_job_id == job_id,
+                            Candidate.id.in_(
+                                select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)
+                            )
+                        )
+                    )
+                )
+            )
+            .where(
+                or_(
+                    native_filter,
+                    Candidate.id.in_(
+                        select(CrossJobMatch.candidate_id).where(cross_filter)
                     )
                 )
             )
@@ -302,15 +364,84 @@ class JobStatsService:
             .where(subq.c.rn == 1)
             .group_by(subq.c.decision)
         )
-        counts: dict[str, int] = {row.decision: row.cnt for row in decision_rows.all()}
+        
+        counts: dict[str, int] = {}
+        for row in decision_rows.all():
+            if row.decision:
+                d_key = str(row.decision).lower().strip().replace(" ", "") 
+                counts[d_key] = counts.get(d_key, 0) + row.cnt
+
         decided_total = sum(counts.values())
 
         return JobHRDecisionStats(
             total_candidates=total_candidates,
-            approved=counts.get("approve", 0),
-            rejected=counts.get("reject", 0),
-            maybe=counts.get("May Be", 0),
+            approved=counts.get("approve", 0) or counts.get("approved", 0),
+            rejected=counts.get("reject", 0) or counts.get("rejected", 0),
+            maybe=counts.get("maybe", 0),
             pending=max(total_candidates - decided_total, 0),
+            undecidedCount=max(total_candidates - decided_total, 0)
+        )
+
+    async def _get_priority_timeline(
+        self, db: AsyncSession, job_id: uuid.UUID
+    ) -> JobPriorityTimeline | None:
+        """
+        Build priority timeline data for graph display.
+        Returns None if the job has no priority assigned.
+
+        Provides:
+          - Progress metrics (days_total, days_elapsed, days_remaining, progress_pct)
+          - Per-day candidate arrivals within priority period (daily_candidates)
+        """
+        from app.v1.db.models.jobs import Job
+        from app.v1.db.models.job_priorities import JobPriority
+
+        job = await db.get(Job, job_id)
+        if not job or not job.priority_id:
+            return None
+
+        priority = await db.get(JobPriority, job.priority_id)
+        if not priority:
+            return None
+
+        today = datetime.now(timezone.utc).date()
+        start_dt = job.priority_start_date.date() if job.priority_start_date else None
+        end_dt = job.priority_end_date.date() if job.priority_end_date else None
+
+        # Compute days stats
+        days_total = None
+        days_elapsed = None
+        days_remaining = None
+        progress_pct = None
+        status = "not_set"
+
+        if start_dt and end_dt:
+            days_total = (end_dt - start_dt).days
+            if today < start_dt:
+                status = "not_started"
+                days_elapsed = 0
+                days_remaining = (end_dt - today).days
+                progress_pct = 0.0
+            elif today > end_dt:
+                status = "expired"
+                days_elapsed = days_total
+                days_remaining = 0
+                progress_pct = 100.0
+            else:
+                status = "active"
+                days_elapsed = (today - start_dt).days
+                days_remaining = (end_dt - today).days
+                progress_pct = round((days_elapsed / days_total) * 100, 1) if days_total > 0 else 0.0
+
+        return JobPriorityTimeline(
+            name=priority.name,
+            start_date=str(start_dt) if start_dt else None,
+            due_date=str(end_dt) if end_dt else None,
+            days_total=days_total,
+            days_elapsed=days_elapsed,
+            days_remaining=days_remaining,
+            progress_pct=progress_pct,
+            status=status,
         )
 
 

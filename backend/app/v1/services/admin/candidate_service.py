@@ -1,6 +1,7 @@
+from datetime import datetime
 import uuid
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -29,6 +30,8 @@ class CandidateAdminService:
         query: str | None = None,
         hr_decision: str | None = None,
         jd_version: int | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
     ) -> PaginatedData[CandidateResponse]:
         from app.v1.db.models.cross_job_matches import CrossJobMatch
 
@@ -39,6 +42,13 @@ class CandidateAdminService:
                 select(HrDecision.candidate_id).where(HrDecision.job_id == job_id)
             )
         )
+        
+        # Apply date filters to direct candidates
+        if start_date:
+            dir_filter = and_(dir_filter, Candidate.created_at >= start_date)
+        if end_date:
+            dir_filter = and_(dir_filter, Candidate.created_at <= end_date)
+
         dir_stmt = select(Candidate).where(dir_filter)
 
         search_filter = None
@@ -74,9 +84,15 @@ class CandidateAdminService:
         direct_candidates = list(dir_result.scalars().unique().all())
 
         # 2. Fetch cross-matched candidates
+        xm_filter = CrossJobMatch.matched_job_id == job_id
+        if start_date:
+            xm_filter = and_(xm_filter, CrossJobMatch.created_at >= start_date)
+        if end_date:
+            xm_filter = and_(xm_filter, CrossJobMatch.created_at <= end_date)
+
         xm_stmt = (
             select(CrossJobMatch)
-            .where(CrossJobMatch.matched_job_id == job_id)
+            .where(xm_filter)
             .options(
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.resumes).selectinload(Resume.version_results).selectinload(ResumeVersionResult.job),
                 selectinload(CrossJobMatch.candidate).selectinload(Candidate.hr_decisions),
@@ -144,7 +160,7 @@ class CandidateAdminService:
             threshold_val = (
                 float(xm.matched_job.passing_threshold)
                 if xm.matched_job and xm.matched_job.passing_threshold
-                else 65.0
+                else 70.0
             )
             derived_pass_fail = (
                 "passed" if match_score_val >= threshold_val else "failed"
@@ -187,6 +203,8 @@ class CandidateAdminService:
         job: str | None = None,
         hr_decision: str | None = None,
         city: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> PaginatedData[CandidateResponse]:
@@ -266,6 +284,14 @@ class CandidateAdminService:
             )
             stmt = stmt.where(latest_decision_subq == mapped_decision)
             total_stmt = total_stmt.where(latest_decision_subq == mapped_decision)
+
+        # 5. Date filters
+        if start_date:
+            stmt = stmt.where(Candidate.created_at >= start_date)
+            total_stmt = total_stmt.where(Candidate.created_at >= start_date)
+        if end_date:
+            stmt = stmt.where(Candidate.created_at <= end_date)
+            total_stmt = total_stmt.where(Candidate.created_at <= end_date)
 
         total = await db.scalar(total_stmt)
 
@@ -396,20 +422,54 @@ class CandidateAdminService:
         # Get latest HR decision
         hr_decisions = getattr(candidate, "hr_decisions", [])
         if target_job_id:
+            target_job_str = str(target_job_id)
             # Filter HR decisions to this specific job ID, or fallback to natively applied if null
             filtered_decisions = []
+            # Determine if candidate is cross-matched to this job
+            is_cross_matched_here = False
+            if target_job_id:
+                from app.v1.db.models.cross_job_matches import CrossJobMatch
+                xm_stmt = select(CrossJobMatch.id).where(
+                    CrossJobMatch.candidate_id == candidate.id,
+                    CrossJobMatch.matched_job_id == target_job_id
+                )
+                # Note: We are in a sync mapping function, but hr_decisions are already loaded.
+                # However, checking CrossJobMatch would require a DB call.
+                # Heuristic: if they have a decision and it's NOT their applied job, it's likely the cross-match.
+                pass
+
             for d in hr_decisions:
-                if str(getattr(d, "job_id", None)) == str(target_job_id):
-                    filtered_decisions.append(d)
-                elif getattr(d, "job_id", None) is None and str(
-                    candidate.applied_job_id
-                ) == str(target_job_id):
-                    filtered_decisions.append(d)
+                d_job_id = getattr(d, "job_id", None)
+                if d_job_id:
+                    if str(d_job_id) == target_job_str:
+                        filtered_decisions.append(d)
+                else:
+                    # Fallback for null job_id: count if it's the native job OR if we are in a job-specific view
+                    # (In get_candidates_for_job, we already know the candidate is either native or cross-matched).
+                    if str(candidate.applied_job_id) == target_job_str:
+                        filtered_decisions.append(d)
+                    elif target_job_id:
+                        # If we are in Job B and job_id is null, we'll assume the decision 
+                        # belongs here if the candidate is in this job's pool
+                        filtered_decisions.append(d)
             hr_decisions = filtered_decisions
 
         latest_decision = (
             max(hr_decisions, key=lambda d: d.decided_at) if hr_decisions else None
         )
+        
+        # Normalize decision string for frontend (e.g., "approve" -> "Approve")
+        status = "Pending"
+        if latest_decision:
+            raw_status = str(latest_decision.decision).lower().strip()
+            if raw_status == "approve":
+                status = "Approve"
+            elif raw_status == "reject":
+                status = "Reject"
+            elif raw_status in ["may be", "maybe"]:
+                status = "May Be"
+            else:
+                status = latest_decision.decision
 
         # Get version history
         version_results = None
@@ -484,6 +544,17 @@ class CandidateAdminService:
                 # Fallback to the first stage if all are pending
                 current_stage = pipeline[0]
 
+        # Force 'pending' status if HR hasn't made an initial decision yet for the first stage
+        is_undecided = latest_decision is None or not latest_decision.decision
+        if is_undecided and current_stage and current_stage.order == 1:
+            current_stage.status = "pending"
+            current_stage.result = "pending"
+            # Update in pipeline list too
+            for p in pipeline:
+                if p.order == 1:
+                    p.status = "pending"
+                    p.result = "pending"
+
         # Job Context Overrides
         mapping_job_id = target_job_id or candidate.applied_job_id
         mapping_job_name = None
@@ -505,10 +576,16 @@ class CandidateAdminService:
         else:
             mapping_job_name = candidate.applied_job.title if candidate.applied_job else None
 
+        def _title(val: str | None) -> str | None:
+            """Format name to Title Case."""
+            if not val:
+                return val
+            return val.strip().title()
+
         return CandidateResponse(
             id=candidate.id,
-            first_name=candidate.first_name,
-            last_name=candidate.last_name,
+            first_name=_title(candidate.first_name),
+            last_name=_title(candidate.last_name),
             email=candidate.email,
             phone=candidate.phone,
             location=location,
@@ -528,11 +605,53 @@ class CandidateAdminService:
             is_parsed=is_parsed,
             processing_status=processing_status,
             processing_error=processing_error,
-            hr_decision=latest_decision.decision if latest_decision else None,
+            hr_decision=status,
             version_results=version_results,
             current_stage=current_stage,
             pipeline=pipeline,
         )
+
+
+    async def delete_candidate_by_identifier(
+        self, db: AsyncSession, identifier: str
+    ) -> bool:
+        """
+        Delete a candidate by ID or Email for testing purposes.
+        """
+        # Try to parse identifier as UUID
+        candidate_id = None
+        try:
+            candidate_id = uuid.UUID(identifier)
+        except ValueError:
+            pass
+
+        if candidate_id:
+            stmt = select(Candidate).where(Candidate.id == candidate_id)
+        else:
+            stmt = select(Candidate).where(Candidate.email == identifier)
+
+        result = await db.execute(stmt)
+        candidate = result.scalar_one_or_none()
+
+        if not candidate:
+            return False
+
+        # Manually delete resume_chunks first (no cascade in DB constraint)
+        from sqlalchemy import text
+        from app.v1.db.models.resumes import Resume
+        resume_ids_result = await db.execute(
+            select(Resume.id).where(Resume.candidate_id == candidate.id)
+        )
+        resume_ids = [row[0] for row in resume_ids_result.all()]
+        if resume_ids:
+            await db.execute(
+                text("DELETE FROM resume_chunks WHERE resume_id = ANY(:ids)"),
+                {"ids": resume_ids}
+            )
+
+        await db.delete(candidate)
+        await db.commit()
+        return True
 
 
 candidate_admin_service = CandidateAdminService()

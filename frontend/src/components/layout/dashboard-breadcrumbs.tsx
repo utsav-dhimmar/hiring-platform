@@ -26,7 +26,9 @@ import {
   Building2,
   ListChecks,
   Layers,
+  ListTodo,
   type LucideIcon,
+  ReceiptText
 } from "lucide-react";
 
 /**
@@ -49,6 +51,9 @@ const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   "recent-uploads": { label: "Recent Uploads", icon: Upload },
   stats: { label: "Statistics", icon: BarChart3 },
   profile: { label: "Profile", icon: UserCog },
+  settings: { label: "Settings", icon: Settings },
+  priorities: { label: "Priorities", icon: ListTodo },
+  prompts: { label: "Prompts", icon: ReceiptText },
   "criteria-stages": { label: "Job Config", icon: Settings },
   criteria: { label: "Job Criteria", icon: ListChecks },
   stages: { label: "Job Stages", icon: Layers },
@@ -64,8 +69,8 @@ function shouldHideSegment(pathnames: string[], index: number) {
   const segment = pathnames[index];
   const nextSegment = pathnames[index + 1];
 
-  // Hide the 'admin' and 'criteria-stages' grouping routes if we are on a child page
-  if ((segment === "admin" || segment === "criteria-stages") && nextSegment) {
+  // Hide and 'criteria-stages' grouping routess if we are on a child page
+  if (((segment === "admin" || segment === "criteria-stages") || segment === "settings") && nextSegment) {
     return true;
   }
 

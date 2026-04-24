@@ -1,7 +1,8 @@
 import uuid
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, func
 from sqlalchemy.orm import selectinload
 
 from app.v1.db.session import get_db
@@ -79,8 +80,23 @@ async def get_cross_job_matches(
     resume_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
 ) -> CrossJobMatchResponse:
-    """Retrieve existing cross-job matches for a resume."""
+    """Retrieve existing cross-job matches for a resume with pagination."""
+    # Verify resume exists and get candidate_id
+    resume = await db.get(Resume, resume_id)
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume not found",
+        )
+    candidate_id = resume.candidate_id
+
+    # Count total matches for this candidate
+    count_query = select(func.count()).where(CrossJobMatch.candidate_id == candidate_id)
+    total = await db.scalar(count_query)
+
     query = (
         select(CrossJobMatch)
         .options(
@@ -88,21 +104,24 @@ async def get_cross_job_matches(
             selectinload(CrossJobMatch.matched_job).selectinload(Job.stages).selectinload(JobStageConfig.template),
             selectinload(CrossJobMatch.matched_job).selectinload(Job.versions),
         )
-        .where(CrossJobMatch.resume_id == resume_id)
+        .where(CrossJobMatch.candidate_id == candidate_id)
+        .order_by(CrossJobMatch.match_score.desc())
+        .offset(skip)
+        .limit(limit)
     )
 
-    result = await db.execute(query.order_by(CrossJobMatch.match_score.desc()))
+    result = await db.execute(query)
     matches = result.scalars().all()
-    
-    match_dict = {}
+
+    data = []
     for m in matches:
         validated = CrossJobMatchRead.model_validate(m)
         score_val = float(m.match_score) if m.match_score is not None else 0.0
-        thresh_val = float(m.matched_job.passing_threshold) if m.matched_job and m.matched_job.passing_threshold else 65.0
+        thresh_val = float(m.matched_job.passing_threshold) if m.matched_job and m.matched_job.passing_threshold else 70.0
         validated.pass_fail = "passed" if score_val >= thresh_val else "failed"
-        match_dict[m.matched_job_id] = validated
+        data.append(validated)
 
     return CrossJobMatchResponse(
-        resume_id=resume_id,
-        matches=match_dict
+        data=data,
+        total=total or 0,
     )
