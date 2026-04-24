@@ -48,13 +48,17 @@ const AdminCandidateSearch = () => {
   const [selectedCandidate, setSelectedCandidate] =
     useState<CandidateResponse | null>(null);
 
-  // Active filters managed locally now
   const [filters, setFilters] = useState<CandidateActiveFilters>({
     job: [],
     status: [],
     city: [],
     hr_decision: [],
   });
+
+  const handleFiltersChange = useCallback((newFilters: React.SetStateAction<CandidateActiveFilters>) => {
+    setFilters(newFilters);
+    setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
+  }, []);
 
   const fetchCandidatesFn = useCallback(async () => {
     const skip = pagination.pageIndex * pagination.pageSize;
@@ -150,22 +154,7 @@ const AdminCandidateSearch = () => {
     }
   }, [jobId, fetchJob]);
 
-  /**
-   * When the search term changes, either reset page to 0 (the pagination effect
-   * below will then fire the fetch) OR — if already on page 0 — call fetch
-   * directly. This prevents the double-fetch that occurred when debouncedSearchQuery
-   * was in both this reset effect AND the general fetch effect below.
-   */
-  useEffect(() => {
-    if (pagination.pageIndex !== 0) {
-      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-    } else {
-      fetchCandidates();
-    }
-    // fetchCandidates is stable (ref-based inside useAdminData); pagination.pageIndex
-    // is read only to branch — adding it would create a dependency cycle.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.q]);
+
 
   // Refetch when pagination or filters change (filters.q handled separately above).
   useEffect(() => {
@@ -250,7 +239,7 @@ const AdminCandidateSearch = () => {
           onPaginationChange={setPagination}
           onShowMore={handleShowMore}
           showJobContext={!jobId}
-          onFiltersChange={setFilters}
+          onFiltersChange={handleFiltersChange}
           // onShowAnalysisDetails={handleShowAnalysisDetails}
           onDelete={handleDeleteClick}
         />
