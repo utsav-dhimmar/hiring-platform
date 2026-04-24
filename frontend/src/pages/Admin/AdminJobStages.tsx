@@ -3,7 +3,7 @@ import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2, ArrowUpDown, Plus } from "lucide-react";
+import { Info, Pencil, Trash2, ArrowUpDown, Plus, } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { StageTemplate } from "@/types/stage";
 import { adminStageTemplateService } from "@/apis/admin/stageTemplate";
@@ -115,7 +115,7 @@ const AdminJobStages = () => {
             className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
             title="Show Details"
           >
-            <Eye className="h-4 w-4" />
+            <Info className="h-4 w-4" />
             <span className="sr-only">Show</span>
           </Button>
           <Button
