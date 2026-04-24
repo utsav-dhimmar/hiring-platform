@@ -11,7 +11,7 @@ import { useToast } from "@/components/shared/ToastProvider";
 import { DataTable } from "@/components/shared/DataTable";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import { CreateDepartmentModal, DeleteModal } from "@/components/modal";
-import { useAdminData } from "@/hooks";
+import { useAdminData, useDebouncedValue } from "@/hooks";
 import { Edit2, Trash2Icon, ArrowUpDown, AlertCircle } from "lucide-react";
 import { extractErrorMessage } from "@/utils/error";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
@@ -30,7 +30,7 @@ const AdminDepartments = () => {
     pageSize: 10,
   });
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search)
   const {
     data: departments,
     total,
@@ -42,13 +42,6 @@ const AdminDepartments = () => {
     { fetchOnMount: false }
   );
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   // Reset to first page when search changes
   useEffect(() => {

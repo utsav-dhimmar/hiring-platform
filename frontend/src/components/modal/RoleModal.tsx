@@ -102,8 +102,10 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
       setFetchingData(true);
       setSubmitError(null);
       try {
+
         const permsData = await adminPermissionService.getAllPermissions();
         setPermissions(permsData.data);
+
 
         if (editRoleId) {
           const roleData = await adminRoleService.getRoleById(editRoleId);
@@ -147,7 +149,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
 
   return (
     <Dialog open={show} onOpenChange={(open) => !open && onHide()}>
-      <DialogContent className="max-w-lg font-sans">
+      <DialogContent className="max-w-lg font-sans h-[550px] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
             {isEditMode ? "Edit Role" : "Create New Role"}
@@ -157,12 +159,12 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
         {submitError && <ErrorDisplay message={submitError} />}
 
         {fetchingData ? (
-          <div className="text-center p-10">
+          <div className="flex-1 flex items-center justify-center p-10">
             <p className="text-muted-foreground animate-pulse font-medium">Loading data...</p>
           </div>
         ) : (
           <Form {...formModal}>
-            <form id="role-form" onSubmit={handleFormSubmit} className="space-y-6">
+            <form id="role-form" onSubmit={handleFormSubmit} className="flex-1 flex flex-col min-h-0 space-y-6">
               <FormField
                 control={control}
                 name="name"
@@ -181,9 +183,9 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
                 )}
               />
 
-              <div className="space-y-3">
+              <div className="flex-1 flex flex-col min-h-0 space-y-3">
                 <FormLabel className="text-md font-semibold">Assign Permissions</FormLabel>
-                <div className="grid grid-cols-1 gap-3 p-4 bg-muted/30 rounded-2xl border border-muted-foreground/10 max-h-[300px] overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 gap-3 p-4 bg-muted/30 rounded-2xl border border-muted-foreground/10 flex-1 overflow-y-auto custom-scrollbar">
                   {permissions.map((permission) => {
                     const isChecked = selectedPermissionIds.includes(permission.id);
                     return (
@@ -230,7 +232,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
             </form>
           </Form>
         )}
-        <DialogFooter className="pt-4 border-t gap-2">
+        <DialogFooter className="pt-4 border-t gap-2 mt-auto">
           <Button
             variant="ghost"
             onClick={onHide}

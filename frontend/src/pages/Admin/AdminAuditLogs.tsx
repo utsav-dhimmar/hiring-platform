@@ -10,7 +10,7 @@ import { DataTable } from "@/components/shared/DataTable";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import PageHeader from "@/components/shared/PageHeader";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
-import { useAdminData } from "@/hooks";
+import { useAdminData, useDebouncedValue } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ const AdminAuditLogs = () => {
   });
   const [searchValue, setSearchValue] = useState("");
 
+  const debouncedSearch = useDebouncedValue(searchValue)
+
   const {
     data: logs,
     total,
@@ -30,21 +32,21 @@ const AdminAuditLogs = () => {
     error,
     fetchData,
   } = useAdminData<AuditLogRead>(
-    () => adminAnalyticsService.getAuditLogs(pageIndex * pageSize, pageSize, searchValue),
+    () => adminAnalyticsService.getAuditLogs(pageIndex * pageSize, pageSize, debouncedSearch),
     { fetchOnMount: false }
   );
 
   // Refetch data when pagination or search changes
   useEffect(() => {
     fetchData();
-  }, [pageIndex, pageSize, searchValue, fetchData]);
+  }, [pageIndex, pageSize, debouncedSearch, fetchData]);
 
   const [overallTotal, setOverallTotal] = useState(0);
   useEffect(() => {
-    if (!searchValue) {
+    if (!debouncedSearch) {
       setOverallTotal(total);
     }
-  }, [total, searchValue]);
+  }, [total, debouncedSearch]);
 
   // Handle search with pagination reset
   const handleSearchChange = (value: string) => {
