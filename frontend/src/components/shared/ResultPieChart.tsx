@@ -46,11 +46,11 @@ export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
       <div className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[200px] w-[300px] px-0"
+          className="mx-auto aspect-square h-[240px] w-[300px] px-0"
         >
           <ResponsiveContainer width="100%" height="100%">
             {hasData ? (
-              <RechartsPieChart>
+              <RechartsPieChart margin={{ top: 10, bottom: 10 }}>
                 <ChartTooltip
                   content={<ChartTooltipContent nameKey="value" hideLabel />}
                 />
