@@ -23,6 +23,7 @@ const CreateJob = lazy(() => import("@/pages/dashboard/CreateJob"));
 const JobCandidates = lazy(() => import("@/pages/dashboard/JobCandidates"));
 const ProfilePage = lazy(() => import("@/pages/Profile"));
 
+
 // Admin pages
 const AdminDashboard = lazy(() => import("@/pages/Admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/pages/Admin/AdminUsers"));
@@ -114,6 +115,7 @@ const AppRoutes = () => {
             }
           />
           <Route path="profile" element={<ProfilePage />} />
+
           {/* Admin Routes */}
           <Route
             path="admin"

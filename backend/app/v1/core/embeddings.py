@@ -136,6 +136,18 @@ class EmbeddingService:
         """
         return self._encode_text(text, JD_INSTRUCTION)
 
+    def encode_transcript(self, text: str) -> list[float]:
+        """Encode interview transcript text into a vector embedding.
+
+        Args:
+            text: Transcript chunk text.
+
+        Returns:
+            Embedding vector.
+        """
+        # Using a default instruction for transcript chunks
+        return self._encode_text(text, "Represent this interview transcript chunk for retrieval: ")
+
     def encode_skill(self, text: str) -> list[float]:
         """Encode skill name/description into a vector embedding.
 
