@@ -17,6 +17,7 @@ import { extractErrorMessage } from "@/utils/error";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
 import { Badge } from "@/components/ui/badge";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
 import { DateDisplay } from "@/components/shared";
@@ -100,21 +101,30 @@ const AdminJobPriorities = () => {
   const renderFormattedError = (error: string | null) => {
     if (!error) return null;
 
-    // Get job names
-    const jobMatch = error.match(/ACTIVE Job\(s\): \[(.*?)\]/);
-    if (!jobMatch) return error;
+    let mainMessage = "";
+    let jobNamesStr = "";
 
-    // Get priority delete main message
-    const mainMessage = error.split(/active job\(s\):/i)[0].trim();
-    // job name [a, b]
-    const jobNamesStr = jobMatch[1];
+    // Try new format: "Cannot delete priority 'P1' because it is assigned to: "Job A", "Job B". Please reassign..."
+    const newFormatMatch = error.match(/because it is assigned to:\s*(.*?)\.\s*Please reassign/i);
+    // Try old format: "ACTIVE Job(s): [Job A, Job B]"
+    const oldFormatMatch = error.match(/active job\(s\): \[(.*?)\]/i);
 
-    // Simple parser for comma-separated job names: [Job A, Job B]
+    if (newFormatMatch) {
+      mainMessage = error.split(/because it is assigned to:/i)[0].trim();
+      jobNamesStr = newFormatMatch[1];
+    } else if (oldFormatMatch) {
+      mainMessage = error.split(/active job\(s\):/i)[0].trim();
+      jobNamesStr = oldFormatMatch[1];
+    } else {
+      return error;
+    }
+
+    // Simple parser for comma-separated job names
     const jobNames = jobNamesStr
       .split(",")
       .map((name) => {
         let trimmed = name.trim();
-        // remove quotes if they exist (for robustness)
+        // remove quotes or brackets if they exist (for robustness)
         if (
           (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
           (trimmed.startsWith('"') && trimmed.endsWith('"'))
@@ -139,7 +149,7 @@ const AdminJobPriorities = () => {
           ))}
         </div>
         <p className="text-xs text-muted-foreground pl-6 italic">
-          Please deactivate or remove this priority from these jobs before deleting.
+          Please reassign or remove from these jobs before deleting.
         </p>
       </div>
     );
@@ -222,24 +232,44 @@ const AdminJobPriorities = () => {
       cell: ({ row }) => (
         <div className="flex gap-2 justify-end">
           <PermissionGuard permissions={PERMISSIONS.ADMIN_ACCESS} hideWhenDenied>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleEditClick(row.original)}
-              className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
+            <HoverCard>
+              <HoverCardTrigger
+                render={(props) => (
+                  <Button
+                    {...props}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditClick(row.original)}
+                    className="h-9 w-9 p-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors flex items-center justify-center shrink-0"
+                  >
+                    <Edit2 className="h-4 w-4 shrink-0" />
+                  </Button>
+                )}
+              />
+              <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                <div className="text-sm font-semibold">Edit Priority</div>
+              </HoverCardContent>
+            </HoverCard>
           </PermissionGuard>
           <PermissionGuard permissions={PERMISSIONS.ADMIN_ACCESS} hideWhenDenied>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteClick(row.original)}
-              className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors"
-            >
-              <Trash2Icon className="h-4 w-4" />
-            </Button>
+            <HoverCard>
+              <HoverCardTrigger
+                render={(props) => (
+                  <Button
+                    {...props}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteClick(row.original)}
+                    className="h-9 w-9 p-0 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors flex items-center justify-center shrink-0"
+                  >
+                    <Trash2Icon className="h-4 w-4 shrink-0" />
+                  </Button>
+                )}
+              />
+              <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                <div className="text-sm font-semibold text-destructive">Delete Priority</div>
+              </HoverCardContent>
+            </HoverCard>
           </PermissionGuard>
         </div>
       ),
