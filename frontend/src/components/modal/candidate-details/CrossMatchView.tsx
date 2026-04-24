@@ -101,15 +101,13 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
       header: "Job",
       accessorKey: "job_title",
       cell: ({ row }) => (
-        <div className="flex flex-col gap-1">
+        <div className="flex  gap-1">
           <span className="font-bold text-foreground">
             {row.original.matched_job?.title || "Unknown Job"}
           </span>
-          <div>
-            <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
-              {row.original.matched_job?.department_name || "N/A"}
-            </Badge>
-          </div>
+          <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
+            {row.original.matched_job?.department_name || "N/A"}
+          </Badge>
         </div>
       ),
     },
@@ -170,15 +168,13 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     },
     {
       accessorKey: "actions",
-      header: "Actions",
+      header: "View Job",
       cell: ({ row }) => (
         <Button
           variant="ghost"
           size="sm"
-          className="rounded-lg h-8 border border-border"
           onClick={() => handleGoToJob(row.original.matched_job?.title || "", row.original.matched_job_id)}
         >
-          View Job
           <ExternalLink className="ml-2 h-3.5 w-3.5" />
         </Button>
       )

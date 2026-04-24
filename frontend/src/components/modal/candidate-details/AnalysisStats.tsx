@@ -34,7 +34,7 @@ export function AnalysisStats({
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
       <div className="flex items-center gap-2 sm:gap-3">
-        <span className="text-sm font-bold uppercase text-muted-foreground  whitespace-nowrap">
+        <span className="text-sm font-bold text-muted-foreground  whitespace-nowrap">
           Match Percentage
         </span>
         <span className="text-sm font-semibold">
@@ -45,7 +45,7 @@ export function AnalysisStats({
       <div className="h-4 w-px bg-muted-foreground/20" />
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <span className="text-sm font-bold uppercase text-muted-foreground  whitespace-nowrap">
+        <span className="text-sm font-bold text-muted-foreground  whitespace-nowrap">
           Result
         </span>
         <Badge
@@ -78,7 +78,7 @@ export function AnalysisStats({
       <div
         className={`flex items-center gap-2 rounded-lg py-1 px-2 transition-all outline-none `}
       >
-        <span className="text-sm font-bold uppercase text-muted-foreground  whitespace-nowrap">
+        <span className="text-sm font-bold text-muted-foreground  whitespace-nowrap">
           Analysis Version
         </span>
         <span className="text-sm font-semibold">

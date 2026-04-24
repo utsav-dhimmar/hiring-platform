@@ -17,6 +17,13 @@ export const useJobCandidates = (
   jobSlug: string | undefined,
   pageIndex = 0,
   pageSize = 10,
+  externalFilters?: {
+    query?: string;
+    hr_decision?: string[];
+    start_date?: Date;
+    end_date?: Date;
+    activity_session?: string[];
+  }
 ) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,8 +46,10 @@ export const useJobCandidates = (
     jobStateRef.current = job;
   }, [job]);
 
-  // Extract filters from searchParams
+  // Extract filters from searchParams or use externalFilters
   const filters = useMemo(() => {
+    if (externalFilters) return externalFilters;
+
     const start_date = searchParams.get("start_date");
     const end_date = searchParams.get("end_date");
 
@@ -49,8 +58,9 @@ export const useJobCandidates = (
       hr_decision: searchParams.getAll("hr_decision"),
       start_date: start_date ? new Date(start_date) : undefined,
       end_date: end_date ? new Date(end_date) : undefined,
+      activity_session: searchParams.getAll("activity_session"),
     };
-  }, [searchParams]);
+  }, [searchParams, externalFilters]);
 
   const fetchData = useCallback(
     async (isPolling = false) => {
@@ -91,7 +101,10 @@ export const useJobCandidates = (
           const [jobData, candidatesResponse, statsData] = await Promise.all([
             jobService.getJob(id),
             jobService.getJobCandidates(id, jdVersion, skip, limit, filters),
-            jobService.getJobStats(id, { start_date: filters.start_date, end_date: filters.end_date }),
+            jobService.getJobStats(id, {
+              start_date: filters.start_date,
+              end_date: filters.end_date,
+            }),
           ]);
           setJob(jobData);
           setCandidates(candidatesResponse.data || []);
@@ -222,6 +235,13 @@ export const useJobCandidates = (
     return new Date(Math.min(...dates));
   }, [candidates]);
 
+  const activitySession = useMemo(() => {
+    if (!job?.activity_sessions) return [];
+    const map = new Map<number, { start_date: string; end_date: string }>();
+    job.activity_sessions.forEach((s) => map.set(s.session_id, { start_date: s.start_date, end_date: s.end_date || "" }));
+    return Array.from(map);
+  }, [job]);
+
   const {
     showModal: showDeleteModal,
     handleDeleteClick,
@@ -279,5 +299,6 @@ export const useJobCandidates = (
     isDeleting,
     deleteError,
     deleteMessage,
+    activitySession
   };
 };

@@ -37,7 +37,7 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
     const safeProgress = Math.min(Math.max(priorityTimeline.progress_pct, 0), 100);
     // const safeProgress = Math.min(Math.max(tempP, 0), 100);
     return (
-        <div className="w-full h-full flex flex-col justify-between p-1">
+        <div className="md:w-[800px] h-56 flex flex-col justify-between p-1 sm:w-full w-[800px]">
             {/* Header Info */}
             <div className="flex items-center justify-between mb-4">
                 <div className="space-y-1">
@@ -45,7 +45,7 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
                         <Timer className="w-5 h-5 text-primary" />
                         {priorityTimeline.name}
                     </h5>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-md">
                             <Calendar className="w-3.5 h-3.5 text-primary/60" />
                             <DateDisplay date={priorityTimeline.start_date} />
@@ -72,10 +72,6 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
             <div className="relative group">
                 <div className="flex justify-between items-end mb-2">
                     <span className="text-[10px] font-black text-primary uppercase tracking-widest">Job Velocity</span>
-                    <span className="text-xl font-black text-foreground tracking-tighter">
-                        {priorityTimeline.progress_pct}%
-                        {/* {tempP}% */}
-                    </span>
                 </div>
                 <div className="h-4 w-full bg-muted rounded-full overflow-hidden relative shadow-inner">
                     <div
@@ -93,24 +89,24 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
             {/* Stats Footer */}
             <div className="grid grid-cols-3 gap-3 mt-4">
                 <div className="rounded-2xl p-2 text-center space-y-0.5 border transition-colors ">
-                    <p className="text-xs font-black  uppercase tracking-widest opacity-70">Total Days</p>
+                    <p className="text-xs font-black  tracking-widest opacity-70">Total Days</p>
                     <div className="flex items-baseline justify-center gap-0.5">
                         <p className="text-xl font-black text-foreground">{priorityTimeline.days_total}</p>
-                        <p className="text-xs font-bold uppercase">Days</p>
+                        <p className="text-xs font-bold ">Days</p>
                     </div>
                 </div>
                 <div className="rounded-2xl p-2 text-center space-y-0.5 border transition-colors ">
-                    <p className="text-xs font-black uppercase tracking-widest opacity-70">Elapsed</p>
+                    <p className="text-xs font-black  tracking-widest opacity-70">Elapsed</p>
                     <div className="flex items-baseline justify-center gap-0.5">
                         <p className="text-xl font-black ">{priorityTimeline.days_elapsed}</p>
-                        <p className="text-xs font-bold uppercase">Days</p>
+                        <p className="text-xs font-bold ">Days</p>
                     </div>
                 </div>
                 <div className="rounded-2xl p-2 text-center space-y-0.5 border transition-colors">
-                    <p className="text-xs font-black  uppercase tracking-widest opacity-70">Remaining</p>
+                    <p className="text-xs font-black tracking-widest opacity-70">Remaining</p>
                     <div className="flex items-baseline justify-center gap-0.5">
                         <p className="text-xl font-black ">{priorityTimeline.days_remaining}</p>
-                        <p className="text-xs font-bold uppercase">Days</p>
+                        <p className="text-xs font-bold ">Days</p>
                     </div>
                 </div>
             </div>

@@ -117,6 +117,7 @@ const jobService = {
       jd_versions?: number[];
       start_date?: Date;
       end_date?: Date;
+      activity_session?: string[];
     },
   ): Promise<CandidateAnalysisResponse> => {
     const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {

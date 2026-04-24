@@ -1,4 +1,4 @@
-import { Pie, PieChart as RechartsPieChart } from "recharts";
+import { Pie, PieChart as RechartsPieChart, ResponsiveContainer } from "recharts";
 import {
   ChartContainer,
   ChartTooltip,
@@ -31,47 +31,56 @@ export function ResultPieChart({ passCount, failCount }: ResultPieChartProps) {
 
   const total = passCount + failCount;
   const hasData = total > 0;
+  if (data.length === 0) {
+    return (
+      <div className="w-full h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-3xl">
+        <div className="text-center space-y-2">
+          <p className="text-muted-foreground font-medium italic">No processing data available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full w-full animate-in fade-in duration-700">
+    <div className="flex flex-col   animate-in fade-in duration-700">
       <div className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[200px] px-0"
+          className="mx-auto aspect-square max-h-[200px] w-[300px] px-0"
         >
-          {hasData ? (
-            <RechartsPieChart>
-              <ChartTooltip
-                content={<ChartTooltipContent nameKey="value" hideLabel />}
-              />
-              <Pie
-                data={data}
-                dataKey="value"
-                nameKey="name"
-                labelLine={false}
-                label={({ payload, ...props }) => {
-                  return (
-                    <text
-                      cx={props.cx}
-                      cy={props.cy}
-                      x={props.x}
-                      y={props.y}
-                      textAnchor={props.textAnchor}
-                      dominantBaseline={props.dominantBaseline}
-                      fill="var(--foreground)"
-                      className="text-[10px] font-bold sm:text-xs"
-                    >
-                      {payload.value}
-                    </text>
-                  );
-                }}
-              />
-            </RechartsPieChart>
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm italic">
-              No processing data available
-            </div>
-          )}
+          <ResponsiveContainer width="100%" height="100%">
+            {hasData ? (
+              <RechartsPieChart>
+                <ChartTooltip
+                  content={<ChartTooltipContent nameKey="value" hideLabel />}
+                />
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  labelLine={false}
+                  label={({ payload, ...props }) => {
+                    return (
+                      <text
+                        cx={props.cx}
+                        cy={props.cy}
+                        x={props.x}
+                        y={props.y}
+                        textAnchor={props.textAnchor}
+                        dominantBaseline={props.dominantBaseline}
+                        fill="var(--foreground)"
+                        className="text-xs font-bold sm:text-xs"
+                      >
+                        {payload.value}
+                      </text>
+                    );
+                  }}
+                />
+              </RechartsPieChart>
+            ) : (
+              null
+            )}
+          </ResponsiveContainer>
         </ChartContainer>
       </div>
 

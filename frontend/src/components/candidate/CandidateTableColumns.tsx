@@ -219,11 +219,11 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
 
           return (
             <div className="flex flex-col gap-1 min-w-[120px]">
-              <span className="font-semibold text-sm text-foreground truncate max-w-[150px]" title={stage.template_name}>
+              <span className="font-semibold text-sm text-foreground text-wrap max-w-[150px]" title={stage.template_name}>
                 {stage.template_name}
               </span>
               <StatusBadge
-                status={stage.status}
+                status={stage.status.replace('ed', '')}
                 className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
               />
             </div>

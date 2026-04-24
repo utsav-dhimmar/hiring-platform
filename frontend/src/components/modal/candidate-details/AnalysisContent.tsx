@@ -127,16 +127,18 @@ export function AnalysisContent({
                     </li>
                   ))}
                   {analysis.missing_skills.length > 4 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs font-bold  hover:bg-black/5 dark:hover:bg-white/5 mt-2 border border-black dark:border-white"
-                      onClick={() => setShowAllSkills(!showAllSkills)}
-                    >
-                      {showAllSkills
-                        ? "Show Less"
-                        : `Show ${analysis.missing_skills.length - 4} More`}
-                    </Button>
+                    <div className="flex items-center justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-[50%] text-xs font-bold  hover:bg-black/5 dark:hover:bg-white/5 mt-2 border border-black dark:border-white"
+                        onClick={() => setShowAllSkills(!showAllSkills)}
+                      >
+                        {showAllSkills
+                          ? "Show Less"
+                          : `Show ${analysis.missing_skills.length - 4} More`}
+                      </Button>
+                    </div>
                   )}
                 </>
               ) : (
