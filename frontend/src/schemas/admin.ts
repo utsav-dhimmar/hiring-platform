@@ -269,7 +269,7 @@ export type DepartmentUpdateFormValues = z.infer<typeof departmentUpdateSchema>;
 
 const jobPriorityBaseSchema = z.object({
   /** Name of the priority (minimum 2 characters) */
-  name: nameSchema(2, "Priority name"),
+  // name: nameSchema(2, "Priority name"),
   /** Duration in days (minimum 1 day) */
   duration_days: z.coerce.number({
     error: "Duration is required",

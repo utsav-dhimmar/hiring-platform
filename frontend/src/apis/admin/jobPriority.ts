@@ -31,7 +31,7 @@ export const adminJobPriorityService = {
    * @param data - The priority data (name, duration_days)
    * @returns Promise resolving to the created priority
    */
-  createPriority: async (data: { name: string; duration_days: number }): Promise<JobPriorityRead> => {
+  createPriority: async (data: { duration_days: number }): Promise<JobPriorityRead> => {
     const response = await client.post<JobPriorityRead>("/job-priorities", data);
     return response.data;
   },
@@ -44,7 +44,7 @@ export const adminJobPriorityService = {
    */
   updatePriority: async (
     id: string,
-    data: { name?: string; duration_days?: number }
+    data: { duration_days?: number }
   ): Promise<JobPriorityRead> => {
     const response = await client.patch<JobPriorityRead>(`/job-priorities/${id}`, data);
     return response.data;
