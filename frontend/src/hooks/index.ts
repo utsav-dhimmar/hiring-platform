@@ -7,3 +7,4 @@ export * from "@/hooks/useAdminData";
 export * from "@/hooks/useDeleteConfirmation";
 export * from "@/hooks/useFormModal";
 export * from "@/hooks/use-outside-click";
+export * from "@/hooks/useDebounced";

@@ -18,7 +18,7 @@ import {
   // CreateUserModal,
   DeleteModal
 } from "@/components/modal";
-import { useAdminData, useDeleteConfirmation } from "@/hooks";
+import { useAdminData, useDebouncedValue, useDeleteConfirmation } from "@/hooks";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
 import { UserTableFilters } from "./components/UserTableFilters";
@@ -65,15 +65,8 @@ const AdminUsers = () => {
     minDate,
   } = useUserTableFilters(users);
 
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(searchFilter)
   const { user: currentUser } = useAuth();
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchFilter);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchFilter]);
 
   // Reset to first page when search changes
   useEffect(() => {

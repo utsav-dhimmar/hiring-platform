@@ -10,6 +10,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ArrowUpDown, Check, Clipboard, FileText, Info } from "lucide-react";
@@ -81,14 +82,24 @@ const AdminPrompts = () => {
             id: "actions",
             cell: ({ row }) => (
                 <div className="flex justify-end">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleViewClick(row.original)}
-                        className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
-                    >
-                        <Info className="h-4 w-4" />
-                    </Button>
+                    <HoverCard>
+                        <HoverCardTrigger
+                            render={(props) => (
+                                <Button
+                                    {...props}
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleViewClick(row.original)}
+                                    className="h-9 w-9 p-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors flex items-center justify-center shrink-0"
+                                >
+                                    <Info className="h-4 w-4 shrink-0" />
+                                </Button>
+                            )}
+                        />
+                        <HoverCardContent side="top" className="w-auto p-2 min-w-0">
+                            <div className="text-sm font-semibold">View Prompt</div>
+                        </HoverCardContent>
+                    </HoverCard>
                 </div>
             ),
         },

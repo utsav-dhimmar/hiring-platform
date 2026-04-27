@@ -33,10 +33,8 @@ export function JobActivityModal({ isOpen, onOpenChange, job, onSessionClick }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="flex w-[calc(100vw-1rem)]  flex-col sm:w-[92vw] sm:max-w-[92vw] lg:max-w-150 max-h-[calc(100vh-1rem)] sm:max-h-[92vh] p-0 overflow-hidden rounded-[1.75rem] sm:rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl h-[650px]
-      max-w-150
-      
-      ">
+      <DialogContent className="flex w-[calc(100vw-1rem)] flex-col sm:w-[92vw] sm:max-w-[92vw] lg:max-w-150 max-h-[calc(100vh-1rem)] sm:max-h-[92vh] p-0 overflow-hidden rounded-[1.75rem] sm:rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl h-[650px]
+      max-w-[900px]">
         <div className="p-6 pb-2 shrink-0">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-1">

@@ -40,8 +40,7 @@ const AdminCandidateSearch = () => {
   });
 
   const [job, setJob] = useState<JobRead | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeSearch, setActiveSearch] = useState("");
+
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Detail Modal State
@@ -49,13 +48,17 @@ const AdminCandidateSearch = () => {
   const [selectedCandidate, setSelectedCandidate] =
     useState<CandidateResponse | null>(null);
 
-  // Active filters managed locally now
   const [filters, setFilters] = useState<CandidateActiveFilters>({
     job: [],
     status: [],
     city: [],
     hr_decision: [],
   });
+
+  const handleFiltersChange = useCallback((newFilters: React.SetStateAction<CandidateActiveFilters>) => {
+    setFilters(newFilters);
+    setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
+  }, []);
 
   const fetchCandidatesFn = useCallback(async () => {
     const skip = pagination.pageIndex * pagination.pageSize;
@@ -66,11 +69,13 @@ const AdminCandidateSearch = () => {
       total: 0,
     };
 
+    const currentSearchQuery = filters.q || "";
+
     if (jobId) {
-      if (activeSearch.trim()) {
+      if (currentSearchQuery.trim()) {
         result = await adminCandidateService.searchJobCandidates(
           jobId,
-          activeSearch,
+          currentSearchQuery,
           skip,
           limit,
           filters // job ID is already in path, but others (status, city, etc) are useful
@@ -101,14 +106,14 @@ const AdminCandidateSearch = () => {
     } else {
       // Global search - optional query to show all candidates by default
       result = await adminCandidateService.searchCandidates(
-        activeSearch.trim() || undefined,
+        currentSearchQuery.trim() || undefined,
         skip,
         limit,
         filters
       );
     }
     return result;
-  }, [jobId, activeSearch, pagination.pageIndex, pagination.pageSize, filters]);
+  }, [jobId, pagination.pageIndex, pagination.pageSize, filters]);
 
   const {
     data: candidates,
@@ -149,32 +154,9 @@ const AdminCandidateSearch = () => {
     }
   }, [jobId, fetchJob]);
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setActiveSearch(searchQuery);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
-  /**
-   * When the search term changes, either reset page to 0 (the pagination effect
-   * below will then fire the fetch) OR — if already on page 0 — call fetch
-   * directly. This prevents the double-fetch that occurred when activeSearch
-   * was in both this reset effect AND the general fetch effect below.
-   */
-  useEffect(() => {
-    if (pagination.pageIndex !== 0) {
-      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-    } else {
-      fetchCandidates();
-    }
-    // fetchCandidates is stable (ref-based inside useAdminData); pagination.pageIndex
-    // is read only to branch — adding it would create a dependency cycle.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSearch]);
 
-  // Refetch when pagination or filters change (activeSearch handled separately above).
+  // Refetch when pagination or filters change (filters.q handled separately above).
   useEffect(() => {
     fetchCandidates();
   }, [pagination.pageIndex, pagination.pageSize, filters, fetchCandidates]);
@@ -217,7 +199,6 @@ const AdminCandidateSearch = () => {
     <AppPageShell width="wide" gap="tight">
       <PageHeader
         title={jobId ? `Candidates for ${job?.title || "Job"}` : "Candidate Search"}
-
         actions={
           jobId && (
             <>
@@ -250,21 +231,19 @@ const AdminCandidateSearch = () => {
           <JobCandidatesSkeleton count={pagination.pageSize} />
         </div>
       ) : (
-        <div className={loading ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
-          <CandidateSearchTable
-            candidates={candidates}
-            total={total}
-            pagination={pagination}
-            onPaginationChange={setPagination}
-            onShowMore={handleShowMore}
-            nameFilter={searchQuery}
-            onNameFilterChange={setSearchQuery}
-            showJobContext={!jobId}
-            onFiltersChange={setFilters}
-            // onShowAnalysisDetails={handleShowAnalysisDetails}
-            onDelete={handleDeleteClick}
-          />
-        </div>
+        // <div className={loading ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
+        <CandidateSearchTable
+          candidates={candidates}
+          total={total}
+          pagination={pagination}
+          onPaginationChange={setPagination}
+          onShowMore={handleShowMore}
+          showJobContext={!jobId}
+          onFiltersChange={handleFiltersChange}
+          // onShowAnalysisDetails={handleShowAnalysisDetails}
+          onDelete={handleDeleteClick}
+        />
+        // </div>
       )}
 
       {/* Candidate Detail Modal */}

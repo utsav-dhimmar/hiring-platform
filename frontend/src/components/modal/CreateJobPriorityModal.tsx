@@ -35,7 +35,7 @@ interface CreateJobPriorityModalProps {
 }
 
 const DEFAULT_PRIORITY_VALUES: JobPriorityCreateFormValues = {
-  name: "",
+  // name: "",
   duration_days: 7,
 };
 
@@ -49,7 +49,7 @@ const CreateJobPriorityModal = ({
 
   const mapItemToValues = useCallback(
     (p: JobPriorityRead): JobPriorityCreateFormValues => ({
-      name: p.name,
+      // name: p.name,
       duration_days: p.duration_days,
     }),
     [],
@@ -90,7 +90,7 @@ const CreateJobPriorityModal = ({
 
         <Form {...formModal}>
           <form id="create-priority-form" onSubmit={handleFormSubmit} className="space-y-4">
-            <FormField
+            {/* <FormField
               control={control}
               name="name"
               render={({ field }) => (
@@ -102,7 +102,7 @@ const CreateJobPriorityModal = ({
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
 
             <FormField
               control={control}

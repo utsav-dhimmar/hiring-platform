@@ -11,7 +11,7 @@ import { DataTable } from "@/components/shared/DataTable";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import PageHeader from "@/components/shared/PageHeader";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
-import { useAdminData } from "@/hooks";
+import { useAdminData, useDebouncedValue } from "@/hooks";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ const AdminRecentUploads = () => {
     pageSize: 10,
   });
   const [searchValue, setSearchValue] = useState("");
-
+  const debouncedSearch = useDebouncedValue(searchValue)
   const {
     data: uploads,
     total,
@@ -41,7 +41,7 @@ const AdminRecentUploads = () => {
     error,
     fetchData,
   } = useAdminData<RecentUploadRead>(
-    () => adminAnalyticsService.getRecentUploads(pageIndex * pageSize, pageSize, searchValue),
+    () => adminAnalyticsService.getRecentUploads(pageIndex * pageSize, pageSize, debouncedSearch),
     { fetchOnMount: false },
 
   );
@@ -49,14 +49,14 @@ const AdminRecentUploads = () => {
   // Refetch data when pagination or search changes
   useEffect(() => {
     fetchData();
-  }, [pageIndex, pageSize, searchValue, fetchData]);
+  }, [pageIndex, pageSize, debouncedSearch, fetchData]);
 
   const [overallTotal, setOverallTotal] = useState(0);
   useEffect(() => {
     if (!searchValue) {
       setOverallTotal(total);
     }
-  }, [total, searchValue]);
+  }, [total, debouncedSearch]);
 
   // Handle search with pagination reset
   const handleSearchChange = (value: string) => {

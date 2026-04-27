@@ -1,6 +1,14 @@
 import client from "@/apis/client";
 import type { JobPriorityRead } from "@/types/admin";
 
+
+// export type PriorityResponse = {
+//   data: JobPriorityRead[];
+//   // total: number;
+// }
+
+export type PriorityResponse = JobPriorityRead[];
+
 /**
  * Service for managing job priorities in the admin panel.
  */
@@ -13,11 +21,11 @@ export const adminJobPriorityService = {
    * @returns Promise resolving to job priorities and total count
    */
   getAllPriorities: async (
-    skip: number = 0,
-    limit: number = 100,
-    search?: string
-  ): Promise<{ data: JobPriorityRead[]; total: number }> => {
-    const response = await client.get<{ data: JobPriorityRead[]; total: number }>(
+    skip: number = 0, // api has not support for pagination for now
+    limit: number = 100, // api has not support for pagination for now
+    search?: string // api has not support for pagination for now
+  ): Promise<PriorityResponse> => {
+    const response = await client.get<PriorityResponse>(
       "/job-priorities",
       {
         params: { skip, limit, q: search ? search : undefined },
@@ -31,7 +39,7 @@ export const adminJobPriorityService = {
    * @param data - The priority data (name, duration_days)
    * @returns Promise resolving to the created priority
    */
-  createPriority: async (data: { name: string; duration_days: number }): Promise<JobPriorityRead> => {
+  createPriority: async (data: { duration_days: number }): Promise<JobPriorityRead> => {
     const response = await client.post<JobPriorityRead>("/job-priorities", data);
     return response.data;
   },
@@ -44,7 +52,7 @@ export const adminJobPriorityService = {
    */
   updatePriority: async (
     id: string,
-    data: { name?: string; duration_days?: number }
+    data: { duration_days?: number }
   ): Promise<JobPriorityRead> => {
     const response = await client.patch<JobPriorityRead>(`/job-priorities/${id}`, data);
     return response.data;

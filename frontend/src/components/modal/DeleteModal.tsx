@@ -69,7 +69,11 @@ const DeleteModal = ({
         <div>
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-3">
-              <div className="text-sm text-destructive">{error}</div>
+              {typeof error === "string" ? (
+                <div className="text-sm text-destructive">{error}</div>
+              ) : (
+                error
+              )}
             </div>
           )}
           {showFooterButtons && <p className="mb-0">{message}</p>}
