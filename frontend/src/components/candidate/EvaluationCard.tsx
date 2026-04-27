@@ -55,7 +55,7 @@ export function EvaluationCard({
             <div className="flex flex-col">
               <span className="font-bold uppercase text-muted-foreground tracking-tighter">Confidence</span>
               <span className="text-sm font-black text-primary">
-                {confidence.toFixed(2)}
+                {confidence}
               </span>
             </div>
           </div>

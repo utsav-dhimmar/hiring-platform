@@ -15,6 +15,10 @@ interface StageControlsProps {
   stageId?: string;
   /** Associated job */
   job: Job;
+  /** Whether a transcript is already uploaded */
+  isUploaded?: boolean;
+  /** Callback on successful transcript upload */
+  onSuccess?: () => void;
 }
 
 /**
@@ -27,7 +31,9 @@ export function StageControls({
   onStageChange,
   isLoadingStages,
   stageId,
-  job
+  job,
+  isUploaded,
+  onSuccess
 }: StageControlsProps) {
   return (
     <div className="flex flex-col border-b bg-background/50 backdrop-blur-md sticky top-0 z-10">
@@ -53,6 +59,8 @@ export function StageControls({
           stageId={stageId}
           className="max-w-xs"
           job={job}
+          disabled={isUploaded}
+          onSuccess={onSuccess}
         />
       </div>
     </div>

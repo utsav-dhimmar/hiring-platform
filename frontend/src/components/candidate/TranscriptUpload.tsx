@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/error";
-// import { transcriptService } from "@/apis/transcript";
+import { transcriptService } from "@/apis/transcript";
 import { Input } from "../ui/input";
 import type { Job } from "@/types/job";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ interface TranscriptUploadProps {
   label?: string;
   /** Associated job */
   job: Job;
+  /** Whether the upload is disabled */
+  disabled?: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ export function TranscriptUpload({
   onSuccess,
   className,
   label = "Transcribe",
+  disabled,
 }: TranscriptUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -61,10 +64,7 @@ export function TranscriptUpload({
 
     setIsUploading(true);
     try {
-      const response = {
-        message: "Transcript uploaded successfully!"
-      }
-      // const response = await transcriptService.uploadTranscription(stageId, file);
+      const response = await transcriptService.uploadTranscript(stageId, file);
       toast.success(response.message || "Transcript uploaded successfully!");
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -85,7 +85,7 @@ export function TranscriptUpload({
         type="file"
         accept={rawExtensions}
         onChange={handleFileChange}
-        disabled={isUploading}
+        disabled={isUploading || disabled}
       />
       {/* <FieldDescription>Upload an interview transcript ({rawExtensions})</FieldDescription> */}
     </Field>

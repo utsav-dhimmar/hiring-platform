@@ -23,6 +23,7 @@ const CreateJob = lazy(() => import("@/pages/dashboard/CreateJob"));
 const JobCandidates = lazy(() => import("@/pages/dashboard/JobCandidates"));
 const ProfilePage = lazy(() => import("@/pages/Profile"));
 const CandidatesStages = lazy(() => import("@/pages/dashboard/CandidatesStages"));
+const TranscriptPage = lazy(() => import("@/pages/dashboard/TranscriptPage"));
 
 // Admin pages (lazy-loaded for bundle size optimization)
 const AdminDashboard = lazy(() => import("@/pages/Admin/AdminDashboard"));
@@ -123,6 +124,14 @@ const AppRoutes = () => {
             element={
               <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
                 <CandidatesStages />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="transcripts/:candidateName"
+            element={
+              <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
+                <TranscriptPage />
               </RoleRoute>
             }
           />

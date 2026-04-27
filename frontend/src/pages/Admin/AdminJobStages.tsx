@@ -12,6 +12,12 @@ import { StageDeleteDialog } from "@/components/admin/StageDeleteDialog";
 import { StageDetailDialog } from "@/components/admin/StageDetailDialog";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "@/utils/slug";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+
 
 /**
  * Admin page for managing job stage templates.
@@ -108,36 +114,56 @@ const AdminJobStages = () => {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleShow(row.original)}
-            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-            title="Show Details"
-          >
-            <Info className="h-4 w-4" />
-            <span className="sr-only">Show</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleEdit(row.original)}
-            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-            title="Edit Template"
-          >
-            <Pencil className="h-4 w-4" />
-            <span className="sr-only">Edit</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleDeleteClick(row.original)}
-            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-            title="Delete Template"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Delete</span>
-          </Button>
+          <HoverCard  >
+            <HoverCardTrigger>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleShow(row.original)}
+                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+              >
+                <Info className="h-4 w-4" />
+                <span className="sr-only">Show</span>
+              </Button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-fit px-3 py-1.5 text-xs font-medium" side="top">
+              View Details
+            </HoverCardContent>
+          </HoverCard>
+
+          <HoverCard  >
+            <HoverCardTrigger>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleEdit(row.original)}
+                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit</span>
+              </Button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-fit px-3 py-1.5 text-xs font-medium" side="top">
+              Edit Template
+            </HoverCardContent>
+          </HoverCard>
+
+          <HoverCard  >
+            <HoverCardTrigger>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDeleteClick(row.original)}
+                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+              </Button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-fit px-3 py-1.5 text-xs font-medium" side="top">
+              Delete Template
+            </HoverCardContent>
+          </HoverCard>
         </div>
       ),
     },

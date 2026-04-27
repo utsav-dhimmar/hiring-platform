@@ -18,11 +18,11 @@ import {
     Badge,
 } from "@/components";
 import { useWatch } from "react-hook-form";
-// import { adminStageTemplateService } from "@/apis/admin/stageTemplate";
-import {
-    CRITERIA_MOCK_DATA,
-    // type CriteriaMock
-} from "@/constants/admin";
+import { adminStageTemplateService } from "@/apis/admin/stageTemplate";
+import { adminCriteriaService } from "@/apis/admin/criteria";
+import type { CriterionRead } from "@/types/admin";
+import type { StageTemplate } from "@/types/stage";
+import { slugify } from "@/utils/slug";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/shared/ToastProvider";
 import AppPageShell from "@/components/shared/AppPageShell";
@@ -44,6 +44,8 @@ export default function AdminJobStageForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [criteriaSearch, setCriteriaSearch] = useState("");
+    const [criteria, setCriteria] = useState<CriterionRead[]>([]);
+    const [isLoadingCriteria, setIsLoadingCriteria] = useState(true);
 
     const form = useForm<StageTemplateCreateFormValues>({
         resolver: zodResolver(stageTemplateCreateSchema) as any,
@@ -63,31 +65,65 @@ export default function AdminJobStageForm() {
         defaultValue: { criteria_ids: [], is_active: true },
     });
 
-    const selectedCriteriaIds = (defaultConfig?.criteria_ids as number[]) || [];
+    const selectedCriteriaIds = (defaultConfig?.criteria_ids as string[]) || [];
+
+    useEffect(() => {
+        const fetchCriteria = async () => {
+            try {
+                const data = await adminCriteriaService.getAllCriteria();
+                setCriteria(data);
+            } catch (error) {
+                console.error("Failed to fetch criteria:", error);
+                toast.error("Failed to load evaluation criteria");
+            } finally {
+                setIsLoadingCriteria(false);
+            }
+        };
+        fetchCriteria();
+    }, [toast]);
 
     useEffect(() => {
         const stateData = location.state as any;
 
+        const initializeForm = (template: StageTemplate) => {
+            const { name, description, default_config } = template;
+            form.reset({
+                name,
+                description: description || "",
+                default_config: {
+                    criteria_ids: default_config?.criteria_ids || [],
+                    is_active: default_config?.is_active ?? true
+                }
+            });
+        };
+
         if (slug && slug !== "new") {
             setIsEditMode(true);
             if (stateData?.template) {
-                const { name, description, default_config } = stateData.template;
-                form.reset({
-                    name,
-                    description: description || "",
-                    default_config: {
-                        criteria_ids: default_config?.criteria_ids || [],
-                        is_active: default_config?.is_active ?? true
-                    }
-                });
+                initializeForm(stateData.template);
             } else {
-                // Fetch template by ID or slug if state is missing
-                toast.info("Loading stage details...");
+                // Fetch template by searching all templates (since we only have slug)
+                const fetchTemplate = async () => {
+                    try {
+                        const templates = await adminStageTemplateService.getAllTemplates();
+                        const template = templates.find(t => slugify(t.name) === slug);
+                        if (template) {
+                            initializeForm(template);
+                        } else {
+                            toast.error("Stage template not found");
+                            navigate("/dashboard/admin/criteria-stages/stages");
+                        }
+                    } catch (error) {
+                        console.error("Failed to fetch stage details:", error);
+                        toast.error("Failed to load stage details");
+                    }
+                };
+                fetchTemplate();
             }
         }
-    }, [slug, location.state, form, toast]);
+    }, [slug, location.state, form, toast, navigate]);
 
-    const toggleCriteria = (criteriaId: number) => {
+    const toggleCriteria = (criteriaId: string) => {
         const current = [...selectedCriteriaIds];
         const index = current.indexOf(criteriaId);
         if (index > -1) {
@@ -106,26 +142,30 @@ export default function AdminJobStageForm() {
         });
     };
 
-    const filteredCriteria = CRITERIA_MOCK_DATA.filter((c) =>
-        c.info.name.toLowerCase().includes(criteriaSearch.toLowerCase())
+    const filteredCriteria = criteria.filter((c) =>
+        c.name.toLowerCase().includes(criteriaSearch.toLowerCase())
     );
 
-    const selectedCriteriaData = CRITERIA_MOCK_DATA.filter((c) =>
+    const selectedCriteriaData = criteria.filter((c) =>
         selectedCriteriaIds.includes(c.id)
     );
 
-    const onSubmit = async (_values: StageTemplateCreateFormValues) => {
+    const onSubmit = async (values: StageTemplateCreateFormValues) => {
         setIsSubmitting(true);
         try {
-            // if (isEditMode && location.state?.template?.id) {
-            //     await adminStageTemplateService.updateTemplate(location.state.template.id, values);
-            //     toast.success("Stage template updated successfully");
-            // } else {
-            //     await adminStageTemplateService.createTemplate(values);
-            //     toast.success("Stage template created successfully");
-            // }
-            await Promise.resolve(() => setTimeout(() => { }, 1000))
-            toast.success("Stage template created successfully");
+            if (isEditMode) {
+                const templates = await adminStageTemplateService.getAllTemplates();
+                const template = templates.find(t => slugify(t.name) === slug);
+                if (template) {
+                    await adminStageTemplateService.updateTemplate(template.id, values as any);
+                    toast.success("Stage template updated successfully");
+                } else {
+                    throw new Error("Template not found for update");
+                }
+            } else {
+                await adminStageTemplateService.createTemplate(values as any);
+                toast.success("Stage template created successfully");
+            }
             navigate("/dashboard/admin/criteria-stages/stages");
         } catch (error) {
             console.error("Failed to save stage template:", error);
@@ -241,7 +281,11 @@ export default function AdminJobStageForm() {
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto p-2 border rounded-xl bg-background/50">
-                                    {filteredCriteria.length > 0 ? (
+                                    {isLoadingCriteria ? (
+                                        <div className="col-span-full py-8 text-center text-muted-foreground italic">
+                                            Loading available criteria...
+                                        </div>
+                                    ) : filteredCriteria.length > 0 ? (
                                         filteredCriteria.map((c) => {
                                             const isSelected = selectedCriteriaIds.includes(c.id);
                                             return (
@@ -257,8 +301,8 @@ export default function AdminJobStageForm() {
                                                     )}
                                                 >
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-sm">{c.info.name}</span>
-                                                        <span className="text-xs opacity-70 line-clamp-1">{c.info.description}</span>
+                                                        <span className="font-bold text-sm">{c.name}</span>
+                                                        <span className="text-xs opacity-70 line-clamp-1">{c.description}</span>
                                                     </div>
                                                     <div className={cn(
                                                         "shrink-0 w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all",
@@ -288,7 +332,7 @@ export default function AdminJobStageForm() {
                                                     variant="secondary"
                                                     className="pl-3 pr-1 py-1 text-sm rounded-xl bg-primary/10 text-primary border-primary/20 font-bold"
                                                 >
-                                                    {c.info.name}
+                                                    {c.name}
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleCriteria(c.id)}

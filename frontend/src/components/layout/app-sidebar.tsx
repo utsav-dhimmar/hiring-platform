@@ -34,7 +34,8 @@ import {
   LayoutDashboard,
   Users,
   Database,
-  Settings2
+  Settings2,
+  Settings
 } from "lucide-react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -170,7 +171,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }, {
       title: "Settings",
       url: "/dashboard/admin/settings",
-      icon: Settings2,
+      icon: Settings,
       items: [
         {
           title: "Priorities",

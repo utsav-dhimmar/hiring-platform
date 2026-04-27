@@ -48,4 +48,14 @@ export const adminStageTemplateService = {
   deleteTemplate: async (id: string): Promise<void> => {
     await apiClient.delete(`${ADMIN_PATH}/stage-templates/${id}`);
   },
+
+  /**
+   * Get a stage template by ID.
+   * @param id - Template ID
+   * @returns Promise resolving to the stage template
+   */
+  getTemplateById: async (id: string): Promise<StageTemplate> => {
+    const response = await apiClient.get<StageTemplate>(`${ADMIN_PATH}/stage-templates/${id}`);
+    return response.data;
+  },
 };
