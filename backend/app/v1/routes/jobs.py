@@ -27,6 +27,7 @@ from app.v1.schemas.job_stage import (
     JobStageReorder,
     JobStageBulkCreate,
 )
+from app.v1.schemas.criteria import StageCriterionRead
 from app.v1.schemas.upload import JobResumesResponse
 from app.v1.schemas.user import UserRead
 from app.v1.services.admin_service import admin_service
@@ -215,6 +216,33 @@ async def delete_job(
 
 # --- Job Stage Configuration ---
 
+from app.v1.schemas.job_stage import StageTemplateRead, StageTemplateCreate
+from app.v1.db.models.stage_templates import StageTemplate
+
+@router.get("/stage-templates/all", response_model=list[StageTemplateRead])
+async def get_all_stage_templates(
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:manage")),
+) -> Any:
+    """Retrieve all available stage templates."""
+    return await stage_service.get_all_templates(db=db)
+
+@router.post("/stage-templates", response_model=StageTemplateRead, status_code=status.HTTP_201_CREATED)
+async def create_stage_template(
+    template_in: StageTemplateCreate,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:manage")),
+) -> Any:
+    """Create a new custom stage template."""
+    new_template = StageTemplate(
+        name=template_in.name,
+        description=template_in.description,
+        default_config=template_in.default_config or {}
+    )
+    db.add(new_template)
+    await db.commit()
+    await db.refresh(new_template)
+    return new_template
 
 @router.get("/{job_id}/stages", response_model=list[JobStageConfigRead])
 async def get_job_stages(
@@ -241,6 +269,19 @@ async def add_stage_to_job(
     """Add a new stage to a job's interview process."""
     return await stage_service.add_stage_to_job(db=db, job_id=job_id, stage_in=stage_in)
 
+@router.post(
+    "/{job_id}/stages/default",
+    response_model=list[JobStageConfigRead],
+    status_code=status.HTTP_201_CREATED,
+)
+async def setup_default_job_stages(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:manage")),
+) -> Any:
+    """Auto-setup the default 3-round interview pipeline for this job."""
+    return await stage_service.setup_default_stages(db=db, job_id=job_id)
+
 
 @router.patch("/{job_id}/stages/{config_id}", response_model=JobStageConfigRead)
 async def update_job_stage(
@@ -252,6 +293,8 @@ async def update_job_stage(
     stage_update: JobStageConfigUpdate,
 ) -> Any:
     """Update a specific job stage configuration."""
+    print(f"DEBUG: update_job_stage called for job {job_id}, config {config_id}")
+    print(f"DEBUG: update data: {stage_update.model_dump(exclude_unset=True)}")
     # Verify the config belongs to the job (optional but good practice)
     config = await stage_service.update_job_stage(
         db=db, config_id=config_id, stage_update=stage_update
@@ -299,3 +342,61 @@ async def bulk_setup_job_stages(
     return await stage_service.bulk_setup_job_stages(
         db=db, job_id=job_id, stages_in=bulk_in.stages
     )
+
+
+@router.get("/{job_id}/stages/{stage_id}/criteria", response_model=list[StageCriterionRead])
+async def get_stage_criteria(
+    job_id: uuid.UUID,
+    stage_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:access")),
+) -> Any:
+    """
+    Retrieve the active evaluation criteria for a specific stage of a job.
+    Returns criteria linked to the stage's template, including weights.
+    """
+    from sqlalchemy.orm import selectinload
+    from app.v1.db.models.job_stage_configs import JobStageConfig
+    from app.v1.db.models.stage_template_criteria import StageTemplateCriterion
+    from app.v1.db.models.criteria import Criterion
+    from sqlalchemy import select, and_
+    from fastapi import HTTPException
+
+    # Verify this stage belongs to the given job
+    stage_result = await db.execute(
+        select(JobStageConfig).where(
+            and_(
+                JobStageConfig.id == stage_id,
+                JobStageConfig.job_id == job_id,
+            )
+        )
+    )
+    stage = stage_result.scalar_one_or_none()
+    if not stage:
+        raise HTTPException(status_code=404, detail="Stage not found for this job")
+
+    # Fetch criteria linked to the stage's template
+    criteria_result = await db.execute(
+        select(Criterion, StageTemplateCriterion.default_weight, StageTemplateCriterion.is_active)
+        .join(StageTemplateCriterion, StageTemplateCriterion.criterion_id == Criterion.id)
+        .where(
+            and_(
+                StageTemplateCriterion.template_id == stage.template_id,
+                StageTemplateCriterion.is_active == True,
+            )
+        )
+        .order_by(Criterion.name)
+    )
+    rows = criteria_result.all()
+
+    return [
+        StageCriterionRead(
+            id=row[0].id,
+            name=row[0].name,
+            description=row[0].description,
+            prompt_text=row[0].prompt_text,
+            weight=float(row[1]),
+            is_active=row[2],
+        )
+        for row in rows
+    ]

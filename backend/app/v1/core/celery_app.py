@@ -15,7 +15,9 @@ celery_app = Celery(
     broker=settings.CELERY_BROKER_URL,
     include=[
         "app.v1.services.resume_upload.tasks",
-        "app.v1.services.admin.job_tasks"
+        "app.v1.services.admin.job_tasks",
+        "app.v1.services.evaluation_tasks",
+        "app.v1.services.transcript_tasks"
     ],
 )
 

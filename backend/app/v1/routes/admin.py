@@ -34,6 +34,10 @@ from app.v1.schemas.job_stage import (
 from app.v1.schemas.response import PaginatedData
 from app.v1.schemas.user import UserRead
 from app.v1.schemas.prompt import PromptsList, PromptRead
+from app.v1.schemas.criteria import CriterionRead, CriterionCreate, CriterionUpdate
+from app.v1.db.models.criteria import Criterion
+from sqlalchemy import select
+from fastapi import HTTPException
 from app.v1.prompts import (
     RESUME_JD_ANALYSIS_PROMPT,
     RESUME_EXTRACTION_PROMPT,
@@ -43,6 +47,8 @@ from app.v1.prompts import (
 )
 from app.v1.services.admin_service import admin_service
 from app.v1.services.stage_service import stage_service
+from app.v1.services.prompt_enhancer_service import prompt_enhancer_service
+import asyncio
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -342,3 +348,86 @@ async def get_active_prompts(
         {"name": "Skill Extraction Instruction", "content": SKILL_INSTRUCTION},
     ]
     return {"data": prompts}
+
+
+# --- Criteria Management ---
+
+@router.get("/criteria", response_model=list[CriterionRead])
+async def get_all_criteria(
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("jobs:access")),
+):
+    """Retrieve all available evaluation criteria."""
+    stmt = select(Criterion).order_by(Criterion.name)
+    res = await db.execute(stmt)
+    criteria = res.scalars().all()
+    return criteria
+
+@router.post("/criteria", response_model=CriterionRead, status_code=status.HTTP_201_CREATED)
+async def create_criterion(
+    criterion_in: CriterionCreate,
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("jobs:manage")),
+):
+    """Create a new evaluation criterion."""
+    existing = await db.execute(select(Criterion).where(Criterion.name == criterion_in.name))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail=f"Criterion with name '{criterion_in.name}' already exists.")
+    
+    # 🌟 MAGIC: Enhance the prompt text using LLM
+    if criterion_in.prompt_text and len(criterion_in.prompt_text) > 0:
+        enhanced_prompt = await prompt_enhancer_service.enhance_prompt(
+            criterion_in.name,
+            criterion_in.prompt_text
+        )
+        criterion_in.prompt_text = enhanced_prompt
+
+    criterion = Criterion(**criterion_in.model_dump())
+    db.add(criterion)
+    await db.commit()
+    await db.refresh(criterion)
+    return criterion
+
+@router.patch("/criteria/{criterion_id}", response_model=CriterionRead)
+async def update_criterion(
+    criterion_id: uuid.UUID,
+    criterion_update: CriterionUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("jobs:manage")),
+):
+    """Update an existing evaluation criterion."""
+    criterion = await db.get(Criterion, criterion_id)
+    if not criterion:
+        raise HTTPException(status_code=404, detail="Criterion not found")
+    
+    # 🌟 MAGIC: Enhance the prompt text if it is being updated
+    if criterion_update.prompt_text and len(criterion_update.prompt_text) > 0:
+        name_to_use = criterion_update.name if criterion_update.name else criterion.name
+        enhanced_prompt = await prompt_enhancer_service.enhance_prompt(
+            name_to_use,
+            criterion_update.prompt_text
+        )
+        criterion_update.prompt_text = enhanced_prompt
+
+    update_data = criterion_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(criterion, field, value)
+    
+    await db.commit()
+    await db.refresh(criterion)
+    return criterion
+
+@router.delete("/criteria/{criterion_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_criterion(
+    criterion_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("jobs:manage")),
+):
+    """Delete an evaluation criterion."""
+    criterion = await db.get(Criterion, criterion_id)
+    if not criterion:
+        raise HTTPException(status_code=404, detail="Criterion not found")
+    
+    await db.delete(criterion)
+    await db.commit()
+    return None
