@@ -231,6 +231,27 @@ class HRDecisionService:
                 success = decision_data.decision.lower() == "approve"
                 await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_advance.id, success=success)
                 await db.commit()
+            elif decision_data.decision.lower() == "approve":
+                # If no stage exists but they are approved, initiate the FIRST stage of the pipeline
+                first_stage_stmt = (
+                    select(JobStageConfig)
+                    .where(JobStageConfig.job_id == actual_job_id)
+                    .order_by(JobStageConfig.stage_order.asc())
+                    .limit(1)
+                )
+                first_stage_res = await db.execute(first_stage_stmt)
+                first_stage = first_stage_res.scalar_one_or_none()
+                
+                if first_stage:
+                    from app.v1.db.models.candidate_stages import CandidateStage
+                    new_cs = CandidateStage(
+                        candidate_id=candidate_id,
+                        job_stage_id=first_stage.id,
+                        status="active" # Start it as active
+                    )
+                    db.add(new_cs)
+                    await db.commit()
+                    logger.info(f"Initiated pipeline for candidate {candidate_id} at stage {first_stage.id}")
 
             # Trigger cross-match in background if rejected
             if decision_data.decision.lower() == "reject":

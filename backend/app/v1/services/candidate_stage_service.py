@@ -126,7 +126,7 @@ class CandidateStageService:
                 .where(CandidateStage.candidate_id == candidate_id, CandidateStage.job_stage_id == next_js.id)
             )
             cs_res = await db.execute(cs_stmt)
-            next_cs = cs_res.scalar_one_or_none()
+            next_cs = cs_res.scalars().first()
 
             if next_cs:
                 next_cs.status = "active"

@@ -23,3 +23,16 @@ class CriterionRead(CriterionBase):
 
     class Config:
         from_attributes = True
+
+
+class StageCriterionRead(BaseModel):
+    """Criterion with its weight for a specific job stage."""
+    id: uuid.UUID
+    name: str
+    description: str | None
+    prompt_text: str | None
+    weight: float
+    is_active: bool
+
+    class Config:
+        from_attributes = True

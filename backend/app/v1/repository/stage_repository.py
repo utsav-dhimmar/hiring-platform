@@ -104,8 +104,14 @@ class StageRepository:
             if value is not None:
                 setattr(stage_config, key, value)
         await db.commit()
-        await db.refresh(stage_config)
-        return stage_config
+        
+        # Re-fetch with template info to satisfy response schema
+        result = await db.execute(
+            select(JobStageConfig)
+            .where(JobStageConfig.id == stage_config.id)
+            .options(selectinload(JobStageConfig.template))
+        )
+        return result.scalar_one()
 
     async def delete_job_stage(
         self, db: AsyncSession, stage_config: JobStageConfig

@@ -19,3 +19,9 @@ logs/
 logs*.txt
 logs*.md
 
+# Temporary and debug files
+scratch/
+tmp/
+.antigravity/
+frontend/
+

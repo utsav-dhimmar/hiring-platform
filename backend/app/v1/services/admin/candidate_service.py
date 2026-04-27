@@ -421,44 +421,29 @@ class CandidateAdminService:
 
         # Get latest HR decision
         hr_decisions = getattr(candidate, "hr_decisions", [])
-        if target_job_id:
-            target_job_str = str(target_job_id)
-            # Filter HR decisions to this specific job ID, or fallback to natively applied if null
-            filtered_decisions = []
-            # Determine if candidate is cross-matched to this job
-            is_cross_matched_here = False
-            if target_job_id:
-                from app.v1.db.models.cross_job_matches import CrossJobMatch
-                xm_stmt = select(CrossJobMatch.id).where(
-                    CrossJobMatch.candidate_id == candidate.id,
-                    CrossJobMatch.matched_job_id == target_job_id
-                )
-                # Note: We are in a sync mapping function, but hr_decisions are already loaded.
-                # However, checking CrossJobMatch would require a DB call.
-                # Heuristic: if they have a decision and it's NOT their applied job, it's likely the cross-match.
-                pass
+        if not hr_decisions:
+             hr_decisions = []
 
+        if target_job_id:
+            target_job_str = str(target_job_id).lower()
+            filtered_decisions = []
             for d in hr_decisions:
                 d_job_id = getattr(d, "job_id", None)
                 if d_job_id:
-                    if str(d_job_id) == target_job_str:
+                    if str(d_job_id).lower() == target_job_str:
                         filtered_decisions.append(d)
                 else:
-                    # Fallback for null job_id: count if it's the native job OR if we are in a job-specific view
-                    # (In get_candidates_for_job, we already know the candidate is either native or cross-matched).
-                    if str(candidate.applied_job_id) == target_job_str:
+                    if str(candidate.applied_job_id).lower() == target_job_str:
                         filtered_decisions.append(d)
                     elif target_job_id:
-                        # If we are in Job B and job_id is null, we'll assume the decision 
-                        # belongs here if the candidate is in this job's pool
                         filtered_decisions.append(d)
             hr_decisions = filtered_decisions
 
-        latest_decision = (
-            max(hr_decisions, key=lambda d: d.decided_at) if hr_decisions else None
-        )
-        
-        # Normalize decision string for frontend (e.g., "approve" -> "Approve")
+        latest_decision = None
+        if hr_decisions:
+            latest_decision = max(hr_decisions, key=lambda d: d.decided_at if d.decided_at else datetime.min)
+
+        # Normalize decision string for frontend
         status = "Pending"
         if latest_decision:
             raw_status = str(latest_decision.decision).lower().strip()
@@ -492,20 +477,19 @@ class CandidateAdminService:
         # Get pipeline and current stage
         pipeline = []
         candidate_stages = getattr(candidate, "stages", [])
+        if not candidate_stages:
+            candidate_stages = []
         
-        # Filter by target_job_id if provided (for cross-matches or specific job views)
-        # Fallback to candidate's native applied_job_id for global search context
+        # Filter by target_job_id if provided
         effective_filter_job_id = target_job_id or candidate.applied_job_id
         if effective_filter_job_id:
+            eff_job_str = str(effective_filter_job_id).lower()
             candidate_stages = [
                 cs for cs in candidate_stages 
-                if cs.job_stage and cs.job_stage.job_id == effective_filter_job_id
+                if cs.job_stage and str(cs.job_stage.job_id).lower() == eff_job_str
             ]
         
-        # Ordered by stage order
         def _map_stage(cs) -> CandidateStageSummary:
-            # Map database status to a standard API status for the response
-            # Any finished stage is shown as 'completed' to the frontend
             is_finished = cs.status in ["completed", "failed", "skipped"]
             response_status = "completed" if is_finished else cs.status
 
@@ -527,59 +511,42 @@ class CandidateAdminService:
                 }.get(cs.status, cs.status),
             )
 
-        pipeline = [_map_stage(cs) for cs in sorted(candidate_stages, key=lambda x: x.job_stage.stage_order if x.job_stage else 0)]
+        sorted_stages = sorted(candidate_stages, key=lambda x: x.job_stage.stage_order if x.job_stage else 0)
+        pipeline = [_map_stage(cs) for cs in sorted_stages]
         
         current_stage = None
         for cs in candidate_stages:
             if cs.status == "active":
                 current_stage = _map_stage(cs)
+                break
         
-        # If no active stage found, use the last one that was processed (completed/failed/skipped)
         if not current_stage and pipeline:
-            # Find the last stage that is NOT pending
             non_pending_stages = [s for s in pipeline if s.status != "pending"]
             if non_pending_stages:
                 current_stage = non_pending_stages[-1]
             else:
-                # Fallback to the first stage if all are pending
                 current_stage = pipeline[0]
 
-        # Force 'pending' status if HR hasn't made an initial decision yet for the first stage
-        is_undecided = latest_decision is None or not latest_decision.decision
-        if is_undecided and current_stage and current_stage.order == 1:
-            current_stage.status = "pending"
-            current_stage.result = "pending"
-            # Update in pipeline list too
-            for p in pipeline:
-                if p.order == 1:
-                    p.status = "pending"
-                    p.result = "pending"
-
         # Job Context Overrides
-        mapping_job_id = target_job_id or candidate.applied_job_id
+        mapping_job_id = effective_filter_job_id
         mapping_job_name = None
         is_cross_match = False
         
-        if target_job_id:
-            # It's a cross-match if target_job_id is different from the original application
-            if str(candidate.applied_job_id) != str(target_job_id):
+        if target_job_id and candidate.applied_job_id:
+            if str(candidate.applied_job_id).lower() != str(target_job_id).lower():
                 is_cross_match = True
 
-            # Try to find the job title from candidate's relationships
-            if candidate.applied_job and candidate.applied_job.id == target_job_id:
+        if mapping_job_id:
+            if candidate.applied_job and str(candidate.applied_job.id).lower() == str(mapping_job_id).lower():
                 mapping_job_name = candidate.applied_job.title
             elif latest_resume and hasattr(latest_resume, "version_results"):
                 for vr in latest_resume.version_results:
-                    if vr.job_id == target_job_id:
+                    if str(vr.job_id).lower() == str(mapping_job_id).lower():
                         mapping_job_name = vr.job.title if vr.job else None
                         break
-        else:
-            mapping_job_name = candidate.applied_job.title if candidate.applied_job else None
-
+        
         def _title(val: str | None) -> str | None:
-            """Format name to Title Case."""
-            if not val:
-                return val
+            if not val: return val
             return val.strip().title()
 
         return CandidateResponse(
@@ -591,7 +558,7 @@ class CandidateAdminService:
             location=location,
             linkedin_url=linkedin_url,
             github_url=github_url,
-            current_status=current_stage.template_name if current_stage else candidate.current_status,
+            current_status=candidate.current_status,
             applied_job_id=candidate.applied_job_id,
             applied_version_number=candidate.applied_version_number,
             job_id=mapping_job_id,
