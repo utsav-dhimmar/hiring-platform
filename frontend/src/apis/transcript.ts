@@ -11,16 +11,16 @@ import type {
 export const transcriptService = {
   /**
    * Upload a transcript file for an interview.
-   * @param interviewId - UUID of the interview to upload transcript for.
+   * @param candidate_id  - UUID of the interview.
    * @param file - Transcript file (.docx).
    * @returns Upload response with success status.
    */
-  uploadTranscript: async (interviewId: string, file: File): Promise<TranscriptUploadResponse> => {
+  uploadTranscript: async (candidate_id: string, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await apiClient.post<TranscriptUploadResponse>(
-      `/interviews/${interviewId}/transcript`,
+    const response = await apiClient.post(
+      `/transcripts/${candidate_id}/upload`,
       formData,
       {
         headers: {

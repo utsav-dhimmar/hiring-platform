@@ -16,3 +16,4 @@ export * from "./department";
 export * from "./location";
 export * from "./jobPriority";
 export * from "./prompt";
+export * from "./criteria";
