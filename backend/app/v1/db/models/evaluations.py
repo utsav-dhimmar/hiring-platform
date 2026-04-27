@@ -63,6 +63,11 @@ class Evaluation(Base):
         nullable=True,
     )
 
+    is_passed: Mapped[bool] = mapped_column(
+        nullable=False,
+        default=False,
+    )
+
     recommendation: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
@@ -99,3 +104,7 @@ class Evaluation(Base):
     interview: Mapped[Optional["Interview"]] = relationship("Interview", foreign_keys=[interview_id])
     transcript: Mapped[Optional["Transcript"]] = relationship("Transcript", foreign_keys=[transcript_id])
     candidate_stage: Mapped["CandidateStage"] = relationship("CandidateStage", foreign_keys=[candidate_stage_id])
+
+    @property
+    def result(self) -> str:
+        return "pass" if self.is_passed else "fail"

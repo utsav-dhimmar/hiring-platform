@@ -148,6 +148,17 @@ class EmbeddingService:
         # Using a default instruction for transcript chunks
         return self._encode_text(text, "Represent this interview transcript chunk for retrieval: ")
 
+    def encode_transcripts_batch(self, texts: list[str]) -> list[list[float]]:
+        """Encode a batch of interview transcript chunks.
+
+        Args:
+            texts: List of transcript chunk texts.
+
+        Returns:
+            List of embedding vectors.
+        """
+        return self._encode_text_batch(texts, "Represent this interview transcript chunk for retrieval: ")
+
     def encode_skill(self, text: str) -> list[float]:
         """Encode skill name/description into a vector embedding.
 

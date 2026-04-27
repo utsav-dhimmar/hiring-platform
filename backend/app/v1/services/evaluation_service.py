@@ -142,7 +142,8 @@ class EvaluationService:
 
         # 7. STORE PHASE
         # Calculate overall score (average of criteria scores)
-        criteria_scores = [v["score"] for v in final_report.values() if isinstance(v, dict) and "score" in v]
+        report_criteria = final_report.get("criteria", {})
+        criteria_scores = [v["score"] for v in report_criteria.values() if isinstance(v, dict) and "score" in v]
         avg_score = sum(criteria_scores) / len(criteria_scores) if criteria_scores else 0.0
 
         # --- PASSING THRESHOLD LOGIC (3.5) ---
@@ -155,6 +156,7 @@ class EvaluationService:
             interview_id=interview.id,
             evaluation_data=final_report,
             overall_score=avg_score,
+            is_passed=is_passed,
             recommendation=final_report.get("overall_summary", ""),
             sim_jd_resume=signals["profile_fit"],
             sim_jd_transcript=signals["tech_alignment"],

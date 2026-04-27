@@ -63,14 +63,13 @@ class EvaluationEngine:
         if not sentences:
             return []
 
-        # 1. Embed all sentences
-        # For efficiency in a real system, we'd use a batch encoder
+        # 1. Embed all sentences in a single batch for performance
         query_vec = embedding_service.encode_transcript(criterion_query)
+        sentence_vectors = embedding_service.encode_transcripts_batch(sentences)
         
         sentence_scores: List[Tuple[str, float]] = []
-        for sentence in sentences:
-            s_vec = embedding_service.encode_transcript(sentence)
-            score = self.calculate_cosine_similarity(query_vec, s_vec)
+        for i, sentence in enumerate(sentences):
+            score = self.calculate_cosine_similarity(query_vec, sentence_vectors[i])
             sentence_scores.append((sentence, score))
 
         # 2. Sort and take top_k
