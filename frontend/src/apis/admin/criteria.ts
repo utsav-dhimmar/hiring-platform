@@ -17,6 +17,16 @@ export const adminCriteriaService = {
   },
 
   /**
+   * Get an evaluation criterion by ID.
+   * @param criterionId - Criterion ID
+   * @returns Promise resolving to the criterion details
+   */
+  getCriterionById: async (criterionId: string): Promise<CriterionRead> => {
+    const response = await apiClient.get<CriterionRead>(`${ADMIN_PATH}/criteria/${criterionId}`);
+    return response.data;
+  },
+
+  /**
    * Create a new evaluation criterion.
    * @param criterion - Criterion creation payload
    * @returns Promise resolving to the created criterion

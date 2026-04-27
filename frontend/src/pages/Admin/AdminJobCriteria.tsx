@@ -1,104 +1,87 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Pencil, Trash2, Plus } from "lucide-react";
+import { ArrowUpDown, Pencil, Trash2, Plus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/shared";
 import { slugify } from "@/utils/slug";
 
-import { CRITERIA_MOCK_DATA, type CriteriaMock } from "@/constants/admin";
+import { adminCriteriaService, type CriterionRead } from "@/apis/admin";
+import { CriteriaInfoModal } from "@/components/admin/CriteriaInfoModal";
 
 /**
  * Admin page for managing job evaluation criteria.
  * Displays searchable table with create, edit, toggle, and delete functionality.
  */
 const AdminJobCriteria = () => {
-    const [criteriaData, setCriteriaData] = useState<CriteriaMock[]>(CRITERIA_MOCK_DATA);
-    const toast = useToast()
-    const navigate = useNavigate()
-    const handleToggleActive = async (id: number, isActive: boolean) => {
+    const [criteriaData, setCriteriaData] = useState<CriterionRead[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedCriterion, setSelectedCriterion] = useState<CriterionRead | null>(null);
+    const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+    const toast = useToast();
+    const navigate = useNavigate();
 
-
-
-        // try {
-        //     await adminJobService.updateJobCriteria(id, { isactive: isActive });
-        //     toast.success("Criteria status updated successfully");
-        // } catch (error) {
-        //     toast.error("Failed to update criteria status");
-        //     // Revert state if needed
-        //     setCriteriaData(prev => prev.map(item =>
-        //         item.id === id ? { ...item, isactive: !isActive } : item
-        //     ));
-        // }
-
-
-        setCriteriaData(prev => prev.map(item =>
-            item.id === id ? { ...item, isactive: isActive } : item
-        ));
-        toast.success("Criteria status updated successfully")
+    const fetchCriteria = async () => {
+        try {
+            setIsLoading(true);
+            const data = await adminCriteriaService.getAllCriteria();
+            setCriteriaData(data);
+        } catch (error) {
+            console.error("Failed to fetch criteria:", error);
+            toast.error("Failed to load criteria");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleDelete = (id: number) => {
-        // Placeholder for delete logic
-        console.log("Delete criteria with id:", id);
-        toast.success("Criteria deleted successfully (Mock)");
-        setCriteriaData(prev => prev.filter(item => item.id !== id));
+    useEffect(() => {
+        fetchCriteria();
+    }, []);
+
+    const handleDelete = async (id: string) => {
+        try {
+            await adminCriteriaService.deleteCriterion(id);
+            toast.success("Criteria deleted successfully");
+            setCriteriaData(prev => prev.filter(item => item.id !== id));
+        } catch (error) {
+            console.error("Failed to delete criteria:", error);
+            toast.error("Failed to delete criteria");
+        }
     };
 
-    const handleUpdate = (data: CriteriaMock) => {
-        const slug = slugify(data.info.name);
+    const handleUpdate = (data: CriterionRead) => {
+        const slug = slugify(data.name);
         navigate(`/dashboard/admin/criteria-stages/criteria/${slug}/edit`, {
             state: { criteria: data, id: data.id }
         });
     };
 
-    const columns: ColumnDef<CriteriaMock>[] = [
+    const handleOpenInfo = (data: CriterionRead) => {
+        setSelectedCriterion(data);
+        setIsInfoModalOpen(true);
+    };
+
+    const columns: ColumnDef<CriterionRead>[] = [
         {
             id: "name",
-            accessorFn: (row) => row.info.name,
+            accessorKey: "name",
             header: "Name",
             cell: ({ row }) => (
-                <span className="font-medium text-foreground capitalize">{row.original.info.name}</span>
+                <span className="font-medium text-foreground capitalize">{row.original.name}</span>
             ),
         },
         {
             id: "description",
-            accessorFn: (row) => row.info.description,
+            accessorKey: "description",
             header: "Description",
             cell: ({ row }) => (
                 <span className="text-muted-foreground truncate line-clamp-1 max-w-md">
-                    {row.original.info.description}
+                    {row.original.description || "No description"}
                 </span>
-            ),
-        },
-        {
-            accessorKey: "isactive",
-            header: ({ column }) => (
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="hover:bg-transparent p-0 font-semibold"
-                >
-                    Active
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            ),
-            cell: ({ row }) => (
-                <div className="flex items-center gap-2">
-                    <Switch
-                        checked={row.original.isactive}
-                        className="animate-in fade-in duration-500"
-                        onCheckedChange={(checked) => handleToggleActive(row.original.id, checked)}
-                    />
-                    <span className="text-xs text-muted-foreground w-12">
-                        {row.original.isactive ? "Active" : "Inactive"}
-                    </span>
-                </div>
             ),
         },
         {
@@ -115,16 +98,20 @@ const AdminJobCriteria = () => {
             ),
             cell: ({ row }) => <DateDisplay date={row.original.created_at} />,
         },
-        // {
-        //     accessorKey: "updated_at",
-        //     header: "Updated At",
-        //     cell: ({ row }) => <DateDisplay date={row.original.updated_at} />,
-        // },
         {
             id: "actions",
             header: "Actions",
             cell: ({ row }) => (
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenInfo(row.original)}
+                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+                    >
+                        <Info className="h-4 w-4" />
+                        <span className="sr-only">Info</span>
+                    </Button>
                     <Button
                         variant="ghost"
                         size="icon"
@@ -166,12 +153,19 @@ const AdminJobCriteria = () => {
                 <DataTable
                     columns={columns}
                     data={criteriaData}
+                    loading={isLoading}
                     searchKey="name"
                     searchPlaceholder="Search criteria..."
                     initialSorting={[{ id: "created_at", desc: true }]}
                     entityName="Criteria"
                 />
             </div>
+
+            <CriteriaInfoModal
+                criterion={selectedCriterion}
+                isOpen={isInfoModalOpen}
+                onClose={() => setIsInfoModalOpen(false)}
+            />
         </AppPageShell>
     );
 };
