@@ -352,16 +352,34 @@ async def get_active_prompts(
 
 # --- Criteria Management ---
 
-@router.get("/criteria", response_model=list[CriterionRead])
+@router.get("/criteria", response_model=PaginatedData[CriterionRead])
 async def get_all_criteria(
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("jobs:access")),
-):
-    """Retrieve all available evaluation criteria."""
-    stmt = select(Criterion).order_by(Criterion.name)
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
+) -> Any:
+    """Retrieve all available evaluation criteria with pagination and search."""
+    from sqlalchemy import func
+
+    stmt = select(Criterion)
+    if q:
+        stmt = stmt.where(Criterion.name.ilike(f"%{q}%"))
+
+    # Get total count
+    total_stmt = select(func.count()).select_from(stmt.subquery())
+    total = await db.scalar(total_stmt)
+
+    # Get paginated data
+    stmt = stmt.order_by(Criterion.name).offset(skip).limit(limit)
     res = await db.execute(stmt)
     criteria = res.scalars().all()
-    return criteria
+
+    return {
+        "data": criteria,
+        "total": total or 0
+    }
 
 @router.post("/criteria", response_model=CriterionRead, status_code=status.HTTP_201_CREATED)
 async def create_criterion(
