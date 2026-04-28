@@ -141,9 +141,14 @@ class EvaluationService:
         )
 
         # 7. STORE PHASE
-        # Calculate overall score (average of criteria scores)
-        criteria_scores = [v["score"] for v in final_report.values() if isinstance(v, dict) and "score" in v]
+        # Calculate overall score (average of criteria scores from the new 'criteria' key)
+        criteria_map = final_report.get("criteria", {})
+        criteria_scores = [v["score"] for v in criteria_map.values() if isinstance(v, dict) and "score" in v]
         avg_score = sum(criteria_scores) / len(criteria_scores) if criteria_scores else 0.0
+
+        # Pass/Fail logic based on 3.5 threshold
+        passing_threshold = 3.5
+        result_status = "pass" if avg_score >= passing_threshold else "fail"
 
         ev = Evaluation(
             candidate_stage_id=candidate_stage_id,
@@ -151,6 +156,8 @@ class EvaluationService:
             interview_id=interview.id,
             evaluation_data=final_report,
             overall_score=avg_score,
+            passing_threshold=passing_threshold,
+            result=result_status,
             recommendation=final_report.get("overall_summary", ""),
             sim_jd_resume=signals["profile_fit"],
             sim_jd_transcript=signals["tech_alignment"],

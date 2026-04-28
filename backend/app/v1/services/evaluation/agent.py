@@ -68,7 +68,7 @@ Return structured JSON exactly as defined in the examples."""
         for criterion in evidence_snippets.keys():
             key = criterion.lower().replace(" ", "_")
             allowed_keys.append(key)
-            json_schema += f'  "{key}": {{ "score": int, "reasoning": "...", "confidence": float }},\n'
+            json_schema += f'    "{key}": {{ "score": int, "reasoning": "..." }},\n'
 
         user_prompt = f"""
 STRICT REQUIREMENT: You MUST ONLY evaluate the following criteria: {', '.join(allowed_keys)}.
@@ -85,7 +85,10 @@ TRANSCRIPT PREVIEW:
 
 Please provide the final evaluation in the following JSON format:
 {{
-{json_schema}  "overall_summary": "...",
+  "criteria": {{
+{json_schema}
+  }},
+  "overall_summary": "...",
   "strengths": ["...", "..."],
   "weaknesses": ["...", "..."],
   "suggested_followups": ["...", "..."]

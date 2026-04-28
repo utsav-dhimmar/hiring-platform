@@ -52,6 +52,16 @@ class Evaluation(Base):
         nullable=False,
     )
 
+    passing_threshold: Mapped[float] = mapped_column(
+        Numeric(5, 2),
+        default=3.5,
+    )
+
+    result: Mapped[str] = mapped_column(
+        Text,
+        default="fail",
+    )
+
     # EVALUATION FIELDS
     evaluation_data: Mapped[dict] = mapped_column(
         JSONB,
