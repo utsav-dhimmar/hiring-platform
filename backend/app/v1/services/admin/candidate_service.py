@@ -698,6 +698,7 @@ class CandidateAdminService:
                 "result": result,
                 "score": score,
                 "stage_id": stage.id,
+                "stage_name": title,
                 "job_id": stage.job_stage.job_id,
                 "metadata": stage.evaluation_data
             })
