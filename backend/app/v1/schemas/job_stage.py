@@ -113,3 +113,8 @@ class StageEvaluationRead(BaseModel):
     completed_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+    
+class StageTemplatesListRead(BaseModel):
+    """Schema for a paginated list of stage templates."""
+    data: list[StageTemplateRead]
+    total: int

@@ -216,16 +216,19 @@ async def delete_job(
 
 # --- Job Stage Configuration ---
 
-from app.v1.schemas.job_stage import StageTemplateRead, StageTemplateCreate
+from app.v1.schemas.job_stage import StageTemplateRead, StageTemplateCreate, StageTemplatesListRead
 from app.v1.db.models.stage_templates import StageTemplate
 
-@router.get("/stage-templates/all", response_model=list[StageTemplateRead])
+@router.get("/stage-templates/all", response_model=StageTemplatesListRead)
 async def get_all_stage_templates(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("jobs:manage")),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
-    """Retrieve all available stage templates."""
-    return await stage_service.get_all_templates(db=db)
+    """Retrieve all available stage templates with pagination and search."""
+    return await stage_service.get_all_templates(db=db, skip=skip, limit=limit, search=q)
 
 @router.post("/stage-templates", response_model=StageTemplateRead, status_code=status.HTTP_201_CREATED)
 async def create_stage_template(
