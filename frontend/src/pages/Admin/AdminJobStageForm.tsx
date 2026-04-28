@@ -71,7 +71,8 @@ export default function AdminJobStageForm() {
         const fetchCriteria = async () => {
             try {
                 const data = await adminCriteriaService.getAllCriteria();
-                setCriteria(data);
+                setCriteria(data.data);
+
             } catch (error) {
                 console.error("Failed to fetch criteria:", error);
                 toast.error("Failed to load evaluation criteria");
@@ -106,7 +107,7 @@ export default function AdminJobStageForm() {
                 const fetchTemplate = async () => {
                     try {
                         const templates = await adminStageTemplateService.getAllTemplates();
-                        const template = templates.find(t => slugify(t.name) === slug);
+                        const template = templates.data.find(t => slugify(t.name) === slug);
                         if (template) {
                             initializeForm(template);
                         } else {
@@ -155,7 +156,7 @@ export default function AdminJobStageForm() {
         try {
             if (isEditMode) {
                 const templates = await adminStageTemplateService.getAllTemplates();
-                const template = templates.find(t => slugify(t.name) === slug);
+                const template = templates.data.find(t => slugify(t.name) === slug);
                 if (template) {
                     await adminStageTemplateService.updateTemplate(template.id, values as any);
                     toast.success("Stage template updated successfully");
@@ -182,7 +183,7 @@ export default function AdminJobStageForm() {
                 subtitle={isEditMode ? "Update the configuration for this recruitment stage." : "Define a new recruitment stage template."}
                 actions={
                     <Button
-                        variant="ghost"
+                        variant="default"
                         size="sm"
                         onClick={() => navigate("/dashboard/admin/criteria-stages/stages")}
                         className="gap-2"

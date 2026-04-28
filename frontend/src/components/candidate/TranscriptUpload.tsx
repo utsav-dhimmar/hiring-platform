@@ -78,7 +78,7 @@ export function TranscriptUpload({
   };
 
   return (
-    <Field className={cn("w-full mb-2", className)}>
+    <Field className={cn("w-full gap-1", className)}>
       <FieldLabel htmlFor="transcript">{label}</FieldLabel>
       <Input
         id="transcript"

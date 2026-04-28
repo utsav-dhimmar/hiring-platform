@@ -19,6 +19,7 @@ export interface EvaluationRead {
   sim_resume_transcript?: number | null;
   evidence_block?: Record<string, any> | null;
   created_at: string;
+  highlights: Record<string, string[] | null>
 }
 
 /**

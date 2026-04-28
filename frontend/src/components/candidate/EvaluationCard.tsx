@@ -25,7 +25,7 @@ export function EvaluationCard({
   reasoning,
   score,
   maxScore = 5,
-  confidence,
+  // confidence,
   className,
 }: EvaluationCardProps) {
   return (
@@ -38,26 +38,26 @@ export function EvaluationCard({
 
           <div className="space-y-1">
             <p>
-              <span className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Reasoning:</span>
+              <span className="text-sm font-bold capitalize text-muted-foreground ">Reasoning:</span>
               <span className="text-sm text-foreground/80 leading-relaxed font-medium ">
-                {reasoning}
+                {" "} {reasoning}
               </span>
             </p>
           </div>
 
-          <div className="flex items-center gap-8 mt-2 pt-4 border-t border-primary/10">
+          <div className="flex items-center gap-8 mt-2 pt- border-t border-primary/10">
             <div className="flex flex-col">
-              <span className="font-bold uppercase text-muted-foreground tracking-tighter">Score</span>
+              <span className="font-bold capitalize text-muted-foreground">Score</span>
               <span className="text-sm font-black text-primary">
                 {score}/{maxScore}
               </span>
             </div>
-            <div className="flex flex-col">
+            {/* <div className="flex flex-col">
               <span className="font-bold uppercase text-muted-foreground tracking-tighter">Confidence</span>
               <span className="text-sm font-black text-primary">
                 {confidence}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
       </CardContent>

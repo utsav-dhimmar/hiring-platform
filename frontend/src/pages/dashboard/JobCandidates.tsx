@@ -283,6 +283,7 @@ export default function JobCandidates() {
                                       }
                                     })
                                   }}
+                                  disabled={!candidate.pipeline}
                                 >
                                   <Layers className="h-4 w-4 shrink-0 text-blue-600" />
                                 </Button>

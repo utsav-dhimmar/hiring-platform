@@ -8,7 +8,7 @@ interface StageControlsProps {
   /** Currently selected stage name */
   currentStage: string;
   /** Callback when stage selection changes */
-  onStageChange: (stage: string) => void | undefined;
+  onStageChange: (stage: string) => void;
   /** Whether stages are loading */
   isLoadingStages: boolean;
   /** Current stage ID for transcript upload */
@@ -37,10 +37,14 @@ export function StageControls({
 }: StageControlsProps) {
   return (
     <div className="flex flex-col border-b bg-background/50 backdrop-blur-md sticky top-0 z-10">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 py-2">
         <div className="flex items-center gap-4">
           <div className="hidden sm:block">
-            <Select value={currentStage} onValueChange={onStageChange} disabled={isLoadingStages}>
+            <Select
+              value={currentStage}
+              onValueChange={(value) => value && onStageChange(value)}
+              disabled={isLoadingStages}
+            >
               <SelectTrigger className="w-[400px] h-12 rounded-2xl border-primary/20 bg-background font-bold text-sm">
                 <SelectValue placeholder={isLoadingStages ? "Loading stages..." : "Select Stage"} />
               </SelectTrigger>

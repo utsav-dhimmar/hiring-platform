@@ -16,6 +16,7 @@ import {
   JobSettingsSection,
   CustomFieldsSection,
   SkillSelectorSection,
+  StagePipelineSection,
 } from "@/components/job-form";
 
 import jobService from "@/apis/job";
@@ -64,8 +65,8 @@ export default function CreateJob() {
         adminJobPriorityService.getAllPriorities(),
       ]);
       setDepartments(deptRes.data);
-      setPriorities(priorityRes);
-      return { departments: deptRes.data, priorities: priorityRes };
+      setPriorities(priorityRes.data);
+      return { departments: deptRes.data, priorities: priorityRes.data };
     } catch (error) {
       console.error("Failed to fetch form data:", error);
       toast.error("Failed to load departments or priorities.");
@@ -135,11 +136,16 @@ export default function CreateJob() {
       if (isEditMode && jobId) {
         await jobService.updateJob(jobId, values as any);
         toast.success("Job updated successfully!");
+        navigate("/dashboard/jobs");
       } else {
-        await jobService.createJob(values as any);
-        toast.success("Job created successfully!");
+        const createdJob = await jobService.createJob(values as any);
+        toast.success("Job created! Now configure the interview stages.");
+        // Redirect to edit page so hr_admin and admin can immediately set up stages
+        navigate(`/dashboard/jobs/${slugify(createdJob.title)}/edit`, {
+          state: { jobId: createdJob.id },
+          replace: true,
+        });
       }
-      navigate("/dashboard/jobs");
     } catch (error) {
       const errorMessage = extractErrorMessage(error)
       console.error("Failed to save job:", error);
@@ -184,6 +190,7 @@ export default function CreateJob() {
               <JobSettingsSection />
               <CustomFieldsSection />
               <SkillSelectorSection initialSelectedSkills={jobSkills} />
+              <StagePipelineSection jobId={jobId} />
 
               {/* Form Actions */}
               <div className="flex flex-wrap items-center justify-center gap-4 border-t pt-8">

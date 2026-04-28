@@ -24,6 +24,7 @@ import { Loader2, FileText } from "lucide-react";
 import type { EvaluationRead } from "@/types/candidateStage";
 import type { Transcript } from "@/types/transcript";
 import { CandidateHistoryGrid } from "@/components/candidate/CandidateHistoryGrid";
+import { CandidateTimeline } from "@/components/candidate/CandidateTimeline";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
 import { slugify } from "@/utils/slug";
@@ -208,10 +209,10 @@ export default function CandidatesStages() {
   const transformedOverall = evaluation ? {
     stage_score: evaluation.overall_score || 0,
     recommendation: evaluation.recommendation || "N/A",
-    overall_summary: evaluation.evaluation_data?.overall_summary || "No summary available.",
-    strength_summary: evaluation.evaluation_data?.strengths || "N/A",
-    weakness_summary: evaluation.evaluation_data?.weaknesses || "N/A",
-    followups: evaluation.evaluation_data?.suggested_followups || [],
+    overall_summary: evaluation.highlights?.overall_summary || "No summary available.",
+    strength_summary: evaluation.highlights?.strengths || "N/A",
+    weakness_summary: evaluation.highlights?.weaknesses || "N/A",
+    followups: evaluation.highlights?.suggested_followups || [],
     percentage: Math.round((evaluation.overall_score || 0) * 20)
   } : null;
 
@@ -257,6 +258,7 @@ export default function CandidatesStages() {
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto pt-2 space-y-2 ">
+            <CandidateTimeline />
             {isLoadingEvaluation ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />

@@ -7,7 +7,6 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import type { StageTemplate } from "@/types/stage";
-import { Label } from "../ui/label";
 
 
 interface StageDetailDialogProps {
@@ -47,8 +46,26 @@ export const StageDetailDialog = ({
 
                     </DialogDescription>
                 </DialogHeader>
-                <Label className="text-base text-muted-foreground mt-2 line-clamp-2"> SOON</Label>
-                <DialogFooter className="p-6 pt-2 border-t bg-muted/10">
+                <div className="flex-1 overflow-y-auto px-6 py-4">
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Evaluation Criteria</h3>
+                    {template.default_config?.evaluation_criteria ? (
+                        <ul className="list-disc list-outside ml-5 space-y-2 text-sm">
+                            {Array.isArray(template.default_config.evaluation_criteria) ? (
+                                template.default_config.evaluation_criteria.map((criterion: any, index: number) => (
+                                    <li key={index}>
+                                        {typeof criterion === 'string' ? criterion : JSON.stringify(criterion)}
+                                    </li>
+                                ))
+                            ) : (
+                                <li>{String(template.default_config.evaluation_criteria)}</li>
+                            )}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-muted-foreground italic">No evaluation criteria defined for this stage template.</p>
+                    )}
+                </div>
+
+                <DialogFooter className="p-4 border-t bg-muted/5">
                 </DialogFooter>
             </DialogContent>
         </Dialog>
