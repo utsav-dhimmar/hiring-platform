@@ -11,6 +11,7 @@ class TimelineEvent(BaseModel):
     result: Optional[str] = None
     score: Optional[float] = None
     stage_id: Optional[uuid.UUID] = None
+    stage_name: Optional[str] = None
     job_id: Optional[uuid.UUID] = None
     metadata: Optional[dict[str, Any]] = None
 
