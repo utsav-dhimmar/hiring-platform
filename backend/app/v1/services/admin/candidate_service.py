@@ -603,7 +603,30 @@ class CandidateAdminService:
         if not candidate:
             return False
 
-        # Manually delete resume_chunks first (no cascade in DB constraint)
+        # 1. Manually cleanup interview-related data first (Evaluation -> Transcript -> Recording -> Interview)
+        # This is necessary because Transcripts reference Files, and Files are cascaded from Candidate.
+        from sqlalchemy import delete
+        from app.v1.db.models.interviews import Interview
+        from app.v1.db.models.transcripts import Transcript
+        from app.v1.db.models.evaluations import Evaluation
+        from app.v1.db.models.recordings import Recording
+
+        # Get all interview IDs for this candidate
+        interview_ids_stmt = select(Interview.id).where(Interview.candidate_id == candidate.id)
+        interview_ids_res = await db.execute(interview_ids_stmt)
+        interview_ids = [row[0] for row in interview_ids_res.all()]
+
+        if interview_ids:
+            # Delete Evaluations linked to these interviews
+            await db.execute(delete(Evaluation).where(Evaluation.interview_id.in_(interview_ids)))
+            # Delete Transcripts linked to these interviews
+            await db.execute(delete(Transcript).where(Transcript.interview_id.in_(interview_ids)))
+            # Delete Recordings linked to these interviews
+            await db.execute(delete(Recording).where(Recording.interview_id.in_(interview_ids)))
+            # Delete the Interviews themselves
+            await db.execute(delete(Interview).where(Interview.id.in_(interview_ids)))
+
+        # 2. Manually delete resume_chunks (no cascade in DB constraint)
         from sqlalchemy import text
         from app.v1.db.models.resumes import Resume
         resume_ids_result = await db.execute(

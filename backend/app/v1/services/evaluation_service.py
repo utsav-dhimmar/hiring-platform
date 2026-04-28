@@ -145,6 +145,10 @@ class EvaluationService:
         criteria_scores = [v["score"] for v in final_report.values() if isinstance(v, dict) and "score" in v]
         avg_score = sum(criteria_scores) / len(criteria_scores) if criteria_scores else 0.0
 
+        # --- PASSING THRESHOLD LOGIC (3.5) ---
+        is_passed = avg_score >= 3.5
+        pass_fail_summary = "Passed Stage 1" if is_passed else f"Failed Stage 1 (Score {avg_score:.2f} < 3.5)"
+
         ev = Evaluation(
             candidate_stage_id=candidate_stage_id,
             transcript_id=transcript.id,
@@ -164,9 +168,14 @@ class EvaluationService:
             "signals": signals,
             "report": final_report,
             "evidence": evidence_snippets,
-            "calculated_scores": calculated_scores
+            "calculated_scores": calculated_scores,
+            "is_passed": is_passed,
+            "threshold": 3.5,
+            "pass_fail_summary": pass_fail_summary
         }
-        cs.status = "completed"
+        
+        # Set status based on threshold
+        cs.status = "completed" if is_passed else "failed"
         cs.completed_at = func.now()
 
         await db.commit()
