@@ -74,6 +74,14 @@ Return structured JSON exactly as defined in the examples."""
 STRICT REQUIREMENT: You MUST ONLY evaluate the following criteria: {', '.join(allowed_keys)}.
 Do NOT include any other evaluation fields in your JSON response.
 
+### CONTEXT:
+JOB DESCRIPTION:
+{jd_text[:3000]}
+
+RESUME SUMMARY:
+{resume_text}
+
+### EVALUATION DATA:
 Calculated Preliminary Scores (Mathematical):
 {json.dumps(calculated_scores, indent=2)}
 

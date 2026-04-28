@@ -43,7 +43,7 @@ from app.v1.prompts import (
     RESUME_EXTRACTION_PROMPT,
     JD_INSTRUCTION,
     RESUME_INSTRUCTION,
-    SKILL_INSTRUCTION
+    SKILL_INSTRUCTION,
 )
 from app.v1.services.admin_service import admin_service
 from app.v1.services.stage_service import stage_service
@@ -120,9 +120,7 @@ async def delete_user(
     admin: UserRead = Depends(check_permission("users:manage")),
 ) -> None:
     """Delete a user."""
-    await admin_service.delete_user(
-        db=db, admin_user_id=admin.id, user_id=user_id
-    )
+    await admin_service.delete_user(db=db, admin_user_id=admin.id, user_id=user_id)
 
 
 @router.get("/roles", response_model=PaginatedData[RoleRead])
@@ -185,9 +183,7 @@ async def delete_role(
     admin: UserRead = Depends(check_permission("roles:manage")),
 ) -> None:
     """Delete a role."""
-    await admin_service.delete_role(
-        db=db, admin_user_id=admin.id, role_id=role_id
-    )
+    await admin_service.delete_role(db=db, admin_user_id=admin.id, role_id=role_id)
 
 
 @router.get("/permissions", response_model=PaginatedData[PermissionRead])
@@ -198,9 +194,7 @@ async def get_all_permissions(
     limit: int = Query(100, ge=1, le=500),
 ) -> Any:
     """Get all permissions."""
-    return await admin_service.get_all_permissions(
-        db=db, skip=skip, limit=limit
-    )
+    return await admin_service.get_all_permissions(db=db, skip=skip, limit=limit)
 
 
 @router.post(
@@ -220,9 +214,7 @@ async def create_permission(
     )
 
 
-@router.delete(
-    "/permissions/{permission_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/permissions/{permission_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_permission(
     permission_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -232,7 +224,6 @@ async def delete_permission(
     await admin_service.delete_permission(
         db=db, admin_user_id=admin.id, permission_id=permission_id
     )
-
 
 
 @router.get("/audit-logs", response_model=PaginatedData[AuditLogRead])
@@ -245,7 +236,6 @@ async def get_audit_logs(
 ) -> Any:
     """Get all audit logs, optionally filtered by action."""
     return await admin_service.get_audit_logs(db=db, skip=skip, limit=limit, q=q)
-
 
 
 @router.get("/recent-uploads", response_model=PaginatedData[RecentUploadRead])
@@ -290,7 +280,9 @@ async def get_stage_templates(
     q: str | None = Query(None),
 ) -> Any:
     """Get all stage templates with pagination and search."""
-    return await stage_service.get_all_templates(db=db, skip=skip, limit=limit, search=q)
+    return await stage_service.get_all_templates(
+        db=db, skip=skip, limit=limit, search=q
+    )
 
 
 @router.post(
@@ -308,9 +300,7 @@ async def create_stage_template(
     return await stage_service.create_template(db=db, template_in=template_in)
 
 
-@router.patch(
-    "/stage-templates/{template_id}", response_model=StageTemplateRead
-)
+@router.patch("/stage-templates/{template_id}", response_model=StageTemplateRead)
 async def update_stage_template(
     template_id: uuid.UUID,
     *,
@@ -324,9 +314,7 @@ async def update_stage_template(
     )
 
 
-@router.delete(
-    "/stage-templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/stage-templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_stage_template(
     template_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -353,18 +341,21 @@ async def get_active_prompts(
         {"name": "Resume Processing Instruction", "content": RESUME_INSTRUCTION},
         {"name": "Skill Extraction Instruction", "content": SKILL_INSTRUCTION},
     ]
-    
+
     if q:
         q = q.lower()
-        prompts = [p for p in prompts if q in p["name"].lower() or q in p["content"].lower()]
-    
+        prompts = [
+            p for p in prompts if q in p["name"].lower() or q in p["content"].lower()
+        ]
+
     total = len(prompts)
     paginated_prompts = prompts[skip : skip + limit]
-        
+
     return {"data": paginated_prompts, "total": total}
 
 
 # --- Criteria Management ---
+
 
 @router.get("/criteria", response_model=PaginatedData[CriterionRead])
 async def get_all_criteria(
@@ -377,8 +368,10 @@ async def get_all_criteria(
     """Retrieve all available evaluation criteria with pagination and search."""
     stmt = select(Criterion)
     if q:
-        stmt = stmt.where(Criterion.name.ilike(f"%{q}%") | Criterion.description.ilike(f"%{q}%"))
-    
+        stmt = stmt.where(
+            Criterion.name.ilike(f"%{q}%") | Criterion.description.ilike(f"%{q}%")
+        )
+
     # Get total count
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = await db.scalar(count_stmt) or 0
@@ -389,22 +382,29 @@ async def get_all_criteria(
     criteria = res.scalars().all()
     return {"data": criteria, "total": total}
 
-@router.post("/criteria", response_model=CriterionRead, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/criteria", response_model=CriterionRead, status_code=status.HTTP_201_CREATED
+)
 async def create_criterion(
     criterion_in: CriterionCreate,
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("jobs:manage")),
 ):
     """Create a new evaluation criterion."""
-    existing = await db.execute(select(Criterion).where(Criterion.name == criterion_in.name))
+    existing = await db.execute(
+        select(Criterion).where(Criterion.name == criterion_in.name)
+    )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail=f"Criterion with name '{criterion_in.name}' already exists.")
-    
+        raise HTTPException(
+            status_code=400,
+            detail=f"Criterion with name '{criterion_in.name}' already exists.",
+        )
+
     # 🌟 MAGIC: Enhance the prompt text using LLM
     if criterion_in.prompt_text and len(criterion_in.prompt_text) > 0:
         enhanced_prompt = await prompt_enhancer_service.enhance_prompt(
-            criterion_in.name,
-            criterion_in.prompt_text
+            criterion_in.name, criterion_in.prompt_text
         )
         criterion_in.prompt_text = enhanced_prompt
 
@@ -413,6 +413,7 @@ async def create_criterion(
     await db.commit()
     await db.refresh(criterion)
     return criterion
+
 
 @router.patch("/criteria/{criterion_id}", response_model=CriterionRead)
 async def update_criterion(
@@ -425,23 +426,23 @@ async def update_criterion(
     criterion = await db.get(Criterion, criterion_id)
     if not criterion:
         raise HTTPException(status_code=404, detail="Criterion not found")
-    
+
     # 🌟 MAGIC: Enhance the prompt text if it is being updated
     if criterion_update.prompt_text and len(criterion_update.prompt_text) > 0:
         name_to_use = criterion_update.name if criterion_update.name else criterion.name
         enhanced_prompt = await prompt_enhancer_service.enhance_prompt(
-            name_to_use,
-            criterion_update.prompt_text
+            name_to_use, criterion_update.prompt_text
         )
         criterion_update.prompt_text = enhanced_prompt
 
     update_data = criterion_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(criterion, field, value)
-    
+
     await db.commit()
     await db.refresh(criterion)
     return criterion
+
 
 @router.delete("/criteria/{criterion_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_criterion(
@@ -453,7 +454,7 @@ async def delete_criterion(
     criterion = await db.get(Criterion, criterion_id)
     if not criterion:
         raise HTTPException(status_code=404, detail="Criterion not found")
-    
+
     await db.delete(criterion)
     await db.commit()
     return None

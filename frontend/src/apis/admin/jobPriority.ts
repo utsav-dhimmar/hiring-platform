@@ -1,13 +1,7 @@
 import client from "@/apis/client";
-import type { JobPriorityRead } from "@/types/admin";
 
+import type { JobPriorityRead, PaginatedResponse } from "@/types/admin";
 
-// export type PriorityResponse = {
-//   data: JobPriorityRead[];
-//   // total: number;
-// }
-
-export type PriorityResponse = JobPriorityRead[];
 
 /**
  * Service for managing job priorities in the admin panel.
@@ -21,11 +15,11 @@ export const adminJobPriorityService = {
    * @returns Promise resolving to job priorities and total count
    */
   getAllPriorities: async (
-    skip: number = 0, // api has not support for pagination for now
-    limit: number = 100, // api has not support for pagination for now
-    search?: string // api has not support for pagination for now
-  ): Promise<PriorityResponse> => {
-    const response = await client.get<PriorityResponse>(
+    skip: number = 0,
+    limit: number = 10,
+    search?: string
+  ): Promise<PaginatedResponse<JobPriorityRead>> => {
+    const response = await client.get<PaginatedResponse<JobPriorityRead>>(
       "/job-priorities",
       {
         params: { skip, limit, q: search ? search : undefined },
