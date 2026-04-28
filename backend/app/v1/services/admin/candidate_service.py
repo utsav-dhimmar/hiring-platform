@@ -644,4 +644,99 @@ class CandidateAdminService:
         return True
 
 
+
+    async def get_candidate_timeline(
+        self, 
+        db: AsyncSession, 
+        candidate_id: uuid.UUID, 
+        job_id: uuid.UUID | None = None,
+        query: str | None = None
+    ) -> dict[str, Any]:
+        """
+        Aggregate stages, decisions, and results into a chronological timeline.
+        """
+        from app.v1.db.models.candidate_stages import CandidateStage
+        from app.v1.db.models.hr_decisions import HrDecision
+        from app.v1.db.models.evaluations import Evaluation
+        from app.v1.db.models.job_stage_configs import JobStageConfig
+        from sqlalchemy import select, and_, or_
+        from sqlalchemy.orm import selectinload
+
+        events = []
+
+        # 1. Fetch Stages
+        stmt = select(CandidateStage).join(JobStageConfig).where(CandidateStage.candidate_id == candidate_id).options(
+            selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template)
+        )
+        if job_id:
+            stmt = stmt.where(JobStageConfig.job_id == job_id)
+        
+        stages = (await db.execute(stmt)).scalars().all()
+
+        for stage in stages:
+            # Fetch latest evaluation for this stage
+            eval_stmt = select(Evaluation).where(Evaluation.candidate_stage_id == stage.id).order_by(Evaluation.created_at.desc()).limit(1)
+            eval_obj = (await db.execute(eval_stmt)).scalar_one_or_none()
+
+            title = stage.job_stage.template.name if stage.job_stage else "Unknown Stage"
+            result = eval_obj.result if eval_obj else "Pending"
+            score = eval_obj.overall_score if eval_obj else None
+            
+            # Filter by query if provided
+            if query:
+                q_lower = query.lower()
+                title_match = q_lower in title.lower()
+                result_match = result and q_lower in result.lower()
+                if not (title_match or result_match):
+                    continue
+
+            events.append({
+                "event_type": "stage",
+                "event_date": stage.started_at,
+                "title": title,
+                "description": f"Candidate was in {title}",
+                "result": result,
+                "score": score,
+                "stage_id": stage.id,
+                "job_id": stage.job_stage.job_id,
+                "metadata": stage.evaluation_data
+            })
+
+        # 2. Fetch HR Decisions
+        decision_stmt = select(HrDecision).where(HrDecision.candidate_id == candidate_id)
+        if job_id:
+            decision_stmt = decision_stmt.where(HrDecision.job_id == job_id)
+        
+        decisions = (await db.execute(decision_stmt)).scalars().all()
+
+        for dec in decisions:
+            title = f"HR Decision: {dec.decision}"
+            
+            # Filter by query if provided
+            if query:
+                q_lower = query.lower()
+                title_match = q_lower in title.lower()
+                notes_match = dec.notes and q_lower in dec.notes.lower()
+                if not (title_match or notes_match):
+                    continue
+
+            events.append({
+                "event_type": "decision",
+                "event_date": dec.decided_at,
+                "title": title,
+                "description": dec.notes,
+                "result": dec.decision,
+                "job_id": dec.job_id,
+                "metadata": {"user_id": str(dec.user_id)}
+            })
+
+        # Sort events by date descending
+        events.sort(key=lambda x: x["event_date"], reverse=True)
+
+        return {
+            "candidate_id": candidate_id,
+            "events": events
+        }
+
+
 candidate_admin_service = CandidateAdminService()
