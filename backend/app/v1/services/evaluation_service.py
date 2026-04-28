@@ -108,9 +108,12 @@ class EvaluationService:
             )
             criteria_res = await db.execute(criteria_stmt)
             rows = criteria_res.all()
+            logger.info(f"Fallback: Found {len(rows)} criteria for template {cs.job_stage.template_id}")
             active_criteria_configs = [
                 {"id": str(r[0].id), "weight": float(r[1]), "obj": r[0]} for r in rows
             ]
+        
+        logger.info(f"Final active_criteria_configs: {[c.get('id') for c in active_criteria_configs]}")
 
         # 3. EMBEDDING PHASE (Signals)
         resume_obj = next(iter(candidate.resumes), None)
@@ -156,12 +159,15 @@ class EvaluationService:
         }
 
         # 6. LLM PHASE (Synthesis)
+        criteria_names = [config.get("obj").name for config in active_criteria_configs if config.get("obj")]
+        logger.info(f"Invoking LLM for synthesis. Criteria: {criteria_names}")
         final_report = await evaluation_agent.synthesize_evaluation(
             transcript_text=transcript.clean_transcript_text,
             jd_text=job.jd_text or "",
             resume_text=resume_summary,
             calculated_scores=calculated_scores,
             evidence_snippets=evidence_snippets,
+            criteria_names=criteria_names,
         )
 
         # 7. RESTRUCTURE AND STORE PHASE
