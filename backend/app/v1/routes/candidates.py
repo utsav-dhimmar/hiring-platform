@@ -185,6 +185,7 @@ async def create_candidate_decision(
             candidate_id=candidate_id,
             decision_data=decision_data,
             user_id=user.id,
+            stage_config_id=decision_data.stage_config_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -196,6 +197,7 @@ async def create_candidate_decision(
 async def get_candidate_decision_history(
     candidate_id: uuid.UUID,
     job_id: uuid.UUID | None = None,
+    stage_config_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
 ) -> Any:
@@ -205,6 +207,7 @@ async def get_candidate_decision_history(
             db=db,
             candidate_id=candidate_id,
             job_id=job_id,
+            stage_config_id=stage_config_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

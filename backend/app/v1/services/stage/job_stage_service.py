@@ -111,7 +111,7 @@ class JobStageService:
         self, db: AsyncSession, job_id: uuid.UUID
     ) -> list[JobStageConfig]:
         """Setup the standard reference flow for a job."""
-        templates = await stage_repository.get_all_templates(db)
+        templates, _ = await stage_repository.get_all_templates(db)
 
         # Map names to templates for easy lookup
         template_map = {t.name.lower(): t for t in templates}

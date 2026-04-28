@@ -97,6 +97,17 @@ class HRDecisionService:
             candidate, "applied_job_id", None
         )
 
+        # If no stage_config_id provided, try to find the first stage of the job
+        if not stage_config_id and actual_job_id:
+            from app.v1.db.models.job_stage_configs import JobStageConfig
+            first_stage_stmt = (
+                select(JobStageConfig.id)
+                .where(JobStageConfig.job_id == actual_job_id)
+                .order_by(JobStageConfig.stage_order.asc())
+                .limit(1)
+            )
+            stage_config_id = (await db.execute(first_stage_stmt)).scalar()
+
         # Check "May Be" decision limit (only 1 per candidate per job)
         if decision_data.decision == "May Be":
             query = select(func.count(HrDecision.id)).where(
@@ -265,6 +276,7 @@ class HRDecisionService:
         db: AsyncSession,
         candidate_id: uuid.UUID,
         job_id: uuid.UUID | None = None,
+        stage_config_id: uuid.UUID | None = None,
     ) -> HRDecisionHistoryResponse:
         """Get complete decision history for a candidate."""
 
@@ -290,6 +302,9 @@ class HRDecisionService:
                     )
                 )
             )
+        
+        if stage_config_id:
+            stmt = stmt.where(HrDecision.stage_config_id == stage_config_id)
 
         decisions_result = await db.execute(
             stmt.order_by(HrDecision.decided_at.desc())
@@ -391,6 +406,8 @@ class HRDecisionService:
         decision.notes = decision_data.notes
         if getattr(decision_data, "job_id", None):
             decision.job_id = decision_data.job_id
+        if getattr(decision_data, "stage_config_id", None):
+            decision.stage_config_id = decision_data.stage_config_id
 
         await db.commit()
         await db.refresh(decision)

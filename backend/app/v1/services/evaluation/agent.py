@@ -25,7 +25,8 @@ class EvaluationAgent:
         jd_text: str, 
         resume_text: str,
         calculated_scores: Dict[str, float],
-        evidence_snippets: Dict[str, List[str]]
+        evidence_snippets: Dict[str, List[str]],
+        criteria_names: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Final synthesis phase. Combines deterministic scores and evidence into a readable report.
@@ -63,10 +64,14 @@ Return structured JSON exactly as defined in the examples."""
                 evidence_context += f"- \"{s}\"\n"
 
         # Prepare dynamic JSON schema based on active criteria
-        json_schema = ""
-        allowed_keys = []
+        # 1. Generate Dynamic JSON Schema part
         schema_parts = []
-        for criterion in evidence_snippets.keys():
+        allowed_keys = []
+        
+        # Use provided criteria_names if available, otherwise fallback to evidence_snippets keys
+        target_criteria = criteria_names if criteria_names else list(evidence_snippets.keys())
+        
+        for criterion in target_criteria:
             key = criterion.lower().replace(" ", "_")
             allowed_keys.append(key)
             schema_parts.append(f'    "{key}": {{ "score": int, "reasoning": "...", "confidence": float }}')
