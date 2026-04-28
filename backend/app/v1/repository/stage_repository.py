@@ -31,7 +31,10 @@ class StageRepository:
         """Retrieve all stage templates with pagination and search."""
         stmt = select(StageTemplate)
         if search:
-            stmt = stmt.where(StageTemplate.name.ilike(f"%{search}%"))
+            stmt = stmt.where(
+                StageTemplate.name.ilike(f"%{search}%") | 
+                StageTemplate.description.ilike(f"%{search}%")
+            )
         
         # Get total count
         count_stmt = select(func.count()).select_from(stmt.subquery())
