@@ -10,6 +10,7 @@ from app.v1.db.session import get_db
 from app.v1.dependencies import check_permission
 from app.v1.schemas.response import PaginatedData
 from app.v1.schemas.upload import CandidateResponse
+from app.v1.schemas.timeline import HiringTimelineResponse
 from app.v1.schemas.user import UserRead
 from app.v1.schemas.hr_decision import (
     HRDecisionCreate,
@@ -22,6 +23,7 @@ from app.v1.schemas.hr_decision import (
 from app.v1.services.admin_service import admin_service
 from app.v1.services.hr_decision_service import hr_decision_service
 from app.v1.services.job_stats_service import job_stats_service
+from app.v1.services.admin.candidate_service import candidate_admin_service
 from app.v1.schemas.job_stats import JobStatsResponse
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -250,3 +252,23 @@ async def delete_candidate_test(
     if not success:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return {"message": "Candidate and all related records deleted successfully"}
+
+
+@router.get("/{candidate_id}/timeline", response_model=HiringTimelineResponse)
+async def get_candidate_timeline(
+    candidate_id: uuid.UUID,
+    job_id: uuid.UUID | None = Query(None),
+    q: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:access")),
+) -> Any:
+    """
+    Retrieve the chronological hiring timeline for a candidate.
+    Supports optional job_id and 'q' (search query) filters.
+    """
+    return await candidate_admin_service.get_candidate_timeline(
+        db=db, 
+        candidate_id=candidate_id, 
+        job_id=job_id,
+        query=q
+    )

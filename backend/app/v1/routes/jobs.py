@@ -219,7 +219,9 @@ async def delete_job(
 from app.v1.schemas.job_stage import StageTemplateRead, StageTemplateCreate, StageTemplatesListRead
 from app.v1.db.models.stage_templates import StageTemplate
 
-@router.get("/stage-templates/all", response_model=StageTemplatesListRead)
+from app.v1.schemas.response import PaginatedData
+
+@router.get("/stage-templates/all", response_model=PaginatedData[StageTemplateRead])
 async def get_all_stage_templates(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("jobs:manage")),
