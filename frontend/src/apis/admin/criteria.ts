@@ -1,5 +1,5 @@
 import apiClient from "@/apis/client";
-import type { CriterionCreate, CriterionRead, CriterionUpdate } from "@/types/admin";
+import type { CriterionCreate, CriterionRead, CriterionUpdate, PaginatedResponse } from "@/types/admin";
 
 const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
@@ -9,10 +9,19 @@ const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 export const adminCriteriaService = {
   /**
    * Get all available evaluation criteria.
-   * @returns Promise resolving to an array of criteria
+   * @param skip - Number of records to skip
+   * @param limit - Maximum number of records to return
+   * @param search - Search query
+   * @returns Promise resolving to a paginated response of criteria
    */
-  getAllCriteria: async (): Promise<CriterionRead[]> => {
-    const response = await apiClient.get<CriterionRead[]>(`${ADMIN_PATH}/criteria`);
+  getAllCriteria: async (
+    skip: number = 0,
+    limit: number = 100,
+    search?: string,
+  ): Promise<PaginatedResponse<CriterionRead>> => {
+    const response = await apiClient.get<PaginatedResponse<CriterionRead>>(`${ADMIN_PATH}/criteria`, {
+      params: { skip, limit, q: search || undefined },
+    });
     return response.data;
   },
 
