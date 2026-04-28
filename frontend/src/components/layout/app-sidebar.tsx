@@ -37,8 +37,10 @@ import {
   Settings2,
   Settings
 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const navigate = useNavigate();
   const user = useAppSelector(selectCurrentUser)
   const userPermissions = user?.permissions ?? []
 
@@ -226,9 +228,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton
               size="lg"
               className={cn(
-                "pointer-events-none data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-none",
+                "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-none",
                 isCollapsed ? "h-auto w-auto p-0 flex justify-center items-center" : "flex-1"
               )}
+              onClick={() => {
+                navigate("/dashboard/admin");
+              }}
             >
               {isCollapsed ? <LogoIcon /> : <Logo />}
             </SidebarMenuButton>
