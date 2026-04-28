@@ -21,18 +21,6 @@ Scoring rubric:
 - 5: Highly articulate, structured, and easy to understand with strong examples"""
     },
     {
-        "name": "Confidence",
-        "description": "Evaluate the candidate's confidence: Certainty, hesitation (filler words), handling of difficult questions.",
-        "prompt_text": """Evaluate the candidate's confidence.
-Consider: Certainty in responses, Hesitation, filler words, or self-doubt, Handling of difficult questions, Ownership of answers.
-Scoring rubric:
-- 1: Very hesitant, avoids answering, lacks confidence
-- 2: Noticeable hesitation and uncertainty in many responses
-- 3: Moderate confidence but inconsistent
-- 4: Generally confident with occasional hesitation
-- 5: Consistently confident, composed, and assertive"""
-    },
-    {
         "name": "Cultural Fit",
         "description": "Evaluate cultural fit: Alignment with values (ownership, teamwork, growth mindset), attitude, adaptability.",
         "prompt_text": """Evaluate cultural fit using job description and candidate behavior.

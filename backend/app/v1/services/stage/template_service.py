@@ -14,9 +14,18 @@ class StageTemplateService:
     Service for stage template business logic.
     """
 
-    async def get_all_templates(self, db: AsyncSession) -> list[StageTemplate]:
-        """Retrieve all available stage templates."""
-        return await stage_repository.get_all_templates(db)
+    async def get_all_templates(
+        self, 
+        db: AsyncSession, 
+        skip: int = 0, 
+        limit: int = 100, 
+        search: str | None = None
+    ) -> dict:
+        """Retrieve all available stage templates with pagination and search."""
+        templates, total = await stage_repository.get_all_templates(
+            db, skip=skip, limit=limit, search=search
+        )
+        return {"data": templates, "total": total}
 
     async def create_template(
         self, db: AsyncSession, template_in: StageTemplateCreate

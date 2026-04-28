@@ -8,8 +8,9 @@ class EvaluationRead(BaseModel):
     interview_id: Optional[uuid.UUID] = None
     transcript_id: Optional[uuid.UUID] = None
     candidate_stage_id: uuid.UUID
-    evaluation_data: Dict[str, Any]
     overall_score: Optional[float] = None
+    result: str = "fail"
+    evaluation_data: Dict[str, Any]
     recommendation: Optional[str] = None
     sim_jd_resume: Optional[float] = None
     sim_jd_transcript: Optional[float] = None

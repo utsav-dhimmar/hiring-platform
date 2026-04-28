@@ -1,6 +1,6 @@
 import uuid
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
@@ -8,17 +8,20 @@ from app.v1.dependencies import check_permission
 from app.v1.schemas.job_priority import JobPriorityCreate, JobPriorityRead, JobPriorityUpdate
 from app.v1.services.admin.job_priority_service import job_priority_service
 from app.v1.schemas.user import UserRead
+from app.v1.schemas.response import PaginatedData
 
 router = APIRouter()
 
-
-@router.get("", response_model=List[JobPriorityRead])
+@router.get("", response_model=PaginatedData[JobPriorityRead])
 async def get_priorities(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("jobs:access")),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ):
-    """Get all job priorities."""
-    return await job_priority_service.get_all_priorities(db)
+    """Get all job priorities with pagination and search."""
+    return await job_priority_service.get_all_priorities(db, skip=skip, limit=limit, search=q)
 
 
 @router.post("", response_model=JobPriorityRead, status_code=status.HTTP_201_CREATED)

@@ -6,7 +6,7 @@ Provides data access layer for stage templates and job stage configurations.
 
 import uuid
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -21,12 +21,26 @@ class StageRepository:
 
     # --- Stage Template CRUD ---
 
-    async def get_all_templates(self, db: AsyncSession) -> list[StageTemplate]:
-        """Retrieve all stage templates."""
-        result = await db.execute(
-            select(StageTemplate).order_by(StageTemplate.name)
-        )
-        return list(result.scalars().all())
+    async def get_all_templates(
+        self, 
+        db: AsyncSession, 
+        skip: int = 0, 
+        limit: int = 100, 
+        search: str | None = None
+    ) -> tuple[list[StageTemplate], int]:
+        """Retrieve all stage templates with pagination and search."""
+        stmt = select(StageTemplate)
+        if search:
+            stmt = stmt.where(StageTemplate.name.ilike(f"%{search}%"))
+        
+        # Get total count
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = await db.scalar(count_stmt) or 0
+
+        # Get paginated data
+        stmt = stmt.order_by(StageTemplate.name).offset(skip).limit(limit)
+        result = await db.execute(stmt)
+        return list(result.scalars().all()), total
 
     async def get_template_by_id(
         self, db: AsyncSession, template_id: uuid.UUID

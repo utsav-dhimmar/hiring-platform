@@ -1,4 +1,3 @@
-
 import json
 import logging
 import uuid
@@ -21,12 +20,15 @@ from app.v1.services.evaluation.agent import evaluation_agent
 
 logger = logging.getLogger(__name__)
 
+
 class EvaluationService:
     """
     Orchestrates the multi-phase candidate evaluation pipeline.
     """
 
-    async def evaluate_candidate_stage(self, db: AsyncSession, candidate_stage_id: uuid.UUID) -> Dict[str, Any]:
+    async def evaluate_candidate_stage(
+        self, db: AsyncSession, candidate_stage_id: uuid.UUID
+    ) -> Dict[str, Any]:
         """
         Runs the full hybrid evaluation pipeline.
         """
@@ -37,11 +39,11 @@ class EvaluationService:
             select(CandidateStage)
             .options(
                 selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.job),
-                selectinload(CandidateStage.candidate).selectinload(Candidate.resumes)
+                selectinload(CandidateStage.candidate).selectinload(Candidate.resumes),
             )
             .where(CandidateStage.id == candidate_stage_id)
         )
-        
+
         res = await db.execute(stmt)
         cs = res.scalar_one_or_none()
         if not cs:
@@ -49,26 +51,30 @@ class EvaluationService:
 
         candidate = cs.candidate
         job = cs.job_stage.job
-        
+
         # Load Transcript
         interview_stmt = select(Interview).where(
             Interview.candidate_id == candidate.id,
             Interview.job_id == job.id,
-            Interview.stage == cs.job_stage.stage_order
+            Interview.stage == cs.job_stage.stage_order,
         )
         interview_res = await db.execute(interview_stmt)
         interview = interview_res.scalars().first()
-        
+
         if not interview:
             # Fallback
-            interview_stmt = select(Interview).where(Interview.candidate_id == candidate.id).limit(1)
+            interview_stmt = (
+                select(Interview).where(Interview.candidate_id == candidate.id).limit(1)
+            )
             interview_res = await db.execute(interview_stmt)
             interview = interview_res.scalars().first()
 
         if not interview:
             raise ValueError("No interview found")
 
-        transcript_stmt = select(Transcript).where(Transcript.interview_id == interview.id)
+        transcript_stmt = select(Transcript).where(
+            Transcript.interview_id == interview.id
+        )
         transcript_res = await db.execute(transcript_stmt)
         transcript = transcript_res.scalar_one_or_none()
         if not transcript:
@@ -76,19 +82,24 @@ class EvaluationService:
 
         # 2. LOAD CONFIG (Criteria + Weights)
         # Check for per-candidate override first
-        config_override = cs.evaluation_data.get("config_override") if cs.evaluation_data else None
-        
+        config_override = (
+            cs.evaluation_data.get("config_override") if cs.evaluation_data else None
+        )
+
         if config_override:
             active_criteria_configs = config_override.get("active_criteria", [])
-            logger.info(f"Using custom criteria override for stage {candidate_stage_id}")
+            logger.info(
+                f"Using custom criteria override for stage {candidate_stage_id}"
+            )
         else:
             # Config structure in JSONB: {"active_criteria": [{"id": "...", "weight": 20}, ...]}
             config = cs.job_stage.config or {}
             active_criteria_configs = config.get("active_criteria", [])
-        
+
         if not active_criteria_configs:
             # Fallback: Load all criteria linked to the template
             from app.v1.db.models.stage_template_criteria import StageTemplateCriterion
+
             criteria_stmt = (
                 select(Criterion, StageTemplateCriterion.default_weight)
                 .join(StageTemplateCriterion)
@@ -96,16 +107,22 @@ class EvaluationService:
             )
             criteria_res = await db.execute(criteria_stmt)
             rows = criteria_res.all()
-            active_criteria_configs = [{"id": str(r[0].id), "weight": float(r[1]), "obj": r[0]} for r in rows]
+            active_criteria_configs = [
+                {"id": str(r[0].id), "weight": float(r[1]), "obj": r[0]} for r in rows
+            ]
 
         # 3. EMBEDDING PHASE (Signals)
         resume_obj = next(iter(candidate.resumes), None)
-        resume_summary = json.dumps(resume_obj.parse_summary) if resume_obj and resume_obj.parse_summary else ""
-        
+        resume_summary = (
+            json.dumps(resume_obj.parse_summary)
+            if resume_obj and resume_obj.parse_summary
+            else ""
+        )
+
         signals = await evaluation_engine.get_signals(
             jd_text=job.jd_text or "",
             resume_text=resume_summary,
-            transcript_text=transcript.clean_transcript_text
+            transcript_text=transcript.clean_transcript_text,
         )
 
         # 4. RERANKER PHASE (Evidence)
@@ -116,19 +133,22 @@ class EvaluationService:
             criterion = c_config.get("obj")
             if not criterion:
                 criterion = await db.get(Criterion, uuid.UUID(criterion_id))
-            
+
             if criterion:
                 snippets = await evaluation_engine.extract_evidence(
-                    transcript.clean_transcript_text,
-                    criterion.prompt_text
+                    transcript.clean_transcript_text, criterion.prompt_text
                 )
                 evidence_snippets[criterion.name] = snippets
 
         # 5. SCORING PHASE (Rule-based)
         calculated_scores = {
-            "communication_prelim": evaluation_engine.calculate_communication_penalty(transcript.clean_transcript_text),
-            "salary_info": evaluation_engine.extract_salary_expectation(transcript.clean_transcript_text),
-            "signals": signals
+            "communication_prelim": evaluation_engine.calculate_communication_penalty(
+                transcript.clean_transcript_text
+            ),
+            "salary_info": evaluation_engine.extract_salary_expectation(
+                transcript.clean_transcript_text
+            ),
+            "signals": signals,
         }
 
         # 6. LLM PHASE (Synthesis)
@@ -137,17 +157,28 @@ class EvaluationService:
             jd_text=job.jd_text or "",
             resume_text=resume_summary,
             calculated_scores=calculated_scores,
-            evidence_snippets=evidence_snippets
+            evidence_snippets=evidence_snippets,
         )
 
         # 7. STORE PHASE
-        # Calculate overall score (average of criteria scores)
-        criteria_scores = [v["score"] for v in final_report.values() if isinstance(v, dict) and "score" in v]
-        avg_score = sum(criteria_scores) / len(criteria_scores) if criteria_scores else 0.0
+        # Calculate overall score (average of criteria scores from the new 'criteria' key)
+        criteria_map = final_report.get("criteria", {})
+        criteria_scores = [
+            v["score"]
+            for v in criteria_map.values()
+            if isinstance(v, dict) and "score" in v
+        ]
+        avg_score = (
+            sum(criteria_scores) / len(criteria_scores) if criteria_scores else 0.0
+        )
 
         # --- PASSING THRESHOLD LOGIC (3.5) ---
         is_passed = avg_score >= 3.5
-        pass_fail_summary = "Passed Stage 1" if is_passed else f"Failed Stage 1 (Score {avg_score:.2f} < 3.5)"
+        pass_fail_summary = (
+            "Passed Stage 1"
+            if is_passed
+            else f"Failed Stage 1 (Score {avg_score:.2f} < 3.5)"
+        )
 
         ev = Evaluation(
             candidate_stage_id=candidate_stage_id,
@@ -155,11 +186,13 @@ class EvaluationService:
             interview_id=interview.id,
             evaluation_data=final_report,
             overall_score=avg_score,
+            passing_threshold=passing_threshold,
+            result=result_status,
             recommendation=final_report.get("overall_summary", ""),
             sim_jd_resume=signals["profile_fit"],
             sim_jd_transcript=signals["tech_alignment"],
             sim_resume_transcript=signals["consistency"],
-            evidence_block=evidence_snippets
+            evidence_block=evidence_snippets,
         )
         db.add(ev)
 
@@ -171,14 +204,15 @@ class EvaluationService:
             "calculated_scores": calculated_scores,
             "is_passed": is_passed,
             "threshold": 3.5,
-            "pass_fail_summary": pass_fail_summary
+            "pass_fail_summary": pass_fail_summary,
         }
-        
+
         # Set status based on threshold
         cs.status = "completed" if is_passed else "failed"
         cs.completed_at = func.now()
 
         await db.commit()
         return final_report
+
 
 evaluation_service = EvaluationService()
