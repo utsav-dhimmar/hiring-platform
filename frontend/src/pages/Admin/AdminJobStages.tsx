@@ -1,17 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
-import { Info, Pencil, Trash2, ArrowUpDown, Plus, } from "lucide-react";
+import { Info, Pencil, Trash2, ArrowUpDown, Plus } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { StageTemplate } from "@/types/stage";
 import { adminStageTemplateService } from "@/apis/admin/stageTemplate";
 import { useToast } from "@/components/shared";
 import { StageDeleteDialog } from "@/components/admin/StageDeleteDialog";
 import { StageDetailDialog } from "@/components/admin/StageDetailDialog";
+import { useAdminData } from "@/hooks";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "@/utils/slug";
+import type { PaginationState } from "@tanstack/react-table";
 import {
   HoverCard,
   HoverCardContent,
@@ -24,32 +26,54 @@ import {
  * Displays searchable table with view, edit, and delete functionality.
  */
 const AdminJobStages = () => {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<StageTemplate[]>([]);
   const toast = useToast();
   const navigate = useNavigate();
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch]);
 
   // Dialog states
   const [selectedTemplate, setSelectedTemplate] = useState<StageTemplate | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const fetchTemplates = useCallback(async () => {
-    setLoading(true);
-    try {
-      const templates = await adminStageTemplateService.getAllTemplates();
-      setData(templates);
-    } catch (error) {
-      console.error("Failed to fetch stage templates:", error);
-      toast.error("Failed to load stage templates");
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+  const {
+    data,
+    total,
+    loading,
+    fetchData: fetchTemplates,
+  } = useAdminData<StageTemplate>(
+    () => adminStageTemplateService.getAllTemplates(pageIndex * pageSize, pageSize, debouncedSearch),
+    { fetchOnMount: false }
+  );
 
+  // Refetch when pagination or search changes
   useEffect(() => {
     fetchTemplates();
-  }, [fetchTemplates]);
+  }, [pageIndex, pageSize, debouncedSearch, fetchTemplates]);
+
+  const [overallTotal, setOverallTotal] = useState(0);
+  useEffect(() => {
+    if (!debouncedSearch) {
+      setOverallTotal(total);
+    }
+  }, [total, debouncedSearch]);
 
   const handleShow = (template: StageTemplate) => {
     setSelectedTemplate(template);
@@ -189,8 +213,18 @@ const AdminJobStages = () => {
           data={data}
           loading={loading}
           searchKey="name"
+          searchValue={search}
+          onSearchChange={setSearch}
           searchPlaceholder="Search templates..."
-          entityName="Template"
+          isServerSide={true}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          pageCount={Math.ceil(total / pageSize)}
+          onPaginationChange={setPagination}
+          totalRecords={total}
+          totalCount={overallTotal}
+          resultCount={data.length}
+          entityName="Templates"
         />
       </div>
 

@@ -53,7 +53,7 @@ const AdminJobPriorities = () => {
     error,
     fetchData: fetchPriorities,
   } = useAdminData<JobPriorityRead>(
-    () => adminJobPriorityService.getAllPriorities(pageIndex * pageSize, pageSize),
+    () => adminJobPriorityService.getAllPriorities(pageIndex * pageSize, pageSize, debouncedSearch),
     { fetchOnMount: false }
   );
 
