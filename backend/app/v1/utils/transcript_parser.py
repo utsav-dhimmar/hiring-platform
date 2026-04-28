@@ -39,10 +39,9 @@ def remove_markdown_garbage(text: str) -> str:
 
 
 def remove_repetitions(text: str) -> str:
-    """Removes continuous repetition of the same word (e.g., 'now now' -> 'now')."""
-    # This regex matches a word followed by one or more spaces and the exact same word
-    # \b ensures word boundaries, \1 refers to the first captured group
-    return re.sub(r'\b(\w+)(?:\s+\1\b)+', r'\1', text, flags=re.IGNORECASE)
+    """Removes continuous repetition of the same word (e.g., 'now now' or 'same, same' -> 'now' or 'same')."""
+    # This regex matches a word followed by one or more spaces/punctuation and the exact same word
+    return re.sub(r'\b(\w+)(?:[\s,.]+\1\b)+', r'\1', text, flags=re.IGNORECASE)
 
 
 def clean_transcript_text(text: str) -> str:
@@ -93,7 +92,7 @@ def extract_dialogues(text: str) -> list[DialogueTurn]:
 
     # Enhanced pattern: Catches variable length names and mm:ss or hh:mm:ss
     pattern = re.compile(
-        r'^(.+?)\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*$'
+        r'^(.+?)\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*[\r\n]*$'
     )
 
     current_speaker = None
@@ -132,6 +131,49 @@ def extract_dialogues(text: str) -> list[DialogueTurn]:
     return dialogues
 
 
+def trim_post_interview_noise(dialogues: list[DialogueTurn]) -> list[DialogueTurn]:
+    """
+    Attempts to identify the logical end of an interview and trim subsequent noise.
+    Looks for closing phrases like 'Thank you', 'Bye', 'Dropping off' near the end.
+    """
+    if not dialogues or len(dialogues) < 5:
+        return dialogues
+    
+    # We only look for the end within the last 20% of the transcript or last 30 turns
+    lookback_limit = max(len(dialogues) // 5, 30)
+    start_index = max(0, len(dialogues) - lookback_limit)
+    
+    closing_patterns = [
+        r"\bthank\s+you\b",
+        r"\bbye\b",
+        r"\bgoodbye\b",
+        r"\bdropping\s+off\b",
+        r"\bhave\s+a\s+great\s+day\b",
+        r"\bsee\s+you\b",
+        r"\btake\s+care\b"
+    ]
+    
+    # Search from the end backwards to find the LAST closing statement 
+    # that is followed by only low-info turns
+    potential_end_index = -1
+    
+    for i in range(start_index, len(dialogues)):
+        text = dialogues[i]["text"].lower()
+        if any(re.search(pattern, text) for pattern in closing_patterns):
+            # We found a closing phrase. Now check if the 'rest' of the transcript 
+            # is just a few more turns (noise or sign-offs)
+            remaining_turns = dialogues[i+1:]
+            
+            # If there are fewer than 15 turns left, we assume this is the beginning of the end
+            if len(remaining_turns) <= 15:
+                # Still check if there's any huge turn left just in case
+                has_long_turn = any(len(r["text"].split()) > 30 for r in remaining_turns)
+                if not has_long_turn:
+                    return dialogues[:i + 1]
+        
+    return dialogues
+
+
 def chunk_dialogues(dialogues: list[DialogueTurn], chunk_size_turns: int = 10, overlap_turns: int = 2) -> list[str]:
     """
     Groups individual dialogues into larger chunks (windows) with an overlap based on 'turns'.
@@ -167,7 +209,7 @@ def process_transcript_file(file_content: bytes, file_extension: str) -> dict:
     parse dialogues, and chunk it for further embedding/evaluation logic.
     Returns a structured dictionary of the processed data.
     """
-    valid_exts = {".docx", ".pdf"}
+    valid_exts = {".docx", ".pdf", ".txt"}
     if file_extension.lower() not in valid_exts:
         raise ValueError(f"Invalid file type. Allowed: {valid_exts}")
 
@@ -179,7 +221,7 @@ def process_transcript_file(file_content: bytes, file_extension: str) -> dict:
         # 1. Extract markdown content via MarkItDown
         md = MarkItDown()
         result = md.convert(tmp_path)
-        raw_text = result.text_content
+        raw_text = result.text_content.lstrip('\ufeff')
         
         # 2. Sequential Cleaning Pipeline
         text = remove_markdown_garbage(raw_text)
@@ -193,8 +235,11 @@ def process_transcript_file(file_content: bytes, file_extension: str) -> dict:
         # Fallback if Regex parsing fails entirely
         if not dialogues:
             dialogues = [{"speaker": "Unknown", "text": text}]
+        else:
+            # 4. Trim Post-Interview Noise (e.g. casual talk after 'Bye')
+            dialogues = trim_post_interview_noise(dialogues)
             
-        # 4. Reconstruct the final clean text WITHOUT timestamps or speaker names
+        # 5. Reconstruct the final clean text WITHOUT timestamps or speaker names
         # This is what will be stored in 'clean_transcript_text'
         final_clean_text = "\n\n".join([d["text"] for d in dialogues])
         
