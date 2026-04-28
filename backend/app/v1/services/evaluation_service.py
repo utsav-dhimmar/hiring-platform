@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from datetime import datetime
 
 from app.v1.db.models.candidate_stages import CandidateStage
 from app.v1.db.models.candidates import Candidate
@@ -125,6 +126,7 @@ class EvaluationService:
             transcript_text=transcript.clean_transcript_text,
         )
 
+        logger.info(f"Active criteria count: {len(active_criteria_configs)}")
         # 4. RERANKER PHASE (Evidence)
         evidence_snippets = {}
         for c_config in active_criteria_configs:
@@ -139,6 +141,8 @@ class EvaluationService:
                     transcript.clean_transcript_text, criterion.prompt_text
                 )
                 evidence_snippets[criterion.name] = snippets
+        
+        logger.info(f"Evidence snippets extracted for {len(evidence_snippets)} criteria")
 
         # 5. SCORING PHASE (Rule-based)
         calculated_scores = {
@@ -160,35 +164,56 @@ class EvaluationService:
             evidence_snippets=evidence_snippets,
         )
 
-        # 7. STORE PHASE
-        # Calculate overall score (average of criteria scores from the new 'criteria' key)
+        # 7. RESTRUCTURE AND STORE PHASE
         criteria_map = final_report.get("criteria", {})
-        criteria_scores = [
-            v["score"]
-            for v in criteria_map.values()
-            if isinstance(v, dict) and "score" in v
-        ]
-        avg_score = (
-            sum(criteria_scores) / len(criteria_scores) if criteria_scores else 0.0
-        )
+        
+        # Merge evidence into evaluation_data
+        structured_evaluation_data = {}
+        for key, details in criteria_map.items():
+            if not isinstance(details, dict):
+                continue
+            
+            # Match criterion name back to evidence_snippets
+            criterion_name_match = None
+            for crit_name in evidence_snippets.keys():
+                if crit_name.lower().replace(" ", "_") == key:
+                    criterion_name_match = crit_name
+                    break
+            
+            structured_evaluation_data[key] = {
+                "score": details.get("score", 0),
+                "reasoning": details.get("reasoning", ""),
+                "confidence": details.get("confidence", 0.0),
+                "evidence": evidence_snippets.get(criterion_name_match, []) if criterion_name_match else []
+            }
 
-        # --- PASSING THRESHOLD LOGIC (3.5) ---
+        # Calculate overall score
+        criteria_scores = [v["score"] for v in structured_evaluation_data.values()]
+        avg_score = sum(criteria_scores) / len(criteria_scores) if criteria_scores else 0.0
+
+        # Pass/Fail Logic
         is_passed = avg_score >= 3.5
-        pass_fail_summary = (
-            "Passed Stage 1"
-            if is_passed
-            else f"Failed Stage 1 (Score {avg_score:.2f} < 3.5)"
-        )
+        result_status = "pass" if is_passed else "fail"
+        
+        # Prepare highlights
+        highlights = {
+            "strengths": final_report.get("strengths", []),
+            "weaknesses": final_report.get("weaknesses", []),
+            "suggested_followups": final_report.get("suggested_followups", []),
+            "overall_summary": final_report.get("overall_summary", ""),
+            "recommendation": f"{result_status.upper()} - {final_report.get('recommendation', final_report.get('overall_summary', ''))}"
+        }
 
+        # Save to DB
         ev = Evaluation(
             candidate_stage_id=candidate_stage_id,
             transcript_id=transcript.id,
             interview_id=interview.id,
-            evaluation_data=final_report,
+            evaluation_data=structured_evaluation_data,
             overall_score=avg_score,
-            passing_threshold=passing_threshold,
+            passing_threshold=3.5,
             result=result_status,
-            recommendation=final_report.get("overall_summary", ""),
+            recommendation=json.dumps(highlights),
             sim_jd_resume=signals["profile_fit"],
             sim_jd_transcript=signals["tech_alignment"],
             sim_resume_transcript=signals["consistency"],
@@ -199,12 +224,12 @@ class EvaluationService:
         # Update candidate stage
         cs.evaluation_data = {
             "signals": signals,
-            "report": final_report,
+            "report": structured_evaluation_data,
+            "highlights": highlights,
             "evidence": evidence_snippets,
             "calculated_scores": calculated_scores,
             "is_passed": is_passed,
             "threshold": 3.5,
-            "pass_fail_summary": pass_fail_summary,
         }
 
         # Set status based on threshold
@@ -212,7 +237,24 @@ class EvaluationService:
         cs.completed_at = func.now()
 
         await db.commit()
-        return final_report
+
+        # Construct final response object matching user format
+        response_obj = {
+            "id": str(ev.id),
+            "interview_id": str(ev.interview_id),
+            "transcript_id": str(ev.transcript_id),
+            "candidate_stage_id": str(ev.candidate_stage_id),
+            "overall_score": avg_score,
+            "result": result_status,
+            "evaluation_data": structured_evaluation_data,
+            "sim_jd_resume": signals["profile_fit"],
+            "sim_jd_transcript": signals["tech_alignment"],
+            "sim_resume_transcript": signals["consistency"],
+            "created_at": ev.created_at.isoformat() if ev.created_at else datetime.now().isoformat(),
+            "highlights": highlights
+        }
+        
+        return response_obj
 
 
 evaluation_service = EvaluationService()
