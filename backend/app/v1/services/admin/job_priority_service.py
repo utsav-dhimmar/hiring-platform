@@ -18,8 +18,7 @@ class JobPriorityService:
     ) -> dict:
         stmt = select(JobPriority)
         if search:
-            stmt = stmt.where(JobPriority.name.ilike(f"%{search}%") | 
-                            JobPriority.description.ilike(f"%{search}%"))
+            stmt = stmt.where(JobPriority.name.ilike(f"%{search}%"))
         
         # Get total count
         count_stmt = select(func.count()).select_from(stmt.subquery())
