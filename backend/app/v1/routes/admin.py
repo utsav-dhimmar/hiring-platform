@@ -36,7 +36,7 @@ from app.v1.schemas.user import UserRead
 from app.v1.schemas.prompt import PromptsList, PromptRead
 from app.v1.schemas.criteria import CriterionRead, CriterionCreate, CriterionUpdate
 from app.v1.db.models.criteria import Criterion
-from sqlalchemy import select
+from sqlalchemy import select, func
 from fastapi import HTTPException
 from app.v1.prompts import (
     RESUME_JD_ANALYSIS_PROMPT,
@@ -281,13 +281,16 @@ async def get_hiring_report(
 # --- Stage Template Management ---
 
 
-@router.get("/stage-templates", response_model=list[StageTemplateRead])
+@router.get("/stage-templates", response_model=PaginatedData[StageTemplateRead])
 async def get_stage_templates(
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("jobs:access")),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
-    """Get all stage templates."""
-    return await stage_service.get_all_templates(db=db)
+    """Get all stage templates with pagination and search."""
+    return await stage_service.get_all_templates(db=db, skip=skip, limit=limit, search=q)
 
 
 @router.post(
@@ -333,12 +336,15 @@ async def delete_stage_template(
     await stage_service.delete_template(db=db, template_id=template_id)
 
 
-@router.get("/prompts", response_model=PromptsList)
+@router.get("/prompts", response_model=PaginatedData[PromptRead])
 async def get_active_prompts(
     admin: UserRead = Depends(check_permission("analytics:read")),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
     """
-    Get all AI prompts currently in use by the system (Read-only).
+    Get all AI prompts currently in use by the system (Read-only), with optional search and pagination.
     """
     prompts = [
         {"name": "Resume Extraction Prompt", "content": RESUME_EXTRACTION_PROMPT},
@@ -347,21 +353,41 @@ async def get_active_prompts(
         {"name": "Resume Processing Instruction", "content": RESUME_INSTRUCTION},
         {"name": "Skill Extraction Instruction", "content": SKILL_INSTRUCTION},
     ]
-    return {"data": prompts}
+    
+    if q:
+        q = q.lower()
+        prompts = [p for p in prompts if q in p["name"].lower() or q in p["content"].lower()]
+    
+    total = len(prompts)
+    paginated_prompts = prompts[skip : skip + limit]
+        
+    return {"data": paginated_prompts, "total": total}
 
 
 # --- Criteria Management ---
 
-@router.get("/criteria", response_model=list[CriterionRead])
+@router.get("/criteria", response_model=PaginatedData[CriterionRead])
 async def get_all_criteria(
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("jobs:access")),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ):
-    """Retrieve all available evaluation criteria."""
-    stmt = select(Criterion).order_by(Criterion.name)
+    """Retrieve all available evaluation criteria with pagination and search."""
+    stmt = select(Criterion)
+    if q:
+        stmt = stmt.where(Criterion.name.ilike(f"%{q}%") | Criterion.description.ilike(f"%{q}%"))
+    
+    # Get total count
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = await db.scalar(count_stmt) or 0
+
+    # Get paginated data
+    stmt = stmt.order_by(Criterion.name).offset(skip).limit(limit)
     res = await db.execute(stmt)
     criteria = res.scalars().all()
-    return criteria
+    return {"data": criteria, "total": total}
 
 @router.post("/criteria", response_model=CriterionRead, status_code=status.HTTP_201_CREATED)
 async def create_criterion(

@@ -9,10 +9,28 @@ from app.v1.services.admin.audit_service import audit_service
 
 
 class JobPriorityService:
-    async def get_all_priorities(self, db: AsyncSession) -> List[JobPriority]:
-        stmt = select(JobPriority).order_by(JobPriority.name)
+    async def get_all_priorities(
+        self, 
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 100,
+        search: str | None = None
+    ) -> dict:
+        stmt = select(JobPriority)
+        if search:
+            stmt = stmt.where(JobPriority.name.ilike(f"%{search}%") | 
+                            JobPriority.description.ilike(f"%{search}%"))
+        
+        # Get total count
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = await db.scalar(count_stmt) or 0
+
+        # Get paginated data
+        stmt = stmt.order_by(JobPriority.name).offset(skip).limit(limit)
         result = await db.execute(stmt)
-        return list(result.scalars().all())
+        priorities = list(result.scalars().all())
+        
+        return {"data": priorities, "total": total}
 
     async def get_priority_by_id(self, db: AsyncSession, priority_id: uuid.UUID) -> Optional[JobPriority]:
         return await db.get(JobPriority, priority_id)
