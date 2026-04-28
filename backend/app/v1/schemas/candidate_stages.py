@@ -10,15 +10,15 @@ class EvaluationRead(BaseModel):
     candidate_stage_id: uuid.UUID
     overall_score: Optional[float] = None
     result: str = "fail"
-    evaluation_data: Dict[str, Any]
-    recommendation: Optional[str] = None
+    # Use the property for better structure/compatibility
+    evaluation_data: Dict[str, Any] = Field(..., validation_alias="structured_evaluation_data")
     sim_jd_resume: Optional[float] = None
     sim_jd_transcript: Optional[float] = None
     sim_resume_transcript: Optional[float] = None
-    evidence_block: Optional[Dict[str, Any]] = None
     created_at: datetime
+    highlights: Optional[Dict[str, Any]] = None
     
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class StageOverrideCreate(BaseModel):
     override_reason: str = Field(..., description="Mandatory reason for overriding the AI evaluation")

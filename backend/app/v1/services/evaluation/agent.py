@@ -65,10 +65,13 @@ Return structured JSON exactly as defined in the examples."""
         # Prepare dynamic JSON schema based on active criteria
         json_schema = ""
         allowed_keys = []
+        schema_parts = []
         for criterion in evidence_snippets.keys():
             key = criterion.lower().replace(" ", "_")
             allowed_keys.append(key)
-            json_schema += f'    "{key}": {{ "score": int, "reasoning": "..." }},\n'
+            schema_parts.append(f'    "{key}": {{ "score": int, "reasoning": "...", "confidence": float }}')
+        
+        json_schema = ",\n".join(schema_parts)
 
         user_prompt = f"""
 STRICT REQUIREMENT: You MUST ONLY evaluate the following criteria: {', '.join(allowed_keys)}.
@@ -99,8 +102,16 @@ Please provide the final evaluation in the following JSON format:
   "overall_summary": "...",
   "strengths": ["...", "..."],
   "weaknesses": ["...", "..."],
-  "suggested_followups": ["...", "..."]
+  "suggested_followups": ["...", "..."],
+  "recommendation": "..."
 }}
+
+Note: For each criterion in "criteria", provide:
+- "score": int (1-5)
+- "reasoning": "A concise explanation based on evidence."
+- "confidence": float (0.0 to 1.0, indicating your certainty based on the transcript)
+
+For "recommendation", provide a professional 2-3 sentence summary of the final verdict and the most critical reason for it.
 """
 
         try:
@@ -115,6 +126,7 @@ Please provide the final evaluation in the following JSON format:
             )
 
             raw_content = response.choices[0].message.content or "{}"
+            logger.info(f"LLM Synthesis Raw Output: {raw_content}")
             return json.loads(raw_content)
         except Exception as e:
             logger.error(f"LLM Synthesis failed: {e}")
