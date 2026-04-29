@@ -19,6 +19,9 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  paramsSerializer: {
+    indexes: null, // Serializes arrays as ?key=val1&key=val2 instead of ?key[0]=val1
+  },
 });
 
 /**
