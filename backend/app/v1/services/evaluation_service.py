@@ -18,6 +18,7 @@ from app.v1.db.models.interviews import Interview
 
 from app.v1.services.evaluation.engine import evaluation_engine
 from app.v1.services.evaluation.agent import evaluation_agent
+from app.v1.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,9 @@ class EvaluationService:
         stmt = (
             select(CandidateStage)
             .options(
-                selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.job),
+                selectinload(CandidateStage.job_stage).selectinload(
+                    JobStageConfig.job
+                ).selectinload(Job.skills),
                 selectinload(CandidateStage.candidate).selectinload(Candidate.resumes),
             )
             .where(CandidateStage.id == candidate_stage_id)
@@ -63,15 +66,20 @@ class EvaluationService:
         interview = interview_res.scalars().first()
 
         if not interview:
+            logger.warning(f"No exact interview found for Candidate {candidate.id}, Job {job.id}, Stage {cs.job_stage.stage_order}. Attempting fallback...")
             # Fallback
             interview_stmt = (
                 select(Interview).where(Interview.candidate_id == candidate.id).limit(1)
             )
             interview_res = await db.execute(interview_stmt)
             interview = interview_res.scalars().first()
-
-        if not interview:
-            raise ValueError("No interview found")
+            if interview:
+                logger.info(f"Fallback interview found: {interview.id} (Job: {interview.job_id}, Stage: {interview.stage})")
+            else:
+                logger.error(f"No interviews found for candidate {candidate.id} even in fallback.")
+                raise ValueError("No interview found")
+        else:
+            logger.info(f"Primary interview found: {interview.id}")
 
         transcript_stmt = select(Transcript).where(
             Transcript.interview_id == interview.id
@@ -187,10 +195,28 @@ class EvaluationService:
         # 6. LLM PHASE (Synthesis)
         criteria_names = [obj.name for obj in criteria_objs.values()]
         logger.info(f"Invoking LLM for synthesis. Criteria: {criteria_names}")
+        
+        # Build enriched JD text including skills
+        skills_list = [s.name for s in job.skills]
+        skills_str = ", ".join(skills_list) if skills_list else "None listed"
+        full_jd_text = f"TITLE: {job.title}\n\nDESCRIPTION:\n{job.jd_text or ''}\n\nREQUIRED SKILLS:\n{skills_str}"
+
+        # Option to skip resume context in LLM synthesis for testing/privacy
+        resume_to_send = resume_summary
+        if getattr(settings, "SKIP_RESUME_CONTEXT", False):
+            logger.info("Skipping resume context in LLM synthesis as per settings.")
+            resume_to_send = ""
+
+        # DEBUG: Log the prompts to identify context leakage
+        logger.info(f"--- LLM USER PROMPT START ---")
+        logger.info(f"TRANSCRIPT USED: {transcript.clean_transcript_text[:1000]}...")
+        logger.info(f"EVIDENCE USED: {json.dumps(evidence_snippets, indent=2)}")
+        logger.info(f"--- LLM USER PROMPT END ---")
+
         final_report = await evaluation_agent.synthesize_evaluation(
             transcript_text=transcript.clean_transcript_text,
-            jd_text=job.jd_text or "",
-            resume_text=resume_summary,
+            jd_text=full_jd_text,
+            resume_text=resume_to_send,
             calculated_scores=calculated_scores,
             evidence_snippets=evidence_snippets,
             criteria_names=criteria_names,

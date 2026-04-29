@@ -21,6 +21,28 @@ FILLER_WORDS = {
 }
 
 
+def remove_admin_headers(text: str) -> str:
+    """Removes administrative headers and metadata tables (e.g. 'Candidate Name:', 'Date:')."""
+    # Remove markdown tables (common in MarkItDown for document headers)
+    text = re.sub(r'\|.*\|', '', text)
+    text = re.sub(r'[-:]{3,}', '', text)
+    
+    # Remove common header labels
+    labels = [
+        "Technical Interview Record",
+        "Candidate Name:",
+        "Position:",
+        "Organization:",
+        "Date of Interview:",
+        "Interview Summary:",
+        "Assessment Record"
+    ]
+    for label in labels:
+        text = re.sub(rf'^\s*{re.escape(label)}.*$', '', text, flags=re.MULTILINE | re.IGNORECASE)
+        
+    return text
+
+
 def remove_markdown_garbage(text: str) -> str:
     """Removes standard markdown formatting from MarkItDown output."""
     # Base64 images
@@ -225,6 +247,7 @@ def process_transcript_file(file_content: bytes, file_extension: str) -> dict:
         
         # 2. Sequential Cleaning Pipeline
         text = remove_markdown_garbage(raw_text)
+        text = remove_admin_headers(text)
         text = clean_transcript_text(text)
         text = remove_filler_words(text)
         text = clean_transcript_text(text) # Final cleanup of created double spaces
