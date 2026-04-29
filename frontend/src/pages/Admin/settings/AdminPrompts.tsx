@@ -11,9 +11,19 @@ import { DataTable } from "@/components/shared/DataTable";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Badge, Button } from "@/components";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuCheckboxItem,
+    DropdownMenuSeparator,
+    DropdownMenuLabel,
+    DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
-import { ArrowUpDown, Check, Clipboard, FileText, Info } from "lucide-react";
+import { ArrowUpDown, Check, Clipboard, FileText, Info, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
     Dialog,
     DialogContent,
@@ -32,7 +42,21 @@ const AdminPrompts = () => {
     });
     const [selectedPrompt, setSelectedPrompt] = useState<PromptRead | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedStages, setSelectedStages] = useState<string[]>([]);
+    const [allStages, setAllStages] = useState<string[]>([]);
+
     const { data: prompts, loading, error, fetchData, total } = useAdminData(() => adminPromptService.getAllPrompts(pageIndex * pageSize, pageSize), { fetchOnMount: false });
+
+    // Collect all unique stages from the response data over time
+    useEffect(() => {
+        if (prompts.length > 0) {
+            const currentStages = prompts.map(p => p.stage).filter(Boolean);
+            setAllStages(prev => {
+                const combined = Array.from(new Set([...prev, ...currentStages]));
+                return combined.sort();
+            });
+        }
+    }, [prompts]);
     const handleViewClick = (prompt: PromptRead) => {
         setSelectedPrompt(prompt);
         setIsViewModalOpen(true);
@@ -127,13 +151,22 @@ const AdminPrompts = () => {
         },
     ];
 
-    const filteredPrompts = prompts.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.content.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredPrompts = prompts.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+            p.content.toLowerCase().includes(search.toLowerCase());
+        const matchesStage = selectedStages.length === 0 || selectedStages.includes(p.stage);
+        return matchesSearch && matchesStage;
+    });
+
     // Handle search with pagination reset
     const handleSearchChange = (value: string) => {
         setSearch(value);
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    };
+
+    // Handle stage filter change with pagination reset
+    const handleStageChange = (stages: string[]) => {
+        setSelectedStages(stages);
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     };
     const handleCopy = async () => {
@@ -173,6 +206,69 @@ const AdminPrompts = () => {
                         searchValue={search}
                         searchKey="name"
                         searchPlaceholder="Filter prompts by name or content..."
+                        tableActions={
+                            <DropdownMenu>
+                                <DropdownMenuTrigger
+                                    className={cn(
+                                        "inline-flex items-center justify-between gap-2 h-10 px-3 w-[150px] rounded-xl border text-xs font-medium cursor-pointer select-none transition-all",
+                                        selectedStages.length > 0
+                                            ? "border-primary/30 bg-primary/5 text-primary"
+                                            : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                    )}
+                                >
+                                    <span className="truncate">
+                                        {selectedStages.length === 0
+                                            ? "All Stages"
+                                            : selectedStages.length === 1
+                                                ? selectedStages[0]
+                                                : `${selectedStages.length} Stages`}
+                                    </span>
+                                    <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="min-w-[180px] rounded-xl shadow-lg p-1">
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1.5">Stages</DropdownMenuLabel>
+                                        {allStages.length === 0 ? (
+                                            <div className="px-2 py-4 text-xs text-center text-muted-foreground">
+                                                No stages found
+                                            </div>
+                                        ) : (
+                                            <div className="max-h-[240px] overflow-y-auto custom-scrollbar">
+                                                {allStages.map((s) => (
+                                                    <DropdownMenuCheckboxItem
+                                                        key={s}
+                                                        checked={selectedStages.includes(s)}
+                                                        onSelect={(e) => e.preventDefault()}
+                                                        onClick={() =>
+                                                            handleStageChange(
+                                                                selectedStages.includes(s)
+                                                                    ? selectedStages.filter((v) => v !== s)
+                                                                    : [...selectedStages, s]
+                                                            )
+                                                        }
+                                                        className="rounded-lg capitalize"
+                                                    >
+                                                        {s}
+                                                    </DropdownMenuCheckboxItem>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {selectedStages.length > 0 && (
+                                            <>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuCheckboxItem
+                                                    checked={false}
+                                                    onClick={() => handleStageChange([])}
+                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg"
+                                                >
+                                                    Clear selection
+                                                </DropdownMenuCheckboxItem>
+                                            </>
+                                        )}
+                                    </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        }
                     />}
 
                 <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
