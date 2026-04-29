@@ -28,6 +28,10 @@ export const StageDetailDialog = ({
     template,
 }: StageDetailDialogProps) => {
     if (!template) return null;
+    // any is not good idea but its working 
+    // TODO: remove any and make sure has proper types
+    const config = template.config || (template as any).default_config;
+    const evaluationCriteria = config?.evaluation_criteria;
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -47,17 +51,21 @@ export const StageDetailDialog = ({
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 overflow-y-auto px-6 py-4">
-                    <h3 className="text-sm font-semibold text-foreground mb-3">Evaluation Criteria</h3>
-                    {template.default_config?.evaluation_criteria ? (
-                        <ul className="list-disc list-outside ml-5 space-y-2 text-sm">
-                            {Array.isArray(template.default_config.evaluation_criteria) ? (
-                                template.default_config.evaluation_criteria.map((criterion: any, index: number) => (
-                                    <li key={index}>
-                                        {typeof criterion === 'string' ? criterion : JSON.stringify(criterion)}
-                                    </li>
-                                ))
+                    <h3 className="text-base font-semibold text-foreground mb-3">Evaluation Criteria</h3>
+                    {evaluationCriteria ? (
+                        <ul className="list-disc list-outside ml-5 space-y-2">
+                            {Array.isArray(evaluationCriteria) ? (
+                                evaluationCriteria.map((item: any, idx: number) => {
+                                    const name = typeof item === 'string' ? item : item?.name;
+                                    const id = typeof item === 'string' ? idx : (item?.id || idx);
+                                    return (
+                                        <li key={id} className="text-base">
+                                            {name}
+                                        </li>
+                                    );
+                                })
                             ) : (
-                                <li>{String(template.default_config.evaluation_criteria)}</li>
+                                <li>{String(evaluationCriteria)}</li>
                             )}
                         </ul>
                     ) : (

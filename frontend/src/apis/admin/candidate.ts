@@ -1,6 +1,7 @@
 import apiClient from "@/apis/client";
 import type { CandidateResponse } from "@/types/resume";
 import type { StageEvaluation } from "@/types/stage";
+import type { HiringTimelineResponse } from "@/types/candidate";
 
 /**
  * Candidate Management APIs
@@ -119,6 +120,22 @@ export const adminCandidateService = {
   ): Promise<StageEvaluation> => {
     const response = await apiClient.get<StageEvaluation>(
       `/candidates/${candidateId}/evaluations/${stageConfigId}`,
+    );
+    return response.data;
+  },
+
+  /**
+   * Get candidate timeline.
+   * @param candidateId - Candidate ID
+   * @param jobId - Optional Job ID filter
+   */
+  getCandidateTimeline: async (
+    candidateId: string,
+    jobId?: string,
+  ): Promise<HiringTimelineResponse> => {
+    const response = await apiClient.get<HiringTimelineResponse>(
+      `/candidates/${candidateId}/timeline`,
+      { params: { job_id: jobId } },
     );
     return response.data;
   },

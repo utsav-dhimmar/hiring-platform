@@ -8,6 +8,29 @@
 export type StageStatus = "pending" | "processing" | "completed" | "failed";
 
 /**
+ * evaluation criteria for a stage
+ */
+export interface EvaluationCriteria {
+  /** Unique identifier for the evaluation criteria */
+  id: string,
+  /**  Name of the evaluation criteria */
+  name: string
+}
+
+
+
+export interface DefaultConfig {
+  /**
+   * Type of the evaluation, it can be "audio" or "video" etc but for now it witll be string
+   */
+  type?: string;
+  /**
+   * evaluation criteria for the stage
+   */
+  evaluation_criteria: EvaluationCriteria[]
+}
+
+/**
  * Interview stage template definition.
  * Represents a reusable stage type that can be configured per job.
  */
@@ -19,7 +42,7 @@ export interface StageTemplate {
   /** Optional description of the stage */
   description: string | null;
   /** Default configuration for this stage type */
-  default_config: Record<string, any> | null;
+  config: DefaultConfig;
 }
 
 /**
@@ -36,7 +59,7 @@ export interface JobStageConfig {
   /** Order of this stage in the interview process (0-indexed) */
   stage_order: number;
   /** Job-specific configuration overrides */
-  config: Record<string, any> | null;
+  config: DefaultConfig;
   /** Whether passing this stage is required to proceed */
   is_mandatory: boolean;
   /** The stage template details */

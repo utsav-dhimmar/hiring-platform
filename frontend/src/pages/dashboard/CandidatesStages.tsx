@@ -258,7 +258,7 @@ export default function CandidatesStages() {
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto pt-2 space-y-2 ">
-            <CandidateTimeline />
+            <CandidateTimeline candidateId={candidate?.id} jobId={job?.id} />
             {isLoadingEvaluation ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />

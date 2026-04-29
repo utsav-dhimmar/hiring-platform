@@ -29,3 +29,21 @@ export interface UnifiedCandidate {
   current_stage?: CandidateStageSummary | null;
   pipeline?: CandidateStageSummary[] | null;
 }
+
+export interface TimelineEvent {
+  event_type: "stage" | "decision";
+  event_date: string;
+  title: string;
+  description?: string | null;
+  result?: string | null;
+  score?: number | null;
+  stage_id?: string | null;
+  stage_name?: string | null;
+  job_id?: string | null;
+  metadata?: Record<string, any> | null;
+}
+
+export interface HiringTimelineResponse {
+  candidate_id: string;
+  events: TimelineEvent[];
+}
