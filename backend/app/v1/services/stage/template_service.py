@@ -37,7 +37,7 @@ class StageTemplateService:
         template = StageTemplate(
             name=template_in.name,
             description=template_in.description,
-            default_config=prepare_config_for_save(template_in.default_config),
+            default_config=prepare_config_for_save(template_in.config),
         )
         template = await stage_repository.create_template(db, template)
         await enrich_stage_configs(db, template)
@@ -58,8 +58,8 @@ class StageTemplateService:
             )
 
         update_data = template_update.model_dump(exclude_unset=True)
-        if "default_config" in update_data:
-            update_data["default_config"] = prepare_config_for_save(update_data["default_config"])
+        if "config" in update_data:
+            update_data["default_config"] = prepare_config_for_save(update_data.pop("config"))
             
         updated_template = await stage_repository.update_template(db, template, update_data)
         await enrich_stage_configs(db, updated_template)

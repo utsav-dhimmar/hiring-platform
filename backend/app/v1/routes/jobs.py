@@ -242,7 +242,7 @@ async def create_stage_template(
     new_template = StageTemplate(
         name=template_in.name,
         description=template_in.description,
-        default_config=template_in.default_config or {}
+        default_config=template_in.config or {}
     )
     db.add(new_template)
     await db.commit()
