@@ -2,14 +2,14 @@
 import uuid
 import asyncio
 from typing import Any, Dict
-from celery import shared_task
+from app.v1.core.celery_app import celery_app
 from app.v1.db.session import async_session_maker
 from app.v1.services.evaluation_service import evaluation_service
 import logging
 
 logger = logging.getLogger(__name__)
 
-@shared_task(name="evaluate_candidate_transcript_task")
+@celery_app.task(name="evaluate_candidate_transcript_task")
 def evaluate_candidate_transcript_task(candidate_stage_id_str: str):
     """
     Celery task to run the AI evaluation for a candidate's transcript.

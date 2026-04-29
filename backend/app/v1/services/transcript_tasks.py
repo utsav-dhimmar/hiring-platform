@@ -3,7 +3,7 @@ import asyncio
 import hashlib
 import os
 import logging
-from celery import shared_task
+from app.v1.core.celery_app import celery_app
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -22,7 +22,7 @@ from app.v1.core.storage import resolve_storage_path
 
 logger = logging.getLogger(__name__)
 
-@shared_task(name="process_transcript_task")
+@celery_app.task(name="process_transcript_task")
 def process_transcript_task(candidate_stage_id_str: str, file_path_str: str, original_filename: str):
     """
     Celery task to process an uploaded transcript file.

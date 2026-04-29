@@ -566,9 +566,7 @@ class ResumeUploadService:
             )
 
         bg_processor = BackgroundProcessor(ResumeProcessor())
-        background_tasks.add_task(
-            bg_processor.mass_refresh_in_background, job_id=job_id
-        )
+        bg_processor.schedule_mass_refresh(job_id=job_id)
 
     async def trigger_candidate_reanalyze(
         self,

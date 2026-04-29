@@ -16,8 +16,11 @@ class StageTemplateBase(BaseModel):
     description: str | None = Field(
         None, description="Detailed description of the stage"
     )
-    default_config: dict[str, Any] | None = Field(
-        None, description="Default configuration JSON for this stage type"
+    config: dict[str, Any] | None = Field(
+        None, 
+        description="Default configuration JSON for this stage type",
+        validation_alias="default_config",
+        serialization_alias="config"
     )
 
 
@@ -32,7 +35,7 @@ class StageTemplateUpdate(BaseModel):
 
     name: str | None = None
     description: str | None = None
-    default_config: dict[str, Any] | None = None
+    config: dict[str, Any] | None = None
 
 
 class StageTemplateRead(StageTemplateBase):
