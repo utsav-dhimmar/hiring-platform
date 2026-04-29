@@ -8,6 +8,7 @@ from app.v1.schemas.job_stage import (
     JobStageConfigCreate,
     JobStageConfigUpdate,
 )
+from app.v1.services.stage.enrichment import enrich_stage_configs, prepare_config_for_save
 
 class JobStageService:
     """
@@ -18,7 +19,9 @@ class JobStageService:
         self, db: AsyncSession, job_id: uuid.UUID
     ) -> list[JobStageConfig]:
         """Retrieve the ordered interview stages for a job."""
-        return await stage_repository.get_job_stages(db, job_id)
+        stages = await stage_repository.get_job_stages(db, job_id)
+        await enrich_stage_configs(db, stages)
+        return stages
 
     async def add_stage_to_job(
         self,
@@ -39,6 +42,7 @@ class JobStageService:
 
         # Merge template default config if not provided in stage_in
         config = stage_in.config or template.default_config
+        config = prepare_config_for_save(config)
 
         stage_config = JobStageConfig(
             job_id=job_id,
@@ -47,7 +51,9 @@ class JobStageService:
             config=config,
             is_mandatory=stage_in.is_mandatory,
         )
-        return await stage_repository.create_job_stage(db, stage_config)
+        created_stage = await stage_repository.create_job_stage(db, stage_config)
+        await enrich_stage_configs(db, created_stage)
+        return created_stage
 
     async def update_job_stage(
         self,
@@ -66,9 +72,14 @@ class JobStageService:
             )
 
         update_data = stage_update.model_dump(exclude_unset=True)
-        return await stage_repository.update_job_stage(
+        if "config" in update_data:
+            update_data["config"] = prepare_config_for_save(update_data["config"])
+            
+        updated_stage = await stage_repository.update_job_stage(
             db, stage_config, update_data
         )
+        await enrich_stage_configs(db, updated_stage)
+        return updated_stage
 
     async def remove_stage_from_job(
         self, db: AsyncSession, config_id: uuid.UUID
@@ -138,6 +149,7 @@ class JobStageService:
                     await stage_repository.create_job_stage(db, stage_config)
                 )
 
+        await enrich_stage_configs(db, created_stages)
         return created_stages
 
     async def bulk_add_stages_to_job(
@@ -171,6 +183,8 @@ class JobStageService:
         await db.commit()
         
         # 3. Return refreshed list
-        return await stage_repository.get_job_stages(db, job_id)
+        stages = await stage_repository.get_job_stages(db, job_id)
+        await enrich_stage_configs(db, stages)
+        return stages
 
 job_stage_service = JobStageService()
