@@ -37,7 +37,7 @@ class DepartmentService:
             stmt = stmt.where(search_filter)
             count_stmt = count_stmt.where(search_filter)
 
-        stmt = stmt.order_by(Department.id.desc()).offset(skip).limit(limit)
+        stmt = stmt.offset(skip).limit(limit)
 
         result = await db.execute(stmt)
         departments = result.scalars().all()

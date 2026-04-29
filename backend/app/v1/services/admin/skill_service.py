@@ -21,28 +21,17 @@ class SkillService:
     async def get_all_skills(
         self, db: AsyncSession, skip: int = 0, limit: int = 100, search: str | None = None
     ) -> PaginatedData[SkillRead]:
-        """Get all skills with pagination and optional search."""
-        from sqlalchemy import func, or_
-        stmt = select(Skill)
-        count_stmt = select(func.count(Skill.id))
-
+        """Get all skills with pagination and optional search using FastCRUD filters."""
+        filters = {}
         if search:
-            search_filter = or_(
-                Skill.name.ilike(f"%{search}%"),
-                Skill.description.ilike(f"%{search}%"),
-            )
-            stmt = stmt.where(search_filter)
-            count_stmt = count_stmt.where(search_filter)
+            filters["name__ilike"] = f"%{search}%"
 
-        stmt = stmt.order_by(Skill.id.desc()).offset(skip).limit(limit)
-
-        result = await db.execute(stmt)
-        skills = result.scalars().all()
-        total = await db.scalar(count_stmt) or 0
-
+        result = await skill_repository.crud.get_multi(
+            db=db, offset=skip, limit=limit, **filters
+        )
         return PaginatedData[SkillRead](
-            data=[SkillRead.model_validate(s) for s in skills],
-            total=total,
+            data=[SkillRead.model_validate(s) for s in result["data"]],
+            total=result.get("total_count", 0),
         )
 
     async def get_skill_by_id(
