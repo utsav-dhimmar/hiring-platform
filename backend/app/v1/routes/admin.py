@@ -329,16 +329,27 @@ async def delete_stage_template(
 
 @router.get("/prompts", response_model=PromptsList)
 async def get_active_prompts(
+    q: str | None = None,
     admin: UserRead = Depends(check_permission("analytics:read")),
 ) -> Any:
     """
     Get all AI prompts currently in use by the system (Read-only).
     """
     prompts = [
-        {"name": "Resume Extraction Prompt", "content": RESUME_EXTRACTION_PROMPT},
-        {"name": "Resume-JD Analysis Prompt", "content": RESUME_JD_ANALYSIS_PROMPT},
-        {"name": "JD Processing Instruction", "content": JD_INSTRUCTION},
-        {"name": "Resume Processing Instruction", "content": RESUME_INSTRUCTION},
-        {"name": "Skill Extraction Instruction", "content": SKILL_INSTRUCTION},
+        {"name": "Resume Extraction Prompt", "content": RESUME_EXTRACTION_PROMPT, "stage": "Resume Screening"},
+        {"name": "Resume-JD Analysis Prompt", "content": RESUME_JD_ANALYSIS_PROMPT, "stage": "Resume Screening"},
+        {"name": "JD Processing Instruction", "content": JD_INSTRUCTION, "stage": "Resume Screening"},
+        {"name": "Resume Processing Instruction", "content": RESUME_INSTRUCTION, "stage": "Resume Screening"},
+        {"name": "Skill Extraction Instruction", "content": SKILL_INSTRUCTION, "stage": "Resume Screening"},
     ]
+    
+    if q:
+        q_lower = q.lower()
+        prompts = [
+            p for p in prompts 
+            if q_lower in p["name"].lower() 
+            or q_lower in p["content"].lower() 
+            or q_lower in p["stage"].lower()
+        ]
+        
     return {"data": prompts}
