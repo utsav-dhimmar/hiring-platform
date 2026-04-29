@@ -17,4 +17,6 @@ class TimelineEvent(BaseModel):
 
 class HiringTimelineResponse(BaseModel):
     candidate_id: uuid.UUID
+    latest_decision: str = "Pending"
+    current_stage: str = "Resume Screening"
     events: list[TimelineEvent]
