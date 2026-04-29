@@ -71,7 +71,14 @@ const AdminAuditLogs = () => {
     },
     {
       accessorKey: "action",
-      header: "Action",
+      // header: "Action",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Action</span>
+          </div>
+        )
+      },
       cell: ({ row }) => {
         const action = toTitleCase(row.original.action);
         return <span className="font-bold text-primary">{action}</span>
@@ -79,7 +86,14 @@ const AdminAuditLogs = () => {
     },
     {
       accessorKey: "user_name",
-      header: "User Name",
+      // header: "User Name",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">User Name</span>
+          </div>
+        )
+      },
       cell: ({ row }) => (
         <span
           className="font-medium text-foreground"

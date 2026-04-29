@@ -169,7 +169,14 @@ const AdminDepartments = () => {
     },
     {
       accessorKey: "description",
-      header: "Description",
+      // header: "Description",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Description</span>
+          </div>
+        )
+      },
       cell: ({ row }) => row.original.description || "No description provided",
     },
     {

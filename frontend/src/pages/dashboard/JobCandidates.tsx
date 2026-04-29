@@ -169,7 +169,7 @@ export default function JobCandidates() {
               <div className="flex items-center justify-between px-2">
                 <h2 className="text-xl font-bold text-foreground">Candidate Pool</h2>
               </div>
-              <div className="app-surface-card p-0 overflow-hidden border-muted-foreground/10 shadow-xl">
+              <div className=" p-0 overflow-hidden border-muted-foreground/10 ">
                 {loading ? (
                   <div className="p-4">
                     <JobCandidatesSkeleton count={5} />

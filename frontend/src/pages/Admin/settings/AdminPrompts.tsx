@@ -9,7 +9,7 @@ import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
-import { Button } from "@/components";
+import { Badge, Button } from "@/components";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -71,12 +71,34 @@ const AdminPrompts = () => {
         },
         {
             accessorKey: "content",
-            header: "Content Preview",
+            header: () => {
+                return (
+                    <div className="flex items-center gap-2">
+                        <span className="font-semibold">Content Preview</span>
+                    </div>
+                )
+            },
             cell: ({ row }) => (
                 <div className="max-w-[500px] truncate text-muted-foreground">
                     {row.original.content}
                 </div>
             ),
+        }, {
+            id: "stages",
+            header: () => {
+                return (
+                    <div className="flex items-center gap-2">
+                        <span className="font-semibold">Stages</span>
+                    </div>
+                )
+            },
+            cell: ({ row }) => (
+                <div className="max-w-[500px] truncate text-muted-foreground">
+                    <Badge variant="outline" className="capitalize">
+                        {row.original.stage}
+                    </Badge>
+                </div>
+            )
         },
         {
             id: "actions",
@@ -170,7 +192,7 @@ const AdminPrompts = () => {
 
                         <ScrollArea className="flex-1 min-h-0 w-full border-y bg-muted/5">
                             <div className="p-1">
-                                <Button className="float-right m-1" size={"icon"} variant={"ghost"}
+                                <Button className="float-right m-1 sticky top-2 bg-background border-none " size={"icon"} variant={"ghost"}
                                     onClick={handleCopy}
                                 >
                                     {isCopied ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}

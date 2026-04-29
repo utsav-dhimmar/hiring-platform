@@ -1,8 +1,9 @@
 import { Button } from "@/components/";
-import AppPageHeader from "@/components/shared/AppPageHeader";
+// import AppPageHeader from "@/components/shared/AppPageHeader";
 import { useNavigate } from "react-router-dom";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
+import PageHeader from "@/components/shared/PageHeader";
 
 /**
  * Page header for the Job Board, displaying the title, breadcrumbs, and a
@@ -12,7 +13,7 @@ export const JobBoardHeader = () => {
   const navigate = useNavigate();
 
   return (
-    <AppPageHeader
+    <PageHeader
       title="Job Board"
       actions={
         <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>

@@ -11,6 +11,7 @@ export { default as AppPageHeader } from "@/components/shared/AppPageHeader";
 export { default as AppPageShell } from "@/components/shared/AppPageShell";
 export { default as PageHeader } from "@/components/shared/PageHeader";
 export { default as StatusBadge } from "@/components/shared/StatusBadge";
+export { default as CandidateStatusBadge } from "@/components/shared/CandidateStatusBadge";
 export { default as ErrorBoundary } from "@/components/shared/ErrorBoundary";
 export { default as AdminDataTable, type Column } from "@/components/shared/AdminDataTable";
 export { default as Pagination } from "@/components/shared/Pagination";

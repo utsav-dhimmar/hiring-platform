@@ -1,5 +1,5 @@
 import type { PriorityTimeline } from "@/types/admin";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Timer, AlertCircle } from "lucide-react";
 import DateDisplay from "@/components/shared/DateDisplay";
 import { cn } from "@/lib/utils";
@@ -33,9 +33,9 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
         if (p < 70) return "bg-orange-500";
         return "bg-red-500";
     };
-    // const tempP = 70;
+
     const safeProgress = Math.min(Math.max(priorityTimeline.progress_pct, 0), 100);
-    // const safeProgress = Math.min(Math.max(tempP, 0), 100);
+
     return (
         <div className="md:w-[800px] h-56 flex flex-col justify-between p-1 sm:w-full w-[800px]">
             {/* Header Info */}
@@ -44,6 +44,15 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
                     <h5 className="text-lg font-bold flex items-center gap-2">
                         <Timer className="w-5 h-5 text-primary" />
                         {priorityTimeline.name}
+                        {/* <Badge
+                            variant={priorityTimeline.status === 'active' ? 'default' : 'secondary'}
+                            className={cn(
+                                "capitalize text-sm tracking-widest border-none shadow-sm",
+                                priorityTimeline.status === 'active' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            )}
+                        >
+                            {priorityTimeline.status}
+                        </Badge> */}
                     </h5>
                     <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-md">
@@ -57,21 +66,14 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
                         </span>
                     </div>
                 </div>
-                <Badge
-                    variant={priorityTimeline.status === 'active' ? 'default' : 'secondary'}
-                    className={cn(
-                        "capitalize px-3 py-1 text-[10px] font-black tracking-widest border-none shadow-sm",
-                        priorityTimeline.status === 'active' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                    )}
-                >
-                    {priorityTimeline.status}
-                </Badge>
+
             </div>
 
             {/* Progress Bar Container */}
             <div className="relative group">
                 <div className="flex justify-between items-end mb-2">
-                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">Job Velocity</span>
+                    {/* TODO: find a better label text */}
+                    <span className="text-xs font-medium text-primary ">Job Velocity</span>
                 </div>
                 <div className="h-4 w-full bg-muted rounded-full overflow-hidden relative shadow-inner">
                     <div
@@ -87,26 +89,23 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
             </div>
 
             {/* Stats Footer */}
-            <div className="grid grid-cols-3 gap-3 mt-4">
-                <div className="rounded-2xl p-2 text-center space-y-0.5 border transition-colors ">
-                    <p className="text-xs font-black  tracking-widest opacity-70">Total Days</p>
+            <div className="flex items-center gap-2">
+                <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
+                    <p className="text-xs font-medium  tracking-widest opacity-70">Total Days</p>
                     <div className="flex items-baseline justify-center gap-0.5">
                         <p className="text-xl font-black text-foreground">{priorityTimeline.days_total}</p>
-                        <p className="text-xs font-bold ">Days</p>
                     </div>
                 </div>
-                <div className="rounded-2xl p-2 text-center space-y-0.5 border transition-colors ">
-                    <p className="text-xs font-black  tracking-widest opacity-70">Elapsed</p>
+                <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
+                    <p className="text-xs font-medium  tracking-widest opacity-70">Elapsed</p>
                     <div className="flex items-baseline justify-center gap-0.5">
                         <p className="text-xl font-black ">{priorityTimeline.days_elapsed}</p>
-                        <p className="text-xs font-bold ">Days</p>
                     </div>
                 </div>
-                <div className="rounded-2xl p-2 text-center space-y-0.5 border transition-colors">
-                    <p className="text-xs font-black tracking-widest opacity-70">Remaining</p>
+                <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
+                    <p className="text-xs font-medium tracking-widest opacity-70">Remaining</p>
                     <div className="flex items-baseline justify-center gap-0.5">
                         <p className="text-xl font-black ">{priorityTimeline.days_remaining}</p>
-                        <p className="text-xs font-bold ">Days</p>
                     </div>
                 </div>
             </div>

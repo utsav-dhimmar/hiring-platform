@@ -54,7 +54,7 @@ export function AnalysisContent({
       <div className="grid grid-cols-1 gap-3">
         <section className="space-y-2">
           <Card className="text-muted-foreground text-base leading-relaxed px-2">
-            <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
+            <h3 className="text-lg font-medium tracking-tight flex items-center gap-2 text-foreground">
               Strength Summary
             </h3>
             {analysis?.strength_summary || "No summary available."}
@@ -63,7 +63,7 @@ export function AnalysisContent({
 
         <section className="space-y-2">
           <Card className="text-muted-foreground text-base leading-relaxed px-2">
-            <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
+            <h3 className="text-lg font-medium tracking-tight flex items-center gap-2 text-foreground">
               Experience Alignment
             </h3>
             {analysis?.experience_alignment ||
@@ -78,7 +78,7 @@ export function AnalysisContent({
       {analysis?.custom_extractions &&
         Object.keys(analysis.custom_extractions).length > 0 && (
           <section className="space-y-2 pt-2">
-            <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground px-1">
+            <h3 className="text-lg tracking-tight flex items-center gap-2 text-foreground px-1 font-medium">
               Custom Information
             </h3>
             <ul className="flex flex-col gap-1.5 px-2 pb-1 list-none">
@@ -102,9 +102,9 @@ export function AnalysisContent({
       {/* Skills & Extraordinary Points */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
         <section className="space-y-2">
-          <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
+          <h3 className="text-lg font-medium tracking-tight flex items-center gap-2 text-foreground">
             <AlertCircle className="h-5 w-5 text-red-500/80" />
-            <span className="text-red-500">
+            <span className="text-red-500 font-medium">
               Missing Skills
             </span>
           </h3>
@@ -151,7 +151,7 @@ export function AnalysisContent({
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-lg font-extrabold tracking-tight flex items-center gap-2 text-foreground">
+          <h3 className="text-lg font-medium tracking-tight flex items-center gap-2 text-foreground">
             Extraordinary Points
           </h3>
           <ul className="list-disc sm:pl-4">

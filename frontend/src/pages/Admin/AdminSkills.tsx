@@ -169,8 +169,19 @@ const AdminSkills = () => {
     },
     {
       accessorKey: "description",
-      header: "Description",
-      cell: ({ row }) => row.original.description || "No description provided",
+      // header: "Description",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Description</span>
+          </div>
+        )
+      },
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2 max-w-[300px]">
+          {row.original.description || "No description provided"}
+        </div>
+      ),
     },
     {
       id: "actions",
