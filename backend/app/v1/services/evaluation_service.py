@@ -96,11 +96,13 @@ class EvaluationService:
             # Config structure in JSONB: {"active_criteria": [{"id": "...", "weight": 20}, ...]}
             config = cs.job_stage.config or {}
             active_criteria_configs = config.get("active_criteria", [])
+            logger.info(f"Initial active_criteria_configs from stage config: {len(active_criteria_configs)}")
 
         if not active_criteria_configs:
             # Fallback: Load all criteria linked to the template
             from app.v1.db.models.stage_template_criteria import StageTemplateCriterion
 
+            logger.info(f"Fallback triggered. Candidate: {candidate.id}, Job: {job.id}, Template: {cs.job_stage.template_id}")
             criteria_stmt = (
                 select(Criterion, StageTemplateCriterion.default_weight)
                 .join(StageTemplateCriterion)
@@ -132,19 +134,43 @@ class EvaluationService:
         logger.info(f"Active criteria count: {len(active_criteria_configs)}")
         # 4. RERANKER PHASE (Evidence)
         evidence_snippets = {}
+        criteria_objs = {} # Map ID string to Criterion object
+        
         for c_config in active_criteria_configs:
-            criterion_id = c_config["id"]
-            # Fetch criterion if not already in 'obj'
+            criterion_id = str(c_config["id"])
             criterion = c_config.get("obj")
+            
             if not criterion:
                 criterion = await db.get(Criterion, uuid.UUID(criterion_id))
-
+            
             if criterion:
+                criteria_objs[criterion_id] = criterion
                 snippets = await evaluation_engine.extract_evidence(
                     transcript.clean_transcript_text, criterion.prompt_text
                 )
                 evidence_snippets[criterion.name] = snippets
+            else:
+                logger.warning(f"Criterion ID {criterion_id} from config not found in database.")
         
+        # FINAL SAFETY: If we found 0 valid criteria from the config/override, 
+        # and we haven't already tried the template fallback, try it now.
+        if not criteria_objs and cs.job_stage.template_id:
+            logger.info(f"No valid criteria found in config. Attempting final safety fallback to template {cs.job_stage.template_id}")
+            from app.v1.db.models.stage_template_criteria import StageTemplateCriterion
+            criteria_stmt = (
+                select(Criterion, StageTemplateCriterion.default_weight)
+                .join(StageTemplateCriterion)
+                .where(StageTemplateCriterion.template_id == cs.job_stage.template_id)
+            )
+            criteria_res = await db.execute(criteria_stmt)
+            for r in criteria_res.all():
+                crit = r[0]
+                criteria_objs[str(crit.id)] = crit
+                snippets = await evaluation_engine.extract_evidence(
+                    transcript.clean_transcript_text, crit.prompt_text
+                )
+                evidence_snippets[crit.name] = snippets
+
         logger.info(f"Evidence snippets extracted for {len(evidence_snippets)} criteria")
 
         # 5. SCORING PHASE (Rule-based)
@@ -159,7 +185,7 @@ class EvaluationService:
         }
 
         # 6. LLM PHASE (Synthesis)
-        criteria_names = [config.get("obj").name for config in active_criteria_configs if config.get("obj")]
+        criteria_names = [obj.name for obj in criteria_objs.values()]
         logger.info(f"Invoking LLM for synthesis. Criteria: {criteria_names}")
         final_report = await evaluation_agent.synthesize_evaluation(
             transcript_text=transcript.clean_transcript_text,
@@ -171,27 +197,39 @@ class EvaluationService:
         )
 
         # 7. RESTRUCTURE AND STORE PHASE
+        logger.info(f"FULL FINAL REPORT: {json.dumps(final_report)}")
+        logger.info(f"Expected criteria mapping for: {criteria_names}")
+        
         criteria_map = final_report.get("criteria", {})
+        if not criteria_map:
+            # Fallback: Maybe the LLM put them in the root?
+            known_root_keys = {"overall_summary", "strengths", "weaknesses", "suggested_followups", "recommendation", "criteria"}
+            criteria_map = {k: v for k, v in final_report.items() if k not in known_root_keys}
+            if criteria_map:
+                logger.info(f"Criteria found in root (keys: {list(criteria_map.keys())})")
         
         # Merge evidence into evaluation_data
         structured_evaluation_data = {}
         for key, details in criteria_map.items():
-            if not isinstance(details, dict):
-                continue
-            
-            # Match criterion name back to evidence_snippets
+            # Robust matching: compare normalized versions
             criterion_name_match = None
-            for crit_name in evidence_snippets.keys():
-                if crit_name.lower().replace(" ", "_") == key:
+            normalized_key = str(key).lower().replace(" ", "").replace("_", "")
+            
+            for crit_name in criteria_names:
+                normalized_crit = str(crit_name).lower().replace(" ", "").replace("_", "")
+                if normalized_crit == normalized_key:
                     criterion_name_match = crit_name
                     break
             
-            structured_evaluation_data[key] = {
-                "score": details.get("score", 0),
-                "reasoning": details.get("reasoning", ""),
-                "confidence": details.get("confidence", 0.0),
-                "evidence": evidence_snippets.get(criterion_name_match, []) if criterion_name_match else []
-            }
+            if criterion_name_match:
+                structured_evaluation_data[criterion_name_match] = {
+                    "score": details.get("score", 0) if isinstance(details, dict) else 0,
+                    "reasoning": details.get("reasoning", "") if isinstance(details, dict) else str(details),
+                    "confidence": details.get("confidence", 0.0) if isinstance(details, dict) else 0.0,
+                    "evidence": evidence_snippets.get(criterion_name_match, [])
+                }
+            else:
+                logger.warning(f"Could not map LLM criteria key '{key}' back to any active criteria.")
 
         # Calculate overall score
         criteria_scores = [v["score"] for v in structured_evaluation_data.values()]

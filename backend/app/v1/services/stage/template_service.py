@@ -8,6 +8,7 @@ from app.v1.schemas.job_stage import (
     StageTemplateCreate,
     StageTemplateUpdate,
 )
+from app.v1.services.stage.enrichment import enrich_stage_configs, prepare_config_for_save
 
 class StageTemplateService:
     """
@@ -25,6 +26,8 @@ class StageTemplateService:
         templates, total = await stage_repository.get_all_templates(
             db, skip=skip, limit=limit, search=search
         )
+        # Enrich templates with criteria names
+        await enrich_stage_configs(db, templates)
         return {"data": templates, "total": total}
 
     async def create_template(
@@ -34,9 +37,11 @@ class StageTemplateService:
         template = StageTemplate(
             name=template_in.name,
             description=template_in.description,
-            default_config=template_in.default_config,
+            default_config=prepare_config_for_save(template_in.default_config),
         )
-        return await stage_repository.create_template(db, template)
+        template = await stage_repository.create_template(db, template)
+        await enrich_stage_configs(db, template)
+        return template
 
     async def update_template(
         self,
@@ -53,7 +58,12 @@ class StageTemplateService:
             )
 
         update_data = template_update.model_dump(exclude_unset=True)
-        return await stage_repository.update_template(db, template, update_data)
+        if "default_config" in update_data:
+            update_data["default_config"] = prepare_config_for_save(update_data["default_config"])
+            
+        updated_template = await stage_repository.update_template(db, template, update_data)
+        await enrich_stage_configs(db, updated_template)
+        return updated_template
 
     async def delete_template(
         self, db: AsyncSession, template_id: uuid.UUID

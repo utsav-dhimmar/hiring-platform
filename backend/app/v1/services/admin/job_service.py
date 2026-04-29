@@ -21,6 +21,7 @@ from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.skill_service import skill_service
 from app.v1.services.user_service import user_service
 from app.v1.services.admin.job_priority_service import job_priority_service
+from app.v1.services.stage.enrichment import enrich_stage_configs
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,6 +45,8 @@ class JobAdminService:
 
         job_reads = []
         for job in result["data"]:
+            if job.stages:
+                await enrich_stage_configs(db, job.stages)
             job_read = JobRead.model_validate(job)
             # Add per-job automated screening summary
             job_read.automated_screening_summary = (
@@ -82,6 +85,8 @@ class JobAdminService:
 
         job_reads = []
         for job in result["data"]:
+            if job.stages:
+                await enrich_stage_configs(db, job.stages)
             job_read = JobRead.model_validate(job)
             # Add per-job automated screening summary
             job_read.automated_screening_summary = (
@@ -123,6 +128,8 @@ class JobAdminService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Job not found.",
             )
+        if job.stages:
+            await enrich_stage_configs(db, job.stages)
         job_read = JobRead.model_validate(job)
         # Populate activity history for detailed view
         stats = await self._calculate_job_activity_stats(db, job_id, include_sessions=True)
