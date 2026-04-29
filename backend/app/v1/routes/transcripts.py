@@ -120,3 +120,34 @@ async def get_candidate_transcript(
     result = await db.execute(query)
     transcripts = result.scalars().all()
     return transcripts
+
+@router.post("/test-cleaning")
+async def test_transcript_cleaning(
+    file: UploadFile = File(...),
+):
+    """
+    Debug endpoint to test transcript cleaning logic without database persistence.
+    Returns the cleaned text and dialogues.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    ext = ""
+    if "." in file.filename:
+        ext = f".{file.filename.split('.')[-1].lower()}"
+        
+    if ext not in {".docx", ".pdf", ".txt"}:
+        raise HTTPException(status_code=400, detail="Only .docx, .pdf, and .txt files are allowed.")
+
+    content = await file.read()
+    try:
+        processed_data = process_transcript_file(content, ext)
+        return {
+            "filename": file.filename,
+            "raw_clean_text": processed_data["raw_clean_text"],
+            "dialogue_count": processed_data["dialogue_count"],
+            "dialogues": processed_data["dialogues"],
+            "chunks": processed_data["chunks"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cleaning failed: {str(e)}")

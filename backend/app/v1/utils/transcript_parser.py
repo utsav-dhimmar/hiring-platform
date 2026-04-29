@@ -23,11 +23,14 @@ FILLER_WORDS = {
 
 def remove_admin_headers(text: str) -> str:
     """Removes administrative headers and metadata tables (e.g. 'Candidate Name:', 'Date:')."""
-    # Remove markdown tables (common in MarkItDown for document headers)
-    text = re.sub(r'\|.*\|', '', text)
-    text = re.sub(r'[-:]{3,}', '', text)
+    # Remove markdown tables (lines starting and ending with |)
+    # This regex matches lines that have at least one pipe and some content
+    text = re.sub(r'^\s*\|.*\|\s*$', '', text, flags=re.MULTILINE)
     
-    # Remove common header labels
+    # Remove separators like | --- | --- |
+    text = re.sub(r'^\s*\|?[\s\-:|]+\|?\s*$', '', text, flags=re.MULTILINE)
+    
+    # Remove common header labels and their trailing content on the same line
     labels = [
         "Technical Interview Record",
         "Candidate Name:",
@@ -35,9 +38,15 @@ def remove_admin_headers(text: str) -> str:
         "Organization:",
         "Date of Interview:",
         "Interview Summary:",
-        "Assessment Record"
+        "Assessment Record",
+        "Interviewer Assessment",
+        "Final Interview Evaluation",
+        "Architecture Skill:",
+        "Technical Depth:",
+        "Interviewer Assessment & Next Steps"
     ]
     for label in labels:
+        # Match label at start of line and everything until end of line
         text = re.sub(rf'^\s*{re.escape(label)}.*$', '', text, flags=re.MULTILINE | re.IGNORECASE)
         
     return text

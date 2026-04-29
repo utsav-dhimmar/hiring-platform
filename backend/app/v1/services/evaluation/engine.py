@@ -36,9 +36,9 @@ class EvaluationEngine:
         return float(dot / (norm1 * norm2))
 
     def split_into_sentences(self, text: str) -> List[str]:
-        """Split text into sentences using simple regex."""
-        # Split by period, exclamation, or question mark followed by space or newline
-        sentences = re.split(r'(?<=[.!?])\s+', text)
+        """Split text into sentences using punctuation and newlines."""
+        # Split by period, exclamation, or question mark followed by space/newline, OR just a newline
+        sentences = re.split(r'(?<=[.!?])\s+|\n+', text)
         return [s.strip() for s in sentences if len(s.strip()) > 10]
 
     async def get_signals(self, jd_text: str, resume_text: str, transcript_text: str) -> Dict[str, float]:
