@@ -51,3 +51,9 @@ class TranscriptStatusResponse(BaseModel):
     clean_text: str | None = None
     generated_at: datetime | None = None
     error: str | None = None
+
+
+class TranscriptUpdate(BaseModel):
+    """Payload for updating an existing transcript."""
+
+    transcript_text: str

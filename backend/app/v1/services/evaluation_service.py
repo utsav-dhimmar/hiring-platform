@@ -265,18 +265,26 @@ class EvaluationService:
         is_passed = avg_score >= 3.5
         result_status = "pass" if is_passed else "fail"
         
-        # Prepare highlights
+        # Prepare highlights, including any potential errors
+        error_msg = final_report.get("error", "")
         highlights = {
             "strengths": final_report.get("strengths", []),
             "weaknesses": final_report.get("weaknesses", []),
             "suggested_followups": final_report.get("suggested_followups", []),
-            "overall_summary": final_report.get("overall_summary", ""),
-            "recommendation": f"{result_status.upper()} - {final_report.get('recommendation', final_report.get('overall_summary', ''))}"
+            "overall_summary": final_report.get("overall_summary", error_msg),
+            "recommendation": f"{result_status.upper()} - {final_report.get('recommendation', final_report.get('overall_summary', error_msg))}"
         }
+
+        # Fetch current max attempt number
+        attempt_stmt = select(func.max(Evaluation.attempt_number)).where(Evaluation.candidate_stage_id == candidate_stage_id)
+        attempt_res = await db.execute(attempt_stmt)
+        current_max_attempt = attempt_res.scalar() or 0
+        new_attempt_number = current_max_attempt + 1
 
         # Save to DB
         ev = Evaluation(
             candidate_stage_id=candidate_stage_id,
+            attempt_number=new_attempt_number,
             transcript_id=transcript.id,
             interview_id=interview.id,
             evaluation_data=structured_evaluation_data,
@@ -314,6 +322,7 @@ class EvaluationService:
             "interview_id": str(ev.interview_id),
             "transcript_id": str(ev.transcript_id),
             "candidate_stage_id": str(ev.candidate_stage_id),
+            "version": ev.attempt_number,
             "overall_score": avg_score,
             "result": result_status,
             "evaluation_data": structured_evaluation_data,

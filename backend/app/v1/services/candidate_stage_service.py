@@ -58,8 +58,8 @@ class CandidateStageService:
             cs = CandidateStage(
                 candidate_id=candidate_id,
                 job_stage_id=js.id,
-                status="active" if i == 0 else "pending",
-                started_at=datetime.utcnow() if i == 0 else None,
+                status="pending",
+                started_at=None,
             )
             db.add(cs)
             new_stages.append(cs)
@@ -129,14 +129,14 @@ class CandidateStageService:
             next_cs = cs_res.scalars().first()
 
             if next_cs:
-                next_cs.status = "active"
-                next_cs.started_at = datetime.utcnow()
+                next_cs.status = "pending"
+                next_cs.started_at = None
             else:
                 next_cs = CandidateStage(
                     candidate_id=candidate_id,
                     job_stage_id=next_js.id,
-                    status="active",
-                    started_at=datetime.utcnow()
+                    status="pending",
+                    started_at=None
                 )
                 db.add(next_cs)
 

@@ -52,6 +52,11 @@ class Evaluation(Base):
         nullable=False,
     )
 
+    attempt_number: Mapped[int] = mapped_column(
+        default=1,
+        nullable=False,
+    )
+
     passing_threshold: Mapped[float] = mapped_column(
         Numeric(5, 2),
         default=3.5,

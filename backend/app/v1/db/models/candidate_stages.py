@@ -74,9 +74,10 @@ class CandidateStage(Base):
     )
 
     # TIMESTAMPS
-    started_at: Mapped[datetime] = mapped_column(
+    started_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
+        nullable=True,
     )
 
     completed_at: Mapped[datetime | None] = mapped_column(

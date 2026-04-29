@@ -28,12 +28,32 @@ async def get_candidate_stage_evaluation(
     res = await db.execute(
         select(Evaluation)
         .where(Evaluation.candidate_stage_id == id)
-        .order_by(Evaluation.created_at.desc())
+        .order_by(Evaluation.attempt_number.desc())
     )
     evaluation = res.scalars().first()
     if not evaluation:
         raise HTTPException(status_code=404, detail="Evaluation not found for this candidate stage")
     return evaluation
+
+
+from typing import List
+
+@router.get("/{id}/evaluation/history")
+async def get_candidate_stage_evaluation_history(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("candidates:read")),
+) -> List[EvaluationRead]:
+    """Retrieve all evaluation attempts for a specific candidate stage."""
+    res = await db.execute(
+        select(Evaluation)
+        .where(Evaluation.candidate_stage_id == id)
+        .order_by(Evaluation.attempt_number.desc())
+    )
+    evaluations = res.scalars().all()
+    if not evaluations:
+        raise HTTPException(status_code=404, detail="No evaluations found for this candidate stage")
+    return list(evaluations)
 
 
 @router.get("/{id}/similarity-scores")
@@ -46,7 +66,7 @@ async def get_candidate_stage_similarity_scores(
     res = await db.execute(
         select(Evaluation)
         .where(Evaluation.candidate_stage_id == id)
-        .order_by(Evaluation.created_at.desc())
+        .order_by(Evaluation.attempt_number.desc())
     )
     evaluation = res.scalars().first()
     if not evaluation:
@@ -128,96 +148,122 @@ async def candidate_stage_decision(
     user: UserRead = Depends(check_permission("candidates:decide")),
 ) -> Any:
     """Final HR decision for this candidate stage (Approve, Reject, May Be)."""
-    
-    from sqlalchemy.orm import selectinload
-
-    # 1. Fetch CandidateStage + relations
-    query = (
-        select(CandidateStage)
-        .options(selectinload(CandidateStage.job_stage))
-        .where(CandidateStage.id == id)
-    )
-    res = await db.execute(query)
-    stage = res.scalars().first()
-    
-    if not stage:
-        raise HTTPException(status_code=404, detail="Candidate stage not found")
+    try:
+        from sqlalchemy.orm import selectinload
         
-    candidate = await db.get(Candidate, stage.candidate_id)
-    if not candidate:
-        raise HTTPException(status_code=404, detail="Candidate not found")
-        
-    # 2. Create hr_decisions entry
-    hr_decision = HrDecision(
-        candidate_id=candidate.id,
-        stage_config_id=stage.job_stage_id,
-        job_id=stage.job_stage.job_id if stage.job_stage else None,
-        user_id=user.id,
-        decision=decision_in.decision,
-        notes=decision_in.notes
-    )
-    db.add(hr_decision)
-    
-    # 3. Update Candidate status based on decision
-    if decision_in.decision == "reject":
-        candidate.current_status = "rejected"
-    elif decision_in.decision == "May Be":
-        candidate.current_status = "may_be"
-    elif decision_in.decision == "approve":
-        # Check if there is a next stage in job_stages
-        res_next = await db.execute(
-            select(JobStageConfig)
-            .where(
-                JobStageConfig.job_id == stage.job_stage.job_id,
-                JobStageConfig.stage_order > stage.job_stage.stage_order
+        # 1. Fetch CandidateStage + relations
+        from app.v1.db.models.job_stage_configs import JobStageConfig
+        query = (
+            select(CandidateStage)
+            .options(
+                selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template)
             )
-            .order_by(JobStageConfig.stage_order.asc())
+            .where(CandidateStage.id == id)
         )
-        next_stage_config = res_next.scalars().first()
+        res = await db.execute(query)
+        stage = res.scalars().first()
         
-        if next_stage_config:
-            # Advance to next stage (activate existing pending, or create if missing)
-            cs_stmt = (
-                select(CandidateStage)
-                .where(
-                    CandidateStage.candidate_id == candidate.id,
-                    CandidateStage.job_stage_id == next_stage_config.id
-                )
-            )
-            cs_res = await db.execute(cs_stmt)
-            # Use .first() to avoid MultipleResultsFound if duplicates were accidentally created earlier
-            next_cs = cs_res.scalars().first()
-
-            from datetime import datetime
-            if next_cs:
-                next_cs.status = "active"
-                next_cs.started_at = datetime.utcnow()
-            else:
-                next_cs = CandidateStage(
-                    candidate_id=candidate.id,
-                    job_stage_id=next_stage_config.id,
-                    status="active",
-                    started_at=datetime.utcnow()
-                )
-                db.add(next_cs)
+        if not stage:
+            raise HTTPException(status_code=404, detail="Candidate stage not found")
             
-            from app.v1.db.models.stage_templates import StageTemplate
-            template = await db.get(StageTemplate, next_stage_config.template_id)
-            candidate.current_status = template.name if template else "next_stage"
-        else:
-            candidate.current_status = "hired" # Or final state
-    
-    stage.status = "completed"
-    await db.commit()
-    
-    # 4. Audit Log
-    await admin_service.log_action(
-        db=db,
-        user_id=user.id,
-        action="stage_decision",
-        target_type="candidate_stage",
-        target_id=stage.id,
-        details={"decision": decision_in.decision, "candidate_id": str(candidate.id)}
-    )
-    
-    return {"message": f"Decision '{decision_in.decision}' recorded successfully", "candidate_status": candidate.current_status}
+        candidate = await db.get(Candidate, stage.candidate_id)
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+            
+        # 2. Create hr_decisions entry
+        hr_decision = HrDecision(
+            candidate_id=candidate.id,
+            stage_config_id=stage.job_stage_id,
+            job_id=stage.job_stage.job_id if stage.job_stage else None,
+            user_id=user.id,
+            decision=decision_in.decision,
+            notes=decision_in.notes
+        )
+        db.add(hr_decision)
+        
+        # 3. Update Candidate status based on decision
+        if decision_in.decision == "reject":
+            candidate.current_status = "rejected"
+        elif decision_in.decision == "May Be":
+            candidate.current_status = "may_be"
+        elif decision_in.decision == "approve":
+            # NEW LOGIC: If the current stage is PENDING, "approve" just makes it ACTIVE (Resume Approved)
+            # It does NOT move to the next stage yet.
+            if stage.status == "pending":
+                stage.status = "active"
+                from datetime import datetime
+                stage.started_at = datetime.utcnow()
+                
+                # Update candidate current status to show it's active
+                template_name = stage.job_stage.template.name if stage.job_stage and stage.job_stage.template else "Active"
+                candidate.current_status = f"{template_name} (Active)"
+                
+                await db.commit()
+                return {
+                    "message": "Resume approved. Stage is now active for interview/evaluation.",
+                    "candidate_status": candidate.current_status,
+                    "stage_status": "active"
+                }
+
+            # If already ACTIVE, then "approve" means the interview/round is done, move to next stage
+            # Check if there is a next stage in job_stages
+            res_next = await db.execute(
+                select(JobStageConfig)
+                .where(
+                    JobStageConfig.job_id == stage.job_stage.job_id,
+                    JobStageConfig.stage_order > stage.job_stage.stage_order
+                )
+                .order_by(JobStageConfig.stage_order.asc())
+            )
+            next_stage_config = res_next.scalars().first()
+            
+            if next_stage_config:
+                # Advance to next stage (set to PENDING for resume/intro check)
+                cs_stmt = (
+                    select(CandidateStage)
+                    .where(
+                        CandidateStage.candidate_id == candidate.id,
+                        CandidateStage.job_stage_id == next_stage_config.id
+                    )
+                )
+                cs_res = await db.execute(cs_stmt)
+                next_cs = cs_res.scalars().first()
+
+                if next_cs:
+                    next_cs.status = "pending"
+                    next_cs.started_at = None
+                else:
+                    next_cs = CandidateStage(
+                        candidate_id=candidate.id,
+                        job_stage_id=next_stage_config.id,
+                        status="pending",
+                        started_at=None
+                    )
+                    db.add(next_cs)
+                
+                from app.v1.db.models.stage_templates import StageTemplate
+                template = await db.get(StageTemplate, next_stage_config.template_id)
+                candidate.current_status = template.name if template else "next_stage"
+            else:
+                candidate.current_status = "hired" # Or final state
+        
+        stage.status = "completed"
+        await db.commit()
+        
+        # 4. Audit Log
+        from app.v1.services.admin_service import admin_service
+        await admin_service.log_action(
+            db=db,
+            user_id=user.id,
+            action="stage_decision",
+            target_type="candidate_stage",
+            target_id=stage.id,
+            details={"decision": decision_in.decision, "candidate_id": str(candidate.id)}
+        )
+        
+        return {"message": f"Decision '{decision_in.decision}' recorded successfully", "candidate_status": candidate.current_status}
+    except Exception as e:
+        import traceback
+        with open("c:\\OneDriveTemp\\Desktop\\hirego\\backend\\error_log.txt", "w") as f:
+            f.write(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
