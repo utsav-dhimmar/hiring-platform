@@ -21,15 +21,14 @@ export const adminCandidateService = {
       hr_decision?: string[];
       city?: string[];
       status?: string[];
+      stage?: string[];
+      result?: string[];
     },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       `/candidates/jobs/${jobId}`,
       {
         params: { skip, limit, ...filters },
-        paramsSerializer: {
-          indexes: null,
-        },
       },
     );
     return response.data;
@@ -52,15 +51,14 @@ export const adminCandidateService = {
       hr_decision?: string[];
       city?: string[];
       status?: string[];
+      stage?: string[];
+      result?: string[];
     },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       `/candidates/jobs/${jobId}/search`,
       {
         params: { query: query ? query : undefined, skip, limit, ...filters },
-        paramsSerializer: {
-          indexes: null,
-        },
       },
     );
     return response.data;
@@ -82,6 +80,8 @@ export const adminCandidateService = {
       hr_decision?: string[];
       city?: string[];
       status?: string[];
+      stage?: string[];
+      result?: string[];
     },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(

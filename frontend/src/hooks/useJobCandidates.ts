@@ -23,6 +23,9 @@ export const useJobCandidates = (
     start_date?: Date;
     end_date?: Date;
     activity_session?: string[];
+    stage?: string[];
+    city?: string[];
+    result?: string[];
   }
 ) => {
   const navigate = useNavigate();
@@ -59,6 +62,9 @@ export const useJobCandidates = (
       start_date: start_date ? new Date(start_date) : undefined,
       end_date: end_date ? new Date(end_date) : undefined,
       activity_session: searchParams.getAll("activity_session"),
+      stage: searchParams.getAll("stage"),
+      city: searchParams.getAll("city"),
+      result: searchParams.getAll("result"),
     };
   }, [searchParams, externalFilters]);
 

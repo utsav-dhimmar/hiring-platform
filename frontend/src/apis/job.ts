@@ -118,6 +118,9 @@ const jobService = {
       start_date?: Date;
       end_date?: Date;
       activity_session?: string[];
+      stage?: string[]; // not supported in backend
+      city?: string[]; // not supported in backend
+      result?: string[]; // not supported in backend
     },
   ): Promise<CandidateAnalysisResponse> => {
     const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {

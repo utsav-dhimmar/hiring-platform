@@ -69,6 +69,9 @@ export default function JobCandidates() {
     start_date: activeFilters.dateRange?.from,
     end_date: activeFilters.dateRange?.to,
     activity_session: activeFilters.activity_session,
+    stage: activeFilters.stage,
+    city: activeFilters.city,
+    result: activeFilters.resumeScreening,
   });
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);

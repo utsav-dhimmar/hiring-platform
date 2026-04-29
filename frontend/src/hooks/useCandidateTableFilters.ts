@@ -74,7 +74,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   // Handler to update activity session and sync date range in one batch
   const handleActivitySessionChange = (ids: string[]) => {
     setActivitySessionFilter(ids);
-    
+
     if (ids.length > 0 && activitySessionsData) {
       let minStart: Date | null = null;
       let maxEnd: Date | null = null;
@@ -197,7 +197,47 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   }, [candidates]);
 
   const filteredCandidates = useMemo(() => {
-    if (isServerSide) return candidates;
+    // if(isServerSide) return candidates; //uncomment when api accepts stages filter
+
+    // If server side is enabled, most filters are handled by the API.
+    // However, some filters (like stage) might not be supported by the backend yet,
+    // so we apply them locally to the candidates returned by the server.
+    if (isServerSide) {
+      // If server side is enabled, most filters are handled by the API.
+      // However, some filters (like stage, location, result) might not be supported 
+      // by the backend yet, so we apply them locally to the candidates returned by the server.
+      return candidates.filter((c) => {
+        // Stage filter (multi-select)
+        if (stageFilter.length > 0) {
+          const candidateStage = c.current_stage?.template_name || "";
+          if (!stageFilter.includes(candidateStage)) return false;
+        }
+
+        // Location filter (multi-select) - Case-insensitive comparison
+        if (locationFilter.length > 0) {
+          const candidateLocation = (c.location || "").trim().toLowerCase();
+          const isMatched = locationFilter.some(
+            (filterLoc) => filterLoc.toLowerCase() === candidateLocation
+          );
+          if (!isMatched) return false;
+        }
+
+        // Resume Screening (Result) filter (multi-select)
+        if (resumeScreeningFilter.length > 0) {
+          let candidateScreening = "fail";
+          if (
+            c.pass_fail === true ||
+            String(c.pass_fail).toLowerCase() === "pass" ||
+            (c.resume_score ?? 0) >= passingThreshold
+          ) {
+            candidateScreening = "pass";
+          }
+          if (!resumeScreeningFilter.includes(candidateScreening)) return false;
+        }
+
+        return true;
+      });
+    }
 
     return candidates.filter((c) => {
       // Name / email filter
@@ -290,6 +330,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
     jobFilter.length > 0 ||
     resumeScreeningFilter.length > 0 ||
     activitySessionFilter.length > 0 ||
+    stageFilter.length > 0 ||
     !!dateRange?.from ||
     !!dateRange?.to;
 
