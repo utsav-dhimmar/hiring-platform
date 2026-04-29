@@ -184,8 +184,31 @@ class JobAdminService:
             db=db, object=job_in, created_by=admin_user_id
         )
 
-        # Setup default stages for the new job
-        # await stage_service.setup_default_stages(db=db, job_id=job.id)
+        # Setup stages for the new job
+        from app.v1.services.stage_service import stage_service
+        from app.v1.schemas.job_stage import JobStageConfigCreate
+
+        try:
+            if job_in.stages is None:
+                # No stages provided → auto-setup the 3 default stages
+                await stage_service.setup_default_stages(db=db, job_id=job.id)
+                logger.info(f"Default stages auto-created for new job: {job.id}")
+            elif len(job_in.stages) > 0:
+                # Custom stages provided → create exactly those
+                custom_stages = [
+                    JobStageConfigCreate(
+                        template_id=s.template_id,
+                        stage_order=s.stage_order,
+                        is_mandatory=s.is_mandatory,
+                        config=s.config,
+                    )
+                    for s in job_in.stages
+                ]
+                await stage_service.bulk_setup_job_stages(db=db, job_id=job.id, stages_in=custom_stages)
+                logger.info(f"Custom {len(custom_stages)} stages created for new job: {job.id}")
+            # else: stages=[] → no stages created (intentional)
+        except Exception as e:
+            logger.warning(f"Could not setup stages for job {job.id}: {e}")
 
         await audit_service.log_action(
             db=db,

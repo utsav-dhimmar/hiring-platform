@@ -100,6 +100,7 @@ class JobRepository:
         """Create a job and persist its skill associations."""
         payload = object.model_dump()
         skill_ids = payload.pop("skill_ids", [])
+        payload.pop("stages", None)  # handled separately in job_service, not an ORM field
 
         job = Job(**payload, created_by=created_by)
 
