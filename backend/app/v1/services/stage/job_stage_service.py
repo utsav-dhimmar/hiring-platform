@@ -121,33 +121,30 @@ class JobStageService:
     async def setup_default_stages(
         self, db: AsyncSession, job_id: uuid.UUID
     ) -> list[JobStageConfig]:
-        """Setup the standard reference flow for a job."""
-        templates, _ = await stage_repository.get_all_templates(db)
+        """Setup the standard reference flow for a job based on default templates."""
+        from sqlalchemy import select
+        from app.v1.db.models.stage_templates import StageTemplate
 
-        # Map names to templates for easy lookup
-        template_map = {t.name.lower(): t for t in templates}
-
-        # Define standard flow
-        standard_flow = [
-            "HR Screening Round",
-            "Technical Practical Round",
-            "Technical + HR Panel Evaluation",
-        ]
+        # Query for templates marked as default, ordered by their default_order
+        stmt = (
+            select(StageTemplate)
+            .where(StageTemplate.is_default == True)
+            .order_by(StageTemplate.default_order.asc())
+        )
+        default_templates = (await db.execute(stmt)).scalars().all()
 
         created_stages = []
-        for index, stage_name in enumerate(standard_flow, start=1):
-            template = template_map.get(stage_name.lower())
-            if template:
-                stage_config = JobStageConfig(
-                    job_id=job_id,
-                    template_id=template.id,
-                    stage_order=index,
-                    config=template.default_config,
-                    is_mandatory=True,
-                )
-                created_stages.append(
-                    await stage_repository.create_job_stage(db, stage_config)
-                )
+        for index, template in enumerate(default_templates, start=1):
+            stage_config = JobStageConfig(
+                job_id=job_id,
+                template_id=template.id,
+                stage_order=template.default_order or index, # Use template order or fallback to sequence
+                config=template.default_config,
+                is_mandatory=True,
+            )
+            created_stages.append(
+                await stage_repository.create_job_stage(db, stage_config)
+            )
 
         await enrich_stage_configs(db, created_stages)
         return created_stages
@@ -158,29 +155,62 @@ class JobStageService:
         job_id: uuid.UUID,
         stages_in: list[JobStageConfigCreate],
     ) -> list[JobStageConfig]:
-        """Overwrite all existing stages for a job with a new list."""
-        # 1. Clear existing
-        await stage_repository.clear_job_stages(db, job_id)
+        """
+        Synchronize stages for a job. 
+        Tries to match existing stages to avoid deleting candidate history.
+        """
+        from sqlalchemy import delete
+        
+        # 1. Fetch current stages
+        existing_stages = await stage_repository.get_job_stages(db, job_id)
+        existing_map = {s.template_id: s for s in existing_stages} # Simple heuristic: map by template
 
-        # 2. Add new ones
-        configs = []
-        for s in stages_in:
-            template = await stage_repository.get_template_by_id(db, s.template_id)
+        # 2. Track which existing stages we keep
+        to_keep_ids = set()
+        final_configs = []
+
+        for index, s_in in enumerate(stages_in, start=1):
+            template = await stage_repository.get_template_by_id(db, s_in.template_id)
             if not template:
                  raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Stage template with ID {s.template_id} not found",
+                    detail=f"Stage template with ID {s_in.template_id} not found",
                 )
-            configs.append(JobStageConfig(
-                job_id=job_id,
-                template_id=s.template_id,
-                stage_order=s.stage_order,
-                config=s.config or template.default_config,
-                is_mandatory=s.is_mandatory
-            ))
-        
-        db.add_all(configs)
+            
+            # If this template is already in the job, update it instead of creating a new one
+            if s_in.template_id in existing_map:
+                existing_stage = existing_map[s_in.template_id]
+                existing_stage.stage_order = s_in.stage_order or index
+                existing_stage.is_mandatory = s_in.is_mandatory
+                if s_in.config is not None:
+                    existing_stage.config = prepare_config_for_save(s_in.config)
+                
+                to_keep_ids.add(existing_stage.id)
+                final_configs.append(existing_stage)
+            else:
+                # New stage to add
+                new_stage = JobStageConfig(
+                    job_id=job_id,
+                    template_id=s_in.template_id,
+                    stage_order=s_in.stage_order or index,
+                    config=prepare_config_for_save(s_in.config or template.default_config),
+                    is_mandatory=s_in.is_mandatory
+                )
+                db.add(new_stage)
+                final_configs.append(new_stage)
+
+        # 3. Delete stages that are NOT in the new list
+        for existing in existing_stages:
+            if existing.id not in to_keep_ids:
+                # WARNING: This will still delete candidate data for THIS specific stage
+                await stage_repository.delete_job_stage(db, existing)
+
         await db.commit()
+        
+        # 4. Return refreshed list
+        stages = await stage_repository.get_job_stages(db, job_id)
+        await enrich_stage_configs(db, stages)
+        return stages
         
         # 3. Return refreshed list
         stages = await stage_repository.get_job_stages(db, job_id)

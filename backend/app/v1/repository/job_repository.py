@@ -147,6 +147,7 @@ class JobRepository:
 
         payload = object.model_dump(exclude_unset=True)
         skill_ids = payload.pop("skill_ids", None)
+        payload.pop("stages", None)  # handled separately in job_service, not an ORM field
 
         # Remove status from payload to prevent version creation on status changes
         status_change = payload.pop("status", None)

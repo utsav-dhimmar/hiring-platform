@@ -210,6 +210,14 @@ class JobAdminService:
         except Exception as e:
             logger.warning(f"Could not setup stages for job {job.id}: {e}")
 
+        # Flush and expire to ensure next fetch sees the stages
+        job_id = job.id
+        await db.flush()
+        db.expire_all()
+
+        # Re-fetch the job with all stages and templates fully loaded
+        job = await self.get_job_by_id(db, job_id)
+
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
@@ -285,6 +293,34 @@ class JobAdminService:
 
         updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
         
+        # Handle stages update if provided (same logic as create_job)
+        if job_update.stages is not None:
+            from app.v1.services.stage_service import stage_service
+            from app.v1.schemas.job_stage import JobStageConfigCreate
+            
+            try:
+                custom_stages = [
+                    JobStageConfigCreate(
+                        template_id=s.template_id,
+                        stage_order=s.stage_order,
+                        is_mandatory=s.is_mandatory,
+                        config=s.config,
+                    )
+                    for s in job_update.stages
+                ]
+                await stage_service.bulk_setup_job_stages(db=db, job_id=job_id, stages_in=custom_stages)
+                logger.info(f"Stages updated for job: {job_id}")
+            except Exception as e:
+                logger.warning(f"Could not update stages for job {job_id}: {e}")
+
+        # Flush and expire to ensure next fetch sees the stages
+        # job_id is already passed as an argument to this function
+        await db.flush()
+        db.expire_all()
+
+        # Re-fetch the job with all stages and templates fully loaded
+        updated_job = await self.get_job_by_id(db, job_id)
+
         updated_fields_map = job_update.model_dump(exclude_unset=True)
         
         # Log general update with values

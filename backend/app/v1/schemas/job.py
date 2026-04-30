@@ -83,6 +83,7 @@ class JobUpdate(BaseModel):
     priority_id: uuid.UUID | None = None
     priority_start_date: datetime | None = None
     priority_end_date: datetime | None = None
+    stages: list[StageInput] | None = None
 
 
 class JobStatusUpdate(BaseModel):

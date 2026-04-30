@@ -13,6 +13,8 @@ class StageTemplateBase(BaseModel):
     """Base schema for Stage Template data."""
 
     name: str = Field(..., description="Name of the stage template")
+    is_default: bool = Field(False, description="Whether this stage is automatically assigned to new jobs")
+    default_order: int | None = Field(None, description="The default position of this stage in a new pipeline")
     description: str | None = Field(
         None, description="Detailed description of the stage"
     )
@@ -36,6 +38,8 @@ class StageTemplateUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     config: dict[str, Any] | None = None
+    is_default: bool | None = None
+    default_order: int | None = None
 
 
 class StageTemplateRead(StageTemplateBase):

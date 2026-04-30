@@ -8,8 +8,10 @@ async def check():
     async with engine.connect() as conn:
         res = await conn.execute(select(StageTemplate))
         rows = res.fetchall()
-        for r in rows:
-            print(f"ID: {r.id}, Name: {r.name}")
+        for t in rows:
+            default_status = "DEFAULT" if getattr(t, "is_default", False) else "Standard"
+            order = getattr(t, "default_order", "-")
+            print(f"[{default_status} | Order: {order}] ID: {t.id}, Name: {t.name}")
 
 if __name__ == "__main__":
     asyncio.run(check())

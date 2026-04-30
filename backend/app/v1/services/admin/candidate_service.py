@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import func, or_, select, and_
@@ -441,7 +441,7 @@ class CandidateAdminService:
 
         latest_decision = None
         if hr_decisions:
-            latest_decision = max(hr_decisions, key=lambda d: d.decided_at if d.decided_at else datetime.min)
+            latest_decision = max(hr_decisions, key=lambda d: d.decided_at if d.decided_at else datetime.min.replace(tzinfo=timezone.utc))
 
         # Normalize decision string for frontend
         status = "Pending"
@@ -663,6 +663,14 @@ class CandidateAdminService:
         from sqlalchemy.orm import selectinload
         from app.v1.db.models.resumes import Resume
         from app.v1.db.models.resume_version_results import ResumeVersionResult
+        from app.v1.db.models.candidates import Candidate
+
+        # Fetch candidate for base created_at fallback
+        candidate = await db.get(Candidate, candidate_id)
+        if not candidate:
+             raise HTTPException(status_code=404, detail="Candidate not found")
+             
+        created_at_fallback = candidate.created_at
 
         events = []
 
@@ -680,7 +688,8 @@ class CandidateAdminService:
         for r_res in resume_results:
             events.append({
                 "event_type": "screening",
-                "event_date": r_res.analyzed_at or datetime.now(),
+                # Use analyzed_at or fallback to candidate.created_at to keep it at the start of timeline
+                "event_date": r_res.analyzed_at or created_at_fallback,
                 "title": "Resume Screening",
                 "description": f"AI parsed and matched resume against {r_res.job.title if r_res.job else 'job'}",
                 "result": r_res.pass_fail,
@@ -698,13 +707,28 @@ class CandidateAdminService:
         
         stages = (await db.execute(stmt)).scalars().all()
 
+        # Build a map for easy lookup by job_stage_id (used for decisions later)
+        stage_map = {s.job_stage_id: s.id for s in stages}
+
         for stage in stages:
             # Fetch latest evaluation for this stage
             eval_stmt = select(Evaluation).where(Evaluation.candidate_stage_id == stage.id).order_by(Evaluation.created_at.desc()).limit(1)
             eval_obj = (await db.execute(eval_stmt)).scalar_one_or_none()
 
             title = stage.job_stage.template.name if stage.job_stage else "Unknown Stage"
-            result = eval_obj.result if eval_obj else "Pending"
+            
+            if eval_obj:
+                result = eval_obj.result
+            else:
+                # Fallback to stage status for manual/non-evaluated stages
+                result = {
+                    "completed": "passed",
+                    "failed": "failed",
+                    "skipped": "skipped",
+                    "active": "ongoing",
+                    "pending": "pending",
+                }.get(stage.status, "Pending")
+                
             score = eval_obj.overall_score if eval_obj else None
             
             # Filter by query if provided
@@ -717,7 +741,7 @@ class CandidateAdminService:
 
             events.append({
                 "event_type": "stage",
-                "event_date": stage.started_at or datetime.now(),
+                "event_date": stage.started_at or created_at_fallback,
                 "title": title,
                 "description": f"Candidate was in {title}",
                 "result": result,
@@ -741,6 +765,9 @@ class CandidateAdminService:
             title = f"HR Decision: {dec.decision}"
             stage_name = dec.stage_config.template.name if dec.stage_config and dec.stage_config.template else None
             
+            # Map dec.stage_config_id (JobStageConfig) to the actual CandidateStage.id for frontend consistency
+            candidate_stage_id = stage_map.get(dec.stage_config_id)
+
             # Filter by query if provided
             if query:
                 q_lower = query.lower()
@@ -751,12 +778,12 @@ class CandidateAdminService:
 
             events.append({
                 "event_type": "decision",
-                "event_date": dec.decided_at or datetime.now(),
+                "event_date": dec.decided_at or created_at_fallback,
                 "title": title,
                 "description": dec.notes,
                 "result": dec.decision,
                 "score": None,
-                "stage_id": dec.stage_config_id,
+                "stage_id": candidate_stage_id or dec.stage_config_id,
                 "stage_name": stage_name,
                 "job_id": dec.job_id,
                 "metadata": {"user_id": str(dec.user_id)}
@@ -766,20 +793,29 @@ class CandidateAdminService:
         latest_decision = "Pending"
         if decisions:
             # Sort local decisions by date
-            sorted_decisions = sorted(decisions, key=lambda d: d.decided_at or datetime.min, reverse=True)
+            sorted_decisions = sorted(decisions, key=lambda d: d.decided_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
             latest_decision = sorted_decisions[0].decision
 
+        # Improved Current Stage Detection (Sync with CandidateResponse logic)
         current_stage_name = "Resume Screening"
         if stages:
-            # Sort stages by order
+            # 1. Check for Active
             active_stages = [s for s in stages if s.status == "active"]
             if active_stages:
-                current_stage_name = active_stages[0].job_stage.template.name if active_stages[0].job_stage else "Unknown"
+                # Sort by order to be sure
+                sorted_active = sorted(active_stages, key=lambda s: s.job_stage.stage_order if s.job_stage else 0)
+                current_stage_name = sorted_active[0].job_stage.template.name if sorted_active[0].job_stage else "Unknown"
             else:
-                completed_stages = [s for s in stages if s.status == "completed"]
-                if completed_stages:
-                    sorted_completed = sorted(completed_stages, key=lambda s: s.job_stage.stage_order if s.job_stage else 0, reverse=True)
-                    current_stage_name = sorted_completed[0].job_stage.template.name if sorted_completed[0].job_stage else "Unknown"
+                # 2. Check for Finished (completed, failed, skipped)
+                finished_stages = [s for s in stages if s.status in ["completed", "failed", "skipped"]]
+                if finished_stages:
+                    # Pick the one with highest order
+                    sorted_finished = sorted(finished_stages, key=lambda s: s.job_stage.stage_order if s.job_stage else 0, reverse=True)
+                    current_stage_name = sorted_finished[0].job_stage.template.name if sorted_finished[0].job_stage else "Unknown"
+                else:
+                    # 3. Fallback to first stage if everything is pending
+                    sorted_all = sorted(stages, key=lambda s: s.job_stage.stage_order if s.job_stage else 0)
+                    current_stage_name = sorted_all[0].job_stage.template.name if sorted_all[0].job_stage else "Unknown"
 
         # 4. Sort events by date descending
         events.sort(key=lambda x: x["event_date"], reverse=True)
