@@ -681,12 +681,20 @@ class CandidateAdminService:
             .join(Resume, ResumeVersionResult.resume_id == Resume.id)
             .where(Resume.candidate_id == candidate_id)
             .options(selectinload(ResumeVersionResult.job))
+            .order_by(ResumeVersionResult.analyzed_at.desc())
         )
         if job_id:
             resume_stmt = resume_stmt.where(ResumeVersionResult.job_id == job_id)
         
         resume_results = (await db.execute(resume_stmt)).scalars().all()
+        
+        # Only keep the latest screening per job
+        seen_job_screenings = set()
         for r_res in resume_results:
+            if r_res.job_id in seen_job_screenings:
+                continue
+            seen_job_screenings.add(r_res.job_id)
+            
             event_key = f"screening_{r_res.id}"
             events_map[event_key] = {
                 "event_type": "screening",
@@ -697,6 +705,7 @@ class CandidateAdminService:
                 "score": float(r_res.resume_score) if r_res.resume_score is not None else None,
                 "job_id": r_res.job_id,
                 "stage_id": None,
+                "stage_name": None,
                 "stage_order": -1, # Always first
                 "metadata": r_res.analysis_data
             }
