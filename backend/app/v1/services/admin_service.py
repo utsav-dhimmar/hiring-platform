@@ -15,6 +15,7 @@ from app.v1.db.models.user import User
 from app.v1.schemas.admin import (
     AnalyticsSummary,
     HiringReport,
+    JobPipelineStats,
 )
 from app.v1.schemas.skill import SkillRead
 from app.v1.schemas.upload import CandidateResponse
@@ -94,6 +95,9 @@ class AdminService:
 
     async def get_hiring_report(self, *args, **kwargs) -> HiringReport:
         return await analytics_service.get_hiring_report(*args, **kwargs)
+
+    async def get_pipeline_stats(self, *args, **kwargs) -> list[JobPipelineStats]:
+        return await analytics_service.get_pipeline_stats(*args, **kwargs)
 
     # Job Management
     async def get_all_jobs(self, *args, **kwargs) -> list[Job]:

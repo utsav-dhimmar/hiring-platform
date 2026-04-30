@@ -1,9 +1,10 @@
+import uuid
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.repository.admin_repository import admin_repository
-from app.v1.schemas.admin import AnalyticsSummary, HiringReport, RecentUploadRead
+from app.v1.schemas.admin import AnalyticsSummary, HiringReport, RecentUploadRead, JobPipelineStats
 from app.v1.schemas.response import PaginatedData
 
 
@@ -42,15 +43,43 @@ class AnalyticsService:
         data = await admin_repository.get_analytics_summary(db=db)
         return AnalyticsSummary(**data)
 
-    async def get_hiring_report(self, db: AsyncSession) -> HiringReport:
+    async def get_hiring_report(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID | None = None,
+        stage_name: str | None = None,
+    ) -> HiringReport:
         """
         Get detailed hiring analytics report.
 
         @param db - Database session
+        @param job_id - Optional job UUID to filter pipeline stats to a single job
+        @param stage_name - Optional stage name to filter pipeline stats (case-insensitive)
         @returns HiringReport with job statistics, candidate metrics, and resume performance data
         """
-        data = await admin_repository.get_hiring_report(db=db)
+        data = await admin_repository.get_hiring_report(
+            db=db, job_id=job_id, stage_name=stage_name
+        )
         return HiringReport(**data)
+
+    async def get_pipeline_stats(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID | None = None,
+        stage_name: str | None = None,
+    ) -> list[JobPipelineStats]:
+        """
+        Get pipeline stats filtered by job and/or stage.
+
+        @param db - Database session
+        @param job_id - Optional job UUID to filter to a single job
+        @param stage_name - Optional stage name to filter results (case-insensitive)
+        @returns List of JobPipelineStats
+        """
+        data = await admin_repository.get_pipeline_stats(
+            db=db, job_id=job_id, stage_name=stage_name
+        )
+        return [JobPipelineStats(**item) for item in data]
 
 
 analytics_service = AnalyticsService()

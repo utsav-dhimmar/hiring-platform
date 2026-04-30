@@ -15,6 +15,7 @@ from app.v1.schemas.admin import (
     AnalyticsSummary,
     AuditLogRead,
     HiringReport,
+    JobPipelineStats,
     PermissionCreate,
     PermissionRead,
     RecentUploadRead,
@@ -261,11 +262,38 @@ async def get_analytics(
 
 @router.get("/hiring-report", response_model=HiringReport)
 async def get_hiring_report(
+    job_id: uuid.UUID | None = Query(default=None, description="Filter pipeline_stats to a specific job"),
+    stage_name: str | None = Query(default=None, description="Filter pipeline_stats to a specific stage name"),
     db: AsyncSession = Depends(get_db),
     admin: UserRead = Depends(check_permission("analytics:read")),
 ) -> Any:
-    """Get hiring report with detailed statistics."""
-    return await admin_service.get_hiring_report(db=db)
+    """Get hiring report with detailed statistics.
+
+    Optional filters (only affect `job_pipeline_stats` field):
+    - **job_id**: restrict pipeline stats to one job.
+    - **stage_name**: restrict pipeline stats to one stage name (e.g. `Resume Screening`).
+    """
+    return await admin_service.get_hiring_report(
+        db=db, job_id=job_id, stage_name=stage_name
+    )
+
+
+@router.get("/pipeline-stats", response_model=list[JobPipelineStats])
+async def get_pipeline_stats(
+    job_id: uuid.UUID | None = Query(default=None, description="Filter by a specific job UUID"),
+    stage_name: str | None = Query(default=None, description="Filter by stage name (e.g. 'HR Screening Round')"),
+    db: AsyncSession = Depends(get_db),
+    admin: UserRead = Depends(check_permission("analytics:read")),
+) -> Any:
+    """
+    Get pipeline completion stats per job/stage.
+
+    - **job_id**: (optional) restrict results to one job.
+    - **stage_name**: (optional) return only a specific stage across all (or the filtered) jobs.
+    """
+    return await admin_service.get_pipeline_stats(
+        db=db, job_id=job_id, stage_name=stage_name
+    )
 
 
 # --- Stage Template Management ---
