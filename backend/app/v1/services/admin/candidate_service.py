@@ -654,6 +654,7 @@ class CandidateAdminService:
     ) -> dict[str, Any]:
         """
         Aggregate stages, decisions, and results into a chronological timeline.
+        Consolidates redundant events and ensures logical sequencing.
         """
         from app.v1.db.models.candidate_stages import CandidateStage
         from app.v1.db.models.hr_decisions import HrDecision
@@ -672,7 +673,7 @@ class CandidateAdminService:
              
         created_at_fallback = candidate.created_at
 
-        events = []
+        events_map = {} # Keyed by (event_type, stage_id) or unique string
 
         # 0. Fetch Resume Screening (Stage 0)
         resume_stmt = (
@@ -686,17 +687,19 @@ class CandidateAdminService:
         
         resume_results = (await db.execute(resume_stmt)).scalars().all()
         for r_res in resume_results:
-            events.append({
+            event_key = f"screening_{r_res.id}"
+            events_map[event_key] = {
                 "event_type": "screening",
-                # Use analyzed_at or fallback to candidate.created_at to keep it at the start of timeline
                 "event_date": r_res.analyzed_at or created_at_fallback,
                 "title": "Resume Screening",
                 "description": f"AI parsed and matched resume against {r_res.job.title if r_res.job else 'job'}",
                 "result": r_res.pass_fail,
                 "score": float(r_res.resume_score) if r_res.resume_score is not None else None,
                 "job_id": r_res.job_id,
+                "stage_id": None,
+                "stage_order": -1, # Always first
                 "metadata": r_res.analysis_data
-            })
+            }
 
         # 1. Fetch Stages
         stmt = select(CandidateStage).join(JobStageConfig).where(CandidateStage.candidate_id == candidate_id).options(
@@ -707,8 +710,8 @@ class CandidateAdminService:
         
         stages = (await db.execute(stmt)).scalars().all()
 
-        # Build a map for easy lookup by job_stage_id (used for decisions later)
-        stage_map = {s.job_stage_id: s.id for s in stages}
+        # Build a map for easy lookup by JobStageConfig ID to match with Decisions
+        config_to_candidate_stage_map = {s.job_stage_id: s.id for s in stages}
 
         for stage in stages:
             # Fetch latest evaluation for this stage
@@ -720,7 +723,6 @@ class CandidateAdminService:
             if eval_obj:
                 result = eval_obj.result
             else:
-                # Fallback to stage status for manual/non-evaluated stages
                 result = {
                     "completed": "passed",
                     "failed": "failed",
@@ -731,17 +733,12 @@ class CandidateAdminService:
                 
             score = eval_obj.overall_score if eval_obj else None
             
-            # Filter by query if provided
-            if query:
-                q_lower = query.lower()
-                title_match = q_lower in title.lower()
-                result_match = result and q_lower in result.lower()
-                if not (title_match or result_match):
-                    continue
-
-            events.append({
+            # Use started_at for sequence, but if it's identical to fallback, use stage_order to push it forward
+            event_date = stage.started_at or created_at_fallback
+            
+            events_map[f"stage_{stage.id}"] = {
                 "event_type": "stage",
-                "event_date": stage.started_at or created_at_fallback,
+                "event_date": event_date,
                 "title": title,
                 "description": f"Candidate was in {title}",
                 "result": result,
@@ -749,10 +746,11 @@ class CandidateAdminService:
                 "stage_id": stage.id,
                 "stage_name": title,
                 "job_id": stage.job_stage.job_id,
+                "stage_order": stage.job_stage.stage_order if stage.job_stage else 0,
                 "metadata": stage.evaluation_data
-            })
+            }
 
-        # 2. Fetch HR Decisions
+        # 2. Fetch HR Decisions and enrich stages (but don't add as separate events)
         decision_stmt = select(HrDecision).where(HrDecision.candidate_id == candidate_id).options(
             selectinload(HrDecision.stage_config).selectinload(JobStageConfig.template)
         )
@@ -762,63 +760,65 @@ class CandidateAdminService:
         decisions = (await db.execute(decision_stmt)).scalars().all()
 
         for dec in decisions:
-            title = f"HR Decision: {dec.decision}"
-            stage_name = dec.stage_config.template.name if dec.stage_config and dec.stage_config.template else None
+            candidate_stage_id = config_to_candidate_stage_map.get(dec.stage_config_id)
+            stage_key = f"stage_{candidate_stage_id}" if candidate_stage_id else None
             
-            # Map dec.stage_config_id (JobStageConfig) to the actual CandidateStage.id for frontend consistency
-            candidate_stage_id = stage_map.get(dec.stage_config_id)
+            # Enrich stage if it exists
+            if stage_key and stage_key in events_map:
+                ev = events_map[stage_key]
+                ev["result"] = dec.decision
+                if dec.notes:
+                    ev["description"] = f"{ev['description']}. HR Notes: {dec.notes}"
+                # Use decision date if later than start date
+                if dec.decided_at and dec.decided_at > ev["event_date"]:
+                    ev["event_date"] = dec.decided_at
 
-            # Filter by query if provided
-            if query:
-                q_lower = query.lower()
-                title_match = q_lower in title.lower()
-                notes_match = dec.notes and q_lower in dec.notes.lower()
-                if not (title_match or notes_match):
-                    continue
+        # 3. Finalize and Sort
+        events = list(events_map.values())
+        
+        # Filter by query if provided
+        if query:
+            q_lower = query.lower()
+            events = [
+                e for e in events 
+                if q_lower in e["title"].lower() or 
+                   (e["description"] and q_lower in e["description"].lower()) or
+                   (e["result"] and q_lower in e["result"].lower())
+            ]
 
-            events.append({
-                "event_type": "decision",
-                "event_date": dec.decided_at or created_at_fallback,
-                "title": title,
-                "description": dec.notes,
-                "result": dec.decision,
-                "score": None,
-                "stage_id": candidate_stage_id or dec.stage_config_id,
-                "stage_name": stage_name,
-                "job_id": dec.job_id,
-                "metadata": {"user_id": str(dec.user_id)}
-            })
+        # Improved Sorting Logic:
+        # Primary: Date (Descending)
+        # Secondary: Stage Order (Descending) - so higher stages appear higher in reverse chronological list
+        # Tertiary: Event Type (Decision > Stage > Screening)
+        def sort_key(x):
+            return (
+                x["event_date"].replace(tzinfo=timezone.utc) if x["event_date"].tzinfo is None else x["event_date"],
+                x["stage_order"],
+                1 if x["event_type"] == "decision" else (0 if x["event_type"] == "stage" else -1)
+            )
 
-        # 3. Determine Latest Decision & Current Stage
+        events.sort(key=sort_key, reverse=True)
+
+        # 4. Determine Latest Decision & Current Stage (Sync with CandidateResponse logic)
         latest_decision = "Pending"
         if decisions:
-            # Sort local decisions by date
             sorted_decisions = sorted(decisions, key=lambda d: d.decided_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
             latest_decision = sorted_decisions[0].decision
 
-        # Improved Current Stage Detection (Sync with CandidateResponse logic)
         current_stage_name = "Resume Screening"
         if stages:
-            # 1. Check for Active
             active_stages = [s for s in stages if s.status == "active"]
             if active_stages:
-                # Sort by order to be sure
                 sorted_active = sorted(active_stages, key=lambda s: s.job_stage.stage_order if s.job_stage else 0)
                 current_stage_name = sorted_active[0].job_stage.template.name if sorted_active[0].job_stage else "Unknown"
             else:
-                # 2. Check for Finished (completed, failed, skipped)
                 finished_stages = [s for s in stages if s.status in ["completed", "failed", "skipped"]]
                 if finished_stages:
-                    # Pick the one with highest order
                     sorted_finished = sorted(finished_stages, key=lambda s: s.job_stage.stage_order if s.job_stage else 0, reverse=True)
                     current_stage_name = sorted_finished[0].job_stage.template.name if sorted_finished[0].job_stage else "Unknown"
                 else:
-                    # 3. Fallback to first stage if everything is pending
                     sorted_all = sorted(stages, key=lambda s: s.job_stage.stage_order if s.job_stage else 0)
                     current_stage_name = sorted_all[0].job_stage.template.name if sorted_all[0].job_stage else "Unknown"
-
-        # 4. Sort events by date descending
-        events.sort(key=lambda x: x["event_date"], reverse=True)
 
         return {
             "candidate_id": candidate_id,

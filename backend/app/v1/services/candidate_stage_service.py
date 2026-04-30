@@ -130,13 +130,13 @@ class CandidateStageService:
 
             if next_cs:
                 next_cs.status = "pending"
-                next_cs.started_at = None
+                next_cs.started_at = datetime.utcnow()
             else:
                 next_cs = CandidateStage(
                     candidate_id=candidate_id,
                     job_stage_id=next_js.id,
                     status="pending",
-                    started_at=None
+                    started_at=datetime.utcnow()
                 )
                 db.add(next_cs)
 
