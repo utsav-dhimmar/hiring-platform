@@ -68,13 +68,22 @@ class StageTemplateService:
     async def delete_template(
         self, db: AsyncSession, template_id: uuid.UUID
     ) -> None:
-        """Delete a stage template."""
+        """Delete a stage template. Prevents deletion if assigned to any job."""
         template = await stage_repository.get_template_by_id(db, template_id)
         if not template:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Stage template with ID {template_id} not found",
             )
+            
+        # Check if template is assigned to any job
+        usage_count = await stage_repository.count_template_usage(db, template_id)
+        if usage_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Cannot delete template '{template.name}' as it is currently assigned to {usage_count} job(s)."
+            )
+            
         await stage_repository.delete_template(db, template)
 
 template_service = StageTemplateService()

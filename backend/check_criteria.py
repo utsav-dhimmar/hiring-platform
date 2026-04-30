@@ -1,16 +1,13 @@
-
 import asyncio
-from app.v1.db.session import engine
+from app.v1.db.session import async_session_maker
 from sqlalchemy import select
 from app.v1.db.models.criteria import Criterion
 
 async def check():
-    async with engine.connect() as conn:
-        res = await conn.execute(select(Criterion))
-        rows = res.fetchall()
-        print(f"Found {len(rows)} criteria.")
-        for r in rows:
-            print(f"- {r.title}: {r.description}")
+    async with async_session_maker() as db:
+        res = await db.execute(select(Criterion.id, Criterion.name))
+        for row in res.all():
+            print(f"{row.id}: {row.name}")
 
 if __name__ == "__main__":
     asyncio.run(check())
