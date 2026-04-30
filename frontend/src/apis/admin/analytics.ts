@@ -1,6 +1,12 @@
 import apiClient from "@/apis/client";
-import type { AnalyticsSummary, AuditLogRead, HiringReport, RecentUploadRead, PaginatedResponse } from "@/types/admin";
-
+import type {
+  AnalyticsSummary,
+  AuditLogRead,
+  HiringReport,
+  RecentUploadRead,
+  PaginatedResponse,
+  JobPipelineStats,
+} from "@/types/admin";
 
 const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
@@ -11,20 +17,34 @@ export const adminAnalyticsService = {
   /**
    * Get all audit logs (admin and hr admin only).
    */
-  getAuditLogs: async (skip: number = 0, limit: number = 100, q?: string): Promise<PaginatedResponse<AuditLogRead>> => {
-    const response = await apiClient.get<PaginatedResponse<AuditLogRead>>(`${ADMIN_PATH}/audit-logs`, {
-      params: { skip, limit, q: q ? q : undefined },
-    });
+  getAuditLogs: async (
+    skip: number = 0,
+    limit: number = 100,
+    q?: string
+  ): Promise<PaginatedResponse<AuditLogRead>> => {
+    const response = await apiClient.get<PaginatedResponse<AuditLogRead>>(
+      `${ADMIN_PATH}/audit-logs`,
+      {
+        params: { skip, limit, q: q ? q : undefined },
+      }
+    );
     return response.data;
   },
 
   /**
    * Get recent file uploads (admin only).
    */
-  getRecentUploads: async (skip: number = 0, limit: number = 50, q?: string): Promise<PaginatedResponse<RecentUploadRead>> => {
-    const response = await apiClient.get<PaginatedResponse<RecentUploadRead>>(`${ADMIN_PATH}/recent-uploads`, {
-      params: { skip, limit, q: q ? q : undefined },
-    });
+  getRecentUploads: async (
+    skip: number = 0,
+    limit: number = 50,
+    q?: string
+  ): Promise<PaginatedResponse<RecentUploadRead>> => {
+    const response = await apiClient.get<PaginatedResponse<RecentUploadRead>>(
+      `${ADMIN_PATH}/recent-uploads`,
+      {
+        params: { skip, limit, q: q ? q : undefined },
+      }
+    );
     return response.data;
   },
 
@@ -32,15 +52,41 @@ export const adminAnalyticsService = {
    * Get analytics summary (admin and hr admin only).
    */
   getAnalytics: async (): Promise<AnalyticsSummary> => {
-    const response = await apiClient.get<AnalyticsSummary>(`${ADMIN_PATH}/analytics`);
+    const response = await apiClient.get<AnalyticsSummary>(
+      `${ADMIN_PATH}/analytics`
+    );
     return response.data;
   },
 
   /**
    * Get hiring report with detailed statistics (admin and hr admin only).
    */
-  getHiringReport: async (): Promise<HiringReport> => {
-    const response = await apiClient.get<HiringReport>(`${ADMIN_PATH}/hiring-report`);
+  getHiringReport: async (
+    jobId?: string,
+    stageName?: string
+  ): Promise<HiringReport> => {
+    const response = await apiClient.get<HiringReport>(
+      `${ADMIN_PATH}/hiring-report`,
+      {
+        params: { job_id: jobId, stage_name: stageName },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get pipeline completion stats per job/stage.
+   */
+  getPipelineStats: async (
+    jobId?: string,
+    stageName?: string
+  ): Promise<JobPipelineStats[]> => {
+    const response = await apiClient.get<JobPipelineStats[]>(
+      `${ADMIN_PATH}/pipeline-stats`,
+      {
+        params: { job_id: jobId, stage_name: stageName },
+      }
+    );
     return response.data;
   },
 };

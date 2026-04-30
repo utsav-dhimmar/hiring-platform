@@ -36,6 +36,14 @@ export default function AdminStats() {
   const analytics = dashboardData[0]?.analytics;
   const report = dashboardData[0]?.report;
 
+  const llmParsedCount = report
+    ? report.total_passed + report.total_failed + report.total_pending
+    : 0;
+  const passRate =
+    report && report.total_passed + report.total_failed > 0
+      ? (report.total_passed / (report.total_passed + report.total_failed)) * 100
+      : 0;
+
   const columns: ColumnDef<any>[] = [
     {
       accessorKey: "job_title",
@@ -135,13 +143,13 @@ export default function AdminStats() {
             />
             <StatCard
               label="Pass Rate"
-              value={report?.pass_rate ? `${report.pass_rate.toFixed(1)}%` : "0%"}
+              value={`${passRate.toFixed(1)}%`}
 
               className="bg-yellow-500/5 border border-yellow-500/10"
             />
             <StatCard
               label="LLM Parsed"
-              value={report?.llm_parsed_count ?? 0}
+              value={llmParsedCount}
               className="bg-emerald-500/5 border border-emerald-500/10"
             />
             <StatCard

@@ -171,22 +171,39 @@ export interface AnalyticsSummary {
   total_jobs: number;
   total_candidates: number;
   total_resumes: number;
-  active_jobs: number;
-  active_users: number;
   total_passed: number;
   total_failed: number;
   total_pending: number;
   total_unprocessed: number;
+  active_jobs: number;
+  active_users: number;
+  approved_count: number;
+  maybe_count: number;
+  reject_count: number;
+  hr_decision_count: number;
+  pending_decision_count: number;
 }
 
 /**
  * Candidate statistics for a specific job.
  */
-export interface JobCandidateStats {
+export interface JobCandidatesStats {
   job_id: string;
   job_title: string;
   department?: string | null;
   candidate_count: number;
+}
+
+export interface PipelineStageStats {
+  stage_name: string;
+  order: number;
+  count: number;
+}
+
+export interface JobPipelineStats {
+  job_id: string;
+  job_name: string;
+  stages: PipelineStageStats[];
 }
 
 /**
@@ -200,11 +217,10 @@ export interface HiringReport {
   total_failed: number;
   total_pending: number;
   total_unprocessed: number;
-  candidates_by_job: JobCandidateStats[];
+  candidates_by_job: JobCandidatesStats[];
+  job_pipeline_stats: JobPipelineStats[];
   resumes_uploaded_last_30_days: number;
   average_resume_score?: number;
-  pass_rate?: number;
-  llm_parsed_count: number;
   hr_decided_count: number;
   pending_count: number;
 }
