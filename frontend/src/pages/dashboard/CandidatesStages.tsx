@@ -16,8 +16,7 @@ import type { Job } from "@/types/job";
 import type { CandidateAnalysis } from "@/types/admin";
 import { StageCandidatesHeader } from "@/components/candidate/StageCandidatesHeader";
 import { JobInfoModal } from "@/components/modal";
-import jobService from "@/apis/job";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 import { candidateStageService } from "@/apis/candidateStage";
 import { transcriptService } from "@/apis/transcript";
 import { Loader2, FileText } from "lucide-react";
@@ -28,7 +27,7 @@ import { CandidateTimeline } from "@/components/candidate/CandidateTimeline";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
 import { slugify } from "@/utils/slug";
-
+import { jobStageService } from "@/apis/jobStage";
 
 
 export default function CandidatesStages() {
@@ -46,7 +45,7 @@ export default function CandidatesStages() {
     return "";
   };
 
-  const [stages, setStages] = useState<string[]>([]);
+  const [stages, setStages] = useState<{ stage: string; id: string }[]>([]);
   const [currentStage, setCurrentStage] = useState(getInitialStage());
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,20 +57,23 @@ export default function CandidatesStages() {
   const [hrDecisionHistory, setHrDecisionHistory] = useState<HrDecisionHistoryItem[]>([]);
   const [error, setError] = useState("");
   const [isPolling, setIsPolling] = useState(false);
-
+  console.log(currentStage, candidate);
   useEffect(() => {
     const fetchStages = async () => {
       if (!job?.id) return;
 
       setIsLoadingStages(true);
       try {
-        const stats = await jobService.getJobStats(job.id);
-        const stageNames = Object.keys(stats.stages);
+        // const stats = await jobService.getJobStats(job.id);
+        const _stages = await jobStageService.getJobStages(job.id);
+        const stageNames = _stages.map((stage) => ({ stage: stage.template.name, id: stage.id }));
+        // console.log(stageNames)
+
         setStages(stageNames);
 
         // If no current stage was set from candidate, set it to the first stage
         if (!currentStage && stageNames.length > 0) {
-          setCurrentStage(stageNames[0]);
+          setCurrentStage(stageNames[0].stage);
         }
       } catch (error) {
         console.error("Failed to fetch stages:", error);
@@ -84,7 +86,10 @@ export default function CandidatesStages() {
     fetchStages();
   }, [job?.id]);
 
-  const stageId = candidate.pipeline?.find((s) => s.template_name === currentStage)?.stage_id;
+  const candidateStage = candidate.pipeline?.find(
+    (s) => s.template_name === currentStage
+  );
+  const stageId = candidateStage?.stage_id;
 
   const fetchEvaluation = async (showLoading = true) => {
     if (!stageId) {
@@ -106,10 +111,10 @@ export default function CandidatesStages() {
       }
     } catch (error) {
       const errorMessage = extractErrorMessage(error);
-
       // If polling, we expect 404s or other errors until the evaluation is ready
       if (!isPolling) {
         console.error("Failed to fetch evaluation:", errorMessage);
+        toast.error(errorMessage || "Failed to fetch evaluation Or Something went wrong");
         setError(errorMessage);
         setEvaluation(null);
       }
@@ -152,7 +157,7 @@ export default function CandidatesStages() {
   const fetchHrDecisionHistory = async () => {
     if (!candidate?.id) return;
     try {
-      const response = await candidateDecisionApi.getDecisionHistory(candidate.id, job?.id);
+      const response = await candidateDecisionApi.getDecisionHistory(candidate.id, job?.id, stageId);
       setHrDecisionHistory(response.decisions);
     } catch (error) {
       console.error("Failed to fetch HR decision history:", error);
@@ -191,6 +196,7 @@ export default function CandidatesStages() {
         candidate_id: candidate.id,
         decision: data.decision,
         note: data.note,
+        stage_config_id: stageId
       });
       toast.success("Decision submitted successfully");
       setShowFeedbackModal(false);
@@ -217,7 +223,8 @@ export default function CandidatesStages() {
   } : null;
 
   // TODO: remove after backend solve the inconsistency response format
-  const evaluation_data = {
+  // @ts-ignore
+  const _evaluation_data = {
     communication: evaluation?.evaluation_data.communication,
     confidence: evaluation?.evaluation_data.confidence,
     cultural_fit: evaluation?.evaluation_data.cultural_fit,
@@ -228,7 +235,6 @@ export default function CandidatesStages() {
 
   const latestDecision = hrDecisionHistory[0];
   const canTakeDecision = !latestDecision || latestDecision.decision.toLowerCase() === "may be";
-
   return (
     <AppPageShell width="full" className="p-0 overflow-hidden bg-background">
       <StageCandidatesHeader
@@ -249,7 +255,7 @@ export default function CandidatesStages() {
             isLoadingStages={isLoadingStages}
             stageId={stageId}
             job={job}
-            isUploaded={!!evaluation || isPolling}
+            isUploaded={isPolling}
             onSuccess={() => {
               setIsPolling(true);
               fetchHistory();
@@ -282,7 +288,7 @@ export default function CandidatesStages() {
             ) : evaluation ? (
               <>
                 <EvaluationGrid
-                  data={evaluation_data}
+                  data={evaluation?.evaluation_data}
                 />
 
                 <div className="mx-auto space-y-2 ">
@@ -299,7 +305,7 @@ export default function CandidatesStages() {
                   />
 
                   {/* Section 3: Full Transcript Button */}
-                  {evaluation.transcript_id && (
+                  {/* {evaluation.transcript_id && (
                     <div className="flex justify-center pt-2">
                       <Button
                         variant="outline"
@@ -313,7 +319,7 @@ export default function CandidatesStages() {
                         View Full Interview Transcript
                       </Button>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </>
             ) : (

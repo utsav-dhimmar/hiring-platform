@@ -28,9 +28,10 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
       setIsLoading(true);
       try {
         const response = await adminCandidateService.getCandidateTimeline(candidateId, jobId);
-        const sortedEvents = [...response.events].sort(
-          (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
-        );
+        const sortedEvents = [...response.events]
+        // .sort(
+        //   (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+        // );
         setEvents(sortedEvents);
       } catch (error) {
         console.error("Failed to fetch timeline:", error);
@@ -65,7 +66,7 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
   return (
     <div className={cn("w-full py-2", className)}>
       <div className="px-4 mb-2 flex justify-between items-center">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+        <h3 className="text-xs font-black text-muted-foreground flex items-center gap-2">
           <Clock className="h-3 w-3" />
           Hiring Journey Timeline
         </h3>

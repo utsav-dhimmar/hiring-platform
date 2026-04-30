@@ -36,7 +36,7 @@ export function TranscriptUpload({
   disabled,
 }: TranscriptUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
-
+  // console.log(stageId)
   const rawExtensions = import.meta.env.VITE_ACCEPTED_TRANSCRIPT_EXTENSIONS || DEFAULT_EXTENSIONS;
   const acceptedExtensionsArray = rawExtensions
     .split(",")

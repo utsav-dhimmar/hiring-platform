@@ -14,6 +14,7 @@ export interface CandidateDecisionCreate {
   candidate_id: string;
   decision: "approve" | "reject" | "May Be";
   notes?: string;
+  stage_config_id?: string
 }
 
 export interface HrDecisionHistoryItem {
@@ -38,11 +39,13 @@ export const candidateDecisionApi = {
     candidate_id: string;
     decision: "approve" | "reject" | "maybe";
     note?: string;
+    stage_config_id?: string
   }) => {
     const backendData: CandidateDecisionCreate = {
       candidate_id: data.candidate_id,
       decision: data.decision === "maybe" ? "May Be" : data.decision,
       notes: data.note,
+      stage_config_id: data.stage_config_id
     };
 
     const response = await apiClient.post<CandidateDecision>(
@@ -60,11 +63,12 @@ export const candidateDecisionApi = {
     return response.data.decisions.length > 0 ? response.data.decisions[0] : null;
   },
 
-  getDecisionHistory: async (candidateId: string, jobId?: string) => {
+  getDecisionHistory: async (candidateId: string, jobId?: string, stage_config_id?: string) => {
     const response = await apiClient.get<HrDecisionHistoryResponse>(
       `/candidates/${candidateId}/decisions`, {
       params: {
-        job_id: jobId
+        job_id: jobId,
+        stage_config_id: stage_config_id
       }
     }
     );

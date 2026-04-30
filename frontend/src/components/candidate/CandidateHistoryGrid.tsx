@@ -1,12 +1,14 @@
 import { HrDecision } from "@/components/modal/candidate-details/HrDecision";
-// import { Badge } from "@/components/ui/badge";
-// import { DateDisplay } from "@/components/shared/DateDisplay";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 import {
+  FileText,
   History,
-  //  FileText
+
 } from "lucide-react";
 import type { HrDecisionHistoryItem } from "@/apis/candidateDecision";
 import type { Transcript } from "@/types/transcript";
+import { Button } from "../ui/button";
+
 
 interface CandidateHistoryGridProps {
   /** Array of HR decisions to display */
@@ -24,7 +26,7 @@ interface CandidateHistoryGridProps {
 export function CandidateHistoryGrid({
   hrDecisionHistory,
   transcriptHistory,
-  // onTranscriptClick,
+  onTranscriptClick,
 }: CandidateHistoryGridProps) {
   if (hrDecisionHistory.length === 0 && transcriptHistory.length === 0) {
     return null;
@@ -53,42 +55,42 @@ export function CandidateHistoryGrid({
       )}
 
       {/* Transcript History Column */}
-      {/* {transcriptHistory.length > 0 && (
+      {transcriptHistory.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-center gap-3 px-2">
             <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
-              <FileText className="h-4 w-4 text-blue-500" />
+              <FileText className="h-4 w-4 " />
             </div>
-            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+            <span className="text-xs font-black  text-muted-foreground">
               Recent Transcripts
             </span>
           </div>
-          <div className=" p-4 bg-muted/10 space-y-3 h-full">
-            {transcriptHistory.map((t) => (
-              <button
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2">
+            {transcriptHistory.map((t, index) => (
+              <Button
                 key={t.id}
                 onClick={() => onTranscriptClick(t.id)}
-                className="w-full text-left p-4 rounded-2xl bg-background/50 hover:bg-background border border-border/40 hover:border-primary/20 transition-all duration-300 group shadow-sm"
+                variant="outline"
+                className="w-full h-auto flex flex-col items-start p-3 rounded-lg hover:bg-accent transition-colors text-left"
               >
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] font-black tracking-widest text-muted-foreground uppercase group-hover:text-primary transition-colors">
-                    ID: {t.id.split("-")[0]}
+                <div className="flex flex-col items-start gap-1">
+                  <span className="text-[10px] font-black text-muted-foreground leading-none">
+                    Transcript #{index + 1}
                   </span>
-                  <Badge
-                    variant="outline"
-                    className="text-[9px] h-4 px-1.5 font-black uppercase bg-primary/5 border-primary/10 text-primary/70"
-                  >
-                    <DateDisplay date={t.generated_at} />
-                  </Badge>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium">Uploaded on</span>
+                    <DateDisplay
+                      className="font-bold text-foreground text-xs"
+                      date={t.generated_at}
+                      showTime
+                    />
+                  </div>
                 </div>
-                <p className="text-[11px] font-medium text-foreground/80 line-clamp-2 leading-relaxed">
-                  {t.transcript_text || "View dialogue turns and analysis..."}
-                </p>
-              </button>
+              </Button>
             ))}
           </div>
         </section>
-      )} */}
+      )}
     </div>
   );
 }

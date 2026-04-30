@@ -132,12 +132,12 @@ export default function TranscriptPage() {
           </div> */}
 
           {/* Dialogue Feed */}
-          <div className=" space-y-4">
+          <div className="space-y-2">
             {transcript.segments?.dialogues && transcript.segments.dialogues.length > 0 ? (
               transcript.segments.dialogues.map((turn, index) => (
                 <div
                   key={index}
-                  className={`flex gap-4 p-6 rounded-3xl border transition-all duration-300 ${turn.speaker.toLowerCase().includes('candidate')
+                  className={`flex gap-4 p-2 rounded-lg border transition-all duration-300 ${turn.speaker.toLowerCase().includes('candidate')
                     ? 'bg-primary/5 border-primary/10 ml-8'
                     : 'bg-background border-muted-foreground/10 mr-8 shadow-sm'
                     }`}
@@ -150,7 +150,7 @@ export default function TranscriptPage() {
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-black uppercase tracking-wider">
+                      <span className="text-xs font-black uppercase">
                         {turn.speaker}
                       </span>
                     </div>

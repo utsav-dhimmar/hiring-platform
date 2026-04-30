@@ -2,9 +2,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TranscriptUpload } from "./TranscriptUpload";
 import type { Job } from "@/types/job";
 import { FieldLabel } from "@/components/ui/field";
+interface Stage {
+  stage: string;
+  id: string;
+}
+
 interface StageControlsProps {
-  /** Available stage names */
-  stages: string[];
+  /** Available stage names and IDs */
+  stages: Stage[];
   /** Currently selected stage name */
   currentStage: string;
   /** Callback when stage selection changes */
@@ -52,8 +57,8 @@ export function StageControls({
               </SelectTrigger>
               <SelectContent className="rounded-xl border-primary/10">
                 {stages.map((s) => (
-                  <SelectItem key={s} value={s} className="font-bold py-3">
-                    {s}
+                  <SelectItem key={s.id} value={s.stage} className="font-bold py-3">
+                    {s.stage}
                   </SelectItem>
                 ))}
               </SelectContent>
