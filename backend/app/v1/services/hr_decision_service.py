@@ -236,12 +236,30 @@ class HRDecisionService:
                 )
             
             cs_res = await db.execute(cs_stmt)
-            cs_to_advance = cs_res.scalar_one_or_none()
+            cs_to_advance = cs_res.scalars().first()
 
             if cs_to_advance:
                 success = decision_data.decision.lower() == "approve"
-                await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_advance.id, success=success)
-                await db.commit()
+                
+                # NEW TWO-STEP LOGIC:
+                if success and cs_to_advance.status == "pending":
+                    # Step 1: Resume Approval -> Make the stage "active" for interview
+                    cs_to_advance.status = "active"
+                    from datetime import datetime
+                    cs_to_advance.started_at = datetime.utcnow()
+                    
+                    # Ensure candidate status reflects "Active"
+                    from app.v1.db.models.stage_templates import StageTemplate
+                    st_stmt = select(StageTemplate.name).join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id).where(JobStageConfig.id == cs_to_advance.job_stage_id)
+                    st_name = (await db.execute(st_stmt)).scalar()
+                    if candidate and st_name:
+                         candidate.current_status = f"{st_name} (Active)"
+                    
+                    await db.commit()
+                else:
+                    # Step 2: Interview Approval (or Rejection) -> Advance to next stage
+                    await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_advance.id, success=success)
+                    await db.commit()
             elif decision_data.decision.lower() == "approve":
                 # If no stage exists but they are approved, initiate the FIRST stage of the pipeline
                 first_stage_stmt = (

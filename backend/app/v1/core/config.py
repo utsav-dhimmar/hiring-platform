@@ -216,6 +216,11 @@ class Settings(BaseSettings):
         default=300, description="Time-to-live for cached items in seconds"
     )
 
+    SKIP_RESUME_CONTEXT: bool = Field(
+        default=False, 
+        description="Whether to skip sending resume context to LLM during evaluation"
+    )
+
     USE_CROSS_ENCODER: bool = Field(
         default=False,
         description="Whether to use a cross-encoder for re-ranking",

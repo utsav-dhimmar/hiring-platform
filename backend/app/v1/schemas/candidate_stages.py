@@ -8,6 +8,7 @@ class EvaluationRead(BaseModel):
     interview_id: Optional[uuid.UUID] = None
     transcript_id: Optional[uuid.UUID] = None
     candidate_stage_id: uuid.UUID
+    version: int = Field(1, validation_alias="attempt_number")
     overall_score: Optional[float] = None
     result: str = "fail"
     # Use the property for better structure/compatibility

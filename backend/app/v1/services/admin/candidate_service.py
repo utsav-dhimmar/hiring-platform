@@ -661,8 +661,33 @@ class CandidateAdminService:
         from app.v1.db.models.job_stage_configs import JobStageConfig
         from sqlalchemy import select, and_, or_
         from sqlalchemy.orm import selectinload
+        from app.v1.db.models.resumes import Resume
+        from app.v1.db.models.resume_version_results import ResumeVersionResult
 
         events = []
+
+        # 0. Fetch Resume Screening (Stage 0)
+        resume_stmt = (
+            select(ResumeVersionResult)
+            .join(Resume, ResumeVersionResult.resume_id == Resume.id)
+            .where(Resume.candidate_id == candidate_id)
+            .options(selectinload(ResumeVersionResult.job))
+        )
+        if job_id:
+            resume_stmt = resume_stmt.where(ResumeVersionResult.job_id == job_id)
+        
+        resume_results = (await db.execute(resume_stmt)).scalars().all()
+        for r_res in resume_results:
+            events.append({
+                "event_type": "screening",
+                "event_date": r_res.analyzed_at or datetime.now(),
+                "title": "Resume Screening",
+                "description": f"AI parsed and matched resume against {r_res.job.title if r_res.job else 'job'}",
+                "result": r_res.pass_fail,
+                "score": float(r_res.resume_score) if r_res.resume_score is not None else None,
+                "job_id": r_res.job_id,
+                "metadata": r_res.analysis_data
+            })
 
         # 1. Fetch Stages
         stmt = select(CandidateStage).join(JobStageConfig).where(CandidateStage.candidate_id == candidate_id).options(
@@ -692,7 +717,7 @@ class CandidateAdminService:
 
             events.append({
                 "event_type": "stage",
-                "event_date": stage.started_at,
+                "event_date": stage.started_at or datetime.now(),
                 "title": title,
                 "description": f"Candidate was in {title}",
                 "result": result,
@@ -704,7 +729,9 @@ class CandidateAdminService:
             })
 
         # 2. Fetch HR Decisions
-        decision_stmt = select(HrDecision).where(HrDecision.candidate_id == candidate_id)
+        decision_stmt = select(HrDecision).where(HrDecision.candidate_id == candidate_id).options(
+            selectinload(HrDecision.stage_config).selectinload(JobStageConfig.template)
+        )
         if job_id:
             decision_stmt = decision_stmt.where(HrDecision.job_id == job_id)
         
@@ -712,6 +739,7 @@ class CandidateAdminService:
 
         for dec in decisions:
             title = f"HR Decision: {dec.decision}"
+            stage_name = dec.stage_config.template.name if dec.stage_config and dec.stage_config.template else None
             
             # Filter by query if provided
             if query:
@@ -723,19 +751,43 @@ class CandidateAdminService:
 
             events.append({
                 "event_type": "decision",
-                "event_date": dec.decided_at,
+                "event_date": dec.decided_at or datetime.now(),
                 "title": title,
                 "description": dec.notes,
                 "result": dec.decision,
+                "score": None,
+                "stage_id": dec.stage_config_id,
+                "stage_name": stage_name,
                 "job_id": dec.job_id,
                 "metadata": {"user_id": str(dec.user_id)}
             })
 
-        # Sort events by date descending
+        # 3. Determine Latest Decision & Current Stage
+        latest_decision = "Pending"
+        if decisions:
+            # Sort local decisions by date
+            sorted_decisions = sorted(decisions, key=lambda d: d.decided_at or datetime.min, reverse=True)
+            latest_decision = sorted_decisions[0].decision
+
+        current_stage_name = "Resume Screening"
+        if stages:
+            # Sort stages by order
+            active_stages = [s for s in stages if s.status == "active"]
+            if active_stages:
+                current_stage_name = active_stages[0].job_stage.template.name if active_stages[0].job_stage else "Unknown"
+            else:
+                completed_stages = [s for s in stages if s.status == "completed"]
+                if completed_stages:
+                    sorted_completed = sorted(completed_stages, key=lambda s: s.job_stage.stage_order if s.job_stage else 0, reverse=True)
+                    current_stage_name = sorted_completed[0].job_stage.template.name if sorted_completed[0].job_stage else "Unknown"
+
+        # 4. Sort events by date descending
         events.sort(key=lambda x: x["event_date"], reverse=True)
 
         return {
             "candidate_id": candidate_id,
+            "latest_decision": latest_decision,
+            "current_stage": current_stage_name,
             "events": events
         }
 

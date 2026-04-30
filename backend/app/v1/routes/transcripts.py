@@ -14,12 +14,59 @@ from app.v1.db.models.files import File as DBFile
 from app.v1.db.models.interviews import Interview
 from app.v1.db.models.transcript_chunks import TranscriptChunk
 from app.v1.db.models.transcripts import Transcript
+from app.v1.schemas.transcript import TranscriptUpdate
 from app.v1.db.models.evaluations import Evaluation
 from app.v1.utils.transcript_parser import process_transcript_file
 from app.v1.core.storage import resolve_storage_path
 from app.v1.services.evaluation_tasks import evaluate_candidate_transcript_task
 
 router = APIRouter(prefix="/transcripts", tags=["transcripts"])
+
+@router.put("/{transcript_id}")
+async def update_transcript(
+    transcript_id: uuid.UUID,
+    transcript_in: TranscriptUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Update an existing transcript's text and trigger a new AI evaluation.
+    This creates a new version (attempt) in the evaluation history.
+    """
+    # 1. Fetch existing transcript
+    transcript = await db.get(Transcript, transcript_id)
+    if not transcript:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+
+    # 2. Update text
+    # We update clean_transcript_text as it's used for AI analysis
+    transcript.clean_transcript_text = transcript_in.transcript_text
+    
+    # Update hash to reflect changes
+    salt_text = transcript_in.transcript_text + f"\n\n[Edit Salt: {uuid.uuid4()}]"
+    transcript.transcript_hash = hashlib.sha256(salt_text.encode('utf-8')).hexdigest()
+    
+    await db.flush()
+
+    # 3. Find associated CandidateStage to trigger evaluation
+    # Evaluation table links transcripts to stages.
+    eval_stmt = select(Evaluation.candidate_stage_id).where(Evaluation.transcript_id == transcript_id).limit(1)
+    eval_res = await db.execute(eval_stmt)
+    candidate_stage_id = eval_res.scalar_one_or_none()
+    
+    if candidate_stage_id:
+        # Trigger AI Evaluation Task
+        # evaluation_service automatically handles versioning (attempt_number)
+        evaluate_candidate_transcript_task.delay(str(candidate_stage_id))
+        
+        await db.commit()
+        return {
+            "message": "Transcript updated. New AI evaluation version has been triggered.",
+            "candidate_stage_id": candidate_stage_id
+        }
+    
+    await db.commit()
+    return {"message": "Transcript updated, but no evaluation was found to re-trigger."}
+
 
 @router.post("/upload/{candidate_stage_id}")
 async def upload_transcript(
@@ -120,3 +167,34 @@ async def get_candidate_transcript(
     result = await db.execute(query)
     transcripts = result.scalars().all()
     return transcripts
+
+@router.post("/test-cleaning")
+async def test_transcript_cleaning(
+    file: UploadFile = File(...),
+):
+    """
+    Debug endpoint to test transcript cleaning logic without database persistence.
+    Returns the cleaned text and dialogues.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    ext = ""
+    if "." in file.filename:
+        ext = f".{file.filename.split('.')[-1].lower()}"
+        
+    if ext not in {".docx", ".pdf", ".txt"}:
+        raise HTTPException(status_code=400, detail="Only .docx, .pdf, and .txt files are allowed.")
+
+    content = await file.read()
+    try:
+        processed_data = process_transcript_file(content, ext)
+        return {
+            "filename": file.filename,
+            "raw_clean_text": processed_data["raw_clean_text"],
+            "dialogue_count": processed_data["dialogue_count"],
+            "dialogues": processed_data["dialogues"],
+            "chunks": processed_data["chunks"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cleaning failed: {str(e)}")

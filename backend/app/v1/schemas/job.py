@@ -10,6 +10,7 @@ from app.v1.schemas.job_stage import JobStageConfigRead
 from app.v1.schemas.skill import SkillRead
 from app.v1.schemas.job_priority import JobPriorityRead
 from pydantic import BaseModel, ConfigDict
+from typing import Any
 
 
 class JobBase(BaseModel):
@@ -30,12 +31,39 @@ class JobBase(BaseModel):
     priority_end_date: datetime | None = None
 
 
+class StageInput(BaseModel):
+    """
+    Minimal stage definition for embedding in JobCreate.
+    """
+    template_id: uuid.UUID
+    stage_order: int
+    is_mandatory: bool = True
+    config: dict[str, Any] | None = None
+
+
 class JobCreate(JobBase):
     """
     Schema for creating a new Job.
+    Optionally accepts a list of stages to configure at creation time.
+    If stages is None (not provided), default stages will be auto-created.
+    If stages is [] (empty list), no stages will be created.
     """
 
+    from pydantic import Field
     skill_ids: list[uuid.UUID] = []
+    stages: list[StageInput] | None = Field(
+        default=None,
+        json_schema_extra={
+            "example": [
+                {
+                    "template_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "stage_order": 1,
+                    "is_mandatory": True,
+                    "config": {}
+                }
+            ]
+        }
+    )  # None = auto-defaults, [] = no stages
 
 
 class JobUpdate(BaseModel):
