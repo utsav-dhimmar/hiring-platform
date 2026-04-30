@@ -171,7 +171,11 @@ const AdminJobCriteria = () => {
         {
             id: "description",
             accessorKey: "description",
-            header: "Description",
+            header: () => {
+                return <div className="flex items-center gap-2">
+                    <span className="font-semibold">Description</span>
+                </div>
+            },
             cell: ({ row }) => (
                 <span className="text-muted-foreground truncate line-clamp-1 max-w-md">
                     {row.original.description || "No description"}
@@ -194,8 +198,13 @@ const AdminJobCriteria = () => {
         },
         {
             id: "actions",
+            header: () => {
+                return <div className="flex items-center justify-start gap-2">
+                    <span className="font-semibold">Actions</span>
+                </div>
+            },
             cell: ({ row }) => (
-                <div className="flex items-center gap-2 justify-end">
+                <div className="flex items-center justify-start gap-2 ">
                     <HoverCard>
                         <HoverCardTrigger
                             render={(props) => (
