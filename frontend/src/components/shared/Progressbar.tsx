@@ -72,8 +72,7 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
             {/* Progress Bar Container */}
             <div className="relative group">
                 <div className="flex justify-between items-end mb-2">
-                    {/* TODO: find a better label text */}
-                    <span className="text-xs font-medium text-primary ">Job Velocity</span>
+                    <span className="text-xs font-medium text-primary ">Hiring Timeline:</span>
                 </div>
                 <div className="h-4 w-full bg-muted rounded-full overflow-hidden relative shadow-inner">
                     <div
@@ -91,21 +90,33 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
             {/* Stats Footer */}
             <div className="flex items-center gap-2">
                 <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
-                    <p className="text-xs font-medium  tracking-widest opacity-70">Total Days</p>
                     <div className="flex items-baseline justify-center gap-0.5">
                         <p className="text-xl font-black text-foreground">{priorityTimeline.days_total}</p>
                     </div>
-                </div>
-                <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
-                    <p className="text-xs font-medium  tracking-widest opacity-70">Elapsed</p>
-                    <div className="flex items-baseline justify-center gap-0.5">
-                        <p className="text-xl font-black ">{priorityTimeline.days_elapsed}</p>
+                    <div className="min-h-10 flex items-center justify-center mt-1">
+                        <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
+                            Total Days
+                        </span>
                     </div>
                 </div>
                 <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
-                    <p className="text-xs font-medium tracking-widest opacity-70">Remaining</p>
+                    <div className="flex items-baseline justify-center gap-0.5">
+                        <p className="text-xl font-black ">{priorityTimeline.days_elapsed}</p>
+                    </div>
+                    <div className="min-h-10 flex items-center justify-center mt-1">
+                        <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
+                            Days Passed
+                        </span>
+                    </div>
+                </div>
+                <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
                     <div className="flex items-baseline justify-center gap-0.5">
                         <p className="text-xl font-black ">{priorityTimeline.days_remaining}</p>
+                    </div>
+                    <div className="min-h-10 flex items-center justify-center mt-1">
+                        <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
+                            Remaining Days
+                        </span>
                     </div>
                 </div>
             </div>

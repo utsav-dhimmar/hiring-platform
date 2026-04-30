@@ -47,7 +47,7 @@ const StatCard = ({ label, value, icon, loading, trend, className = "" }: StatCa
           )}
         </div>
         <div className="min-h-10 flex items-center justify-center mt-1">
-          <span className="text-xs leading-tight font-bold text-muted-foreground px-1 uppercase tracking-wide">
+          <span className="text-xs leading-tight font-bold text-muted-foreground px-1 ">
             {label}
           </span>
         </div>
