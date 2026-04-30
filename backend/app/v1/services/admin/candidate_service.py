@@ -720,8 +720,28 @@ class CandidateAdminService:
 
             title = stage.job_stage.template.name if stage.job_stage else "Unknown Stage"
             
+            metadata = stage.evaluation_data
             if eval_obj:
                 result = eval_obj.result
+                score = eval_obj.overall_score
+                
+                # Format to match exactly what evaluation_service.py returns for the Evaluation API
+                signals = stage.evaluation_data.get("signals", {}) if stage.evaluation_data else {}
+                metadata = {
+                    "id": str(eval_obj.id),
+                    "interview_id": str(eval_obj.interview_id) if eval_obj.interview_id else None,
+                    "transcript_id": str(eval_obj.transcript_id) if eval_obj.transcript_id else None,
+                    "candidate_stage_id": str(eval_obj.candidate_stage_id),
+                    "version": eval_obj.attempt_number,
+                    "overall_score": float(eval_obj.overall_score) if eval_obj.overall_score is not None else None,
+                    "result": eval_obj.result,
+                    "evaluation_data": eval_obj.structured_evaluation_data,
+                    "sim_jd_resume": float(eval_obj.sim_jd_resume) if eval_obj.sim_jd_resume is not None else signals.get("profile_fit", 0.0),
+                    "sim_jd_transcript": float(eval_obj.sim_jd_transcript) if eval_obj.sim_jd_transcript is not None else signals.get("tech_alignment", 0.0),
+                    "sim_resume_transcript": float(eval_obj.sim_resume_transcript) if eval_obj.sim_resume_transcript is not None else signals.get("consistency", 0.0),
+                    "created_at": eval_obj.created_at.isoformat() if eval_obj.created_at else None,
+                    "highlights": eval_obj.highlights
+                }
             else:
                 result = {
                     "completed": "passed",
@@ -730,9 +750,8 @@ class CandidateAdminService:
                     "active": "ongoing",
                     "pending": "pending",
                 }.get(stage.status, "Pending")
+                score = None
                 
-            score = eval_obj.overall_score if eval_obj else None
-            
             # Use started_at for sequence, but if it's identical to fallback, use stage_order to push it forward
             event_date = stage.started_at or created_at_fallback
             
@@ -742,12 +761,12 @@ class CandidateAdminService:
                 "title": title,
                 "description": f"Candidate was in {title}",
                 "result": result,
-                "score": score,
+                "score": float(score) if score is not None else None,
                 "stage_id": stage.id,
                 "stage_name": title,
                 "job_id": stage.job_stage.job_id,
                 "stage_order": stage.job_stage.stage_order if stage.job_stage else 0,
-                "metadata": stage.evaluation_data
+                "metadata": metadata
             }
 
         # 2. Fetch HR Decisions and enrich stages (but don't add as separate events)
