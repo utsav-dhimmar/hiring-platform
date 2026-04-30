@@ -527,9 +527,17 @@ class AdminRepository:
             "pending_decision_count": pending_decision_count,
         }
 
-    async def get_hiring_report(self, db: AsyncSession) -> dict:
+    async def get_hiring_report(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID | None = None,
+        stage_name: str | None = None,
+    ) -> dict:
         """
         Get detailed hiring analytics report.
+
+        @param job_id: optional — filter pipeline_stats to a single job.
+        @param stage_name: optional — filter pipeline_stats to a specific stage name.
         """
         total_jobs = await db.scalar(select(func.count(Job.id))) or 0
         active_jobs = (await db.scalar(select(func.count(Job.id)).where(Job.is_active)) or 0)
@@ -559,9 +567,10 @@ class AdminRepository:
         hr_decided_count = analytics["hr_decision_count"]
         pending_count = analytics["pending_decision_count"]
 
-        jobs_result = await db.execute(
-            select(Job).order_by(Job.created_at.desc()).limit(20)
-        )
+        jobs_stmt = select(Job).order_by(Job.created_at.desc()).limit(20)
+        if job_id:
+            jobs_stmt = jobs_stmt.where(Job.id == job_id)
+        jobs_result = await db.execute(jobs_stmt)
         jobs = list(jobs_result.scalars().all())
 
         candidates_by_job = []
@@ -604,22 +613,21 @@ class AdminRepository:
                 "stages": []
             }
 
-            # B. Count Resume Screening (Stage 0) 
-            # Success in screening = they have been initiated into the pipeline
+            # B. Count Resume Screening (Stage 0)
             screening_success_count = await db.scalar(
                 select(func.count(func.distinct(CandidateStage.candidate_id)))
                 .join(JobStageConfig, JobStageConfig.id == CandidateStage.job_stage_id)
                 .where(JobStageConfig.job_id == job.id)
             ) or 0
-            
-            pipeline_data["stages"].append({
-                "stage_name": "Resume Screening",
-                "order": 0,
-                "count": screening_success_count
-            })
 
-            # C. Count Interview Stage completions
-            # Filter CandidateStage by status='completed'
+            if stage_name is None or stage_name.lower() == "resume screening":
+                pipeline_data["stages"].append({
+                    "stage_name": "Resume Screening",
+                    "order": 0,
+                    "count": screening_success_count
+                })
+
+            # C. Count Interview Stage completions (status='completed')
             stage_stmt = (
                 select(StageTemplate.name, JobStageConfig.stage_order, func.count(CandidateStage.id))
                 .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
@@ -629,9 +637,8 @@ class AdminRepository:
                 .order_by(JobStageConfig.stage_order.asc())
             )
             stage_results = await db.execute(stage_stmt)
-            stage_counts = {row[1]: row[2] for row in stage_results.all()} # Key by order
+            stage_counts = {row[1]: row[2] for row in stage_results.all()}
 
-            # Get all explicit stages for this job
             all_stages_stmt = (
                 select(StageTemplate.name, JobStageConfig.stage_order)
                 .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
@@ -639,15 +646,18 @@ class AdminRepository:
                 .order_by(JobStageConfig.stage_order.asc())
             )
             all_stages_res = await db.execute(all_stages_stmt)
-            
+
             for s_name, s_order in all_stages_res.all():
+                if stage_name and stage_name.lower() != s_name.lower():
+                    continue
                 pipeline_data["stages"].append({
                     "stage_name": s_name,
                     "order": s_order,
                     "count": stage_counts.get(s_order, 0)
                 })
-            
-            job_pipeline_stats.append(pipeline_data)
+
+            if pipeline_data["stages"]:
+                job_pipeline_stats.append(pipeline_data)
 
         return {
             "total_jobs": total_jobs,
@@ -664,6 +674,89 @@ class AdminRepository:
             "hr_decided_count": hr_decided_count,
             "pending_count": pending_count,
         }
+
+
+    async def get_pipeline_stats(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID | None = None,
+        stage_name: str | None = None,
+    ) -> list[dict]:
+        """
+        Return pipeline stats filtered by job and/or stage.
+
+        - job_id: if provided, return stats for that job only.
+        - stage_name: if provided, return only the matching stage entry per job.
+        """
+        from app.v1.db.models.candidate_stages import CandidateStage
+        from app.v1.db.models.job_stage_configs import JobStageConfig
+        from app.v1.db.models.stage_templates import StageTemplate
+
+        # 1. Load jobs (filtered if job_id given)
+        job_stmt = select(Job).where(Job.is_active == True)
+        if job_id:
+            job_stmt = job_stmt.where(Job.id == job_id)
+        jobs = (await db.execute(job_stmt)).scalars().all()
+
+        result = []
+        for job in jobs:
+            pipeline_data: dict = {
+                "job_id": job.id,
+                "job_name": job.title,
+                "stages": [],
+            }
+
+            # --- Resume Screening stage ---
+            screening_count = await db.scalar(
+                select(func.count(func.distinct(CandidateStage.candidate_id)))
+                .join(JobStageConfig, JobStageConfig.id == CandidateStage.job_stage_id)
+                .where(JobStageConfig.job_id == job.id)
+            ) or 0
+
+            if stage_name is None or stage_name.lower() == "resume screening":
+                pipeline_data["stages"].append({
+                    "stage_name": "Resume Screening",
+                    "order": 0,
+                    "count": screening_count,
+                })
+
+            # --- Interview stages (completed only) ---
+            completed_stmt = (
+                select(StageTemplate.name, JobStageConfig.stage_order, func.count(CandidateStage.id))
+                .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+                .join(CandidateStage, CandidateStage.job_stage_id == JobStageConfig.id)
+                .where(
+                    JobStageConfig.job_id == job.id,
+                    CandidateStage.status == "completed",
+                )
+                .group_by(StageTemplate.name, JobStageConfig.stage_order)
+                .order_by(JobStageConfig.stage_order.asc())
+            )
+            stage_counts_map = {
+                row[1]: (row[0], row[2])
+                for row in (await db.execute(completed_stmt)).all()
+            }
+
+            all_stages_stmt = (
+                select(StageTemplate.name, JobStageConfig.stage_order)
+                .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+                .where(JobStageConfig.job_id == job.id)
+                .order_by(JobStageConfig.stage_order.asc())
+            )
+            for s_name, s_order in (await db.execute(all_stages_stmt)).all():
+                if stage_name and stage_name.lower() != s_name.lower():
+                    continue
+                pipeline_data["stages"].append({
+                    "stage_name": s_name,
+                    "order": s_order,
+                    "count": stage_counts_map.get(s_order, (s_name, 0))[1],
+                })
+
+            # Only include job if it has matching stages
+            if pipeline_data["stages"]:
+                result.append(pipeline_data)
+
+        return result
 
 
 admin_repository = AdminRepository()
