@@ -31,25 +31,25 @@ interface StatCardProps {
  */
 const StatCard = ({ label, value, icon, loading, trend, className = "" }: StatCardProps) => {
   return (
-    <Card className={`border-0 shadow-md rounded-2xl aspect-square flex flex-col justify-center transition-all hover:shadow-lg h-25 ${className}`}>
-      <CardContent className="p-4.5 text-center flex flex-col items-center justify-center gap-1.5">
-        <div className="flex flex-col items-center mb-1">
-          {icon && <span className="text-primary text-2xl mb-2">{icon}</span>}
-          <span className="text-xs font-semibold px-2">
-            {label}
-          </span>
-        </div>
-        <div className="flex flex-col items-center gap-1">
+    <Card className={`border-0 shadow-md rounded-2xl aspect-square flex flex-col transition-all hover:shadow-lg min-h-[70px] max-h-[150px] flex-1 p-2 ${className}`}>
+      <CardContent className="p-2 flex flex-col h-full text-center">
+        <div className="flex-1 flex flex-col items-center justify-center gap-1">
+          {icon && <span className="text-primary text-xl mb-1">{icon}</span>}
           {loading ? (
             <Skeleton className="h-10 w-16 rounded-lg" />
           ) : (
-            <h2 className="text-4xl font-extrabold text-foreground tracking-tight">{value}</h2>
+            <h2 className="text-3xl font-extrabold text-foreground tracking-tight">{value}</h2>
           )}
           {trend && !loading && (
-            <Badge variant={trend.isUp ? "default" : "destructive"} className="mt-1 font-medium">
+            <Badge variant={trend.isUp ? "default" : "destructive"} className="mt-1 font-medium text-[10px] py-0 h-4">
               {trend.isUp ? "↑" : "↓"} {trend.value}%
             </Badge>
           )}
+        </div>
+        <div className="min-h-10 flex items-center justify-center mt-1">
+          <span className="text-xs leading-tight font-bold text-muted-foreground px-1 uppercase tracking-wide">
+            {label}
+          </span>
         </div>
       </CardContent>
     </Card>
