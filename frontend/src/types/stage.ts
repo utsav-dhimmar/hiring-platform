@@ -46,7 +46,7 @@ export interface StageTemplate {
   /** Whether this stage is part of the default pipeline */
   is_default?: boolean;
   /** Optional order for the default pipeline */
-  default_order?: number;
+  default_order?: number | null;
 }
 
 /**

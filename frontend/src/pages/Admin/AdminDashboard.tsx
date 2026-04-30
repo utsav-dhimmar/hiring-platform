@@ -48,7 +48,7 @@ const AdminDashboard = () => {
       <div className="flex flex-col md:flex-row gap-6 items-stretch mb-1">
         <div className="flex-1 mb-2 space-y-2">
           <h2 className="text-xl font-semibold text-center">Analytics Overview</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {/* <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 xl:grid-cols-6"> */}
             {/* <StatCard label="Total Users" value={analytics?.total_users ?? 0} loading={loading} /> */}
             {/* <StatCard label="Active Users" value={analytics?.active_users ?? 0} loading={loading} /> */}
@@ -63,7 +63,7 @@ const AdminDashboard = () => {
         <Separator orientation="horizontal" className="md:hidden" />
         <div className="flex-1 mb-2 space-y-2">
           <h2 className="text-xl font-semibold text-center">Hiring Report Summary</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {/* <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 xl:grid-cols-6"> */}
             <StatCard label="Resumes (Last 30 Days)" value={report?.resumes_uploaded_last_30_days ?? 0} loading={loading} />
             {/* <StatCard label="Pass" value={report?.total_passed ?? 0} loading={loading}/> */}

@@ -3,6 +3,17 @@
  */
 
 /**
+ * Interface for the highlights of an candidate stage evaluation
+ */
+export interface Highlight {
+  overall_summary: string;
+  recommendation: string;
+  strengths: string[];
+  weaknesses: string[];
+  suggested_followups: string[];
+}
+
+/**
  * Full evaluation result for a candidate stage.
  * Matches backend EvaluationRead.
  */
@@ -19,7 +30,7 @@ export interface EvaluationRead {
   sim_resume_transcript?: number | null;
   evidence_block?: Record<string, any> | null;
   created_at: string;
-  highlights: Record<string, string[] | null>
+  highlights: Highlight
 }
 
 /**

@@ -210,13 +210,13 @@ export default function CandidatesStages() {
     stage_score: evaluation.overall_score || 0,
     recommendation: evaluation.recommendation || "N/A",
     overall_summary: evaluation.highlights?.overall_summary || "No summary available.",
-    strength_summary: evaluation.highlights?.strengths || "N/A",
-    weakness_summary: evaluation.highlights?.weaknesses || "N/A",
-    followups: evaluation.highlights?.suggested_followups || [],
+    strength_summary: evaluation.highlights?.strengths || ["N/A"],
+    weakness_summary: evaluation.highlights?.weaknesses || ["N/A"],
+    followups: evaluation.highlights?.suggested_followups || ["N/A"],
     percentage: Math.round((evaluation.overall_score || 0) * 20)
   } : null;
 
-  // TEMP: for large evaluation_data data may cause slow down
+  // TODO: remove after backend solve the inconsistency response format
   const evaluation_data = {
     communication: evaluation?.evaluation_data.communication,
     confidence: evaluation?.evaluation_data.confidence,

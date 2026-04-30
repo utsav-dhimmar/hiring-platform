@@ -1,7 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TranscriptUpload } from "./TranscriptUpload";
 import type { Job } from "@/types/job";
-
+import { FieldLabel } from "@/components/ui/field";
 interface StageControlsProps {
   /** Available stage names */
   stages: string[];
@@ -37,13 +37,15 @@ export function StageControls({
 }: StageControlsProps) {
   return (
     <div className="flex flex-col border-b bg-background/50 backdrop-blur-md sticky top-0 z-10">
-      <div className="flex items-center justify-between gap-4 py-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 w-full">
         <div className="flex items-center gap-4">
-          <div className="hidden sm:block">
+          <div className="">
+            <FieldLabel htmlFor="stage">Select Stage</FieldLabel>
             <Select
               value={currentStage}
               onValueChange={(value) => value && onStageChange(value)}
               disabled={isLoadingStages}
+              id="stages"
             >
               <SelectTrigger className="w-[400px] h-12 rounded-2xl border-primary/20 bg-background font-bold text-sm">
                 <SelectValue placeholder={isLoadingStages ? "Loading stages..." : "Select Stage"} />
@@ -61,7 +63,7 @@ export function StageControls({
 
         <TranscriptUpload
           stageId={stageId}
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
           job={job}
           disabled={isUploaded}
           onSuccess={onSuccess}
