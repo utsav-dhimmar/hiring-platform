@@ -590,6 +590,65 @@ class AdminRepository:
                 }
             )
 
+        # 4. Pipeline Stats for Stacked Bar Chart
+        from app.v1.db.models.candidate_stages import CandidateStage
+        from app.v1.db.models.job_stage_configs import JobStageConfig
+        from app.v1.db.models.stage_templates import StageTemplate
+        from app.v1.db.models.resume_version_results import ResumeVersionResult
+
+        job_pipeline_stats = []
+        for job in jobs:
+            pipeline_data = {
+                "job_id": job.id,
+                "job_name": job.title,
+                "stages": []
+            }
+
+            # B. Count Resume Screening (Stage 0) 
+            # Success in screening = they have been initiated into the pipeline
+            screening_success_count = await db.scalar(
+                select(func.count(func.distinct(CandidateStage.candidate_id)))
+                .join(JobStageConfig, JobStageConfig.id == CandidateStage.job_stage_id)
+                .where(JobStageConfig.job_id == job.id)
+            ) or 0
+            
+            pipeline_data["stages"].append({
+                "stage_name": "Resume Screening",
+                "order": 0,
+                "count": screening_success_count
+            })
+
+            # C. Count Interview Stage completions
+            # Filter CandidateStage by status='completed'
+            stage_stmt = (
+                select(StageTemplate.name, JobStageConfig.stage_order, func.count(CandidateStage.id))
+                .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+                .join(CandidateStage, CandidateStage.job_stage_id == JobStageConfig.id)
+                .where(JobStageConfig.job_id == job.id, CandidateStage.status == "completed")
+                .group_by(StageTemplate.name, JobStageConfig.stage_order)
+                .order_by(JobStageConfig.stage_order.asc())
+            )
+            stage_results = await db.execute(stage_stmt)
+            stage_counts = {row[1]: row[2] for row in stage_results.all()} # Key by order
+
+            # Get all explicit stages for this job
+            all_stages_stmt = (
+                select(StageTemplate.name, JobStageConfig.stage_order)
+                .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+                .where(JobStageConfig.job_id == job.id)
+                .order_by(JobStageConfig.stage_order.asc())
+            )
+            all_stages_res = await db.execute(all_stages_stmt)
+            
+            for s_name, s_order in all_stages_res.all():
+                pipeline_data["stages"].append({
+                    "stage_name": s_name,
+                    "order": s_order,
+                    "count": stage_counts.get(s_order, 0)
+                })
+            
+            job_pipeline_stats.append(pipeline_data)
+
         return {
             "total_jobs": total_jobs,
             "active_jobs": active_jobs,
@@ -599,6 +658,7 @@ class AdminRepository:
             "total_pending": analytics["total_pending"],
             "total_unprocessed": analytics["total_unprocessed"],
             "candidates_by_job": candidates_by_job,
+            "job_pipeline_stats": job_pipeline_stats,
             "resumes_uploaded_last_30_days": resumes_last_30_days,
             "average_resume_score": float(avg_score) if avg_score else None,
             "hr_decided_count": hr_decided_count,

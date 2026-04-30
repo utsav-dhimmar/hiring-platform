@@ -191,6 +191,22 @@ class JobCandidatesStats(BaseModel):
     candidate_count: int
 
 
+class PipelineStageStats(BaseModel):
+    """Model for stage-level candidate counts."""
+
+    stage_name: str
+    order: int
+    count: int
+
+
+class JobPipelineStats(BaseModel):
+    """Model for job-level pipeline statistics for charts."""
+
+    job_id: uuid.UUID
+    job_name: str
+    stages: list[PipelineStageStats]
+
+
 class HiringReport(BaseModel):
     """Model for hiring analytics report."""
 
@@ -202,6 +218,7 @@ class HiringReport(BaseModel):
     total_pending: int
     total_unprocessed: int
     candidates_by_job: list[JobCandidatesStats]
+    job_pipeline_stats: list[JobPipelineStats] = []
     resumes_uploaded_last_30_days: int
     average_resume_score: float | None
     hr_decided_count: int
