@@ -6,7 +6,6 @@ import type { Job } from "@/types/job";
 import { cn } from "@/lib/utils";
 import { PERMISSIONS } from "@/lib/permissions";
 
-
 interface JobCandidatesHeaderProps {
   job: Job | null;
   onBack: () => void;
@@ -30,7 +29,7 @@ export const JobCandidatesHeader = ({
   return (
     <AppPageHeader
       title={job?.title || "Loading..."}
-
+      headingClassName="text-2xl sm:text-3xl"
       backAction={{ label: "Back to Jobs", onClick: onBack }}
       meta={
         <>

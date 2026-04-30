@@ -61,15 +61,15 @@ export const JobCandidatesStats = ({
       {stats.map((stat, index) => (
         <div
           key={stat.label}
-          className={`group ${index === 0 ? "p-5" : "p-6"
-            } rounded-[2.5rem] border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-1.5 transition-all duration-300 border-muted-foreground/10 ${stat.hoverBg
+          className={`group ${index === 0 ? "p-1" : "p-1"
+            } rounded-lg border bg-card/30 backdrop-blur-sm shadow-sm flex flex-col items-center gap-1.5 transition-all duration-300 border-muted-foreground/10 ${stat.hoverBg
             } ${stat.hoverBorder}`}
         >
-          <span className={`text-4xl font-black ${stat.activeColor}`}>
+          <span className={`text-3xl font-black ${stat.activeColor}`}>
             {stat.value}
           </span>
           <span
-            className={`text-sm font-bold uppercase tracking-widest transition-colors ${stat.labelColor}`}
+            className={`text-sm font-bold transition-colors ${stat.labelColor}`}
           >
             {stat.label}
           </span>

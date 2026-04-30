@@ -150,7 +150,7 @@ class AdminRepository:
         if search:
             stmt = stmt.where(Role.name.ilike(f"%{search}%"))
 
-        result = await db.execute(stmt.offset(skip).limit(limit).order_by(Role.name))
+        result = await db.execute(stmt.offset(skip).limit(limit).order_by(Role.id.desc()))
         
         roles = []
         for role, count in result.all():
@@ -246,7 +246,7 @@ class AdminRepository:
         @returns List of Permission objects ordered by name
         """
         result = await db.execute(
-            select(Permission).offset(skip).limit(limit).order_by(Permission.name)
+            select(Permission).offset(skip).limit(limit).order_by(Permission.id.desc())
         )
         return list(result.scalars().all())
 

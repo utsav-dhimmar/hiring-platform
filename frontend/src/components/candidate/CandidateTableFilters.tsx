@@ -23,6 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { FILTER_DISPLAY_LIMIT } from "@/constants";
 import { useMemo } from "react";
+import { DateDisplay } from "../shared";
 
 interface CandidateTableFiltersProps {
   nameFilter: string;
@@ -167,8 +168,8 @@ export const CandidateTableFilters = ({
                     />
                   </div>
                 </div>
-                <DropdownMenuSeparator />
-                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                {/* <DropdownMenuSeparator /> */}
+                <div className="max-h-auto overflow-y-auto custom-scrollbar">
                   <DropdownMenuGroup>
                     {jobOptions.length === 0 ? (
                       <div className="px-2 py-4 text-xs text-center text-muted-foreground">
@@ -188,9 +189,20 @@ export const CandidateTableFilters = ({
                                   : [...jobFilter, j.id]
                               )
                             }
-                            className="rounded-lg my-0.5"
+                            className="rounded-lg"
                           >
-                            {j.title}
+                            <HoverCard>
+                              <HoverCardTrigger delay={10} closeDelay={10}>
+                                <div className="truncate w-full max-w-40 ">
+                                  <span className="">
+                                    {j.title}
+                                  </span>
+                                </div>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-64 p-2 rounded-lg" side="right" sideOffset={40}>
+                                <div className="text-sm font-medium mb-0.5">{j.title}</div>
+                              </HoverCardContent>
+                            </HoverCard>
                           </DropdownMenuCheckboxItem>
                         ))}
                         {jobOptions.length > FILTER_DISPLAY_LIMIT && (
@@ -251,7 +263,7 @@ export const CandidateTableFilters = ({
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                <div className="max-h-auto overflow-y-auto custom-scrollbar">
                   <DropdownMenuGroup>
                     {locationOptions.length === 0 ? (
                       <div className="px-2 py-4 text-xs text-center text-muted-foreground">
@@ -515,7 +527,7 @@ export const CandidateTableFilters = ({
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                <div className="max-h-auto overflow-y-auto custom-scrollbar">
                   <DropdownMenuGroup>
                     {filteredActivityOptions.length === 0 ? (
                       <div className="px-2 py-4 text-xs text-center text-muted-foreground">
@@ -540,11 +552,16 @@ export const CandidateTableFilters = ({
                             <div className="flex flex-col gap-0.5">
                               <span className="font-medium text-xs">Activity {sessionId}</span>
                               <span className="text-[10px] text-muted-foreground">
-                                {dates.start_date ? format(new Date(dates.start_date), "MMM d") : "N/A"} - {dates.end_date ? format(new Date(dates.end_date), "MMM d") : "Present"}
+                                {dates.start_date ? <DateDisplay date={dates.start_date} className="text-[10px]" /> : "N/A"} - {dates.end_date ? <DateDisplay date={dates.end_date} className="text-[10px]" /> : "Present"}
                               </span>
                             </div>
                           </DropdownMenuCheckboxItem>
                         ))}
+                        {filteredActivityOptions.length > FILTER_DISPLAY_LIMIT && (
+                          <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
+                            And {filteredActivityOptions.length - FILTER_DISPLAY_LIMIT} more activities...
+                          </div>
+                        )}
                       </>
                     )}
                   </DropdownMenuGroup>

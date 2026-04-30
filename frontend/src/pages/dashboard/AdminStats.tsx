@@ -1,7 +1,7 @@
 import { adminAnalyticsService } from "@/apis/admin";
 import type { AnalyticsSummary, HiringReport } from "@/types/admin";
 import { useAdminData } from "@/hooks/useAdminData";
-import AppPageHeader from "@/components/shared/AppPageHeader";
+// import AppPageHeader from "@/components/shared/AppPageHeader";
 import AppPageShell from "@/components/shared/AppPageShell";
 import StatCard from "@/components/shared/StatCard";
 import { DataTable } from "@/components/shared/DataTable";
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ColumnDef } from "@tanstack/react-table";
-
+import PageHeader from "@/components/shared/PageHeader";
 export default function AdminStats() {
   const {
     data: dashboardData,
@@ -71,7 +71,7 @@ export default function AdminStats() {
 
   return (
     <AppPageShell width="wide">
-      <AppPageHeader
+      <PageHeader
         title="Platform Statistics"
       />
 

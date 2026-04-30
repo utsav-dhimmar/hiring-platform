@@ -487,6 +487,7 @@ export interface CandidateAnalysisResponse {
 export interface PromptRead {
   name: string;
   content: string;
+  stage: string
 }
 
 /**

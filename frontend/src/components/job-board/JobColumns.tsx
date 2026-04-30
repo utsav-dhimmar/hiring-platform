@@ -63,9 +63,8 @@ export const getJobColumns = ({
         <div className="flex flex-col gap-1 min-w-[200px] max-w-[300px]">
           <div className="flex items-center gap-2">
             <span
-              className="font-bold text-sm text-wrap"
-              // text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl
-              title={row.original.title}
+              className="font-bold text-lg text-wrap"
+            // text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl
             >
               {row.original.title}
 
@@ -162,7 +161,14 @@ export const getJobColumns = ({
     },
     {
       accessorKey: "activity_sessions",
-      header: "Hiring Activity",
+      // header: "Hiring Activity",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Hiring Activity</span>
+          </div>
+        )
+      },
       cell: ({ row }) => {
         const sessions = row.original.activity_sessions || [];
         const displaySessions = sessions.slice(-3).reverse(); // Show last 3 sessions // use -3 and reverse() if reverse needed
@@ -212,7 +218,7 @@ export const getJobColumns = ({
                               onSessionCandidates(row.original, s.start_date, s.end_date as string);
                             }}
                           >
-                            <span className="font-bold group-hover/session:text-primary transition-colors" >  {s.candidate_count}</span> cand.
+                            <Users className="h-4 w-4" /><span className="font-bold group-hover/session:text-primary transition-colors" >  {s.candidate_count}</span>
                           </Badge>
                         )}
                       />
@@ -264,7 +270,14 @@ export const getJobColumns = ({
     },
     {
       accessorKey: "skills",
-      header: "Skills",
+      // header: "Skills",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Skills</span>
+          </div>
+        )
+      },
       cell: ({ row }) => (
         <div className="max-w-[150px]">
           <SkillsBadgeList skills={row.original.skills} maxVisible={2} />
@@ -273,7 +286,14 @@ export const getJobColumns = ({
     },
     {
       id: "actions",
-      header: "Actions",
+      // header: "Actions",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Actions</span>
+          </div>
+        )
+      },
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>

@@ -6,9 +6,8 @@ import {
   // Loader2
 } from "lucide-react";
 import { DateDisplay } from "@/components/shared/DateDisplay";
-import StatusBadge from "@/components/shared/StatusBadge";
-import HRDecisionBadge from "@/components/shared/HRDecisionBadge";
 import { Badge } from "@/components/ui/badge";
+import CandidateStatusBadge from "@/components/shared/CandidateStatusBadge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
 import { cn, capitalize, toTitleCase } from "@/lib/utils";
@@ -98,7 +97,12 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           {
             id: "job_context",
             accessorKey: "applied_job_id",
-            header: "Job",
+            // header: "Job",
+            header: () => {
+              return <div className="flex items-center justify-between">
+                <span className="font-semibold">Job</span>
+              </div>
+            },
             cell: ({ row }: { row: { original: T } }) => {
               const jobId = row.original.applied_job_id;
               const jobName = row.original.job_name
@@ -174,7 +178,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   />
                 </div>
               </div>
-              <StatusBadge
+              <CandidateStatusBadge
                 status={
                   c.pass_fail === null || c.pass_fail === undefined
                     ? "pending"
@@ -185,12 +189,6 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                       ? RESUME_SCREENING_RESULT.PASS
                       : RESUME_SCREENING_RESULT.FAIL
                 }
-                className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
-                mapping={{
-                  [RESUME_SCREENING_RESULT.PASS]: "default",
-                  [RESUME_SCREENING_RESULT.FAIL]: "destructive",
-                  pending: "secondary",
-                }}
               />
             </div>
           );
@@ -200,15 +198,25 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
       {
         id: "hr_decision",
         accessorKey: "hr_decision",
-        header: "HR Decision",
-        cell: ({ row }) => <HRDecisionBadge decision={row.original.hr_decision} />,
+        // header: "HR Decision",
+        header: () => {
+          return <div className="flex items-center justify-between">
+            <span className="font-semibold">HR Decision</span>
+          </div>
+        },
+        cell: ({ row }) => <CandidateStatusBadge status={row.original.hr_decision} />,
       },
 
       // CURRENT STAGE
       {
         id: "current_stage",
         accessorKey: "current_stage",
-        header: "Stage",
+        // header: "Stage",
+        header: () => {
+          return <div className="flex items-center justify-between">
+            <span className="font-semibold">Stage</span>
+          </div>
+        },
         cell: ({ row }) => {
           const stage = row.original.current_stage;
           if (!stage) {
@@ -222,10 +230,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
               <span className="font-semibold text-sm text-foreground text-wrap max-w-[150px]" title={stage.template_name}>
                 {stage.template_name}
               </span>
-              <StatusBadge
-                status={stage.status.replace('ed', '')}
-                className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider"
-              />
+              <CandidateStatusBadge status={stage.status == "completed" ? stage.status.replace("completed", "complete") : stage.status.replace("ed", "")} />
             </div>
           );
         },
@@ -234,7 +239,12 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
       // 5. SOCIALS
       {
         id: "socials",
-        header: "Socials",
+        // header: "Socials",
+        header: () => {
+          return <div className="flex items-center justify-between">
+            <span className="font-semibold">Socials</span>
+          </div>
+        },
         cell: ({ row }) => {
           const { linkedin_url, github_url } = row.original;
 

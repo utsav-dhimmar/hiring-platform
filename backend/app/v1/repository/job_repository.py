@@ -392,7 +392,7 @@ class JobRepository:
         if query:
             stmt = stmt.where(Job.title.ilike(f"%{query}%"))
         
-        stmt = stmt.order_by(Job.title.asc())
+        stmt = stmt.order_by(Job.created_at.desc())
         result = await db.execute(stmt)
         return [{"id": row.id, "title": row.title} for row in result.all()]
 

@@ -335,17 +335,41 @@ async def get_active_prompts(
     Get all AI prompts currently in use by the system (Read-only), with optional search and pagination.
     """
     prompts = [
-        {"name": "Resume Extraction Prompt", "content": RESUME_EXTRACTION_PROMPT},
-        {"name": "Resume-JD Analysis Prompt", "content": RESUME_JD_ANALYSIS_PROMPT},
-        {"name": "JD Processing Instruction", "content": JD_INSTRUCTION},
-        {"name": "Resume Processing Instruction", "content": RESUME_INSTRUCTION},
-        {"name": "Skill Extraction Instruction", "content": SKILL_INSTRUCTION},
+        {
+            "name": "Resume Extraction Prompt",
+            "content": RESUME_EXTRACTION_PROMPT,
+            "stage": "Resume Screening",
+        },
+        {
+            "name": "Resume-JD Analysis Prompt",
+            "content": RESUME_JD_ANALYSIS_PROMPT,
+            "stage": "Resume Screening",
+        },
+        {
+            "name": "JD Processing Instruction",
+            "content": JD_INSTRUCTION,
+            "stage": "Resume Screening",
+        },
+        {
+            "name": "Resume Processing Instruction",
+            "content": RESUME_INSTRUCTION,
+            "stage": "Resume Screening",
+        },
+        {
+            "name": "Skill Extraction Instruction",
+            "content": SKILL_INSTRUCTION,
+            "stage": "Resume Screening",
+        },
     ]
 
     if q:
-        q = q.lower()
+        q_lower = q.lower()
         prompts = [
-            p for p in prompts if q in p["name"].lower() or q in p["content"].lower()
+            p
+            for p in prompts
+            if q_lower in p["name"].lower()
+            or q_lower in p["content"].lower()
+            or q_lower in p["stage"].lower()
         ]
 
     total = len(prompts)

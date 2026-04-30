@@ -108,13 +108,27 @@ const AdminRecentUploads = () => {
     // },
     {
       accessorKey: "size",
-      header: "Size",
+      // header: "Size",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Size</span>
+          </div>
+        )
+      },
       cell: ({ row }) =>
         row.original.size ? formatFileSize(row.original.size, fileSizeUnit) : "N/A",
     },
     {
       accessorKey: "uploader_name",
-      header: "Uploaded By",
+      // header: "Uploaded By",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Uploaded By</span>
+          </div>
+        )
+      },
       cell: ({ row }) => (
         <span
           className="font-medium text-foreground "
@@ -126,7 +140,14 @@ const AdminRecentUploads = () => {
     },
     {
       accessorKey: "candidate_name",
-      header: "Candidate",
+      // header: "Candidate",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Candidate Name</span>
+          </div>
+        )
+      },
       cell: ({ row }) => (
         <span
           className="font-medium text-foreground "
