@@ -43,6 +43,10 @@ export interface StageTemplate {
   description: string | null;
   /** Default configuration for this stage type */
   config: DefaultConfig;
+  /** Whether this stage is part of the default pipeline */
+  is_default?: boolean;
+  /** Optional order for the default pipeline */
+  default_order?: number;
 }
 
 /**

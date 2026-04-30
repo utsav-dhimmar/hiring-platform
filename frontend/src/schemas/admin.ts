@@ -162,6 +162,12 @@ export const jobCreateSchema = jobBaseSchema.extend({
   is_active: z.boolean().default(true),
   passing_threshold: z.number().min(0).max(100).default(DEFAULT_PASSING_THRESHOLD),
   custom_extraction_fields: z.array(z.string().trim()).optional().default([]),
+  stages: z.array(z.object({
+    template_id: uuidSchema("Invalid template ID"),
+    stage_order: z.number().int().min(1),
+    is_mandatory: z.boolean().default(true),
+    config: z.record(z.string(), z.any()).optional().default({}),
+  })).optional().nullable().default(null),
 });
 
 /** Type inferred from jobCreateSchema. */

@@ -29,7 +29,7 @@ import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { stageTemplateCreateSchema, type StageTemplateCreateFormValues } from "@/schemas/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// import { slugify } from "@/utils/slug";
+
 
 /**
  * Form page for creating or editing job stage templates.
@@ -87,13 +87,13 @@ export default function AdminJobStageForm() {
         const stateData = location.state as any;
 
         const initializeForm = (template: StageTemplate) => {
-            const { name, description, default_config } = template;
+            const { name, description, config } = template;
             form.reset({
                 name,
                 description: description || "",
                 default_config: {
-                    criteria_ids: default_config?.criteria_ids || [],
-                    is_active: default_config?.is_active ?? true
+                    criteria_ids: config?.evaluation_criteria.map(({ id }) => id) || [],
+                    // is_active: config?.evaluation_criteria.is_active ?? true
                 }
             });
         };
@@ -183,7 +183,7 @@ export default function AdminJobStageForm() {
                 subtitle={isEditMode ? "Update the configuration for this recruitment stage." : "Define a new recruitment stage template."}
                 actions={
                     <Button
-                        variant="default"
+                        variant="outline"
                         size="sm"
                         onClick={() => navigate("/dashboard/admin/criteria-stages/stages")}
                         className="gap-2"
@@ -196,7 +196,7 @@ export default function AdminJobStageForm() {
 
             <Card className="border-border/50 shadow-sm">
                 <CardHeader>
-                    <CardTitle>{isEditMode ? "Stage Details" : "New Stage"}</CardTitle>
+                    <CardTitle className="font-sans">{isEditMode ? "Stage Details" : "New Stage"}</CardTitle>
                     <CardDescription>
                         Configure stage parameters and associated evaluation criteria.
                     </CardDescription>

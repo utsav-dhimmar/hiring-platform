@@ -56,6 +56,7 @@ export default function CreateJob() {
       passing_threshold: DEFAULT_PASSING_THRESHOLD,
       custom_extraction_fields: [],
       priority_id: "",
+      stages: null,
     },
   });
   const fetchFormData = useCallback(async () => {
@@ -134,17 +135,20 @@ export default function CreateJob() {
     setIsSubmitting(true);
     try {
       if (isEditMode && jobId) {
-        await jobService.updateJob(jobId, values as any);
+        // Omit stages from update payload as they are managed via specialized endpoints
+        // sending stages: null or [] to PATCH /jobs/{id} might cause issues or unintended side effects
+        const { stages, ...updatePayload } = values as any;
+        await jobService.updateJob(jobId, updatePayload);
         toast.success("Job updated successfully!");
         navigate("/dashboard/jobs");
       } else {
-        const createdJob = await jobService.createJob(values as any);
-        toast.success("Job created! Now configure the interview stages.");
-        // Redirect to edit page so hr_admin and admin can immediately set up stages
-        navigate(`/dashboard/jobs/${slugify(createdJob.title)}/edit`, {
-          state: { jobId: createdJob.id },
-          replace: true,
-        });
+        // For creation, values.stages is either:
+        // - null (auto-setup 3 default rounds in backend)
+        // - [] (no stages created)
+        // - Array of {template_id, stage_order, is_mandatory, config}
+        await jobService.createJob(values as any);
+        toast.success("Job created successfully!");
+        navigate("/dashboard/jobs");
       }
     } catch (error) {
       const errorMessage = extractErrorMessage(error)
@@ -190,7 +194,10 @@ export default function CreateJob() {
               <JobSettingsSection />
               <CustomFieldsSection />
               <SkillSelectorSection initialSelectedSkills={jobSkills} />
-              <StagePipelineSection jobId={jobId} />
+              <StagePipelineSection
+                jobId={jobId}
+                onChange={(stages) => form.setValue("stages" as any, stages)}
+              />
 
               {/* Form Actions */}
               <div className="flex flex-wrap items-center justify-center gap-4 border-t pt-8">
