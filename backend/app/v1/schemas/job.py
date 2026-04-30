@@ -9,6 +9,7 @@ from app.v1.schemas.department import DepartmentRead
 from app.v1.schemas.job_stage import JobStageConfigRead
 from app.v1.schemas.skill import SkillRead
 from app.v1.schemas.job_priority import JobPriorityRead
+from app.v1.schemas.job_position import JobPositionRead
 from pydantic import BaseModel, ConfigDict
 from typing import Any
 
@@ -27,6 +28,7 @@ class JobBase(BaseModel):
     passing_threshold: float = 70.0
     custom_extraction_fields: list[str] | None = None
     priority_id: uuid.UUID | None = None
+    position_id: uuid.UUID | None = None
     priority_start_date: datetime | None = None
     priority_end_date: datetime | None = None
 
@@ -81,6 +83,7 @@ class JobUpdate(BaseModel):
     passing_threshold: float | None = None
     custom_extraction_fields: list[str] | None = None
     priority_id: uuid.UUID | None = None
+    position_id: uuid.UUID | None = None
     priority_start_date: datetime | None = None
     priority_end_date: datetime | None = None
     stages: list[StageInput] | None = None
@@ -138,6 +141,7 @@ class JobRead(JobBase):
     skills: list[SkillRead] = []
     stages: list[JobStageConfigRead] = []
     priority: JobPriorityRead | None = None
+    position: JobPositionRead | None = None
     decision_summary: dict | None = None
     automated_screening_summary: dict | None = None
     total_candidates: int | None = None

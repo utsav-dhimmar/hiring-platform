@@ -21,6 +21,7 @@ from app.v1.routes.job_priorities import router as job_priorities_router
 from app.v1.routes.transcripts import router as transcripts_router
 from app.v1.routes.job_stages import router as job_stages_router
 from app.v1.routes.candidate_stages import router as candidate_stages_router
+from app.v1.routes.job_positions import router as job_positions_router
 
 api_router = APIRouter()
 
@@ -37,4 +38,6 @@ api_router.include_router(locations_router, prefix="/locations", tags=["location
 api_router.include_router(job_priorities_router, prefix="/job-priorities", tags=["job-priorities"])
 api_router.include_router(transcripts_router)
 api_router.include_router(job_stages_router, tags=["job-stages"])
-api_router.include_router(candidate_stages_router, tags=["candidate-stages"])
+api_router.include_router(candidate_stages_router, tags=["candidate-stages"])
+api_router.include_router(job_positions_router, prefix="/job-positions", tags=["job-positions"])
+

@@ -189,6 +189,9 @@ class ResumeUploadService:
                 )
                 db.add(auto_reject)
 
+            # Initialize hiring pipeline stages for this candidate-job link if not already present
+            await candidate_stage_service.initiate_candidate_pipeline(db, candidate.id, job_id)
+            
             await db.flush()
         else:
             # 2. Create new candidate if no global match found

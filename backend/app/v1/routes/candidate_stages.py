@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.v1.db.session import get_db
 from app.v1.db.models.evaluations import Evaluation
@@ -15,6 +16,8 @@ from app.v1.schemas.candidate_stages import StageOverrideCreate, StageDecisionCr
 from app.v1.schemas.user import UserRead
 from app.v1.dependencies import check_permission
 from app.v1.services.admin_service import admin_service
+from app.v1.services.hr_decision_service import HRDecisionService
+from app.v1.schemas.hr_decision import HRDecisionCreate
 
 router = APIRouter(prefix="/candidate-stages", tags=["candidate-stages"])
 
@@ -148,122 +151,47 @@ async def candidate_stage_decision(
     user: UserRead = Depends(check_permission("candidates:decide")),
 ) -> Any:
     """Final HR decision for this candidate stage (Approve, Reject, May Be)."""
+    
+    # 1. Fetch CandidateStage to get candidate and job info
+    from app.v1.db.models.job_stage_configs import JobStageConfig
+    query = (
+        select(CandidateStage)
+        .options(selectinload(CandidateStage.job_stage))
+        .where(CandidateStage.id == id)
+    )
+    res = await db.execute(query)
+    stage = res.scalars().first()
+    
+    if not stage:
+        raise HTTPException(status_code=404, detail="Candidate stage not found")
+        
+    # 2. Use HRDecisionService to handle the decision
+    # This automatically handles validation, stage advancement, and auto-rejections
+    hr_service = HRDecisionService()
+    
+    decision_data = HRDecisionCreate(
+        decision=decision_in.decision,
+        notes=decision_in.notes,
+        job_id=stage.job_stage.job_id if stage.job_stage else None,
+        stage_config_id=stage.job_stage_id
+    )
     try:
-        from sqlalchemy.orm import selectinload
-        
-        # 1. Fetch CandidateStage + relations
-        from app.v1.db.models.job_stage_configs import JobStageConfig
-        query = (
-            select(CandidateStage)
-            .options(
-                selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template)
-            )
-            .where(CandidateStage.id == id)
-        )
-        res = await db.execute(query)
-        stage = res.scalars().first()
-        
-        if not stage:
-            raise HTTPException(status_code=404, detail="Candidate stage not found")
-            
-        candidate = await db.get(Candidate, stage.candidate_id)
-        if not candidate:
-            raise HTTPException(status_code=404, detail="Candidate not found")
-            
-        # 2. Create hr_decisions entry
-        hr_decision = HrDecision(
-            candidate_id=candidate.id,
-            stage_config_id=stage.job_stage_id,
-            job_id=stage.job_stage.job_id if stage.job_stage else None,
-            user_id=user.id,
-            decision=decision_in.decision,
-            notes=decision_in.notes
-        )
-        db.add(hr_decision)
-        
-        # 3. Update Candidate status based on decision
-        if decision_in.decision == "reject":
-            candidate.current_status = "rejected"
-        elif decision_in.decision == "May Be":
-            candidate.current_status = "may_be"
-        elif decision_in.decision == "approve":
-            # NEW LOGIC: If the current stage is PENDING, "approve" just makes it ACTIVE (Resume Approved)
-            # It does NOT move to the next stage yet.
-            if stage.status == "pending":
-                stage.status = "active"
-                from datetime import datetime
-                stage.started_at = datetime.utcnow()
-                
-                # Update candidate current status to show it's active
-                template_name = stage.job_stage.template.name if stage.job_stage and stage.job_stage.template else "Active"
-                candidate.current_status = f"{template_name} (Active)"
-                
-                await db.commit()
-                return {
-                    "message": "Resume approved. Stage is now active for interview/evaluation.",
-                    "candidate_status": candidate.current_status,
-                    "stage_status": "active"
-                }
-
-            # If already ACTIVE, then "approve" means the interview/round is done, move to next stage
-            # Check if there is a next stage in job_stages
-            res_next = await db.execute(
-                select(JobStageConfig)
-                .where(
-                    JobStageConfig.job_id == stage.job_stage.job_id,
-                    JobStageConfig.stage_order > stage.job_stage.stage_order
-                )
-                .order_by(JobStageConfig.stage_order.asc())
-            )
-            next_stage_config = res_next.scalars().first()
-            
-            if next_stage_config:
-                # Advance to next stage (set to PENDING for resume/intro check)
-                cs_stmt = (
-                    select(CandidateStage)
-                    .where(
-                        CandidateStage.candidate_id == candidate.id,
-                        CandidateStage.job_stage_id == next_stage_config.id
-                    )
-                )
-                cs_res = await db.execute(cs_stmt)
-                next_cs = cs_res.scalars().first()
-
-                if next_cs:
-                    next_cs.status = "pending"
-                    next_cs.started_at = None
-                else:
-                    next_cs = CandidateStage(
-                        candidate_id=candidate.id,
-                        job_stage_id=next_stage_config.id,
-                        status="pending",
-                        started_at=None
-                    )
-                    db.add(next_cs)
-                
-                from app.v1.db.models.stage_templates import StageTemplate
-                template = await db.get(StageTemplate, next_stage_config.template_id)
-                candidate.current_status = template.name if template else "next_stage"
-            else:
-                candidate.current_status = "hired" # Or final state
-        
-        stage.status = "completed"
-        await db.commit()
-        
-        # 4. Audit Log
-        from app.v1.services.admin_service import admin_service
-        await admin_service.log_action(
+        hr_decision = await hr_service.create_decision(
             db=db,
+            candidate_id=stage.candidate_id,
+            decision_data=decision_data,
             user_id=user.id,
-            action="stage_decision",
-            target_type="candidate_stage",
-            target_id=stage.id,
-            details={"decision": decision_in.decision, "candidate_id": str(candidate.id)}
+            stage_config_id=stage.job_stage_id
         )
         
-        return {"message": f"Decision '{decision_in.decision}' recorded successfully", "candidate_status": candidate.current_status}
+        return {
+            "message": f"Decision '{decision_in.decision}' recorded successfully.",
+            "decision": hr_decision,
+            "next_step": "Candidate status and pipeline have been updated."
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        import traceback
-        with open("c:\\OneDriveTemp\\Desktop\\hirego\\backend\\error_log.txt", "w") as f:
-            f.write(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to record decision: {str(e)}")
+

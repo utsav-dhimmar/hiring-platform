@@ -133,6 +133,12 @@ class Job(Base):
         nullable=True,
     )
 
+    position_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("job_positions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     priority_start_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
@@ -181,6 +187,11 @@ class Job(Base):
     priority: Mapped[Optional["JobPriority"]] = relationship(
         "JobPriority",
         foreign_keys=[priority_id],
+        lazy="joined",
+    )
+    position: Mapped[Optional["JobPosition"]] = relationship(
+        "JobPosition",
+        foreign_keys=[position_id],
         lazy="joined",
     )
 
