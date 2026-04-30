@@ -78,6 +78,16 @@ class StageRepository:
         await db.delete(template)
         await db.commit()
 
+    async def count_template_usage(
+        self, db: AsyncSession, template_id: uuid.UUID
+    ) -> int:
+        """Count how many job stage configurations are using this template."""
+        stmt = select(func.count(JobStageConfig.id)).where(
+            JobStageConfig.template_id == template_id
+        )
+        result = await db.execute(stmt)
+        return result.scalar() or 0
+
     # --- Job Stage Config CRUD ---
 
     async def get_job_stages(
