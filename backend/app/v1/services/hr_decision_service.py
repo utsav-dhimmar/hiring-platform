@@ -108,12 +108,14 @@ class HRDecisionService:
             )
             stage_config_id = (await db.execute(first_stage_stmt)).scalar()
 
-        # Check "May Be" decision limit (only 1 per candidate per job)
+        # Check "May Be" decision limit (only 1 per candidate per stage)
         if decision_data.decision == "May Be":
             query = select(func.count(HrDecision.id)).where(
                 HrDecision.candidate_id == candidate_id, HrDecision.decision == "May Be"
             )
-            if actual_job_id:
+            if stage_config_id:
+                query = query.where(HrDecision.stage_config_id == stage_config_id)
+            elif actual_job_id:
                 query = query.where(HrDecision.job_id == actual_job_id)
 
             existing_may_be = await db.execute(query)
@@ -121,7 +123,7 @@ class HRDecisionService:
 
             if may_be_count >= 1:
                 raise ValueError(
-                    "Only one 'May Be' decision is allowed per candidate for a specific job."
+                    "Only one 'May Be' decision is allowed per candidate per stage."
                 )
 
         # Check "approve" decision limit (only 1 per candidate for THIS specific job)
@@ -385,7 +387,12 @@ class HRDecisionService:
                 HrDecision.decision == "May Be",
                 HrDecision.id != decision_id,  # Exclude current decision
             )
-            if actual_job_id:
+            
+            actual_stage_id = getattr(decision_data, "stage_config_id", None) or decision.stage_config_id
+            
+            if actual_stage_id:
+                query = query.where(HrDecision.stage_config_id == actual_stage_id)
+            elif actual_job_id:
                 query = query.where(HrDecision.job_id == actual_job_id)
 
             existing_may_be = await db.execute(query)
@@ -393,7 +400,7 @@ class HRDecisionService:
 
             if may_be_count >= 1:
                 raise ValueError(
-                    "Only one 'May Be' decision is allowed per candidate for a specific job."
+                    "Only one 'May Be' decision is allowed per candidate per stage."
                 )
         # Check "approve" decision limit if updating to "approve" (scoped to specific job)
         if (
