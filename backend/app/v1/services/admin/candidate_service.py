@@ -511,6 +511,22 @@ class CandidateAdminService:
                 "pending": "pending",
             }.get(cs.status, cs.status)
 
+            # NEW: If evaluation_data exists (AI finished), use the AI result instead of 'ongoing'
+            if cs.evaluation_data:
+                # For Stage 0, evaluation_data is the ResumeMatchAnalysis
+                # For interview stages, it's the AI eval results
+                if cs.status in ["active", "pending"]:
+                    if isinstance(cs.evaluation_data, dict):
+                        # Extract pass_fail from AI data if present
+                        ai_pf = cs.evaluation_data.get("pass_fail") or cs.evaluation_data.get("result")
+                        if ai_pf:
+                            ai_result_val = ai_pf
+                        elif "match_percentage" in cs.evaluation_data:
+                            # Fallback for Stage 0 (Match percentage check)
+                            score = cs.evaluation_data.get("match_percentage", 0)
+                            threshold = 70.0 # Default threshold
+                            ai_result_val = "passed" if score >= threshold else "failed"
+
             # Check for explicit HR decision
             hr_decision_val = None
             if cs.job_stage_id in decisions_by_stage:
@@ -780,7 +796,7 @@ class CandidateAdminService:
                 "stage_id": stage.id,
                 "stage_name": title,
                 "job_id": stage.job_stage.job_id,
-                "stage_order": (stage.job_stage.stage_order if stage.job_stage else 0) + 1, # Shift by 1: Resume Screening is Stage 1
+                "stage_order": stage.job_stage.stage_order if stage.job_stage else 0,
                 "metadata": metadata
             }
             
@@ -837,7 +853,7 @@ class CandidateAdminService:
                 "stage_name": "Resume Screening",
                 "job_id": r_res.job_id,
                 "metadata": metadata,
-                "stage_order": 1, # Resume Screening is now officially Stage 1
+                "stage_order": 0, # Resume Screening is Stage 0
             }
 
         # 3. Fetch HR Decisions and enrich stages
