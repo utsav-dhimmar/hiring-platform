@@ -5,7 +5,7 @@ import uuid
 
 class TimelineEvent(BaseModel):
     event_type: str  # "stage" or "decision"
-    event_date: datetime
+    event_date: Optional[datetime] = None
     title: str
     description: Optional[str] = None
     result: Optional[str] = None

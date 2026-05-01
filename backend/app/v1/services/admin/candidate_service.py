@@ -756,7 +756,19 @@ class CandidateAdminService:
                 }.get(stage.status, "Pending")
                 score = None
                 
-            event_date = stage.started_at or created_at_fallback
+            # Determine the most accurate event date
+            event_date = None
+            if eval_obj:
+                event_date = eval_obj.created_at
+            elif stage.completed_at:
+                event_date = stage.completed_at
+            elif stage.status != "pending":
+                # Only show started_at for active/ongoing stages, not pending ones
+                event_date = stage.started_at
+            
+            # Fallback for screening events if no date found
+            if not event_date and "screening" in title.lower():
+                event_date = stage.started_at
             event_key = f"stage_{stage.id}"
             
             events_map[event_key] = {
@@ -875,8 +887,12 @@ class CandidateAdminService:
                 if dec.notes:
                     ev["description"] = f"{ev['description']}. HR Notes: {dec.notes}"
                 # Use decision date as the event date if it's the latest thing that happened in this stage
-                if dec.decided_at and dec.decided_at > ev["event_date"]:
-                    ev["event_date"] = dec.decided_at
+                dec_at = dec.decided_at
+                ev_at = ev.get("event_date")
+                
+                # Handle None comparison: if ev_at is None, dec_at is definitely newer
+                if dec_at and (ev_at is None or dec_at > ev_at):
+                    ev["event_date"] = dec_at
 
         # 4. Finalize and Sort
         events = list(events_map.values())
@@ -893,10 +909,14 @@ class CandidateAdminService:
         def sort_key(x):
             # Sort primarily by stage_order (lowest first) then by date (earliest first)
             # This shows the hiring journey from start to finish (Pipeline order)
-            dt = x["event_date"]
-            if dt.tzinfo is None:
+            dt = x.get("event_date")
+            if dt is None:
+                # Use a very far future date for pending/ongoing stages without dates
+                # so they appear at the end of their stage group
+                dt = datetime.max.replace(tzinfo=timezone.utc)
+            elif dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
-            return (x["stage_order"], dt)
+            return (x.get("stage_order", 0), dt)
 
         events.sort(key=sort_key)
 
