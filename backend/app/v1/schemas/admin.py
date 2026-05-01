@@ -218,7 +218,7 @@ class HiringReport(BaseModel):
     total_pending: int
     total_unprocessed: int
     candidates_by_job: list[JobCandidatesStats]
-    job_pipeline_stats: list[JobPipelineStats] = []
+    job_pipeline_stats: list[dict] = []
     resumes_uploaded_last_30_days: int
     average_resume_score: float | None
     hr_decided_count: int

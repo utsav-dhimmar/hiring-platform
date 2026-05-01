@@ -299,7 +299,8 @@ class EvaluationService:
         )
         db.add(ev)
 
-        # Update candidate stage
+        # Update candidate stage results, but DO NOT mark as completed/failed.
+        # Status should only be changed by explicit HR decision.
         cs.evaluation_data = {
             "signals": signals,
             "report": structured_evaluation_data,
@@ -309,10 +310,6 @@ class EvaluationService:
             "is_passed": is_passed,
             "threshold": 3.5,
         }
-
-        # Set status based on threshold
-        cs.status = "completed" if is_passed else "failed"
-        cs.completed_at = func.now()
 
         await db.commit()
 
