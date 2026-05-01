@@ -675,41 +675,6 @@ class CandidateAdminService:
 
         events_map = {} # Keyed by (event_type, stage_id) or unique string
 
-        # 0. Fetch Resume Screening (Stage 0)
-        resume_stmt = (
-            select(ResumeVersionResult)
-            .join(Resume, ResumeVersionResult.resume_id == Resume.id)
-            .where(Resume.candidate_id == candidate_id)
-            .options(selectinload(ResumeVersionResult.job))
-            .order_by(ResumeVersionResult.analyzed_at.desc())
-        )
-        if job_id:
-            resume_stmt = resume_stmt.where(ResumeVersionResult.job_id == job_id)
-        
-        resume_results = (await db.execute(resume_stmt)).scalars().all()
-        
-        # Only keep the latest screening per job
-        seen_job_screenings = set()
-        for r_res in resume_results:
-            if r_res.job_id in seen_job_screenings:
-                continue
-            seen_job_screenings.add(r_res.job_id)
-            
-            event_key = f"screening_{r_res.id}"
-            events_map[event_key] = {
-                "event_type": "screening",
-                "event_date": r_res.analyzed_at or created_at_fallback,
-                "title": "Resume Screening",
-                "description": f"AI parsed and matched resume against {r_res.job.title if r_res.job else 'job'}",
-                "result": r_res.pass_fail,
-                "score": float(r_res.resume_score) if r_res.resume_score is not None else None,
-                "job_id": r_res.job_id,
-                "stage_id": None,
-                "stage_name": None,
-                "stage_order": -1, # Always first
-                "metadata": r_res.analysis_data
-            }
-
         # 1. Fetch Stages
         stmt = select(CandidateStage).join(JobStageConfig).where(CandidateStage.candidate_id == candidate_id).options(
             selectinload(CandidateStage.job_stage).selectinload(JobStageConfig.template)
@@ -721,7 +686,10 @@ class CandidateAdminService:
 
         # Build a map for easy lookup by JobStageConfig ID to match with Decisions
         config_to_candidate_stage_map = {s.job_stage_id: s.id for s in stages}
-
+        
+        # Track the 'first' stage (usually Resume Screening) per job for consolidation
+        first_stage_per_job = {} # job_id -> event_key
+        
         for stage in stages:
             # Fetch latest evaluation for this stage
             eval_stmt = select(Evaluation).where(Evaluation.candidate_stage_id == stage.id).order_by(Evaluation.created_at.desc()).limit(1)
@@ -761,10 +729,10 @@ class CandidateAdminService:
                 }.get(stage.status, "Pending")
                 score = None
                 
-            # Use started_at for sequence, but if it's identical to fallback, use stage_order to push it forward
             event_date = stage.started_at or created_at_fallback
+            event_key = f"stage_{stage.id}"
             
-            events_map[f"stage_{stage.id}"] = {
+            events_map[event_key] = {
                 "event_type": "stage",
                 "event_date": event_date,
                 "title": title,
@@ -777,8 +745,76 @@ class CandidateAdminService:
                 "stage_order": stage.job_stage.stage_order if stage.job_stage else 0,
                 "metadata": metadata
             }
+            
+            # Track as first stage if order is 0 or matches name patterns
+            if stage.job_stage and stage.job_stage.stage_order == 0:
+                first_stage_per_job[stage.job_stage.job_id] = event_key
+            elif "screening" in title.lower() or "resume" in title.lower():
+                # Fallback matching for non-zero order if it's the lowest one found so far
+                existing_key = first_stage_per_job.get(stage.job_stage.job_id)
+                if not existing_key or events_map[existing_key]["stage_order"] > stage.job_stage.stage_order:
+                    first_stage_per_job[stage.job_stage.job_id] = event_key
 
-        # 2. Fetch HR Decisions and enrich stages (but don't add as separate events)
+        # 2. Fetch Resume Screening (Stage 0) and Consolidate
+        resume_stmt = (
+            select(ResumeVersionResult)
+            .join(Resume, ResumeVersionResult.resume_id == Resume.id)
+            .where(Resume.candidate_id == candidate_id)
+            .options(selectinload(ResumeVersionResult.job))
+            .order_by(ResumeVersionResult.analyzed_at.desc())
+        )
+        if job_id:
+            resume_stmt = resume_stmt.where(ResumeVersionResult.job_id == job_id)
+        
+        resume_results = (await db.execute(resume_stmt)).scalars().all()
+        
+        seen_job_screenings = set()
+        for r_res in resume_results:
+            if r_res.job_id in seen_job_screenings:
+                continue
+            seen_job_screenings.add(r_res.job_id)
+            
+            # 🌟 CONSOLIDATION MAGIC: Check if we have a stage to merge into
+            target_stage_key = first_stage_per_job.get(r_res.job_id)
+            
+            if target_stage_key and target_stage_key in events_map:
+                # Merge into existing stage
+                ev = events_map[target_stage_key]
+                ev["description"] = f"AI parsed and matched resume against {r_res.job.title if r_res.job else 'job'}. {ev['description']}"
+                
+                # Merge metadata
+                if not ev["metadata"] or not isinstance(ev["metadata"], dict):
+                    ev["metadata"] = {}
+                
+                # Add AI specific fields to metadata
+                ev["metadata"]["resume_screening"] = r_res.analysis_data
+                ev["metadata"]["resume_score"] = float(r_res.resume_score) if r_res.resume_score is not None else None
+                
+                # If stage has no score, use resume score
+                if ev["score"] is None:
+                    ev["score"] = float(r_res.resume_score) if r_res.resume_score is not None else None
+                
+                # Use analysis date if earlier than stage start (usually is)
+                if r_res.analyzed_at and r_res.analyzed_at < ev["event_date"]:
+                    ev["event_date"] = r_res.analyzed_at
+            else:
+                # Add as standalone event if no stage found
+                event_key = f"screening_{r_res.id}"
+                events_map[event_key] = {
+                    "event_type": "screening",
+                    "event_date": r_res.analyzed_at or created_at_fallback,
+                    "title": "Resume Screening",
+                    "description": f"AI parsed and matched resume against {r_res.job.title if r_res.job else 'job'}",
+                    "result": r_res.pass_fail,
+                    "score": float(r_res.resume_score) if r_res.resume_score is not None else None,
+                    "job_id": r_res.job_id,
+                    "stage_id": None,
+                    "stage_name": None,
+                    "stage_order": -1,
+                    "metadata": r_res.analysis_data
+                }
+
+        # 3. Fetch HR Decisions and enrich stages
         decision_stmt = select(HrDecision).where(HrDecision.candidate_id == candidate_id).options(
             selectinload(HrDecision.stage_config).selectinload(JobStageConfig.template)
         )
@@ -791,41 +827,36 @@ class CandidateAdminService:
             candidate_stage_id = config_to_candidate_stage_map.get(dec.stage_config_id)
             stage_key = f"stage_{candidate_stage_id}" if candidate_stage_id else None
             
-            # Enrich stage if it exists
             if stage_key and stage_key in events_map:
                 ev = events_map[stage_key]
                 ev["result"] = dec.decision
                 if dec.notes:
                     ev["description"] = f"{ev['description']}. HR Notes: {dec.notes}"
-                # Use decision date if later than start date
+                # Use decision date as the event date if it's the latest thing that happened in this stage
                 if dec.decided_at and dec.decided_at > ev["event_date"]:
                     ev["event_date"] = dec.decided_at
 
-        # 3. Finalize and Sort
+        # 4. Finalize and Sort
         events = list(events_map.values())
         
-        # Filter by query if provided
         if query:
             q_lower = query.lower()
             events = [
                 e for e in events 
                 if q_lower in e["title"].lower() or 
                    (e["description"] and q_lower in e["description"].lower()) or
-                   (e["result"] and q_lower in e["result"].lower())
+                   (e["result"] and q_lower in (e["result"] or "").lower())
             ]
 
-        # Improved Sorting Logic:
-        # Primary: Date (Descending)
-        # Secondary: Stage Order (Descending) - so higher stages appear higher in reverse chronological list
-        # Tertiary: Event Type (Decision > Stage > Screening)
         def sort_key(x):
-            return (
-                x["event_date"].replace(tzinfo=timezone.utc) if x["event_date"].tzinfo is None else x["event_date"],
-                x["stage_order"],
-                1 if x["event_type"] == "decision" else (0 if x["event_type"] == "stage" else -1)
-            )
+            # Sort primarily by stage_order (lowest first) then by date (earliest first)
+            # This shows the hiring journey from start to finish (Pipeline order)
+            dt = x["event_date"]
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return (x["stage_order"], dt)
 
-        events.sort(key=sort_key, reverse=True)
+        events.sort(key=sort_key)
 
         # 4. Determine Latest Decision & Current Stage (Sync with CandidateResponse logic)
         latest_decision = "Pending"
