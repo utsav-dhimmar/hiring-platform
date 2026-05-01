@@ -76,7 +76,7 @@ const AdminDashboard = () => {
     },
     { initialData: [], fetchOnMount: true, initialLoading: true },
   );
-  console.log(jobs);
+  // console.log(jobs);
   useEffect(() => {
     fetchData();
   }, [selectedJobId, selectedStageName, fetchData]);
@@ -94,7 +94,7 @@ const AdminDashboard = () => {
   return (
     <AppPageShell width="wide">
       <PageHeader
-        title="Panel Dashboard"
+        title="Admin Dashboard"
         actions={
           <div className="flex items-center gap-1.5 bg-muted/30 p-1 rounded-xl border border-border/40">
             <Button
@@ -247,6 +247,8 @@ const AdminDashboard = () => {
             </div>
           </div>
           <AdminPipelineChart data={report?.job_pipeline_stats || []} />
+          {/* remove after response change */}
+          {/* <StageCentricChart /> */}
         </div>
       )}
 

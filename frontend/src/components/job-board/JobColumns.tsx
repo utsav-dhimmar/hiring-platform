@@ -63,7 +63,7 @@ export const getJobColumns = ({
         <div className="flex flex-col gap-1 min-w-[200px] max-w-[300px]">
           <div className="flex items-center gap-2">
             <span
-              className="font-bold text-lg text-wrap"
+              className="font-bold text-lg text-wrap capitalize"
             // text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl
             >
               {row.original.title}
@@ -80,7 +80,7 @@ export const getJobColumns = ({
           </div>
           <div className="flex items-center gap-2">
             <span
-              className="text-sm text-muted-foreground truncate"
+              className="text-sm text-muted-foreground truncate capitalize"
               title={row.original.department?.name || "No Department"}
             >
               {row.original.department?.name || "No Department"}

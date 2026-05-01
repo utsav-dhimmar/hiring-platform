@@ -129,9 +129,9 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                     <h4 className="font-black text-xs text-wrap line-clamp-1" title={event.title}>
                       {event.title}
                     </h4>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter flex items-center gap-1">
                       <Calendar className="h-2.5 w-2.5" />
-                      <DateDisplay date={new Date(event.event_date)} />
+                      <DateDisplay date={new Date(event.event_date)} className="text-xs" />
                     </p>
                   </div>
 

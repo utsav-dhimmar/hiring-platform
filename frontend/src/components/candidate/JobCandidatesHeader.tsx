@@ -29,11 +29,11 @@ export const JobCandidatesHeader = ({
   return (
     <AppPageHeader
       title={job?.title || "Loading..."}
-      headingClassName="text-2xl sm:text-3xl"
+      headingClassName="text-2xl sm:text-4xl capitalize"
       backAction={{ label: "Back to Jobs", onClick: onBack }}
       meta={
         <>
-          <span className="font-semibold text-blue-500">{job?.department_name || "Department"}</span>
+          <span className="font-semibold text-blue-500/40 capitalize">{job?.department_name || "Department"}</span>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Job Status:</span>
             {job ? (

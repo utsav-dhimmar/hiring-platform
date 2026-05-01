@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for {@link ActionButtons}.
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 interface ActionButtonsProps {
   onAction: (type: "approve" | "reject" | "maybe") => void;
   showMaybeButton: boolean;
+  className?: string;
 }
 
 /**
@@ -15,9 +17,10 @@ interface ActionButtonsProps {
 export function ActionButtons({
   onAction,
   showMaybeButton,
+  className,
 }: ActionButtonsProps) {
   return (
-    <div className="sticky bottom-0 z-10 border-t border-muted-foreground/10 bg-card/95 p-4 backdrop-blur supports-backdrop-filter:bg-card/80 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4">
+    <div className={cn("sticky bottom-0 z-10 border-t border-muted-foreground/10 bg-card/95 p-4 backdrop-blur supports-backdrop-filter:bg-card/80 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-4", className)}>
       <Button
         onClick={() => onAction("approve")}
         variant="default"

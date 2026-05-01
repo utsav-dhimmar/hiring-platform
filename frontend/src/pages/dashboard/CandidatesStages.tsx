@@ -248,6 +248,7 @@ export default function CandidatesStages() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           {/* Header */}
+          <CandidateTimeline candidateId={candidate?.id} jobId={job?.id} />
           <StageControls
             stages={stages}
             currentStage={currentStage}
@@ -264,7 +265,7 @@ export default function CandidatesStages() {
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto pt-2 space-y-2 ">
-            <CandidateTimeline candidateId={candidate?.id} jobId={job?.id} />
+
             {isLoadingEvaluation ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -343,6 +344,7 @@ export default function CandidatesStages() {
               <ActionButtons
                 onAction={handleAction}
                 showMaybeButton={!latestDecision || latestDecision.decision.toLowerCase() !== "may be"}
+                className="rounded-2xl bg-none"
               />
             </PermissionGuard>
           )}
