@@ -473,6 +473,42 @@ async def run_resume_processing_pipeline(
                 job_id=job_id,
                 resume_id=resume_id,
             )
+
+            # NEW: Automatically initiate pipeline and activate Stage 0 (Resume Screening)
+            from app.v1.db.models.candidate_stages import CandidateStage
+            from app.v1.db.models.job_stage_configs import JobStageConfig
+            from app.v1.services.candidate_stage_service import candidate_stage_service
+            
+            # 1. Ensure pipeline exists
+            existing_stages_stmt = select(CandidateStage).join(JobStageConfig).where(JobStageConfig.job_id == job_id, CandidateStage.candidate_id == candidate.id)
+            existing_stages = (await db.execute(existing_stages_stmt)).scalars().all()
+            
+            if not existing_stages:
+                await candidate_stage_service.initiate_candidate_pipeline(db, candidate.id, job_id)
+                await db.commit()
+                logger.info(f"Auto-initiated pipeline for candidate {candidate.id} during background processing.")
+
+            # 2. Activate Stage 0 and populate with AI results
+            cs_stmt = (
+                select(CandidateStage)
+                .join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
+                .where(
+                    CandidateStage.candidate_id == candidate.id,
+                    JobStageConfig.job_id == job_id,
+                    JobStageConfig.stage_order == 0
+                )
+            )
+            cs_res = await db.execute(cs_stmt)
+            cs_zero = cs_res.scalar_one_or_none()
+            
+            if cs_zero:
+                cs_zero.status = "active"
+                cs_zero.evaluation_data = analysis.model_dump()
+                if not cs_zero.started_at:
+                    from datetime import datetime
+                    cs_zero.started_at = datetime.utcnow()
+                await db.commit()
+                logger.info(f"Auto-activated Stage 0 for candidate {candidate.id} with AI analysis results.")
             log_stage(
                 stage="total",
                 started_at=total_started_at,

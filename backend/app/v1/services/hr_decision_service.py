@@ -149,7 +149,7 @@ class HRDecisionService:
         )
 
         db.add(hr_decision)
-        await db.commit()
+        await db.flush() # Flush to get ID, but don't commit yet
         await db.refresh(hr_decision)
 
         logger.info(
@@ -170,11 +170,12 @@ class HRDecisionService:
             # 1. Find the candidate stage to advance
             cs_stmt = select(CandidateStage).where(CandidateStage.candidate_id == candidate_id)
             if stage_config_id:
-                cs_stmt = cs_stmt.where(CandidateStage.job_stage_id == stage_config_id)
+                cs_stmt = cs_stmt.options(selectinload(CandidateStage.job_stage)).where(CandidateStage.job_stage_id == stage_config_id)
             else:
                 # Fallback: Find the currently active or pending stage for this job
                 cs_stmt = (
                     cs_stmt.join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
+                    .options(selectinload(CandidateStage.job_stage))
                     .where(JobStageConfig.job_id == actual_job_id)
                     .where(CandidateStage.status.in_(["pending", "active"]))
                     .order_by(JobStageConfig.stage_order.asc())
@@ -187,7 +188,14 @@ class HRDecisionService:
                 success = decision_data.decision.lower() == "approve"
                 
                 # NEW TWO-STEP LOGIC:
-                if success and cs_to_advance.status == "pending":
+                # If it's an interview stage (Order > 0) and it's pending, just make it active.
+                # BUT if it's Stage 0 (Resume Screening), ALWAYS advance immediately.
+                
+                is_stage_zero = False
+                if cs_to_advance.job_stage and cs_to_advance.job_stage.stage_order == 0:
+                    is_stage_zero = True
+
+                if success and cs_to_advance.status == "pending" and not is_stage_zero:
                     # Step 1: Resume Approval -> Make the stage "active" for interview
                     cs_to_advance.status = "active"
                     from datetime import datetime
@@ -202,7 +210,7 @@ class HRDecisionService:
                     
                     await db.commit()
                 else:
-                    # Step 2: Interview Approval (or Rejection) -> Advance to next stage
+                    # Step 2: Interview Approval (or Rejection) OR Stage 0 Approval -> Advance to next stage
                     from app.v1.services.candidate_stage_service import candidate_stage_service
                     await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_advance.id, success=success)
                     await db.commit()
@@ -216,21 +224,23 @@ class HRDecisionService:
                     from app.v1.services.candidate_stage_service import candidate_stage_service
                     await candidate_stage_service.initiate_candidate_pipeline(db, candidate_id, actual_job_id)
                     
-                    # Get the newly created first stage and mark it active
-                    first_stage_stmt = select(CandidateStage).join(JobStageConfig).where(JobStageConfig.job_id == actual_job_id, CandidateStage.candidate_id == candidate_id).order_by(JobStageConfig.stage_order.asc()).limit(1)
+                    # NEW: Since Resume Screening is now Stage 0, approving it should COMPLETE it 
+                    # and advance to the next stage (Stage 1 - HR Round)
+                    first_stage_stmt = select(CandidateStage).join(JobStageConfig).options(selectinload(CandidateStage.job_stage)).where(JobStageConfig.job_id == actual_job_id, CandidateStage.candidate_id == candidate_id).order_by(JobStageConfig.stage_order.asc()).limit(1)
                     first_stage = (await db.execute(first_stage_stmt)).scalar_one_or_none()
                     if first_stage:
-                        first_stage.status = "active"
-                        from datetime import datetime
-                        first_stage.started_at = datetime.utcnow()
+                        # Advance from Stage 0 to Stage 1 immediately
+                        await candidate_stage_service.advance_candidate(db, candidate_id, first_stage.id, success=True)
                         await db.commit()
-                        logger.info(f"Initiated pipeline for candidate {candidate_id} and marked first stage active")
+                        logger.info(f"Initiated pipeline and advanced from Stage 0 (Resume) for candidate {candidate_id}")
 
             # Trigger cross-match in background if rejected
             if decision_data.decision.lower() == "reject":
                 logger.info(f"Rejection detected. Triggering automatic cross-job discovery for candidate {candidate_id} from job context {actual_job_id}.")
                 _trigger_cross_match_for_candidate(candidate, job_id=actual_job_id)
 
+        # FINAL COMMIT: Save everything (decision + advancement) together
+        await db.commit()
         return HRDecisionResponse.model_validate(hr_decision)
 
     async def get_decision_history(
@@ -401,10 +411,11 @@ class HRDecisionService:
 
             cs_stmt = select(CandidateStage).where(CandidateStage.candidate_id == decision.candidate_id)
             if decision.stage_config_id:
-                cs_stmt = cs_stmt.where(CandidateStage.job_stage_id == decision.stage_config_id)
+                cs_stmt = cs_stmt.options(selectinload(CandidateStage.job_stage)).where(CandidateStage.job_stage_id == decision.stage_config_id)
             else:
                 cs_stmt = (
                     cs_stmt.join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
+                    .options(selectinload(CandidateStage.job_stage))
                     .where(JobStageConfig.job_id == actual_job_id)
                     .where(CandidateStage.status == "active")
                 )
