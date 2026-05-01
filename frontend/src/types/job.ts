@@ -1,5 +1,5 @@
 import type { JobStageConfig } from "@/types/stage";
-import type { JobPriorityRead } from "@/types/admin";
+import type { JobPositionRead, JobPriorityRead } from "@/types/admin";
 
 export interface JobDecisionSummary {
   job_id: string;
@@ -92,6 +92,8 @@ export interface Job {
   priority_start_date: string | null;
   priority_end_date: string | null;
   priority?: JobPriorityRead | null;
+  position_id: string;
+  position?: JobPositionRead | null;
 }
 
 /**

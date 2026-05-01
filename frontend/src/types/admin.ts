@@ -241,7 +241,8 @@ export interface JobCreate {
   skill_ids: string[];
   passing_threshold?: number;
   custom_extraction_fields?: string[];
-  priority_id?: string | null;
+  priority_id: string;
+  position_id: string;
   priority_start_date?: string | null;
   priority_end_date?: string | null;
 }
@@ -258,7 +259,8 @@ export interface JobUpdate {
   skill_ids?: string[];
   passing_threshold?: number;
   custom_extraction_fields?: string[];
-  priority_id?: string | null;
+  priority_id: string;
+  position_id: string;
   priority_start_date?: string | null;
   priority_end_date?: string | null;
 }
@@ -337,6 +339,48 @@ export interface JobPriorityRead {
   duration_days: number;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Payload for creating a new job priority.
+ */
+export interface JobPriorityCreate {
+  duration_days: number;
+}
+
+/**
+ * Payload for updating an existing job priority.
+ */
+export interface JobPriorityUpdate {
+  duration_days?: number;
+}
+
+/**
+ * Job Position Management Types
+ */
+
+/**
+ * Job position returned from read operations.
+ */
+export interface JobPositionRead {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Payload for creating a new job position.
+ */
+export interface JobPositionCreate {
+  name: string;
+}
+
+/**
+ * Payload for updating an existing job position.
+ */
+export interface JobPositionUpdate {
+  name?: string;
 }
 
 /**

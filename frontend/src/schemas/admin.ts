@@ -147,8 +147,10 @@ const jobBaseSchema = z.object({
   skill_ids: z.array(uuidSchema("Invalid skill ID")).min(1, "Please select at least one skill"),
   /** Optional custom extraction fields used during resume parsing */
   custom_extraction_fields: z.array(z.string()).optional(),
+  /** UUID of the job position */
+  position_id: uuidSchema("Please select a valid job position"),
   /** UUID of the job priority */
-  priority_id: z.string().uuid().or(z.literal("")).transform(val => val === "" ? undefined : val).optional(),
+  priority_id: uuidSchema("Please select a valid Priority"),
   /** Priority start date */
   priority_start_date: z.string().optional().nullable(),
   /** Priority end date */
@@ -181,6 +183,8 @@ export const jobUpdateSchema = jobBaseSchema.partial().extend({
   vacancy: z.number({ error: "Vacancy is required" }).int().min(1, "Vacancy must be at least 1").optional(),
   // skill_ids is still required to have at least 1 if provided
   skill_ids: z.array(uuidSchema("Invalid skill ID")).min(1, "Please select at least one skill").optional(),
+  position_id: uuidSchema("Please select a valid job position"),
+  priority_id: uuidSchema("Please select a valid priority"),
 });
 
 /** Type inferred from jobUpdateSchema. */
@@ -333,3 +337,26 @@ export const jobPriorityUpdateSchema = jobPriorityBaseSchema.partial();
 
 /** Type inferred from jobPriorityUpdateSchema. */
 export type JobPriorityUpdateFormValues = z.infer<typeof jobPriorityUpdateSchema>;
+
+// --- Job Position Schemas ---
+
+const jobPositionBaseSchema = z.object({
+  /** Name of the position (minimum 2 characters) */
+  name: nameSchema(2, "Position name"),
+});
+
+/**
+ * Schema for creating a new job position.
+ */
+export const jobPositionCreateSchema = jobPositionBaseSchema;
+
+/** Type inferred from jobPositionCreateSchema. */
+export type JobPositionCreateFormValues = z.infer<typeof jobPositionCreateSchema>;
+
+/**
+ * Schema for updating an existing job position.
+ */
+export const jobPositionUpdateSchema = jobPositionBaseSchema.partial();
+
+/** Type inferred from jobPositionUpdateSchema. */
+export type JobPositionUpdateFormValues = z.infer<typeof jobPositionUpdateSchema>;

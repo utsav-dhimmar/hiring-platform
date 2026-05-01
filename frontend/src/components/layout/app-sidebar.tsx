@@ -151,6 +151,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: "Criteria",
           url: "/dashboard/admin/criteria-stages/criteria",
           permission: PERMISSIONS.ADMIN_ALL, // TODO: adjust as per backend API
+        }, {
+          title: "Positions",
+          url: "/dashboard/admin/criteria-stages/positions",
+          permission: PERMISSIONS.ADMIN_ACCESS,
         },
       ],
     },

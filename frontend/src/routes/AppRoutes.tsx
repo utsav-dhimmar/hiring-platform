@@ -41,6 +41,7 @@ const AdminJobCriteriaForm = lazy(() => import("@/pages/Admin/AdminJobCriteriaFo
 const AdminJobStageForm = lazy(() => import("@/pages/Admin/AdminJobStageForm"));
 const AdminJobPriorities = lazy(() => import("@/pages/Admin/settings/AdminJobPriorities"));
 const AdminPrompts = lazy(() => import("@/pages/Admin/settings/AdminPrompts"));
+const AdminJobPositions = lazy(() => import("@/pages/Admin/AdminJobPositions"));
 
 /**
  * Main routing component for the application.
@@ -252,6 +253,7 @@ const AppRoutes = () => {
               <Route path="stages" element={<AdminJobStages />} />
               <Route path="stages/new" element={<AdminJobStageForm />} />
               <Route path="stages/:slug/edit" element={<AdminJobStageForm />} />
+              <Route path="positions" element={<AdminJobPositions />} />
             </Route>
             <Route
               path="settings/priorities"

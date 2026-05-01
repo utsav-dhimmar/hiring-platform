@@ -22,7 +22,8 @@ import {
 import jobService from "@/apis/job";
 import { adminDepartmentService } from "@/apis/admin/department";
 import { adminJobPriorityService } from "@/apis/admin/jobPriority";
-import type { DepartmentRead, JobPriorityRead, SkillBase } from "@/types/admin";
+import { adminJobPositionService } from "@/apis/admin/jobPosition";
+import type { DepartmentRead, JobPriorityRead, JobPositionRead, SkillBase } from "@/types/admin";
 import { slugify } from "@/utils/slug";
 import { jobCreateSchema, type JobCreateFormValues } from "@/schemas/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
@@ -38,6 +39,7 @@ export default function CreateJob() {
 
   const [departments, setDepartments] = useState<DepartmentRead[]>([]);
   const [priorities, setPriorities] = useState<JobPriorityRead[]>([]);
+  const [positions, setPositions] = useState<JobPositionRead[]>([]);
   const [jobSkills, setJobSkills] = useState<SkillBase[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -56,21 +58,24 @@ export default function CreateJob() {
       passing_threshold: DEFAULT_PASSING_THRESHOLD,
       custom_extraction_fields: [],
       priority_id: "",
+      position_id: "",
       stages: null,
     },
   });
   const fetchFormData = useCallback(async () => {
     try {
-      const [deptRes, priorityRes] = await Promise.all([
+      const [deptRes, priorityRes, positionRes] = await Promise.all([
         adminDepartmentService.getAllDepartments(),
         adminJobPriorityService.getAllPriorities(),
+        adminJobPositionService.getAllPositions(),
       ]);
       setDepartments(deptRes.data);
       setPriorities(priorityRes.data);
-      return { departments: deptRes.data, priorities: priorityRes.data };
+      setPositions(positionRes.data);
+      return { departments: deptRes.data, priorities: priorityRes.data, positions: positionRes.data };
     } catch (error) {
       console.error("Failed to fetch form data:", error);
-      toast.error("Failed to load departments or priorities.");
+      toast.error("Failed to load departments, priorities or positions.");
       return null;
     }
   }, []);
@@ -115,6 +120,7 @@ export default function CreateJob() {
                 passing_threshold: jobData.passing_threshold ?? DEFAULT_PASSING_THRESHOLD,
                 custom_extraction_fields: jobData.custom_extraction_fields || [],
                 priority_id: jobData.priority_id || "",
+                position_id: jobData.position_id || "",
               });
             }
           } catch (error) {
@@ -190,7 +196,7 @@ export default function CreateJob() {
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <BasicJobDetails departments={departments} priorities={priorities} />
+              <BasicJobDetails departments={departments} priorities={priorities} positions={positions} />
               <JobSettingsSection />
               <CustomFieldsSection />
               <SkillSelectorSection initialSelectedSkills={jobSkills} />

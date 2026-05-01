@@ -28,7 +28,8 @@ import {
   Layers,
   ListTodo,
   type LucideIcon,
-  ReceiptText
+  ReceiptText,
+  User
 } from "lucide-react";
 
 /**
@@ -57,6 +58,7 @@ const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   "criteria-stages": { label: "Job Config", icon: Settings },
   criteria: { label: "Job Criteria", icon: ListChecks },
   stages: { label: "Job Stages", icon: Layers },
+  positions: { label: "Job Positions", icon: User },
 };
 
 /**

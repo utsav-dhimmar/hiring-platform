@@ -14,16 +14,17 @@ import {
   SelectValue,
   Textarea,
 } from "@/components";
-import type { DepartmentRead, JobPriorityRead } from "@/types/admin";
+import type { DepartmentRead, JobPriorityRead, JobPositionRead } from "@/types/admin";
 import { Required } from "@/components/job-form/Required";
 import { addDays } from "date-fns";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 interface BasicJobDetailsProps {
   departments: DepartmentRead[];
   priorities?: JobPriorityRead[];
+  positions: JobPositionRead[];
 }
 
-export const BasicJobDetails = ({ departments, priorities = [] }: BasicJobDetailsProps) => {
+export const BasicJobDetails = ({ departments, priorities = [], positions }: BasicJobDetailsProps) => {
   const { control } = useFormContext();
 
   return (
@@ -114,6 +115,44 @@ export const BasicJobDetails = ({ departments, priorities = [] }: BasicJobDetail
         )}
       />
 
+      {/* Job Position */}
+      <FormField
+        control={control}
+        name="position_id"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-lg font-semibold text-foreground">
+              Job Position <Required />
+            </FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full">
+                  <SelectValue placeholder="Select job position" className="w-full">
+                    {
+                      positions.find(
+                        (pos) => pos.id === field.value,
+                      )?.name
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
+                {positions.map((pos) => (
+                  <SelectItem
+                    key={pos.id}
+                    value={pos.id}
+                    className="py-3 text-base font-medium w-full"
+                  >
+                    {pos.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
       {/* Priority */}
       <FormField
         control={control}
@@ -121,7 +160,7 @@ export const BasicJobDetails = ({ departments, priorities = [] }: BasicJobDetail
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-lg font-semibold text-foreground">
-              Job Priority
+              Job Priority <Required />
             </FormLabel>
             <Select onValueChange={field.onChange} value={field.value || ""}>
               <FormControl>
