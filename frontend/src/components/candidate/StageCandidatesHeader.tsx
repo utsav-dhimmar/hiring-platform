@@ -22,10 +22,11 @@ export const StageCandidatesHeader = ({
 }: StageCandidatesHeaderProps) => {
   return (
     <AppPageHeader
+      headingClassName="text-2xl sm:text-4xl capitalize"
       title={job?.title || "Loading..."}
       backAction={{ label: "Back to Candidates", onClick: onBack }}
       meta={
-        <span className="font-semibold text-blue-500">
+        <span className="font-semibold text-blue-500 capitalize">
           {job?.department_name || "Department"}
         </span>
       }

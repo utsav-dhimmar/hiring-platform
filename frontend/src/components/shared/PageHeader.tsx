@@ -27,7 +27,7 @@ const PageHeader = ({
       breadcrumbs={breadcrumbs}
       meta={meta}
       className={className}
-      headingClassName="text-2xl sm:text-4xl"
+      headingClassName="text-2xl sm:text-4xl capitalize"
     />
   );
 };

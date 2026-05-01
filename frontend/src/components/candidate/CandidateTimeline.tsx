@@ -63,6 +63,11 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
 
   if (events.length === 0) return null;
 
+  const firstRejectedIndex = events.findIndex(e => {
+    const r = e.result?.toLowerCase() || "";
+    return r.includes("fail") || r.includes("reject");
+  });
+
   return (
     <div className={cn("w-full py-2", className)}>
       <div className="px-4 mb-2 flex justify-between items-center">
@@ -81,8 +86,10 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
             const resultLower = event.result?.toLowerCase() || "";
             const isPassed = resultLower.includes("pass") || resultLower.includes("approve") || resultLower.includes("hired");
             const isRejected = resultLower.includes("fail") || resultLower.includes("reject");
-            const isCompleted = event.result !== null && event.result !== "Ongoing";
+            const isCompleted = event.result !== null && event.result !== "Ongoing" && !resultLower.includes("pending");
             const isOngoing = resultLower.includes("ongoing") || (!event.result && !isCompleted);
+            const isPending = resultLower.includes("pending") || isOngoing;
+            const isAfterRejection = firstRejectedIndex !== -1 && index > firstRejectedIndex;
 
             return (
               <React.Fragment key={index}>
@@ -92,7 +99,8 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                     "flex w-[180px] flex-col p-2.5 gap-1.5 shrink-0 border cursor-pointer hover:border-primary/50 transition-all",
                     isOngoing
                       ? "border-primary/40 bg-primary/5 shadow-[0_0_15px_rgba(59,130,246,0.1)] scale-[1.02]"
-                      : "border-muted-foreground/10 bg-card hover:bg-muted/30"
+                      : "border-muted-foreground/10 bg-card hover:bg-muted/30",
+                    isAfterRejection && "opacity-40 grayscale-[0.5]"
                   )}
                 >
                   <div className="flex justify-between items-center">
@@ -109,7 +117,7 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                       ) : isRejected ? (
                         <XCircle className="h-3.5 w-3.5 text-red-500" />
                       ) : (
-                        <Clock className="h-3.5 w-3.5 text-primary" />
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                       )}
                     </div>
                     <Badge
@@ -118,7 +126,8 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                         "text-[8px] h-4 px-1.5 uppercase font-black tracking-tighter border-0",
                         isDecision ? "bg-purple-500 text-white" :
                           isPassed ? "bg-green-500 text-white" :
-                            isRejected ? "bg-red-500 text-white" : "bg-primary text-white"
+                            isRejected ? "bg-red-600 text-white" :
+                              isPending ? "bg-slate-500 text-white" : "bg-primary text-white"
                       )}
                     >
                       {event.event_type}
@@ -126,16 +135,25 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                   </div>
 
                   <div className="space-y-0.5">
-                    <h4 className="font-black text-xs text-wrap line-clamp-1" title={event.title}>
+                    <h4 className={cn(
+                      "font-black text-xs text-wrap line-clamp-1",
+                      isPending ? "text-foreground" : "text-foreground/90"
+                    )} title={event.title}>
                       {event.title}
                     </h4>
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter flex items-center gap-1">
+                    <p className={cn(
+                      "text-xs font-bold uppercase tracking-tighter flex items-center gap-1",
+                      isPending ? "text-foreground/70" : "text-muted-foreground"
+                    )}>
                       <Calendar className="h-2.5 w-2.5" />
                       <DateDisplay date={new Date(event.event_date)} className="text-xs" />
                     </p>
                   </div>
 
-                  <p className="text-[11px] text-muted-foreground leading-tight line-clamp-2 whitespace-normal font-medium">
+                  <p className={cn(
+                    "text-[11px] leading-tight line-clamp-2 whitespace-normal font-medium",
+                    isPending ? "text-foreground" : "text-muted-foreground"
+                  )}>
                     {event.description || `No description for this ${event.event_type}.`}
                   </p>
 
@@ -145,7 +163,8 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                         <span className={cn(
                           "text-[10px] font-black uppercase tracking-tighter truncate",
                           isPassed ? "text-green-600" :
-                            isRejected ? "text-red-600" : "text-primary"
+                            isRejected ? "text-red-600" :
+                              isPending ? "text-foreground" : "text-primary"
                         )}>
                           {event.result}
                         </span>
