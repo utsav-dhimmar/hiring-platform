@@ -599,65 +599,69 @@ class AdminRepository:
                 }
             )
 
-        # 4. Pipeline Stats for Stacked Bar Chart
+        # 4. Optimized Pipeline Stats for Stacked Bar Chart
         from app.v1.db.models.candidate_stages import CandidateStage
         from app.v1.db.models.job_stage_configs import JobStageConfig
         from app.v1.db.models.stage_templates import StageTemplate
-        from app.v1.db.models.resume_version_results import ResumeVersionResult
 
-        job_pipeline_stats = []
-        for job in jobs:
-            pipeline_data = {
-                "job_id": job.id,
-                "job_name": job.title,
-                "stages": []
-            }
+        job_ids = [job.id for job in jobs]
+        job_names = [job.title for job in jobs]
 
-            # B. Count Resume Screening (Stage 0)
-            screening_success_count = await db.scalar(
-                select(func.count(func.distinct(CandidateStage.candidate_id)))
-                .join(JobStageConfig, JobStageConfig.id == CandidateStage.job_stage_id)
-                .where(JobStageConfig.job_id == job.id)
-            ) or 0
+        # A. Count Resume Screening (Stage 0) completions in bulk
+        screening_stmt = (
+            select(JobStageConfig.job_id, func.count(func.distinct(CandidateStage.candidate_id)))
+            .join(CandidateStage, JobStageConfig.id == CandidateStage.job_stage_id)
+            .where(JobStageConfig.job_id.in_(job_ids), JobStageConfig.stage_order == 0)
+            .group_by(JobStageConfig.job_id)
+        )
+        screening_res = await db.execute(screening_stmt)
+        screening_counts = {row[0]: row[1] for row in screening_res.all()}
 
-            if stage_name is None or stage_name.lower() == "resume screening":
-                pipeline_data["stages"].append({
-                    "stage_name": "Resume Screening",
-                    "order": 0,
-                    "count": screening_success_count
-                })
+        # B. Count Interview Stage completions in bulk
+        stage_stmt = (
+            select(JobStageConfig.job_id, StageTemplate.name, JobStageConfig.stage_order, func.count(CandidateStage.id))
+            .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+            .join(CandidateStage, CandidateStage.job_stage_id == JobStageConfig.id)
+            .where(JobStageConfig.job_id.in_(job_ids), CandidateStage.status == "completed")
+            .group_by(JobStageConfig.job_id, StageTemplate.name, JobStageConfig.stage_order)
+        )
+        stage_res = await db.execute(stage_stmt)
+        
+        # nested map: job_id -> stage_name -> count
+        stage_data_map = {}
+        for jid, s_name, s_order, count in stage_res.all():
+            if jid not in stage_data_map:
+                stage_data_map[jid] = {}
+            stage_data_map[jid][s_name] = count
 
-            # C. Count Interview Stage completions (status='completed')
-            stage_stmt = (
-                select(StageTemplate.name, JobStageConfig.stage_order, func.count(CandidateStage.id))
-                .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
-                .join(CandidateStage, CandidateStage.job_stage_id == JobStageConfig.id)
-                .where(JobStageConfig.job_id == job.id, CandidateStage.status == "completed")
-                .group_by(StageTemplate.name, JobStageConfig.stage_order)
-                .order_by(JobStageConfig.stage_order.asc())
-            )
-            stage_results = await db.execute(stage_stmt)
-            stage_counts = {row[1]: row[2] for row in stage_results.all()}
+        # C. Get All unique stage names across these jobs to build the final list
+        all_stages_stmt = (
+            select(StageTemplate.name, JobStageConfig.stage_order)
+            .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+            .where(JobStageConfig.job_id.in_(job_ids))
+            .distinct()
+            .order_by(JobStageConfig.stage_order.asc())
+        )
+        unique_stages = (await db.execute(all_stages_stmt)).all()
 
-            all_stages_stmt = (
-                select(StageTemplate.name, JobStageConfig.stage_order)
-                .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
-                .where(JobStageConfig.job_id == job.id)
-                .order_by(JobStageConfig.stage_order.asc())
-            )
-            all_stages_res = await db.execute(all_stages_stmt)
+        # D. Transform to requested format: [{stage: "N", Job1: C1, Job2: C2}, ..., {job_names: [...]}]
+        # We'll use a dictionary to ensure we have one entry per stage name
+        final_pipeline_stats = []
+        
+        for s_name, s_order in unique_stages:
+            if stage_name and stage_name.lower() != s_name.lower():
+                continue
+                
+            entry = {"stage": s_name}
+            for job in jobs:
+                if s_name == "Resume Screening":
+                    entry[job.title] = screening_counts.get(job.id, 0)
+                else:
+                    entry[job.title] = stage_data_map.get(job.id, {}).get(s_name, 0)
+            final_pipeline_stats.append(entry)
 
-            for s_name, s_order in all_stages_res.all():
-                if stage_name and stage_name.lower() != s_name.lower():
-                    continue
-                pipeline_data["stages"].append({
-                    "stage_name": s_name,
-                    "order": s_order,
-                    "count": stage_counts.get(s_order, 0)
-                })
-
-            if pipeline_data["stages"]:
-                job_pipeline_stats.append(pipeline_data)
+        # Add job_names metadata at the end as requested
+        final_pipeline_stats.append({"job_names": job_names})
 
         return {
             "total_jobs": total_jobs,
@@ -668,7 +672,7 @@ class AdminRepository:
             "total_pending": analytics["total_pending"],
             "total_unprocessed": analytics["total_unprocessed"],
             "candidates_by_job": candidates_by_job,
-            "job_pipeline_stats": job_pipeline_stats,
+            "job_pipeline_stats": final_pipeline_stats,
             "resumes_uploaded_last_30_days": resumes_last_30_days,
             "average_resume_score": float(avg_score) if avg_score else None,
             "hr_decided_count": hr_decided_count,
@@ -684,78 +688,70 @@ class AdminRepository:
     ) -> list[dict]:
         """
         Return pipeline stats filtered by job and/or stage.
-
-        - job_id: if provided, return stats for that job only.
-        - stage_name: if provided, return only the matching stage entry per job.
+        Uses optimized bulk queries and stage-oriented format.
         """
         from app.v1.db.models.candidate_stages import CandidateStage
         from app.v1.db.models.job_stage_configs import JobStageConfig
         from app.v1.db.models.stage_templates import StageTemplate
 
-        # 1. Load jobs (filtered if job_id given)
-        job_stmt = select(Job).where(Job.is_active == True)
+        # 1. Load jobs
+        job_stmt = select(Job).where(Job.is_active == True).order_by(Job.created_at.desc()).limit(20)
         if job_id:
             job_stmt = job_stmt.where(Job.id == job_id)
         jobs = (await db.execute(job_stmt)).scalars().all()
+        
+        if not jobs:
+            return []
 
+        job_ids = [job.id for job in jobs]
+        job_names = [job.title for job in jobs]
+
+        # 2. Bulk screening counts
+        screening_stmt = (
+            select(JobStageConfig.job_id, func.count(func.distinct(CandidateStage.candidate_id)))
+            .join(CandidateStage, JobStageConfig.id == CandidateStage.job_stage_id)
+            .where(JobStageConfig.job_id.in_(job_ids), JobStageConfig.stage_order == 0)
+            .group_by(JobStageConfig.job_id)
+        )
+        screening_counts = {row[0]: row[1] for row in (await db.execute(screening_stmt)).all()}
+
+        # 3. Bulk stage counts
+        stage_stmt = (
+            select(JobStageConfig.job_id, StageTemplate.name, func.count(CandidateStage.id))
+            .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+            .join(CandidateStage, CandidateStage.job_stage_id == JobStageConfig.id)
+            .where(JobStageConfig.job_id.in_(job_ids), CandidateStage.status == "completed")
+            .group_by(JobStageConfig.job_id, StageTemplate.name)
+        )
+        stage_data_map = {}
+        for jid, s_name, count in (await db.execute(stage_stmt)).all():
+            if jid not in stage_data_map: stage_data_map[jid] = {}
+            stage_data_map[jid][s_name] = count
+
+        # 4. Get unique stages
+        unique_stages_stmt = (
+            select(StageTemplate.name, JobStageConfig.stage_order)
+            .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
+            .where(JobStageConfig.job_id.in_(job_ids))
+            .distinct()
+            .order_by(JobStageConfig.stage_order.asc())
+        )
+        unique_stages = (await db.execute(unique_stages_stmt)).all()
+
+        # 5. Transform
         result = []
-        for job in jobs:
-            pipeline_data: dict = {
-                "job_id": job.id,
-                "job_name": job.title,
-                "stages": [],
-            }
-
-            # --- Resume Screening stage ---
-            screening_count = await db.scalar(
-                select(func.count(func.distinct(CandidateStage.candidate_id)))
-                .join(JobStageConfig, JobStageConfig.id == CandidateStage.job_stage_id)
-                .where(JobStageConfig.job_id == job.id)
-            ) or 0
-
-            if stage_name is None or stage_name.lower() == "resume screening":
-                pipeline_data["stages"].append({
-                    "stage_name": "Resume Screening",
-                    "order": 0,
-                    "count": screening_count,
-                })
-
-            # --- Interview stages (completed only) ---
-            completed_stmt = (
-                select(StageTemplate.name, JobStageConfig.stage_order, func.count(CandidateStage.id))
-                .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
-                .join(CandidateStage, CandidateStage.job_stage_id == JobStageConfig.id)
-                .where(
-                    JobStageConfig.job_id == job.id,
-                    CandidateStage.status == "completed",
-                )
-                .group_by(StageTemplate.name, JobStageConfig.stage_order)
-                .order_by(JobStageConfig.stage_order.asc())
-            )
-            stage_counts_map = {
-                row[1]: (row[0], row[2])
-                for row in (await db.execute(completed_stmt)).all()
-            }
-
-            all_stages_stmt = (
-                select(StageTemplate.name, JobStageConfig.stage_order)
-                .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
-                .where(JobStageConfig.job_id == job.id)
-                .order_by(JobStageConfig.stage_order.asc())
-            )
-            for s_name, s_order in (await db.execute(all_stages_stmt)).all():
-                if stage_name and stage_name.lower() != s_name.lower():
-                    continue
-                pipeline_data["stages"].append({
-                    "stage_name": s_name,
-                    "order": s_order,
-                    "count": stage_counts_map.get(s_order, (s_name, 0))[1],
-                })
-
-            # Only include job if it has matching stages
-            if pipeline_data["stages"]:
-                result.append(pipeline_data)
-
+        for s_name, s_order in unique_stages:
+            if stage_name and stage_name.lower() != s_name.lower():
+                continue
+            entry = {"stage": s_name}
+            for job in jobs:
+                if s_name == "Resume Screening":
+                    entry[job.title] = screening_counts.get(job.id, 0)
+                else:
+                    entry[job.title] = stage_data_map.get(job.id, {}).get(s_name, 0)
+            result.append(entry)
+        
+        result.append({"job_names": job_names})
         return result
 
 

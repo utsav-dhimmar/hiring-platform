@@ -53,5 +53,7 @@ class CandidateStageSummary(BaseModel):
     completed_at: datetime | None = None
     completed: bool = False
     result: Optional[str] = None
+    ai_result: Optional[str] = None
+    hr_decision: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

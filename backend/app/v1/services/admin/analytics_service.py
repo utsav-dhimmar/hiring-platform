@@ -67,19 +67,18 @@ class AnalyticsService:
         db: AsyncSession,
         job_id: uuid.UUID | None = None,
         stage_name: str | None = None,
-    ) -> list[JobPipelineStats]:
+    ) -> list[dict]:
         """
         Get pipeline stats filtered by job and/or stage.
 
         @param db - Database session
         @param job_id - Optional job UUID to filter to a single job
         @param stage_name - Optional stage name to filter results (case-insensitive)
-        @returns List of JobPipelineStats
+        @returns List of stage-based statistics with job names as keys
         """
-        data = await admin_repository.get_pipeline_stats(
+        return await admin_repository.get_pipeline_stats(
             db=db, job_id=job_id, stage_name=stage_name
         )
-        return [JobPipelineStats(**item) for item in data]
 
 
 analytics_service = AnalyticsService()

@@ -282,7 +282,7 @@ async def get_hiring_report(
     )
 
 
-@router.get("/pipeline-stats", response_model=list[JobPipelineStats])
+@router.get("/pipeline-stats", response_model=list[dict])
 async def get_pipeline_stats(
     job_id: uuid.UUID | None = Query(default=None, description="Filter by a specific job UUID"),
     stage_name: str | None = Query(default=None, description="Filter by stage name (e.g. 'HR Screening Round')"),

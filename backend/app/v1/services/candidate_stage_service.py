@@ -129,7 +129,7 @@ class CandidateStageService:
             next_cs = cs_res.scalars().first()
 
             if next_cs:
-                next_cs.status = "pending"
+                next_cs.status = "active"
                 next_cs.started_at = datetime.utcnow()
             else:
                 next_cs = CandidateStage(
