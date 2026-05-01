@@ -97,17 +97,6 @@ class HRDecisionService:
             candidate, "applied_job_id", None
         )
 
-        # If no stage_config_id provided, try to find the first stage of the job
-        if not stage_config_id and actual_job_id:
-            from app.v1.db.models.job_stage_configs import JobStageConfig
-            first_stage_stmt = (
-                select(JobStageConfig.id)
-                .where(JobStageConfig.job_id == actual_job_id)
-                .order_by(JobStageConfig.stage_order.asc())
-                .limit(1)
-            )
-            stage_config_id = (await db.execute(first_stage_stmt)).scalar()
-
         # Check "May Be" decision limit (only 1 per candidate per stage)
         if decision_data.decision == "May Be":
             query = select(func.count(HrDecision.id)).where(
@@ -116,30 +105,37 @@ class HRDecisionService:
             if stage_config_id:
                 query = query.where(HrDecision.stage_config_id == stage_config_id)
             elif actual_job_id:
-                query = query.where(HrDecision.job_id == actual_job_id)
+                query = query.where(HrDecision.job_id == actual_job_id, HrDecision.stage_config_id.is_(None))
 
             existing_may_be = await db.execute(query)
             may_be_count = existing_may_be.scalar() or 0
 
             if may_be_count >= 1:
+                stage_msg = f" for the current stage" if stage_config_id else " for resume screening"
                 raise ValueError(
-                    "Only one 'May Be' decision is allowed per candidate per stage."
+                    f"Only one 'May Be' decision is allowed per candidate{stage_msg}."
                 )
 
-        # Check "approve" decision limit (only 1 per candidate for THIS specific job)
+        # Check "approve" decision limit (only 1 per candidate per stage for THIS job)
         if decision_data.decision.lower() == "approve" and actual_job_id:
-            existing_approve = await db.execute(
-                select(func.count(HrDecision.id)).where(
-                    HrDecision.candidate_id == candidate_id,
-                    HrDecision.job_id == actual_job_id,
-                    func.lower(HrDecision.decision) == "approve",
-                )
+            query = select(func.count(HrDecision.id)).where(
+                HrDecision.candidate_id == candidate_id,
+                HrDecision.job_id == actual_job_id,
+                func.lower(HrDecision.decision) == "approve",
             )
+
+            if stage_config_id:
+                query = query.where(HrDecision.stage_config_id == stage_config_id)
+            else:
+                query = query.where(HrDecision.stage_config_id.is_(None))
+            
+            existing_approve = await db.execute(query)
             approve_count = existing_approve.scalar() or 0
 
             if approve_count >= 1:
+                stage_msg = f" for this stage" if stage_config_id else " for resume screening"
                 raise ValueError(
-                    "This candidate has already been approved for this specific job. "
+                    f"This candidate has already been approved{stage_msg}. "
                 )
 
         # Create the decision
@@ -163,62 +159,8 @@ class HRDecisionService:
 
         # Handle auto-rejection from other jobs if this one is approved (Global Email-based Exclusivity)
         if decision_data.decision.lower() == "approve" and actual_job_id:
-            try:
-                # 1. Find all candidate IDs associated with this candidate's email
-                all_ids_stmt = select(Candidate.id).where(Candidate.email == candidate.email)
-                all_ids_res = await db.execute(all_ids_stmt)
-                all_candidate_ids = [row[0] for row in all_ids_res.all()]
+            await self._handle_email_based_global_rejection(db, candidate.email, actual_job_id, user_id)
 
-                # 2. Find all unique jobs these IDs are linked to (Native or Cross-match)
-                all_linked_jobs = set()
-                
-                # Check native apps for all these IDs
-                for cid in all_candidate_ids:
-                    c_stmt = select(Candidate.applied_job_id).where(Candidate.id == cid)
-                    ajid = (await db.execute(c_stmt)).scalar()
-                    if ajid:
-                        all_linked_jobs.add(ajid)
-                    
-                    # Check cross-matches for all these IDs
-                    xm_res = await db.execute(
-                        select(CrossJobMatch.matched_job_id)
-                        .where(CrossJobMatch.candidate_id == cid)
-                    )
-                    for row in xm_res.all():
-                        if row[0]:
-                            all_linked_jobs.add(row[0])
-                
-                # 3. Remove the current job (the one we just approved)
-                all_linked_jobs.discard(actual_job_id)
-
-                if all_linked_jobs:
-                    for other_job_id in all_linked_jobs:
-                        # Reject ALL candidate records linked to this email from this OTHER job
-                        for cid in all_candidate_ids:
-                            # IMPORTANT: Check if there's already a decision for this candidate/job combo
-                            # If they are already rejected or approved manually, don't overwrite
-                            check_stmt = select(HrDecision.id).where(
-                                HrDecision.candidate_id == cid,
-                                HrDecision.job_id == other_job_id
-                            ).limit(1)
-                            if (await db.execute(check_stmt)).scalar():
-                                continue
-
-                            # Add a new "reject" as the latest status for this candidate/job combo
-                            auto_reject = HrDecision(
-                                candidate_id=cid,
-                                job_id=other_job_id,
-                                user_id=user_id,
-                                decision="reject",
-                                notes="Selected for another job"
-                            )
-                            db.add(auto_reject)
-                    
-                    await db.commit()
-                    logger.info(f"Global auto-reject for email {candidate.email}: Rejected from {len(all_linked_jobs)} other jobs.")
-            except Exception as e:
-                logger.error(f"Failed to global auto-reject candidate {candidate.email}: {e}")
-                # We don't raise here to avoid failing the main approval commit which already succeeded
         
         # Trigger stage advancement in the pipeline
         if decision_data.decision.lower() in ["approve", "reject"]:
@@ -230,11 +172,12 @@ class HRDecisionService:
             if stage_config_id:
                 cs_stmt = cs_stmt.where(CandidateStage.job_stage_id == stage_config_id)
             else:
-                # Fallback: Find the currently active stage for this job
+                # Fallback: Find the currently active or pending stage for this job
                 cs_stmt = (
                     cs_stmt.join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
                     .where(JobStageConfig.job_id == actual_job_id)
-                    .where(CandidateStage.status == "active")
+                    .where(CandidateStage.status.in_(["pending", "active"]))
+                    .order_by(JobStageConfig.stage_order.asc())
                 )
             
             cs_res = await db.execute(cs_stmt)
@@ -260,29 +203,28 @@ class HRDecisionService:
                     await db.commit()
                 else:
                     # Step 2: Interview Approval (or Rejection) -> Advance to next stage
+                    from app.v1.services.candidate_stage_service import candidate_stage_service
                     await candidate_stage_service.advance_candidate(db, candidate_id, cs_to_advance.id, success=success)
                     await db.commit()
+
             elif decision_data.decision.lower() == "approve":
-                # If no stage exists but they are approved, initiate the FIRST stage of the pipeline
-                first_stage_stmt = (
-                    select(JobStageConfig)
-                    .where(JobStageConfig.job_id == actual_job_id)
-                    .order_by(JobStageConfig.stage_order.asc())
-                    .limit(1)
-                )
-                first_stage_res = await db.execute(first_stage_stmt)
-                first_stage = first_stage_res.scalar_one_or_none()
+                # Only initiate pipeline if NO stages exist at all for this job
+                existing_stages_stmt = select(CandidateStage).join(JobStageConfig).where(JobStageConfig.job_id == actual_job_id, CandidateStage.candidate_id == candidate_id)
+                existing_stages = (await db.execute(existing_stages_stmt)).scalars().all()
                 
-                if first_stage:
-                    from app.v1.db.models.candidate_stages import CandidateStage
-                    new_cs = CandidateStage(
-                        candidate_id=candidate_id,
-                        job_stage_id=first_stage.id,
-                        status="active" # Start it as active
-                    )
-                    db.add(new_cs)
-                    await db.commit()
-                    logger.info(f"Initiated pipeline for candidate {candidate_id} at stage {first_stage.id}")
+                if not existing_stages:
+                    from app.v1.services.candidate_stage_service import candidate_stage_service
+                    await candidate_stage_service.initiate_candidate_pipeline(db, candidate_id, actual_job_id)
+                    
+                    # Get the newly created first stage and mark it active
+                    first_stage_stmt = select(CandidateStage).join(JobStageConfig).where(JobStageConfig.job_id == actual_job_id, CandidateStage.candidate_id == candidate_id).order_by(JobStageConfig.stage_order.asc()).limit(1)
+                    first_stage = (await db.execute(first_stage_stmt)).scalar_one_or_none()
+                    if first_stage:
+                        first_stage.status = "active"
+                        from datetime import datetime
+                        first_stage.started_at = datetime.utcnow()
+                        await db.commit()
+                        logger.info(f"Initiated pipeline for candidate {candidate_id} and marked first stage active")
 
             # Trigger cross-match in background if rejected
             if decision_data.decision.lower() == "reject":
@@ -402,25 +344,30 @@ class HRDecisionService:
                 raise ValueError(
                     "Only one 'May Be' decision is allowed per candidate per stage."
                 )
-        # Check "approve" decision limit if updating to "approve" (scoped to specific job)
+        # Check "approve" decision limit (only 1 per candidate per stage for THIS job)
         if (
             decision_data.decision.lower() == "approve"
             and decision.decision.lower() != "approve"
             and actual_job_id
         ):
-            existing_approve = await db.execute(
-                select(func.count(HrDecision.id)).where(
-                    HrDecision.candidate_id == decision.candidate_id,
-                    HrDecision.job_id == actual_job_id,
-                    func.lower(HrDecision.decision) == "approve",
-                    HrDecision.id != decision_id,
-                )
+            query = select(func.count(HrDecision.id)).where(
+                HrDecision.candidate_id == decision.candidate_id,
+                HrDecision.job_id == actual_job_id,
+                func.lower(HrDecision.decision) == "approve",
+                HrDecision.id != decision_id,
             )
+            
+            actual_stage_id = getattr(decision_data, "stage_config_id", None) or decision.stage_config_id
+            if actual_stage_id:
+                query = query.where(HrDecision.stage_config_id == actual_stage_id)
+
+            existing_approve = await db.execute(query)
             approve_count = existing_approve.scalar() or 0
 
             if approve_count >= 1:
+                stage_msg = f" for stage {actual_stage_id}" if actual_stage_id else ""
                 raise ValueError(
-                    "This candidate has already been approved for this specific job. "
+                    f"This candidate has already been approved for this job{stage_msg}. "
                 )
 
         # Update decision
@@ -835,5 +782,69 @@ class HRDecisionService:
         await db.flush()
 
 
+    async def _handle_email_based_global_rejection(
+        self,
+        db: AsyncSession,
+        email: str | None,
+        approved_job_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> None:
+        """Reject all candidate records associated with an email from all other jobs."""
+        if not email:
+            return
+
+        try:
+            # 1. Find all candidate IDs associated with this email
+            all_ids_stmt = select(Candidate.id).where(Candidate.email == email)
+            all_ids_res = await db.execute(all_ids_stmt)
+            all_candidate_ids = [row[0] for row in all_ids_res.all()]
+
+            # 2. Find all unique jobs these IDs are linked to (Native or Cross-match)
+            all_linked_jobs = set()
+            for cid in all_candidate_ids:
+                c_stmt = select(Candidate.applied_job_id).where(Candidate.id == cid)
+                ajid = (await db.execute(c_stmt)).scalar()
+                if ajid:
+                    all_linked_jobs.add(ajid)
+                
+                xm_res = await db.execute(
+                    select(CrossJobMatch.matched_job_id)
+                    .where(CrossJobMatch.candidate_id == cid)
+                )
+                for row in xm_res.all():
+                    if row[0]:
+                        all_linked_jobs.add(row[0])
+            
+            # 3. Remove the current job (the one we just approved)
+            all_linked_jobs.discard(approved_job_id)
+
+            if all_linked_jobs:
+                for other_job_id in all_linked_jobs:
+                    for cid in all_candidate_ids:
+                        # Check if there's already a decision
+                        check_stmt = select(HrDecision.id).where(
+                            HrDecision.candidate_id == cid,
+                            HrDecision.job_id == other_job_id
+                        ).limit(1)
+                        if (await db.execute(check_stmt)).scalar():
+                            continue
+
+                        # Add auto-reject
+                        auto_reject = HrDecision(
+                            candidate_id=cid,
+                            job_id=other_job_id,
+                            user_id=user_id,
+                            decision="reject",
+                            notes="Selected for another job"
+                        )
+                        db.add(auto_reject)
+                
+                await db.commit()
+                logger.info(f"Global auto-reject for email {email}: Rejected from {len(all_linked_jobs)} other jobs.")
+        except Exception as e:
+            logger.error(f"Failed to global auto-reject candidate {email}: {e}")
+
+
 # Create service instance
 hr_decision_service = HRDecisionService()
+
