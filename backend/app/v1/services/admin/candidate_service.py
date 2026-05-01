@@ -739,13 +739,12 @@ class CandidateAdminService:
                     "created_at": eval_obj.created_at.isoformat() if eval_obj.created_at else None,
                 }
                 
-                # Only include detailed AI insights for non-HR rounds
-                if not is_hr_round:
-                    metadata["evaluation_data"] = eval_obj.structured_evaluation_data
-                    metadata["highlights"] = eval_obj.highlights
-                    metadata["sim_jd_resume"] = float(eval_obj.sim_jd_resume) if eval_obj.sim_jd_resume is not None else signals.get("profile_fit", 0.0)
-                    metadata["sim_jd_transcript"] = float(eval_obj.sim_jd_transcript) if eval_obj.sim_jd_transcript is not None else signals.get("tech_alignment", 0.0)
-                    metadata["sim_resume_transcript"] = float(eval_obj.sim_resume_transcript) if eval_obj.sim_resume_transcript is not None else signals.get("consistency", 0.0)
+                # Include detailed AI insights for all interview rounds
+                metadata["evaluation_data"] = eval_obj.structured_evaluation_data
+                metadata["highlights"] = eval_obj.highlights
+                metadata["sim_jd_resume"] = float(eval_obj.sim_jd_resume) if eval_obj.sim_jd_resume is not None else signals.get("profile_fit", 0.0)
+                metadata["sim_jd_transcript"] = float(eval_obj.sim_jd_transcript) if eval_obj.sim_jd_transcript is not None else signals.get("tech_alignment", 0.0)
+                metadata["sim_resume_transcript"] = float(eval_obj.sim_resume_transcript) if eval_obj.sim_resume_transcript is not None else signals.get("consistency", 0.0)
             else:
                 result = {
                     "completed": "passed",
@@ -781,7 +780,7 @@ class CandidateAdminService:
                 "stage_id": stage.id,
                 "stage_name": title,
                 "job_id": stage.job_stage.job_id,
-                "stage_order": stage.job_stage.stage_order if stage.job_stage else 0,
+                "stage_order": (stage.job_stage.stage_order if stage.job_stage else 0) + 1, # Shift by 1: Resume Screening is Stage 1
                 "metadata": metadata
             }
             
@@ -813,60 +812,33 @@ class CandidateAdminService:
                 continue
             seen_job_screenings.add(r_res.job_id)
             
-            # 🌟 CONSOLIDATION MAGIC: Check if we have a stage to merge into
-            target_stage_key = first_stage_per_job.get(r_res.job_id)
+            # Treat Resume Screening as its own standalone event (not merged into HR)
+            event_key = f"screening_{r_res.id}"
             
-            if target_stage_key and target_stage_key in events_map:
-                # Merge into existing stage
-                ev = events_map[target_stage_key]
-                if "AI matched resume" not in ev["description"]:
-                    ev["description"] = f"AI matched resume. {ev['description']}"
-                
-                # Merge metadata
-                if not ev["metadata"] or not isinstance(ev["metadata"], dict):
-                    ev["metadata"] = {}
-                
-                # Add Resume Screening data directly to metadata
-                ev["metadata"].update(r_res.analysis_data or {})
-                resume_score_val = float(r_res.resume_score) if r_res.resume_score is not None else None
-                ev["metadata"]["resume_score"] = resume_score_val
-                
-                # For HR Screening, specifically suppress detailed interview criteria and clarify scores
-                if "hr screening" in ev["title"].lower():
-                    if "evaluation_data" in ev["metadata"]:
-                        del ev["metadata"]["evaluation_data"]
-                    
-                    # Rename interview score for clarity if it exists
-                    if "overall_score" in ev["metadata"]:
-                        ev["metadata"]["interview_score"] = ev["metadata"].pop("overall_score")
-                    
-                    # 🌟 IMPORTANT: Prioritize Resume Match Score as the primary 'Screening' score
-                    if resume_score_val is not None:
-                        ev["score"] = resume_score_val
-                else:
-                    # If stage has no score, use resume score as fallback
-                    if ev.get("score") is None:
-                        ev["score"] = resume_score_val
-                
-                # Use analysis date if earlier than stage start (usually is)
-                if r_res.analyzed_at and r_res.analyzed_at < ev["event_date"]:
-                    ev["event_date"] = r_res.analyzed_at
-            else:
-                # Add as standalone event if no stage found
-                event_key = f"screening_{r_res.id}"
-                events_map[event_key] = {
-                    "event_type": "screening",
-                    "event_date": r_res.analyzed_at or created_at_fallback,
-                    "title": "Resume Screening",
-                    "description": f"AI matched resume against {r_res.job.title if r_res.job else 'job'}",
-                    "result": r_res.pass_fail,
-                    "score": float(r_res.resume_score) if r_res.resume_score is not None else None,
-                    "job_id": r_res.job_id,
-                    "stage_id": None,
-                    "stage_name": "Resume Screening",
-                    "stage_order": 0,
-                    "metadata": r_res.analysis_data
-                }
+            # Map analysis data
+            metadata = {
+                "id": str(r_res.id),
+                "job_id": str(r_res.job_id),
+                "match_percentage": r_res.resume_score,
+                "resume_score": r_res.resume_score,
+                "analyzed_at": r_res.analyzed_at.isoformat() if r_res.analyzed_at else None,
+            }
+            if r_res.analysis_data:
+                metadata.update(r_res.analysis_data)
+            
+            events_map[event_key] = {
+                "event_type": "screening",
+                "event_date": r_res.analyzed_at,
+                "title": "Resume Screening",
+                "description": f"AI matched resume against {r_res.job.title if r_res.job else 'job'}",
+                "result": r_res.pass_fail or "completed",
+                "score": float(r_res.resume_score) if r_res.resume_score is not None else None,
+                "stage_id": None,
+                "stage_name": "Resume Screening",
+                "job_id": r_res.job_id,
+                "metadata": metadata,
+                "stage_order": 1, # Resume Screening is now officially Stage 1
+            }
 
         # 3. Fetch HR Decisions and enrich stages
         decision_stmt = select(HrDecision).where(HrDecision.candidate_id == candidate_id).options(
