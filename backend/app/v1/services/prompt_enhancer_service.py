@@ -3,6 +3,8 @@ import openai
 import json
 from app.v1.core.config import settings
 
+from app.v1.prompts import PROMPT_ENHANCER_SYSTEM_PROMPT, PROMPT_ENHANCER_USER_PROMPT_TEMPLATE
+
 logger = logging.getLogger(__name__)
 
 class PromptEnhancerService:
@@ -21,25 +23,12 @@ class PromptEnhancerService:
         """
         Enhances the prompt using the same OpenAI client pattern used in evaluation/agent.py.
         """
-        system_prompt = "You are an expert HR and Technical Interviewer."
-        user_prompt = f"""
-        Generate a professional evaluation rubric for the following hiring criterion:
-        
-        Name: {name}
-        Initial Description: {rough_description}
-
-        Format Requirements:
-        1. Start with exactly: "Evaluate the candidate's {name.lower()}."
-        2. Add a section: "Consider: [3-4 key technical or behavioral points to check]"
-        3. Provide a section: "Scoring rubric:"
-        - 1: [Specific behavior for very poor performance]
-        - 2: [Specific behavior for below average]
-        - 3: [Specific behavior for acceptable/meets expectations]
-        - 4: [Specific behavior for strong/above average]
-        - 5: [Specific behavior for exceptional mastery]
-
-        Return ONLY the formatted text.
-        """
+        system_prompt = PROMPT_ENHANCER_SYSTEM_PROMPT
+        user_prompt = PROMPT_ENHANCER_USER_PROMPT_TEMPLATE.format(
+            name=name,
+            rough_description=rough_description,
+            name_lower=name.lower()
+        )
         
         try:
             response = await self.client.chat.completions.create(

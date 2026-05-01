@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.v1.db.models.user import User
     from app.v1.db.models.job_versions import JobVersion
     from app.v1.db.models.job_priorities import JobPriority
+    from app.v1.db.models.job_positions import JobPosition
 
 from app.v1.db.models.job_skills import job_skills
 from app.v1.utils.uuid import UUIDHelper

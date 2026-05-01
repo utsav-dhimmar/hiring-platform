@@ -19,6 +19,10 @@ async def setup_job_positions():
                 )
             """))
             
+            # Ensure defaults exist if table was created without them
+            await db.execute(text("ALTER TABLE job_positions ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP"))
+            await db.execute(text("ALTER TABLE job_positions ALTER COLUMN updated_at SET DEFAULT CURRENT_TIMESTAMP"))
+            
             # 2. Add position_id to jobs
             await db.execute(text("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS position_id UUID REFERENCES job_positions(id) ON DELETE SET NULL"))
             
@@ -28,7 +32,7 @@ async def setup_job_positions():
                 check_stmt = text("SELECT id FROM job_positions WHERE name = :name")
                 exists = (await db.execute(check_stmt, {"name": name})).scalar()
                 if not exists:
-                    insert_stmt = text("INSERT INTO job_positions (id, name) VALUES (:id, :name)")
+                    insert_stmt = text("INSERT INTO job_positions (id, name, created_at, updated_at) VALUES (:id, :name, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)")
                     await db.execute(insert_stmt, {"id": UUIDHelper.generate_uuid7(), "name": name})
             
             await db.commit()

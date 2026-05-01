@@ -45,6 +45,10 @@ from app.v1.prompts import (
     JD_INSTRUCTION,
     RESUME_INSTRUCTION,
     SKILL_INSTRUCTION,
+    EVALUATION_SYSTEM_PROMPT,
+    EVALUATION_USER_PROMPT_TEMPLATE,
+    PROMPT_ENHANCER_SYSTEM_PROMPT,
+    PROMPT_ENHANCER_USER_PROMPT_TEMPLATE,
 )
 from app.v1.services.admin_service import admin_service
 from app.v1.services.stage_service import stage_service
@@ -387,6 +391,26 @@ async def get_active_prompts(
             "name": "Skill Extraction Instruction",
             "content": SKILL_INSTRUCTION,
             "stage": "Resume Screening",
+        },
+        {
+            "name": "Interview Evaluation System Prompt",
+            "content": EVALUATION_SYSTEM_PROMPT,
+            "stage": "Interview Evaluation",
+        },
+        {
+            "name": "Interview Evaluation User Prompt Template",
+            "content": EVALUATION_USER_PROMPT_TEMPLATE,
+            "stage": "Interview Evaluation",
+        },
+        {
+            "name": "Prompt Enhancer System Prompt",
+            "content": PROMPT_ENHANCER_SYSTEM_PROMPT,
+            "stage": "System Utility",
+        },
+        {
+            "name": "Prompt Enhancer User Prompt Template",
+            "content": PROMPT_ENHANCER_USER_PROMPT_TEMPLATE,
+            "stage": "System Utility",
         },
     ]
 
