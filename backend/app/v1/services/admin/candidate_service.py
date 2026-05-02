@@ -832,6 +832,10 @@ class CandidateAdminService:
                 metadata["sim_jd_resume"] = float(eval_obj.sim_jd_resume) if eval_obj.sim_jd_resume is not None else signals.get("profile_fit", 0.0)
                 metadata["sim_jd_transcript"] = float(eval_obj.sim_jd_transcript) if eval_obj.sim_jd_transcript is not None else signals.get("tech_alignment", 0.0)
                 metadata["sim_resume_transcript"] = float(eval_obj.sim_resume_transcript) if eval_obj.sim_resume_transcript is not None else signals.get("consistency", 0.0)
+                
+                # Add status flags to metadata
+                metadata["ai_result"] = result
+                metadata["hr_decision"] = None
             else:
                 result = {
                     "completed": "passed",
@@ -863,6 +867,8 @@ class CandidateAdminService:
                 "title": title,
                 "description": f"Candidate was in {title}",
                 "result": result,
+                "ai_result": result,
+                "hr_decision": None,
                 "score": float(score) if score is not None else None,
                 "stage_id": stage.id,
                 "stage_name": title,
@@ -913,12 +919,18 @@ class CandidateAdminService:
             if r_res.analysis_data:
                 metadata.update(r_res.analysis_data)
             
+            # Add status flags to metadata
+            metadata["ai_result"] = r_res.pass_fail or "completed"
+            metadata["hr_decision"] = None
+            
             events_map[event_key] = {
                 "event_type": "screening",
                 "event_date": r_res.analyzed_at,
                 "title": "Resume Screening",
                 "description": f"AI matched resume against {r_res.job.title if r_res.job else 'job'}",
                 "result": r_res.pass_fail or "completed",
+                "ai_result": r_res.pass_fail or "completed",
+                "hr_decision": None,
                 "score": float(r_res.resume_score) if r_res.resume_score is not None else None,
                 "stage_id": None,
                 "stage_name": "Resume Screening",
@@ -934,22 +946,44 @@ class CandidateAdminService:
         if job_id:
             decision_stmt = decision_stmt.where(HrDecision.job_id == job_id)
         
-        decisions = (await db.execute(decision_stmt)).scalars().all()
-
+        decisions = (await db.execute(decision_stmt.order_by(HrDecision.decided_at.asc()))).scalars().all()
+        
         for dec in decisions:
             candidate_stage_id = config_to_candidate_stage_map.get(dec.stage_config_id)
             stage_key = f"stage_{candidate_stage_id}" if candidate_stage_id else None
             
+            # Find associated events (could be a 'stage' event or a 'screening' event)
+            targets = []
             if stage_key and stage_key in events_map:
-                ev = events_map[stage_key]
-                ev["result"] = dec.decision
+                targets.append(events_map[stage_key])
+            
+            # If this is a Stage 0 (Screening) decision, also apply it to any 'screening' events for this job
+            # Stage 0 can be identified by stage_order == 0 OR by stage_config_id being NULL (legacy)
+            is_screening_decision = (
+                (dec.stage_config and dec.stage_config.stage_order == 0) or 
+                (dec.stage_config_id is None)
+            )
+            if is_screening_decision:
+                for ev in events_map.values():
+                    if ev["event_type"] == "screening" and ev["job_id"] == dec.job_id:
+                        targets.append(ev)
+
+            for ev in targets:
+                ev["hr_decision"] = dec.decision
+                ev["result"] = dec.decision # HR decision overrides for the 'final' result
+                
+                # Sync metadata
+                if "metadata" in ev and isinstance(ev["metadata"], dict):
+                    ev["metadata"]["hr_decision"] = dec.decision
+                    ev["metadata"]["result"] = dec.decision
+                
                 if dec.notes:
-                    ev["description"] = f"{ev['description']}. HR Notes: {dec.notes}"
-                # Use decision date as the event date if it's the latest thing that happened in this stage
+                    if dec.notes not in (ev["description"] or ""):
+                        ev["description"] = f"{ev['description']}. HR Notes: {dec.notes}"
+                
+                # Use decision date as the event date if it's the latest thing that happened
                 dec_at = dec.decided_at
                 ev_at = ev.get("event_date")
-                
-                # Handle None comparison: if ev_at is None, dec_at is definitely newer
                 if dec_at and (ev_at is None or dec_at > ev_at):
                     ev["event_date"] = dec_at
 

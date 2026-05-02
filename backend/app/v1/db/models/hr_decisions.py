@@ -6,8 +6,14 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
+from typing import TYPE_CHECKING
 from app.v1.db.base_class import Base
 from app.v1.utils.uuid import UUIDHelper
+
+if TYPE_CHECKING:
+    from app.v1.db.models.candidates import Candidate
+    from app.v1.db.models.job_stage_configs import JobStageConfig
+    from app.v1.db.models.users import User
 
 
 class HrDecision(Base):
@@ -78,5 +84,14 @@ class HrDecision(Base):
 
     # RELATIONSHIPS
     candidate: Mapped["Candidate"] = relationship("Candidate", back_populates="hr_decisions", foreign_keys=[candidate_id])
-    stage_config = relationship("JobStageConfig", foreign_keys=[stage_config_id])
-    user = relationship("User", foreign_keys=[user_id])
+    stage_config: Mapped["JobStageConfig"] = relationship("JobStageConfig", foreign_keys=[stage_config_id])
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+
+    @property
+    def stage_name(self) -> str:
+        """Returns the human-readable name of the stage this decision belongs to."""
+        if self.stage_config and self.stage_config.template:
+            return self.stage_config.template.name
+        
+        # If no stage_config_id, it's the initial Resume Screening phase
+        return "Resume Screening"
