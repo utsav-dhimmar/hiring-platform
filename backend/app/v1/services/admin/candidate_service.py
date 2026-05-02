@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import uuid
 
-from sqlalchemy import func, or_, select, and_
+from sqlalchemy import func, or_, select, and_, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -32,6 +32,8 @@ class CandidateAdminService:
         jd_version: int | None = None,
         start_date: datetime | None = None,
         end_date: datetime | None = None,
+        candidate_id: uuid.UUID | None = None,
+        stage_id: uuid.UUID | None = None,
     ) -> PaginatedData[CandidateResponse]:
         from app.v1.db.models.cross_job_matches import CrossJobMatch
 
@@ -48,6 +50,24 @@ class CandidateAdminService:
             dir_filter = and_(dir_filter, Candidate.created_at >= start_date)
         if end_date:
             dir_filter = and_(dir_filter, Candidate.created_at <= end_date)
+
+        if candidate_id:
+            dir_filter = and_(dir_filter, Candidate.id == candidate_id)
+
+        if stage_id:
+            dir_filter = and_(
+                dir_filter,
+                exists().where(
+                    and_(
+                        CandidateStage.candidate_id == Candidate.id,
+                        or_(
+                            CandidateStage.id == stage_id,
+                            CandidateStage.job_stage_id == stage_id
+                        ),
+                        CandidateStage.status.in_(["active", "completed", "pending", "failed"])
+                    )
+                ).correlate(Candidate)
+            )
 
         dir_stmt = select(Candidate).where(dir_filter)
 
@@ -90,6 +110,24 @@ class CandidateAdminService:
         if end_date:
             xm_filter = and_(xm_filter, CrossJobMatch.created_at <= end_date)
 
+        if candidate_id:
+            xm_filter = and_(xm_filter, CrossJobMatch.candidate_id == candidate_id)
+        
+        if stage_id:
+            xm_filter = and_(
+                xm_filter,
+                exists().where(
+                    and_(
+                        CandidateStage.candidate_id == CrossJobMatch.candidate_id,
+                        or_(
+                            CandidateStage.id == stage_id,
+                            CandidateStage.job_stage_id == stage_id
+                        ),
+                        CandidateStage.status.in_(["active", "completed", "pending", "failed"])
+                    )
+                ).correlate(CrossJobMatch)
+            )
+
         xm_stmt = (
             select(CrossJobMatch)
             .where(xm_filter)
@@ -115,7 +153,7 @@ class CandidateAdminService:
         seen_emails = set()
         
         for c in direct_candidates:
-            responses.append(self._map_candidate_to_response(c, target_job_id=job_id))
+            responses.append(self._map_candidate_to_response(c, target_job_id=job_id, focus_stage_id=stage_id))
             seen_candidate_ids.add(c.id)
             if c.email:
                 seen_emails.add(c.email.lower().strip())
@@ -138,7 +176,7 @@ class CandidateAdminService:
                 seen_emails.add(cand_email)
 
             # Map candidate normally
-            resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id)
+            resp = self._map_candidate_to_response(xm.candidate, target_job_id=job_id, focus_stage_id=stage_id)
 
             # Apply hr_decision filter in-memory for cross-matches if needed
             if hr_decision:
@@ -318,7 +356,7 @@ class CandidateAdminService:
         )
 
     def _map_candidate_to_response(
-        self, candidate: Candidate, target_job_id: uuid.UUID | None = None
+        self, candidate: Candidate, target_job_id: uuid.UUID | None = None, focus_stage_id: uuid.UUID | None = None
     ) -> CandidateResponse:
         """Helper to map Candidate model to CandidateResponse schema."""
         resumes = getattr(candidate, "resumes", [])
@@ -537,6 +575,7 @@ class CandidateAdminService:
 
             return CandidateStageSummary(
                 stage_id=cs.id,
+                job_stage_id=cs.job_stage_id,
                 template_name=cs.job_stage.template.name if cs.job_stage and cs.job_stage.template else "Unknown",
                 status=response_status,
                 order=cs.job_stage.stage_order if cs.job_stage else 0,
@@ -546,24 +585,44 @@ class CandidateAdminService:
                 completed=is_finished,
                 result=result_val,
                 ai_result=ai_result_val,
-                hr_decision=hr_decision_val
+                hr_decision=hr_decision_val,
+                evaluation_data=cs.evaluation_data
             )
 
         sorted_stages = sorted(candidate_stages, key=lambda x: x.job_stage.stage_order if x.job_stage else 0)
         pipeline = [_map_stage(cs) for cs in sorted_stages]
         
+        # If focus_stage_id is provided, filter the pipeline to ONLY that stage
+        if focus_stage_id:
+            # Cast both to string for safer comparison across different UUID implementations/versions
+            focus_str = str(focus_stage_id).lower()
+            
+            # 1. First pass: try to find the specific candidate stage instance by its ID
+            filtered_pipeline = [s for s in pipeline if str(s.stage_id).lower() == focus_str]
+            
+            # 2. Second pass: if no instance ID matches, assume focus_stage_id is a JobStageConfig ID (most common case)
+            if not filtered_pipeline:
+                filtered_pipeline = [_map_stage(cs) for cs in sorted_stages if str(cs.job_stage_id).lower() == focus_str]
+            
+            # Update the pipeline with the filtered result
+            if filtered_pipeline:
+                pipeline = filtered_pipeline
+
         current_stage = None
-        for cs in candidate_stages:
-            if cs.status == "active":
-                current_stage = _map_stage(cs)
-                break
-        
-        if not current_stage and pipeline:
-            non_pending_stages = [s for s in pipeline if s.status != "pending"]
-            if non_pending_stages:
-                current_stage = non_pending_stages[-1]
-            else:
-                current_stage = pipeline[0]
+        if focus_stage_id and pipeline:
+            current_stage = pipeline[0]
+        else:
+            for cs in candidate_stages:
+                if cs.status == "active":
+                    current_stage = _map_stage(cs)
+                    break
+            
+            if not current_stage and pipeline:
+                non_pending_stages = [s for s in pipeline if s.status != "pending"]
+                if non_pending_stages:
+                    current_stage = non_pending_stages[-1]
+                else:
+                    current_stage = pipeline[0]
 
         # Job Context Overrides
         mapping_job_id = effective_filter_job_id
@@ -587,6 +646,18 @@ class CandidateAdminService:
             if not val: return val
             return val.strip().title()
 
+        # Smart Pruning: 
+        # 1. If looking at an Interview Stage (Any stage after the first one), hide resume screening data.
+        # 2. If looking at the First Stage (Screening) or no filter, show it.
+        # Note: We calculate min_order from ALL candidate stages, not just the filtered pipeline.
+        is_interview_focus = False
+        if focus_stage_id and current_stage and candidate_stages:
+            global_min_order = min((cs.job_stage.stage_order if cs.job_stage else 0) for cs in candidate_stages)
+            if current_stage.order > global_min_order:
+                is_interview_focus = True
+        
+        is_focused = focus_stage_id is not None
+        
         return CandidateResponse(
             id=candidate.id,
             first_name=_title(candidate.first_name),
@@ -604,14 +675,14 @@ class CandidateAdminService:
             is_cross_match=is_cross_match,
             resume_id=latest_resume.id if latest_resume else None,
             created_at=candidate.created_at,
-            resume_analysis=analysis,
+            resume_analysis=analysis if not is_interview_focus else None,
             resume_score=resume_score,
             pass_fail=pass_fail,
             is_parsed=is_parsed,
             processing_status=processing_status,
             processing_error=processing_error,
             hr_decision=status,
-            version_results=version_results,
+            version_results=version_results if not is_focused else [],
             current_stage=current_stage,
             pipeline=pipeline,
         )

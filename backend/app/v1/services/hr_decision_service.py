@@ -81,7 +81,18 @@ class HRDecisionService:
         user_id: uuid.UUID,
         stage_config_id: uuid.UUID | None = None,
     ) -> HRDecisionResponse:
-        """Create a new HR decision with validation."""
+        """Create a new HR decision with validation.
+        
+        Note: If stage_config_id is actually a CandidateStage.id, it will be automatically
+        resolved to the correct JobStageConfig.id.
+        """
+        
+        # Smart ID Resolution: if they passed a CandidateStage ID instead of a Config ID, fix it
+        if stage_config_id:
+            from app.v1.db.models.candidate_stages import CandidateStage
+            cs_check = await db.get(CandidateStage, stage_config_id)
+            if cs_check and cs_check.job_stage_id:
+                stage_config_id = cs_check.job_stage_id
 
         # Validate candidate exists (load resumes eagerly so cross-match can pick latest)
         candidate_result = await db.execute(
