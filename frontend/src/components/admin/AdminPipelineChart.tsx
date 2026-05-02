@@ -7,21 +7,11 @@ import {
 } from "@/components/ui/chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { JobPipelineStats } from "@/types/admin";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Briefcase, ChevronDown, Layers } from "lucide-react";
-import type { JobTitle } from "@/types/job";
 
 interface StageCentricChartProps {
   data: JobPipelineStats[];
-  selectedJobId: string
-  jobs: JobTitle[];
-  stages: { name: string }[]
-  selectedStageName: string
-  setSelectedJobId: (id: string) => void
-  setSelectedStageName: (name: string) => void
 }
-
 
 interface TooltipPayloadItem {
   name: string;
@@ -90,17 +80,11 @@ const CustomTooltipContent = ({ active, payload, label, activeKey }: CustomToolt
 
 /**
  * StageCentricChart component displays a stacked bar chart showing candidate distribution
- * across pipeline stages by job title. Includes dropdown filters for job and stage selection.
+ * across pipeline stages by job title.
  * @param data - Array of job pipeline statistics
- * @param selectedJobId - Currently selected job ID (or "all" for all jobs)
- * @param jobs - List of available job titles
- * @param stages - List of pipeline stages
- * @param selectedStageName - Currently selected stage name (or "all" for all stages)
- * @param setSelectedJobId - Callback to update selected job ID
- * @param setSelectedStageName - Callback to update selected stage name
- * @returns A card component containing the interactive bar chart with filters
+ * @returns A card component containing the interactive bar chart
  */
-export function StageCentricChart({ data, selectedJobId, jobs, stages, selectedStageName, setSelectedJobId, setSelectedStageName }: StageCentricChartProps) {
+export function StageCentricChart({ data }: StageCentricChartProps) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   // Extract job names from the last element and filter chart data
   const { chartData, jobNames } = useMemo(() => {
@@ -148,98 +132,12 @@ export function StageCentricChart({ data, selectedJobId, jobs, stages, selectedS
 
   return (
     <Card className="shadow-xs border-0">
-      <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <CardTitle>Pipeline Statistics</CardTitle>
-          <CardDescription>Candidate distribution across stages by job</CardDescription>
-        </div>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex flex-col sm:flex-row gap-2 ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
-                  selectedJobId !== "all"
-                    ? "border-primary/40 bg-primary/5 text-foreground"
-                    : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                )}
-              >
-                <Briefcase className="h-3.5 w-3.5 opacity-60" />
-                <span className="truncate max-w-[150px]">
-                  {selectedJobId === "all"
-                    ? "Jobs"
-                    : jobs.find((j) => j.id === selectedJobId)?.title || "Selected Job"}
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-auto" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[200px]">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Select Job</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={selectedJobId === "all"}
-                    onClick={() => setSelectedJobId("all")}
-                  >
-                    All Jobs
-                  </DropdownMenuCheckboxItem>
-                  {jobs &&
-                    jobs.map((job) => (
-                      <DropdownMenuCheckboxItem
-                        key={job.id}
-                        checked={selectedJobId === job.id}
-                        onClick={() => setSelectedJobId(job.id)}
-                        closeOnClick={true}
-                      >
-                        {job.title}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  "inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
-                  selectedStageName !== "all"
-                    ? "border-primary/40 bg-primary/5 text-foreground"
-                    : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                )}
-              >
-                <Layers className="h-3.5 w-3.5 opacity-60" />
-                <span className="truncate max-w-[150px]">
-                  {selectedStageName === "all" ? "Stages" : selectedStageName}
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-auto" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[200px]">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Select Stage</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={selectedStageName === "all"}
-                    onClick={() => setSelectedStageName("all")}
-                  >
-                    All Stages
-                  </DropdownMenuCheckboxItem>
-                  {stages?.map((stage) => (
-                    <DropdownMenuCheckboxItem
-                      key={stage.name}
-                      checked={selectedStageName === stage.name}
-                      onClick={() => setSelectedStageName(stage.name)}
-                      closeOnClick={true}
-                    >
-                      {stage.name}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+      <CardHeader>
+        <CardTitle>Pipeline Statistics</CardTitle>
+        <CardDescription>Candidate distribution across stages by job</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
+        <ChartContainer config={chartConfig} className="max-h-[300px] w-full">
           <BarChart
             data={chartData}
             accessibilityLayer

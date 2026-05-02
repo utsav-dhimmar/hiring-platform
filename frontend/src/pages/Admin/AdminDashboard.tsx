@@ -3,7 +3,7 @@
  * Displays analytics summary and hiring reports for administrators.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { adminAnalyticsService } from "@/apis/admin";
 import { adminStageTemplateService } from "@/apis/admin/stageTemplate";
 import jobService from "@/apis/job";
@@ -16,9 +16,10 @@ import StatCard from "@/components/shared/StatCard";
 import { useAdminData } from "@/hooks";
 import { Separator } from "@/components/ui/separator";
 import { StageCentricChart } from "@/components/admin/AdminPipelineChart";
-import { FileText, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { FileText, BarChart3 } from "lucide-react";
+import AdminDashboardFilters from "@/components/admin/AdminDashboardFilters";
 
 
 
@@ -26,6 +27,7 @@ const AdminDashboard = () => {
   const [viewMode, setViewMode] = useState<"report" | "chart">("report");
   const [selectedJobId, setSelectedJobId] = useState<string>("all");
   const [selectedStageName, setSelectedStageName] = useState<string>("all");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [jobs, setJobs] = useState<JobTitle[]>([]);
   const [stages, setStages] = useState<{ name: string }[]>([]);
 
@@ -73,6 +75,77 @@ const AdminDashboard = () => {
   const analytics = dashboardData[0]?.analytics;
   const report = dashboardData[0]?.report;
 
+  const departments = useMemo(() => {
+    const deps = new Set<string>();
+    report?.candidates_by_job.forEach((item) => {
+      if (item.department) deps.add(item.department);
+    });
+    return Array.from(deps).sort();
+  }, [report]);
+
+  const jobToDepartmentMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    report?.candidates_by_job.forEach((item) => {
+      if (item.job_title && item.department) {
+        map[item.job_title] = item.department;
+      }
+    });
+    return map;
+  }, [report]);
+
+  const filteredReport = useMemo(() => {
+    if (!report) return null;
+    if (selectedDepartment === "all") return report;
+
+    const filteredCandidatesByJob = report.candidates_by_job.filter(
+      (item) => item.department === selectedDepartment
+    );
+
+    const filteredPipelineStats = report.job_pipeline_stats
+      .map((item) => {
+        const newItem = { ...item };
+        const jobNames = item.job_names || [];
+        const filteredJobNames = jobNames.filter(
+          (name) => jobToDepartmentMap[name] === selectedDepartment
+        );
+
+        // Remove jobs not in department
+        jobNames.forEach((name) => {
+          if (jobToDepartmentMap[name] !== selectedDepartment) {
+            delete newItem[name];
+          }
+        });
+
+        newItem.job_names = filteredJobNames;
+        return newItem;
+      })
+      .filter((item) => {
+        // If it's a stage item, check if it has any non-zero values for the remaining jobs
+        if (item.stage) {
+          return (item.job_names || []).some((name) => item[name] > 0);
+        }
+        // If it's the job_names list item, check if it's not empty
+        return item.job_names && item.job_names.length > 0;
+      });
+
+    return {
+      ...report,
+      candidates_by_job: filteredCandidatesByJob,
+      job_pipeline_stats: filteredPipelineStats,
+    };
+  }, [report, selectedDepartment, jobToDepartmentMap]);
+
+  // Filter jobs list based on selected department for the dropdown
+  const filteredJobs = useMemo(() => {
+    if (selectedDepartment === "all") return jobs;
+    const jobsInDept = new Set(
+      report?.candidates_by_job
+        .filter((item) => item.department === selectedDepartment)
+        .map((item) => item.job_title)
+    );
+    return jobs.filter((job) => jobsInDept.has(job.title));
+  }, [jobs, selectedDepartment, report]);
+
 
   const jobColumns: Column<any>[] = [
     { header: "Job Title", accessor: "job_title" },
@@ -113,9 +186,6 @@ const AdminDashboard = () => {
           </div>
         }
       />
-
-
-
       {viewMode === "report" && (
         <div className="flex flex-col md:flex-row gap-6 items-stretch mb-1 animate-in fade-in slide-in-from-top-2 duration-500">
           <div className="flex-1 mb-2 space-y-2">
@@ -151,14 +221,20 @@ const AdminDashboard = () => {
 
       {viewMode === "chart" && (
         <div className="space-y-4 mb-6 px-1 sm:px-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <StageCentricChart
-            data={report?.job_pipeline_stats || []}
+          <AdminDashboardFilters
+            selectedDepartment={selectedDepartment}
+            setSelectedDepartment={setSelectedDepartment}
+            departments={departments}
             selectedJobId={selectedJobId}
-            jobs={jobs}
-            stages={stages}
-            selectedStageName={selectedStageName}
             setSelectedJobId={setSelectedJobId}
+            jobs={jobs}
+            filteredJobs={filteredJobs}
+            selectedStageName={selectedStageName}
             setSelectedStageName={setSelectedStageName}
+            stages={stages}
+          />
+          <StageCentricChart
+            data={filteredReport?.job_pipeline_stats || []}
           />
         </div>
       )}
@@ -169,22 +245,17 @@ const AdminDashboard = () => {
             <h3 className="mb-3">Candidates by Job</h3>
             <AdminDataTable
               columns={jobColumns}
-              data={report?.candidates_by_job || []}
+              data={filteredReport?.candidates_by_job || []}
               loading={loading}
               error={error}
               onRetry={fetchData}
               rowKey="job_id"
-              emptyMessage="No job data available."
+              emptyMessage="No job data available for the selected filters."
               className="border-0 shadow-none"
             />
           </div>
         </div>
       )}
-
-
-
-
-
     </AppPageShell >
   );
 };
