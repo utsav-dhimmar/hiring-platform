@@ -104,6 +104,8 @@ async def get_job_candidates(
     jd_version: int | None = Query(None, description="Filter by original JD version number"),
     start_date: datetime | None = Query(None),
     end_date: datetime | None = Query(None),
+    candidate_id: uuid.UUID | None = Query(None, description="Filter by specific candidate ID"),
+    stage_id: uuid.UUID | None = Query(None, description="Filter by specific job stage config ID"),
 ) -> Any:
     """Get all candidates for a specific job, with optional searching and filtering."""
     return await admin_service.get_candidates_for_job(
@@ -116,6 +118,8 @@ async def get_job_candidates(
         jd_version=jd_version,
         start_date=start_date,
         end_date=end_date,
+        candidate_id=candidate_id,
+        stage_id=stage_id,
     )
 
 
