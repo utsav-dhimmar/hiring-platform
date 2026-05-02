@@ -9,6 +9,8 @@ import type { TimelineEvent } from "@/types/candidate";
 
 import { TimelineEventDetailModal } from "./TimelineEventDetailModal";
 import { DateDisplay } from "../shared";
+import { CandidateDetailsModal } from "@/components/modal/CandidateDetailsModal";
+import type { CandidateAnalysis } from "@/types/admin";
 
 interface CandidateTimelineProps {
   candidateId?: string;
@@ -21,6 +23,7 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   useEffect(() => {
     const fetchTimeline = async () => {
@@ -45,7 +48,12 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
 
   const handleEventClick = (event: TimelineEvent) => {
     setSelectedEvent(event);
-    setIsModalOpen(true);
+    // @ts-ignore
+    if (event.event_type === "screening" && event.metadata) {
+      setShowAnalysis(true);
+    } else {
+      setIsModalOpen(true);
+    }
   };
 
   if (isLoading) {
@@ -75,9 +83,6 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
           <Clock className="h-3 w-3" />
           Hiring Journey Timeline
         </h3>
-        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-          {events.length} Events
-        </span>
       </div>
       <ScrollArea className="w-full whitespace-nowrap rounded-md border-0">
         <div className="flex w-max space-x-1 p-1">
@@ -103,7 +108,7 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                     isAfterRejection && "opacity-40 grayscale-[0.5]"
                   )}
                 >
-                  <div className="flex justify-between items-center">
+                  {/* <div className="flex justify-between items-center">
                     <div className={cn(
                       "p-1.5 rounded-lg",
                       isDecision ? "bg-purple-500/10" :
@@ -132,7 +137,7 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                     >
                       {event.event_type}
                     </Badge>
-                  </div>
+                  </div> */}
 
                   <div className="space-y-0.5">
                     <h4 className={cn(
@@ -145,17 +150,21 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                       "text-xs font-bold uppercase tracking-tighter flex items-center gap-1",
                       isPending ? "text-foreground/70" : "text-muted-foreground"
                     )}>
-                      <Calendar className="h-2.5 w-2.5" />
-                      <DateDisplay date={new Date(event.event_date)} className="text-xs" />
+                      {
+                        event.event_date && <>
+                          <Calendar className="h-2.5 w-2.5" />
+                          <DateDisplay date={new Date(event.event_date)} className="text-xs" />
+                        </>
+                      }
                     </p>
                   </div>
-
+                  {/* 
                   <p className={cn(
                     "text-[11px] leading-tight line-clamp-2 whitespace-normal font-medium",
                     isPending ? "text-foreground" : "text-muted-foreground"
                   )}>
                     {event.description || `No description for this ${event.event_type}.`}
-                  </p>
+                  </p> */}
 
                   {event.result && (
                     <div className="pt-1.5 border-t border-muted-foreground/10 mt-auto">
@@ -170,7 +179,7 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                         </span>
                         {event.score !== null && event.score !== undefined && (
                           <span className="text-[10px] font-bold text-muted-foreground shrink-0">
-                            {event.score}
+                            {event.event_type == "stage" ? "Score:" : "Percentage:"}   {event.score} {event.event_type == "stage" ? "/5" : "%"}
                           </span>
                         )}
                       </div>
@@ -195,6 +204,28 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
         onOpenChange={setIsModalOpen}
         event={selectedEvent}
       />
+
+      {/* @ts-ignore */}
+      {selectedEvent?.event_type === "screening" && selectedEvent.metadata && showAnalysis && (
+        // @ts-ignore
+        <CandidateDetailsModal
+          isOpen={showAnalysis}
+          onClose={() => setShowAnalysis(false)}
+          candidate={{
+            id: candidateId || "unknown",
+            // needed in meta data
+            first_name: "Candidate",
+            last_name: "Profile",
+            resume_score: selectedEvent.score,
+            pass_fail: selectedEvent.result,
+            resume_analysis: selectedEvent.metadata,
+            created_at: selectedEvent.event_date,
+            applied_job_id: jobId,
+            applied_version_number: selectedEvent.metadata?.version,
+          } as CandidateAnalysis}
+          jobId={jobId}
+        />
+      )}
     </div>
   );
 }

@@ -201,9 +201,9 @@ export interface PipelineStageStats {
 }
 
 export interface JobPipelineStats {
-  job_id: string;
-  job_name: string;
-  stages: PipelineStageStats[];
+  stage?: string;
+  job_names?: string[];
+  [jobTitle: string]: any;
 }
 
 /**

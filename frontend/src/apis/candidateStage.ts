@@ -66,4 +66,14 @@ export const candidateStageService = {
     );
     return response.data;
   },
+  stageWiseDecision: async (
+    stageId: string,
+    decision: StageDecisionCreate,
+  ): Promise<StageDecisionResponse> => {
+    const response = await apiClient.post<StageDecisionResponse>(
+      `/candidate-stages/${stageId}/decision`,
+      decision,
+    );
+    return response.data;
+  },
 };

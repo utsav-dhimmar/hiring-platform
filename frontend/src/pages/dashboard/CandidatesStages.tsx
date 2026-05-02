@@ -192,11 +192,10 @@ export default function CandidatesStages() {
 
     setIsSubmitting(true);
     try {
-      await candidateDecisionApi.submitDecision({
-        candidate_id: candidate.id,
-        decision: data.decision,
-        note: data.note,
-        stage_config_id: stageId
+      //@ts-ignore
+      await candidateStageService.stageWiseDecision(stageId, {
+        decision: data.decision == "maybe" ? "May Be" : data.decision,
+        notes: data.note,
       });
       toast.success("Decision submitted successfully");
       setShowFeedbackModal(false);

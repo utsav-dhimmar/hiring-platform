@@ -67,6 +67,7 @@ export function CandidateDetailsModal({
   initialTab = "analysis",
   passing_threshold,
 }: CandidateDetailsModalProps) {
+  // console.log(candidate);
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [hrDecision, setHrDecision] =
