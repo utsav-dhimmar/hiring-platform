@@ -252,7 +252,17 @@ class HRDecisionService:
 
         # FINAL COMMIT: Save everything (decision + advancement) together
         await db.commit()
-        return HRDecisionResponse.model_validate(hr_decision)
+        
+        # Reload with relationships for the response
+        from app.v1.db.models.job_stage_configs import JobStageConfig
+        final_stmt = select(HrDecision).where(HrDecision.id == hr_decision.id).options(
+            selectinload(HrDecision.user),
+            selectinload(HrDecision.stage_config).selectinload(JobStageConfig.template)
+        )
+        final_res = await db.execute(final_stmt)
+        hr_decision_final = final_res.scalar_one()
+
+        return HRDecisionResponse.model_validate(hr_decision_final)
 
     async def get_decision_history(
         self,
@@ -289,9 +299,13 @@ class HRDecisionService:
         if stage_config_id:
             stmt = stmt.where(HrDecision.stage_config_id == stage_config_id)
 
+        from app.v1.db.models.job_stage_configs import JobStageConfig
         decisions_result = await db.execute(
             stmt.order_by(HrDecision.decided_at.desc())
-            .options(selectinload(HrDecision.user))
+            .options(
+                selectinload(HrDecision.user),
+                selectinload(HrDecision.stage_config).selectinload(JobStageConfig.template)
+            )
         )
         decisions = decisions_result.scalars().all()
 
@@ -314,13 +328,17 @@ class HRDecisionService:
             else:
                 final_decisions.append(d)
 
-        # Count "May Be" decisions from the filtered list
+        # Count decisions from the filtered list
+        approve_count = sum(1 for d in final_decisions if d.decision.lower() == "approve")
+        reject_count = sum(1 for d in final_decisions if d.decision.lower() == "reject")
         may_be_count = sum(1 for d in final_decisions if d.decision == "May Be")
 
         return HRDecisionHistoryResponse(
             candidate_id=candidate_id,
             decisions=[HRDecisionResponse.model_validate(d) for d in final_decisions],
             total_decisions=len(final_decisions),
+            approve_count=approve_count,
+            reject_count=reject_count,
             may_be_count=may_be_count,
         )
 
@@ -452,7 +470,18 @@ class HRDecisionService:
                 logger.info(f"Transitioned to 'reject'. Triggering automatic cross-job discovery for candidate {decision.candidate_id} from job context {actual_job_id}.")
                 _trigger_cross_match_for_candidate(candidate_to_cross_match, job_id=actual_job_id)
 
-        return HRDecisionResponse.model_validate(decision)
+        await db.commit()
+        
+        # Reload with relationships for the response
+        from app.v1.db.models.job_stage_configs import JobStageConfig
+        final_stmt = select(HrDecision).where(HrDecision.id == decision_id).options(
+            selectinload(HrDecision.user),
+            selectinload(HrDecision.stage_config).selectinload(JobStageConfig.template)
+        )
+        final_res = await db.execute(final_stmt)
+        decision_final = final_res.scalar_one()
+
+        return HRDecisionResponse.model_validate(decision_final)
 
     async def get_decision_summary(
         self,

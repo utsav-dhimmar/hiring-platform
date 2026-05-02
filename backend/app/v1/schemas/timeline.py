@@ -9,6 +9,8 @@ class TimelineEvent(BaseModel):
     title: str
     description: Optional[str] = None
     result: Optional[str] = None
+    ai_result: Optional[str] = None
+    hr_decision: Optional[str] = None
     score: Optional[float] = None
     stage_id: Optional[uuid.UUID] = None
     stage_name: Optional[str] = None

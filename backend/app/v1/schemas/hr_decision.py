@@ -46,6 +46,7 @@ class HRDecisionResponse(BaseModel):
     id: uuid.UUID
     candidate_id: uuid.UUID
     stage_config_id: uuid.UUID | None
+    stage_name: str | None = None
     job_id: uuid.UUID | None = None
     user_id: uuid.UUID
     decision: str
@@ -61,6 +62,8 @@ class HRDecisionHistoryResponse(BaseModel):
     candidate_id: uuid.UUID
     decisions: list[HRDecisionResponse]
     total_decisions: int
+    approve_count: int
+    reject_count: int
     may_be_count: int
 
     model_config = ConfigDict(from_attributes=True)

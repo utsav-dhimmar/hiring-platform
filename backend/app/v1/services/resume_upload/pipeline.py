@@ -7,6 +7,7 @@ import uuid
 from typing import Awaitable, Callable
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 
 
