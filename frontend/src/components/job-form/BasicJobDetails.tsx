@@ -41,7 +41,7 @@ export const BasicJobDetails = ({ departments, priorities = [], positions }: Bas
             <FormControl>
               <Input
                 placeholder="e.g. Senior Frontend Developer"
-                className="h-10 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                className="text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
                 {...field}
               />
             </FormControl>
@@ -50,155 +50,158 @@ export const BasicJobDetails = ({ departments, priorities = [], positions }: Bas
         )}
       />
 
-      {/* Vacancy */}
-      <FormField
-        control={control}
-        name="vacancy"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-lg font-semibold text-foreground">
-              Vacancy <Required />
-            </FormLabel>
-            <FormControl>
-              <Input
-                type="number"
-                min="1"
-                placeholder="e.g. 5"
-                className="h-10 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                value={field.value !== null && field.value !== undefined ? field.value : ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  field.onChange(val ? parseInt(val, 10) : null);
-                }}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* Job Position, Priority, Department, Vacancy Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Job Position */}
+        <FormField
+          control={control}
+          name="position_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg font-semibold text-foreground">
+                Job Position <Required />
+              </FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full">
+                    <SelectValue placeholder="Select job position" className="w-full capitalize">
+                      {
+                        positions.find(
+                          (pos) => pos.id === field.value,
+                        )?.name
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
+                  {positions.map((pos) => (
+                    <SelectItem
+                      key={pos.id}
+                      value={pos.id}
+                      className="py-3 text-base font-medium w-full capitalize"
+                    >
+                      {pos.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      {/* Department */}
-      <FormField
-        control={control}
-        name="department_id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-lg font-semibold text-foreground">
-              Department <Required />
-            </FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full">
-                  <SelectValue placeholder="Select department" className="w-full">
-                    {
-                      departments.find(
-                        (dept) => dept.id === field.value,
-                      )?.name
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
-                {departments.map((dept) => (
-                  <SelectItem
-                    key={dept.id}
-                    value={dept.id}
-                    className="py-3 text-base font-medium w-full"
-                  >
-                    {dept.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        {/* Priority */}
+        <FormField
+          control={control}
+          name="priority_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg font-semibold text-foreground">
+                Job Priority <Required />
+              </FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || ""} >
+                <FormControl>
+                  <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full ">
+                    <SelectValue placeholder="Select priority" className="w-full">
+                      {(() => {
+                        const priority = priorities.find((p) => p.id === field.value);
+                        return priority ? `${priority.name} (${priority.duration_days} days)` : null;
+                      })()}
+                    </SelectValue>
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
+                  {priorities.map((p) => (
+                    <SelectItem
+                      key={p.id}
+                      value={p.id}
+                      className="py-3 text-base font-medium w-full capitalize"
+                    >
+                      {p.name} ({p.duration_days} days)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription className="flex flex-col gap-2">
+                {field.value && <span className="gap-2">
+                  <span className="">Due Date:</span>{" "}
+                  <DateDisplay
+                    date={field.value ? addDays(new Date(), Number(priorities.find((p) => p.id === field.value)?.duration_days)) : null}
+                    className="font-bold"
 
-      {/* Job Position */}
-      <FormField
-        control={control}
-        name="position_id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-lg font-semibold text-foreground">
-              Job Position <Required />
-            </FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full">
-                  <SelectValue placeholder="Select job position" className="w-full">
-                    {
-                      positions.find(
-                        (pos) => pos.id === field.value,
-                      )?.name
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
-                {positions.map((pos) => (
-                  <SelectItem
-                    key={pos.id}
-                    value={pos.id}
-                    className="py-3 text-base font-medium w-full"
-                  >
-                    {pos.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+                  />
+                </span>}
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      {/* Priority */}
-      <FormField
-        control={control}
-        name="priority_id"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-lg font-semibold text-foreground">
-              Job Priority <Required />
-            </FormLabel>
-            <Select onValueChange={field.onChange} value={field.value || ""}>
+        {/* Department */}
+        <FormField
+          control={control}
+          name="department_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg font-semibold text-foreground">
+                Department <Required />
+              </FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full capitalize">
+                    <SelectValue placeholder="Select department" className="w-full capitalize">
+                      {
+                        departments.find(
+                          (dept) => dept.id === field.value,
+                        )?.name
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
+                  {departments.map((dept) => (
+                    <SelectItem
+                      key={dept.id}
+                      value={dept.id}
+                      className="py-3 text-base font-medium w-full capitalize"
+                    >
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Vacancy */}
+        <FormField
+          control={control}
+          name="vacancy"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-lg font-semibold text-foreground">
+                Vacancy <Required />
+              </FormLabel>
               <FormControl>
-                <SelectTrigger className="h-12 text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full">
-                  <SelectValue placeholder="Select priority" className="w-full">
-                    {(() => {
-                      const priority = priorities.find((p) => p.id === field.value);
-                      return priority ? `${priority.name} (${priority.duration_days} days)` : null;
-                    })()}
-                  </SelectValue>
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent className="rounded-xl shadow-xl border-muted-foreground/10">
-                {priorities.map((p) => (
-                  <SelectItem
-                    key={p.id}
-                    value={p.id}
-                    className="py-3 text-base font-medium w-full"
-                  >
-                    {p.name} ({p.duration_days} days)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormDescription className="flex flex-col gap-2">
-              Determines how long this job will stay active.
-              {field.value && <span className="gap-2">
-                <span className="">Due date:</span>{" "}
-                <DateDisplay
-                  date={field.value ? addDays(new Date(), Number(priorities.find((p) => p.id === field.value)?.duration_days)) : null}
-                  className="font-bold"
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="e.g. 5"
+                  className=" text-base rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                  value={field.value !== null && field.value !== undefined ? field.value : ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    field.onChange(val ? parseInt(val, 10) : null);
+                  }}
                 />
-              </span>}
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
       {/* Job Description */}
       <FormField

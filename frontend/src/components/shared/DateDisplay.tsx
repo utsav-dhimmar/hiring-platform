@@ -29,6 +29,8 @@ interface DateDisplayProps {
   showIcon?: boolean;
   /** Whether to return null instead of fallback if date is missing (default: false) */
   hideIfEmpty?: boolean;
+  /** Whether to show title attribute (default: false) */
+  showTitle?: boolean;
 }
 
 /**
@@ -45,6 +47,7 @@ const DateDisplayContent = ({
   formatter,
   showIcon = false,
   hideIfEmpty = false,
+  showTitle = false,
 }: DateDisplayProps) => {
   if (!date) {
     if (hideIfEmpty) return null;
@@ -88,7 +91,7 @@ const DateDisplayContent = ({
   return (
     <span
       className={cn("inline-flex items-center gap-1.5 text-sm text-foreground", className)}
-      title={dateObj.toString()}
+      {...showTitle ? { title: dateObj.toString() } : {}}
     >
       {showIcon && <Calendar className="h-3.5 w-3.5 text-muted-foreground" />}
       {formattedDate}

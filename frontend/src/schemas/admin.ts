@@ -134,7 +134,7 @@ const jobBaseSchema = z.object({
   /** Number of open vacancies */
   vacancy: z.number({
     error: "Vacancy is required",
-  }).int().positive().min(1, "Vacancy must be at least 1"),
+  }).int({ error: "Enter a valid vacancy number" }).positive({ error: "Enter a valid vacancy number" }).default(1),
   /** UUID of the department this job belongs to */
   department_id: uuidSchema("Please select a valid department"),
   /** Job description text (minimum 20 characters) */
@@ -142,7 +142,7 @@ const jobBaseSchema = z.object({
   /** Whether the job is active */
   is_active: z.boolean(),
   /** Threshold score (0-100) for considering a candidate as 'pass' */
-  passing_threshold: z.number().min(0).max(100).default(DEFAULT_PASSING_THRESHOLD),
+  passing_threshold: z.number().int({ error: "Enter a valid passing threshold" }).positive({ error: "Enter a valid passing threshold" }).max(100, "Enter a valid passing threshold").default(DEFAULT_PASSING_THRESHOLD),
   /** Array of skill UUIDs required for this job */
   skill_ids: z.array(uuidSchema("Invalid skill ID")).min(1, "Please select at least one skill"),
   /** Optional custom extraction fields used during resume parsing */
@@ -162,7 +162,7 @@ const jobBaseSchema = z.object({
  */
 export const jobCreateSchema = jobBaseSchema.extend({
   is_active: z.boolean().default(true),
-  passing_threshold: z.number().min(0).max(100).default(DEFAULT_PASSING_THRESHOLD),
+  passing_threshold: z.number().int({ error: "Enter a valid passing threshold" }).positive({ error: "Enter a valid passing threshold" }).max(100, "Enter a valid passing threshold").default(DEFAULT_PASSING_THRESHOLD),
   custom_extraction_fields: z.array(z.string().trim()).optional().default([]),
   stages: z.array(z.object({
     template_id: uuidSchema("Invalid template ID"),
