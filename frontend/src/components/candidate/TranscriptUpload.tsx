@@ -1,5 +1,8 @@
 import React, { useState } from "react";
-import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  // FieldLabel
+} from "@/components/ui/field";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/utils/error";
 import { transcriptService } from "@/apis/transcript";
@@ -32,7 +35,7 @@ export function TranscriptUpload({
   stageId,
   onSuccess,
   className,
-  label = "Transcribe",
+  // label = "Transcribe",
   disabled,
 }: TranscriptUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
@@ -79,7 +82,7 @@ export function TranscriptUpload({
 
   return (
     <Field className={cn("w-full gap-1", className)}>
-      <FieldLabel htmlFor="transcript">{label}</FieldLabel>
+      {/* <FieldLabel htmlFor="transcript" className="text-center">{label}</FieldLabel> */}
       <Input
         id="transcript"
         type="file"

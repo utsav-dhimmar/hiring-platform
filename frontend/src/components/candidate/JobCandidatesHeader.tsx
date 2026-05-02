@@ -33,7 +33,7 @@ export const JobCandidatesHeader = ({
       backAction={{ label: "Back to Jobs", onClick: onBack }}
       meta={
         <>
-          <span className="font-semibold text-blue-500/40 capitalize">{job?.department_name || "Department"}</span>
+          <span className="font-semibold text-blue-500 capitalize">{job?.department_name || "Department"}</span>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Job Status:</span>
             {job ? (

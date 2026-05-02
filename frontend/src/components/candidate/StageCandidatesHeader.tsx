@@ -1,14 +1,24 @@
 import { Button } from "@/components/";
 import AppPageHeader from "@/components/shared/AppPageHeader";
 import type { Job } from "@/types/job";
+import { TranscriptUpload } from "./TranscriptUpload";
 
 interface StageCandidatesHeaderProps {
   /** Associated job for the candidate stage view */
   job: Job | null;
+  /** Name of the candidate being viewed */
+  candidateName?: string;
   /** Callback for back navigation */
   onBack: () => void;
   /** Callback for info button click */
   onInfoClick: () => void;
+  /** Whether the transcript upload is disabled */
+  isUploaded: boolean;
+  /** Callback for successful transcript upload */
+  onSuccess: () => void;
+  /** The ID of the stage */
+  stageId: string | undefined;
+  stageName: string | undefined;
 }
 
 /**
@@ -17,28 +27,50 @@ interface StageCandidatesHeaderProps {
  */
 export const StageCandidatesHeader = ({
   job,
+  candidateName,
   onBack,
   onInfoClick,
+  onSuccess,
+  stageId,
+  isUploaded,
+  stageName
 }: StageCandidatesHeaderProps) => {
+
   return (
     <AppPageHeader
       headingClassName="text-2xl sm:text-4xl capitalize"
-      title={job?.title || "Loading..."}
+      title={candidateName ? `${candidateName}` : (job?.title || "Loading...")}
       backAction={{ label: "Back to Candidates", onClick: onBack }}
       meta={
-        <span className="font-semibold text-blue-500 capitalize">
-          {job?.department_name || "Department"}
-        </span>
+        <div className="flex items-center gap-2">
+          {candidateName && <span className="font-semibold text-muted-foreground capitalize">{job?.title}</span>}
+          {candidateName && <span className="text-muted-foreground">•</span>}
+          <span className="font-semibold text-blue-500 capitalize">
+            {job?.department_name || "Department"}
+          </span>
+        </div>
       }
       actions={
-        <Button
-          variant="secondary"
-          className="rounded-xl border border-muted-foreground/10 px-5 font-semibold"
-          onClick={onInfoClick}
-        >
-          Info
-        </Button>
+        <>
+
+          <Button
+            variant="secondary"
+            className="rounded-xl border border-muted-foreground/10 px-5 font-semibold"
+            onClick={onInfoClick}
+          >
+            Info
+          </Button>
+
+          {stageName !== "Resume Screening" && <TranscriptUpload
+            stageId={stageId}
+            className="w-full sm:max-w-xs"
+            job={job!}
+            disabled={isUploaded}
+            onSuccess={onSuccess}
+          />}
+        </>
       }
     />
   );
 };
+

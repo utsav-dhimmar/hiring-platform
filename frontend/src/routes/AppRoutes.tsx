@@ -88,54 +88,46 @@ const AppRoutes = () => {
           }
         >
           <Route index element={<Navigate to="jobs" replace />} />
-          <Route
-            path="jobs"
-            element={
-              <RoleRoute requiredPermissions={PERMISSIONS.JOBS_ACCESS}>
-                <JobBoard />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="jobs/new"
-            element={
-              <RoleRoute requiredPermissions={PERMISSIONS.JOBS_MANAGE}>
-                <CreateJob />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="jobs/:jobSlug/edit"
-            element={
-              <RoleRoute requiredPermissions={PERMISSIONS.JOBS_MANAGE}>
-                <CreateJob />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="jobs/:jobSlug/candidates"
-            element={
-              <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
-                <JobCandidates />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="jobs/:jobSlug/candidates/:candidateName/stages"
-            element={
-              <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
-                <CandidatesStages />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="transcripts/:candidateName"
-            element={
-              <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
-                <TranscriptPage />
-              </RoleRoute>
-            }
-          />
+          <Route path="jobs">
+            {/* Jobs Access */}
+            <Route
+              element={
+                <RoleRoute requiredPermissions={PERMISSIONS.JOBS_ACCESS}>
+                  <Outlet />
+                </RoleRoute>
+              }
+            >
+              <Route index element={<JobBoard />} />
+            </Route>
+
+            {/* Jobs Management */}
+            <Route
+              element={
+                <RoleRoute requiredPermissions={PERMISSIONS.JOBS_MANAGE}>
+                  <Outlet />
+                </RoleRoute>
+              }
+            >
+              <Route path="new" element={<CreateJob />} />
+              <Route path=":jobSlug/edit" element={<CreateJob />} />
+            </Route>
+
+            {/* Candidates Access */}
+            <Route
+              path=":jobSlug/candidates"
+              element={
+                <RoleRoute requiredPermissions={PERMISSIONS.CANDIDATES_ACCESS}>
+                  <Outlet />
+                </RoleRoute>
+              }
+            >
+              <Route index element={<JobCandidates />} />
+              <Route path=":candidateName/stages/:stageSlug">
+                <Route index element={<CandidatesStages />} />
+                <Route path="transcript" element={<TranscriptPage />} />
+              </Route>
+            </Route>
+          </Route>
           <Route path="profile" element={<ProfilePage />} />
           {/* Admin Routes */}
           <Route

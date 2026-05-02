@@ -12,7 +12,7 @@ import { DataTable } from "@/components/shared/DataTable";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
 import { PositionModal, DeleteModal } from "@/components/modal";
 import { useAdminData, useDebouncedValue } from "@/hooks";
-import { Edit2, Trash2Icon, ArrowUpDown, AlertCircle } from "lucide-react";
+import { Edit2, Trash2Icon, ArrowUpDown, AlertCircle, Plus } from "lucide-react";
 import { extractErrorMessage } from "@/utils/error";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components";
@@ -219,7 +219,8 @@ const AdminJobPositions = () => {
         title="Job Position Management"
         actions={
           <PermissionGuard permissions={PERMISSIONS.ADMIN_ACCESS} hideWhenDenied>
-            <Button onClick={handleCreateClick} className="rounded-xl px-6">
+            <Button onClick={handleCreateClick} className="rounded-xl">
+              <Plus />
               Create Position
             </Button>
           </PermissionGuard>

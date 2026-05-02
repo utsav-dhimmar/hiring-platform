@@ -20,6 +20,7 @@ import type { CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";/
  * Page component for managing job candidates with toggle between candidates list and analytics views.
  * Provides candidate table with filtering, search, and bulk reanalyze functionality.
  */
+import { slugify } from "@/utils/slug";
 export default function JobCandidates() {
   const { jobSlug } = useParams<{ jobSlug: string }>();
   const navigate = useNavigate();
@@ -246,7 +247,7 @@ export default function JobCandidates() {
                               </HoverCardContent>
                             </HoverCard>
                           </PermissionGuard>
-                          {/* <HoverCard>
+                          <HoverCard>
                             <HoverCardTrigger
                               render={(props) => (
                                 <Button
@@ -268,7 +269,7 @@ export default function JobCandidates() {
                             <HoverCardContent side="top" className="w-auto p-2 min-w-0">
                               <div className="text-sm font-semibold">More Info</div>
                             </HoverCardContent>
-                          </HoverCard> */}
+                          </HoverCard>
                           <HoverCard>
                             <HoverCardTrigger
                               render={(props) => (
@@ -278,7 +279,10 @@ export default function JobCandidates() {
                                   size="sm"
                                   className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0 "
                                   onClick={() => {
-                                    navigate(`/dashboard/jobs/${jobSlug}/candidates/${candidate.first_name}/stages`, {
+                                    const candidateFullName = slugify(`${candidate.first_name} ${candidate.last_name}`);
+                                    const stageSlug = slugify(candidate.pipeline?.[0]?.template_name);
+
+                                    navigate(`/dashboard/jobs/${jobSlug}/candidates/${candidateFullName}/stages/${stageSlug}`, {
                                       state: {
                                         candidate: candidate,
                                         jobSlug: jobSlug,

@@ -40,6 +40,8 @@ export interface TimelineEvent {
   stage_id?: string | null;
   stage_name?: string | null;
   job_id?: string | null;
+  ai_result?: string | null;
+  hr_decision?: string | null;
   metadata?: Record<string, any> | null;
 }
 

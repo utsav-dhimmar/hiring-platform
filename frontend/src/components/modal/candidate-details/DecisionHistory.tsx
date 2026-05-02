@@ -1,8 +1,9 @@
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DateDisplay } from "@/components/shared/DateDisplay"
 import { History, MessageSquare } from "lucide-react";
 import type { HrDecisionHistoryItem } from "@/apis/candidateDecision";
+import { CandidateStatusBadge } from "@/components/shared";
 
 interface DecisionHistoryProps {
   decisions: HrDecisionHistoryItem[];
@@ -47,7 +48,8 @@ export function DecisionHistory({ decisions }: DecisionHistoryProps) {
                 <span className="text-xs font-semibold text-muted-foreground">
                   #{decisions.length - index}
                 </span>
-                <Badge
+                <CandidateStatusBadge status={decision.decision} />
+                {/* <Badge
                   variant={decision.decision === "approve" ? "default" : "destructive"}
                   className={`rounded-full px-2.5 py-0.5 flex items-center gap-1.5 w-fit border-0 shadow-none text-black ${decision.decision === "approve"
                     ? "bg-green-300 dark:bg-green-300"
@@ -55,7 +57,7 @@ export function DecisionHistory({ decisions }: DecisionHistoryProps) {
                     }`}
                 >
                   {decision.decision.replace("maybe", "may be")}
-                </Badge>
+                </Badge> */}
               </div>
               <span className="text-[11px] font-medium text-muted-foreground">
                 Decided on <DateDisplay date={decision.decided_at} className="text-[11px]" />

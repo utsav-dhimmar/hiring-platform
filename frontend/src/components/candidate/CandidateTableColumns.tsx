@@ -16,8 +16,7 @@ import { Link } from "react-router-dom";
 import { slugify } from "@/utils/slug";
 import { DEFAULT_PASSING_THRESHOLD, RESUME_SCREENING_RESULT } from "@/constants";
 function scoreColor(score: number, threshold: number = DEFAULT_PASSING_THRESHOLD) {
-  if (score >= 80) return "bg-green-500";
-  if (score >= threshold) return "bg-yellow-500";
+  if (score >= threshold) return "bg-green-500";
   return "bg-red-500";
 }
 

@@ -40,8 +40,6 @@ export function StageControls({
 	isUploaded,
 	onSuccess
 }: StageControlsProps) {
-	// remove after once backend fix stages issue
-	stages = [{ stage: "Resume Screeening ", id: "" }, ...stages];
 	return (
 		<div className="flex flex-col border-b bg-background/50 backdrop-blur-md sticky top-0 z-10">
 			<div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 w-full">

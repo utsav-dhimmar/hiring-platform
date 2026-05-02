@@ -111,6 +111,8 @@ const jobService = {
     jdVersion?: number,
     skip = 0,
     limit = 10,
+    candidate_id?: string,
+    stage_id?: string,
     filters?: {
       query?: string;
       hr_decision?: string[];
@@ -125,10 +127,15 @@ const jobService = {
   ): Promise<CandidateAnalysisResponse> => {
     const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {
       params: {
-        ...(jdVersion !== undefined ? { jd_version: jdVersion } : {}),
+        ...(jdVersion !== undefined ? { jd_version: jdVersion } : undefined),
         skip,
         limit,
         ...filters,
+        ...(candidate_id !== undefined ? { candidate_id: candidate_id } : undefined),
+        ...(stage_id !== undefined ? { stage_id: stage_id } : undefined),
+      },
+      paramsSerializer: {
+        indexes: null,
       },
     });
     return response.data;

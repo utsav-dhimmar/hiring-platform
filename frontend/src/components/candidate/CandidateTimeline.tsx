@@ -1,30 +1,41 @@
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Clock, HelpCircle, Loader2, ChevronRight, Calendar, XCircle } from "lucide-react";
+import { Clock, Loader2, ChevronRight, Calendar } from "lucide-react";
 import { adminCandidateService } from "@/apis/admin/candidate";
 import type { TimelineEvent } from "@/types/candidate";
-
 import { TimelineEventDetailModal } from "./TimelineEventDetailModal";
-import { DateDisplay } from "../shared";
-import { CandidateDetailsModal } from "@/components/modal/CandidateDetailsModal";
-import type { CandidateAnalysis } from "@/types/admin";
+import { CandidateStatusBadge, DateDisplay } from "@/components/shared";
+import { useNavigate } from "react-router-dom";
+import { slugify } from "@/utils/slug";
+
 
 interface CandidateTimelineProps {
   candidateId?: string;
   jobId?: string;
   className?: string;
+  onSelectStage?: (stageName: string) => void;
+  selectedStage?: string;
+  job?: any;
+  candidate?: any;
 }
 
-export function CandidateTimeline({ candidateId, jobId, className }: CandidateTimelineProps) {
+export function CandidateTimeline({
+  candidateId,
+  jobId,
+  className,
+  onSelectStage,
+  selectedStage,
+  job,
+  candidate
+}: CandidateTimelineProps) {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showAnalysis, setShowAnalysis] = useState(false);
 
+  const navigate = useNavigate();
   useEffect(() => {
     const fetchTimeline = async () => {
       if (!candidateId) return;
@@ -48,11 +59,14 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
 
   const handleEventClick = (event: TimelineEvent) => {
     setSelectedEvent(event);
-    // @ts-ignore
-    if (event.event_type === "screening" && event.metadata) {
-      setShowAnalysis(true);
+    if (!event.stage_id) {
+      onSelectStage?.("Resume Screening");
     } else {
-      setIsModalOpen(true);
+      if (event.event_type === "stage" && event.title) {
+        onSelectStage?.(event.title);
+      } else {
+        setIsModalOpen(true);
+      }
     }
   };
 
@@ -60,14 +74,12 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
     return (
       <div className={cn("w-full py-6 flex flex-col items-center justify-center min-h-[150px] gap-3", className)}>
         <Loader2 className="h-6 w-6 animate-spin text-primary/60" />
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">
+        <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">
           Synchronizing Timeline...
         </span>
       </div>
     );
   }
-
-
 
   if (events.length === 0) return null;
 
@@ -87,24 +99,35 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
       <ScrollArea className="w-full whitespace-nowrap rounded-md border-0">
         <div className="flex w-max space-x-1 p-1">
           {events.map((event, index) => {
-            const isDecision = event.event_type === "decision";
+            // @ts-ignore
+            const _isDecision = event.event_type === "decision";
             const resultLower = event.result?.toLowerCase() || "";
-            const isPassed = resultLower.includes("pass") || resultLower.includes("approve") || resultLower.includes("hired");
-            const isRejected = resultLower.includes("fail") || resultLower.includes("reject");
+
             const isCompleted = event.result !== null && event.result !== "Ongoing" && !resultLower.includes("pending");
             const isOngoing = resultLower.includes("ongoing") || (!event.result && !isCompleted);
             const isPending = resultLower.includes("pending") || isOngoing;
+            const isSelected = event.title === selectedStage;
             const isAfterRejection = firstRejectedIndex !== -1 && index > firstRejectedIndex;
 
             return (
               <React.Fragment key={index}>
                 <Card
-                  onClick={() => handleEventClick(event)}
+                  onClick={() => {
+                    const targetStage = event.stage_id ? (event.title || "Resume Screening") : "Resume Screening";
+                    const slug = slugify(targetStage);
+                    navigate(`../${slug}`, {
+                      relative: "path",
+                      state: { job, candidate }
+                    });
+                    handleEventClick(event);
+                  }}
                   className={cn(
-                    "flex w-[180px] flex-col p-2.5 gap-1.5 shrink-0 border cursor-pointer hover:border-primary/50 transition-all",
-                    isOngoing
-                      ? "border-primary/40 bg-primary/5 shadow-[0_0_15px_rgba(59,130,246,0.1)] scale-[1.02]"
-                      : "border-muted-foreground/10 bg-card hover:bg-muted/30",
+                    "flex w-[250px] flex-col p-2.5 gap-1.5 shrink-0 border cursor-pointer hover:border-primary/50 transition-all",
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-md ring-1 ring-primary/20 scale-[1.02]"
+                      : isOngoing
+                        ? "border-primary/40 bg-primary/5"
+                        : "border-muted-foreground/10 bg-card hover:bg-muted/30",
                     isAfterRejection && "opacity-40 grayscale-[0.5]"
                   )}
                 >
@@ -142,7 +165,7 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                   <div className="space-y-0.5">
                     <h4 className={cn(
                       "font-black text-xs text-wrap line-clamp-1",
-                      isPending ? "text-foreground" : "text-foreground/90"
+                      isSelected ? "text-primary" : isPending ? "text-foreground" : "text-foreground/90"
                     )} title={event.title}>
                       {event.title}
                     </h4>
@@ -167,23 +190,37 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
                   </p> */}
 
                   {event.result && (
-                    <div className="pt-1.5 border-t border-muted-foreground/10 mt-auto">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={cn(
+                    <>
+                      <div className="pt-1.5 border-t border-muted-foreground/10 mt-auto">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-start gap-2">
+                            <span className="text-xs font-bold uppercase tracking-tight text-muted-foreground">AI result:</span>
+                            <CandidateStatusBadge status={event.ai_result?.replace("ed", "") || "N/A"} />
+                          </div>
+                          {<div className="flex items-center justify-start gap-2">
+                            <span className="text-xs font-bold uppercase tracking-tight text-muted-foreground">HR decision:</span>
+                            <CandidateStatusBadge status={event.hr_decision?.replace("ed", "") || "N/A"} />
+                          </div>}
+                        </div>
+
+
+                        {/* <div className="flex flex-wrap items-center justify-between gap-2"> */}
+                        {/* <span className={cn(
                           "text-[10px] font-black uppercase tracking-tighter truncate",
                           isPassed ? "text-green-600" :
                             isRejected ? "text-red-600" :
                               isPending ? "text-foreground" : "text-primary"
                         )}>
                           {event.result}
-                        </span>
+                        </span> */}
                         {event.score !== null && event.score !== undefined && (
-                          <span className="text-[10px] font-bold text-muted-foreground shrink-0">
-                            {event.event_type == "stage" ? "Score:" : "Percentage:"}   {event.score} {event.event_type == "stage" ? "/5" : "%"}
+                          <span className="text-xs font-bold text-muted-foreground shrink-0">
+                            {event.event_type === "stage" ? "Score:" : "Percentage:"} {event.score}{event.event_type === "stage" ? "/5" : "%"}
                           </span>
                         )}
+                        {/* </div> */}
                       </div>
-                    </div>
+                    </>
                   )}
                 </Card>
 
@@ -204,28 +241,6 @@ export function CandidateTimeline({ candidateId, jobId, className }: CandidateTi
         onOpenChange={setIsModalOpen}
         event={selectedEvent}
       />
-
-      {/* @ts-ignore */}
-      {selectedEvent?.event_type === "screening" && selectedEvent.metadata && showAnalysis && (
-        // @ts-ignore
-        <CandidateDetailsModal
-          isOpen={showAnalysis}
-          onClose={() => setShowAnalysis(false)}
-          candidate={{
-            id: candidateId || "unknown",
-            // needed in meta data
-            first_name: "Candidate",
-            last_name: "Profile",
-            resume_score: selectedEvent.score,
-            pass_fail: selectedEvent.result,
-            resume_analysis: selectedEvent.metadata,
-            created_at: selectedEvent.event_date,
-            applied_job_id: jobId,
-            applied_version_number: selectedEvent.metadata?.version,
-          } as CandidateAnalysis}
-          jobId={jobId}
-        />
-      )}
     </div>
   );
 }

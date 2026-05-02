@@ -1,8 +1,8 @@
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from "lucide-react";
 import type { CandidateResponse } from "@/types/resume";
 import type { CandidateAnalysis } from "@/types/admin";
 import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
+import { CandidateStatusBadge } from "@/components/shared";
 
 /**
  * Props for {@link AnalysisStats}.
@@ -48,29 +48,7 @@ export function AnalysisStats({
         <span className="text-sm font-bold text-muted-foreground  whitespace-nowrap">
           Result
         </span>
-        <Badge
-          variant={isPassed ? "default" : "destructive"}
-          className={`rounded-full px-2.5 py-0.5 flex items-center gap-1.5 w-fit border-0 shadow-none text-black ${isPassed
-            ? "bg-green-300 dark:bg-green-300"
-            : "bg-red-300 dark:bg-red-300"
-            }`}
-        >
-          {isPassed ? (
-            <>
-              <CheckCircle2 className="h-3 w-3" />
-              <span className="font-extrabold text-[9px] tracking-wider">
-                PASS
-              </span>
-            </>
-          ) : (
-            <>
-              <XCircle className="h-3 w-3" />
-              <span className="font-extrabold text-[9px] tracking-wider">
-                FAIL
-              </span>
-            </>
-          )}
-        </Badge>
+        <CandidateStatusBadge status={isPassed ? "pass" : "fail"} icon={isPassed ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />} />
       </div>
 
       <div className="h-4 w-px bg-muted-foreground/20" />

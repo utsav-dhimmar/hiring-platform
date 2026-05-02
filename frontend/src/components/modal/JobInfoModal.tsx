@@ -66,12 +66,12 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
       <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card/95 backdrop-blur-xl border-muted-foreground/20 shadow-2xl rounded-2xl h-[600px]">
         <DialogHeader className="p-2 pb-2 border-b border-muted-foreground/10 bg-muted/30">
           <div className="flex flex-row items-start justify-between gap-4 sm:flex-col sm:justify-start sm:items-start">
-            <DialogTitle className="text-xl font-black tracking-tight text-foreground">
+            <DialogTitle className="text-xl font-black tracking-tight text-foreground capitalize">
               {job.title}
             </DialogTitle>
             <div className="flex flex-row items-center justify-center gap-2.5  sm:justify-start sm:items-start">
               {job.department_name && (
-                <span className="text-sm font-semibold text-blue-500">
+                <span className="text-sm font-semibold text-blue-500 capitalize">
                   {job.department_name}
                 </span>
               )}
