@@ -19,6 +19,7 @@ interface CandidateTimelineProps {
   selectedStage?: string;
   job?: any;
   candidate?: any;
+  refetch?: number | boolean
 }
 
 export function CandidateTimeline({
@@ -28,7 +29,8 @@ export function CandidateTimeline({
   onSelectStage,
   selectedStage,
   job,
-  candidate
+  candidate,
+  refetch,
 }: CandidateTimelineProps) {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +39,7 @@ export function CandidateTimeline({
 
   const navigate = useNavigate();
   useEffect(() => {
+    console.log("should refetch", refetch)
     const fetchTimeline = async () => {
       if (!candidateId) return;
       setIsLoading(true);
@@ -55,7 +58,7 @@ export function CandidateTimeline({
     };
 
     fetchTimeline();
-  }, [candidateId, jobId]);
+  }, [candidateId, jobId, refetch]);
 
   const handleEventClick = (event: TimelineEvent) => {
     setSelectedEvent(event);
@@ -165,7 +168,7 @@ export function CandidateTimeline({
                   <div className="space-y-0.5">
                     <h4 className={cn(
                       "font-black text-xs text-wrap line-clamp-1",
-                      isSelected ? "text-primary" : isPending ? "text-foreground" : "text-foreground/90"
+                      isSelected ? "text-black font-bold dark:text-white" : isPending ? "text-foreground" : "text-foreground/90"
                     )} title={event.title}>
                       {event.title}
                     </h4>
@@ -193,11 +196,11 @@ export function CandidateTimeline({
                     <>
                       <div className="pt-1.5 border-t border-muted-foreground/10 mt-auto">
                         <div className="flex flex-col gap-2">
-                          <div className="flex items-center justify-start gap-2">
+                          {event.ai_result && !isAfterRejection && <div className="flex items-center justify-start gap-2">
                             <span className="text-xs font-bold uppercase tracking-tight text-muted-foreground">AI result:</span>
                             <CandidateStatusBadge status={event.ai_result?.replace("ed", "") || "N/A"} />
-                          </div>
-                          {<div className="flex items-center justify-start gap-2">
+                          </div>}
+                          {event.hr_decision && event.hr_decision.toLowerCase() !== "may be" && <div className="flex items-center justify-start gap-2">
                             <span className="text-xs font-bold uppercase tracking-tight text-muted-foreground">HR decision:</span>
                             <CandidateStatusBadge status={event.hr_decision?.replace("ed", "") || "N/A"} />
                           </div>}

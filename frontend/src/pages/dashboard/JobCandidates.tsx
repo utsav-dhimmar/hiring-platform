@@ -280,7 +280,7 @@ export default function JobCandidates() {
                                   className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0 "
                                   onClick={() => {
                                     const candidateFullName = slugify(`${candidate.first_name} ${candidate.last_name}`);
-                                    const stageSlug = slugify(candidate.pipeline?.[0]?.template_name);
+                                    const stageSlug = slugify("Resume Screening");
 
                                     navigate(`/dashboard/jobs/${jobSlug}/candidates/${candidateFullName}/stages/${stageSlug}`, {
                                       state: {

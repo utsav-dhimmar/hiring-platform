@@ -32,7 +32,7 @@ function CandidateStatusBadge({ status, className, label: customLabel, icon }: C
   }
   // Neutral / Pending
   else {
-    statusClasses = "bg-slate-300/10 text-black border-slate-300/20 dark:bg-slate-300/20 dark:text-black border-slate-300/30";
+    statusClasses = "bg-slate-300 text-black border-slate-300 dark:bg-slate-300 dark:text-black border-slate-300";
   }
 
   return (

@@ -31,6 +31,7 @@ export default function TranscriptPage() {
       setIsLoading(true);
       try {
         const data = await transcriptService.getTranscript(transcriptId);
+
         setTranscript(data);
       } catch (error) {
         console.error("Failed to fetch transcript:", error);

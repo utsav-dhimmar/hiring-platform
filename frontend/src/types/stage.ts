@@ -103,4 +103,7 @@ export interface CandidateStageSummary {
   job_id?: string | null;
   job_name?: string | null;
   completed_at?: string | null;
+  job_stage_id?: string | null;
+  hr_decision?: string | null;
+  ai_result?: string | null
 }

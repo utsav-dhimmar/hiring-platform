@@ -3,6 +3,7 @@ import type {
   EvaluationRead,
   SimilarityScores,
   StageDecisionResponse,
+  EvaluationHistoryRead
 } from "@/types/candidateStage";
 import type {
   StageOverrideCreate,
@@ -20,6 +21,17 @@ export const candidateStageService = {
   getEvaluation: async (id: string): Promise<EvaluationRead> => {
     const response = await apiClient.get<EvaluationRead>(
       `/candidate-stages/${id}/evaluation`,
+    );
+    return response.data;
+  },
+
+  /**
+   * Retrieve the full evaluation result for all versions of a specific candidate stage.
+   * @param stage_id - UUID of the candidate stage.
+   */
+  getEvaluationHistory: async (stage_id: string): Promise<EvaluationHistoryRead[]> => {
+    const response = await apiClient.get<EvaluationHistoryRead[]>(
+      `/candidate-stages/${stage_id}/evaluation/history`,
     );
     return response.data;
   },
@@ -66,6 +78,12 @@ export const candidateStageService = {
     );
     return response.data;
   },
+  /**
+   * @deprecated use `candidateDecisionApi.submitDecision`
+   * @param stageId 
+   * @param decision 
+   * @returns 
+   */
   stageWiseDecision: async (
     stageId: string,
     decision: StageDecisionCreate,

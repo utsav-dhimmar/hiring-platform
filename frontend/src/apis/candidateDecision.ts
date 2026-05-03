@@ -15,6 +15,7 @@ export interface CandidateDecisionCreate {
   decision: "approve" | "reject" | "May Be";
   notes?: string;
   stage_config_id?: string
+  job_id?: string
 }
 
 export interface HrDecisionHistoryItem {
@@ -25,6 +26,7 @@ export interface HrDecisionHistoryItem {
   decision: "approve" | "reject" | "May Be";
   notes: string | null;
   decided_at: string;
+  stage_name?: string;
 }
 
 export interface HrDecisionHistoryResponse {
@@ -40,12 +42,14 @@ export const candidateDecisionApi = {
     decision: "approve" | "reject" | "maybe";
     note?: string;
     stage_config_id?: string
+    job_id?: string
   }) => {
     const backendData: CandidateDecisionCreate = {
       candidate_id: data.candidate_id,
       decision: data.decision === "maybe" ? "May Be" : data.decision,
       notes: data.note,
-      stage_config_id: data.stage_config_id
+      stage_config_id: data.stage_config_id,
+      job_id: data.job_id
     };
 
     const response = await apiClient.post<CandidateDecision>(

@@ -16,10 +16,10 @@ import type { Job } from "@/types/job";
 import type { CandidateAnalysis } from "@/types/admin";
 import { StageCandidatesHeader } from "@/components/candidate/StageCandidatesHeader";
 import { JobInfoModal } from "@/components/modal";
-// import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { candidateStageService } from "@/apis/candidateStage";
 import { transcriptService } from "@/apis/transcript";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, Info } from "lucide-react";
 import type { EvaluationRead } from "@/types/candidateStage";
 import type { Transcript } from "@/types/transcript";
 import { CandidateHistoryGrid } from "@/components/candidate/CandidateHistoryGrid";
@@ -31,6 +31,8 @@ import { jobStageService } from "@/apis/jobStage";
 import { AnalysisContent } from "@/components/modal/candidate-details/AnalysisContent";
 import { DecisionHistory } from "@/components/modal/candidate-details/DecisionHistory";
 import jobService from "@/apis/job";
+import { CandidateDetailsModal } from "@/components/modal/CandidateDetailsModal";
+import { HrDecision } from "@/components/modal/candidate-details/HrDecision";
 
 
 export default function CandidatesStages() {
@@ -80,6 +82,9 @@ export default function CandidatesStages() {
   const [isPolling, setIsPolling] = useState(false);
   const [candidateData, setCandidateData] = useState<CandidateAnalysis | null>(null);
   const [showAllSkills, setShowAllSkills] = useState(false);
+  const [refetchTimeline, setRefetchTimeline] = useState(0);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
 
   useEffect(() => {
     const fetchCandidateData = async () => {
@@ -134,27 +139,33 @@ export default function CandidatesStages() {
   const candidateStage = candidate.pipeline?.find(
     (s) => s.template_name === currentStage
   );
-  const stageId = candidateStage?.stage_id;
+
+
+  const instanceId = candidateStage?.stage_id;
+  const configId = candidateStage?.job_stage_id;
+
+  // console.log(candidateStage, 'candidateStage')
 
   const fetchEvaluation = async (showLoading = true) => {
-    if (!stageId || stageId === "resume-screening") {
+    if (currentStage === "Resume Screening" || !instanceId) {
       setEvaluation(null);
       return;
     }
 
     if (showLoading) setIsLoadingEvaluation(true);
     try {
-      const response = await jobService.getJobCandidates(
+      // Optional: Update candidate details if needed
+      await jobService.getJobCandidates(
         job.id,
         undefined,
         0,
         1,
         candidate.id,
-        stageId
+        // configId as string,
+        instanceId as string
       );
-      console.log({ message: "response after new api call :", response });
 
-      const data = await candidateStageService.getEvaluation(stageId);
+      const data = await candidateStageService.getEvaluation(instanceId as string);
       setEvaluation(data);
       setError("");
 
@@ -169,7 +180,7 @@ export default function CandidatesStages() {
       // If polling, we expect 404s or other errors until the evaluation is ready
       if (!isPolling) {
         console.error("Failed to fetch evaluation:", errorMessage);
-        toast.error(errorMessage || "Failed to fetch evaluation Or Something went wrong");
+        // toast.error(errorMessage || "Failed to fetch evaluation Or Something went wrong");
         setError(errorMessage);
         setEvaluation(null);
       }
@@ -182,18 +193,18 @@ export default function CandidatesStages() {
     fetchEvaluation();
     // Reset polling if stage changes
     setIsPolling(false);
-  }, [stageId]);
+  }, [instanceId, currentStage]);
 
   // Polling Effect
   useEffect(() => {
     let interval: number;
-    if (isPolling && stageId) {
+    if (isPolling && instanceId) {
       interval = setInterval(() => {
         fetchEvaluation(false); // Poll without global loading state
       }, 5000);
     }
     return () => clearInterval(interval);
-  }, [isPolling, stageId]);
+  }, [isPolling, instanceId]);
 
   const fetchHistory = async () => {
     if (!candidate?.id) return;
@@ -212,8 +223,8 @@ export default function CandidatesStages() {
   const fetchHrDecisionHistory = async () => {
     if (!candidate?.id) return;
     try {
-      const queryStageId = currentStage === "Resume Screening" ? undefined : stageId;
-      const response = await candidateDecisionApi.getDecisionHistory(candidate.id, job?.id, queryStageId);
+      const queryStageId = currentStage === "Resume Screening" ? undefined : configId;
+      const response = await candidateDecisionApi.getDecisionHistory(candidate.id, job?.id, queryStageId as string);
       setHrDecisionHistory(response.decisions);
     } catch (error) {
       console.error("Failed to fetch HR decision history:", error);
@@ -222,7 +233,7 @@ export default function CandidatesStages() {
 
   useEffect(() => {
     fetchHrDecisionHistory();
-  }, [candidate?.id, job?.id, currentStage, stageId]);
+  }, [candidate?.id, job?.id, currentStage, configId]);
 
   const form = useForm<CandidateDecisionFormValues>({
     resolver: zodResolver(candidateDecisionSchema),
@@ -238,8 +249,9 @@ export default function CandidatesStages() {
     });
     form.clearErrors();
     setShowFeedbackModal(true);
+
   };
-  // console.log(stageId);
+
   const submitFeedback = async (data: CandidateDecisionFormValues) => {
     if (!candidate?.id) {
       toast.error("Candidate information missing");
@@ -247,30 +259,35 @@ export default function CandidatesStages() {
     }
 
     setIsSubmitting(true);
+    // console.log("before submitDecision", {
+    //   candidate_id: candidate.id,
+    //   decision: data.decision,
+    //   note: data.note,
+    //   stage_config_id: currentStage === "Resume Screening" ? undefined : configId,
+    //   job_id: job.id
+    // })
+
     try {
-      await candidateDecisionApi.submitDecision({
+      // @ts-ignore
+      const res = await candidateDecisionApi.submitDecision({
         candidate_id: candidate.id,
         decision: data.decision,
         note: data.note,
-        stage_config_id: currentStage === "Resume Screening" ? undefined : stageId,
+        stage_config_id: currentStage === "Resume Screening" ? undefined : configId as string,
+        job_id: job.id
       });
-      fetchHrDecisionHistory();
-      // if (currentStage === "Resume Screening") {
-      // } else {
-      //   //@ts-ignore
-      //   await candidateStageService.stageWiseDecision(stageId, {
-      //     decision: data.decision == "maybe" ? "May Be" : data.decision,
-      //     notes: data.note,
-      //   });
-      // }
+      // console.log({ message: "after submitDecision", res })
+      form.setValue("note", "");
       toast.success("Decision submitted successfully");
       setShowFeedbackModal(false);
+      await fetchHrDecisionHistory();
 
     } catch (error) {
       const errorMessage = extractErrorMessage(error);
       toast.error(errorMessage || "Failed to submit decision");
     } finally {
       setIsSubmitting(false);
+      setRefetchTimeline(prev => prev + 1);
     }
   };
 
@@ -302,7 +319,13 @@ export default function CandidatesStages() {
 
   const canTakeDecision = !latestDecision || latestDecision.decision.toLowerCase() === "may be";
   const isResumeScreening = currentStage === "Resume Screening";
-  console.log(canTakeDecision);
+
+  const filteredHistory = isResumeScreening
+    ? hrDecisionHistory?.filter((item) => item.stage_config_id == null || item?.stage_name === "Resume Screening")
+    : hrDecisionHistory?.filter((item) => item.stage_config_id !== null && item.stage_config_id === configId);
+
+  // console.log({ isResumeScreening, hrDecisionHistory, configId, filteredHistory });
+
   return (
     <AppPageShell width="full" className="p-0 overflow-hidden bg-background">
       <StageCandidatesHeader
@@ -315,7 +338,7 @@ export default function CandidatesStages() {
           setIsPolling(true);
           fetchHistory();
         }}
-        stageId={stageId}
+        stageId={instanceId as string}
         stageName={currentStage}
       />
       <div className="flex overflow-hidden">
@@ -330,6 +353,7 @@ export default function CandidatesStages() {
             selectedStage={currentStage}
             job={job}
             candidate={candidate}
+            refetch={refetchTimeline}
           />
           {/* <StageControls
             stages={stages}
@@ -351,13 +375,27 @@ export default function CandidatesStages() {
             {isResumeScreening ? (
               candidateData ? (
                 <div className="mx-auto">
+                  <div className="flex justify-end px-4 mb-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsDetailsModalOpen(true)}
+                      className="rounded-xl border-primary/20 hover:bg-primary/5 font-bold"
+                    >
+                      <Info className="h-4 w-4 mr-2" />
+                      Show More
+                    </Button>
+                  </div>
                   <AnalysisContent
                     candidate={candidateData}
                     showAllSkills={showAllSkills}
                     setShowAllSkills={setShowAllSkills}
                     jobId={job?.id}
                   >
-                    <DecisionHistory decisions={hrDecisionHistory} />
+                    {latestDecision && latestDecision.decision.toLowerCase() !== "may be" && (
+                      <HrDecision decision={latestDecision} />
+                    )}
+                    <DecisionHistory decisions={filteredHistory} />
                   </AnalysisContent>
                 </div>
               ) : (
@@ -397,6 +435,10 @@ export default function CandidatesStages() {
                   {transformedOverall && <StageOverallSummary data={transformedOverall} />}
 
                   {/* Section 2: Histories Grid */}
+                  {/* <DecisionHistory decisions={hrDecisionHistory} /> */}
+                  {/* {latestDecision && latestDecision.decision.toLowerCase() !== "may be" && (
+                    <HrDecision decision={latestDecision} />
+                  )} */}
                   <CandidateHistoryGrid
                     hrDecisionHistory={hrDecisionHistory}
                     transcriptHistory={transcriptHistory}
@@ -440,7 +482,7 @@ export default function CandidatesStages() {
           </div>
 
           {/* Footer Action Bar */}
-          {canTakeDecision && (
+          {canTakeDecision && (isResumeScreening || evaluation) && (
             <PermissionGuard permissions={PERMISSIONS.CANDIDATES_DECIDE} hideWhenDenied>
               <ActionButtons
                 onAction={handleAction}
@@ -465,6 +507,19 @@ export default function CandidatesStages() {
         onClose={() => setIsJobModalOpen(false)}
         job={job}
       />
+      {candidateData && (
+        <CandidateDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          candidate={candidateData}
+          jobId={job?.id}
+          onDecisionSubmitted={() => {
+            fetchHrDecisionHistory();
+            setRefetchTimeline(prev => prev + 1);
+          }}
+        />
+      )}
     </AppPageShell>
   );
 }
+
