@@ -19,10 +19,11 @@ import { JobInfoModal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
 import { candidateStageService } from "@/apis/candidateStage";
 import { transcriptService } from "@/apis/transcript";
-import { Loader2, FileText, Info } from "lucide-react";
-import type { EvaluationRead } from "@/types/candidateStage";
+import { Loader2, FileText, Info, History } from "lucide-react";
+import type { EvaluationRead, EvaluationHistoryRead } from "@/types/candidateStage";
 import type { Transcript } from "@/types/transcript";
 import { CandidateHistoryGrid } from "@/components/candidate/CandidateHistoryGrid";
+import { EvaluationHistoryModal } from "@/components/modal/candidate-details/EvaluationHistoryModal";
 import { CandidateTimeline } from "@/components/candidate/CandidateTimeline";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -84,6 +85,9 @@ export default function CandidatesStages() {
   const [showAllSkills, setShowAllSkills] = useState(false);
   const [refetchTimeline, setRefetchTimeline] = useState(0);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [evaluationHistory, setEvaluationHistory] = useState<EvaluationHistoryRead[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
 
   useEffect(() => {
@@ -174,6 +178,7 @@ export default function CandidatesStages() {
         setIsPolling(false);
         toast.success("Evaluation generated successfully!");
         fetchHistory(); // Refresh history to show the new transcript
+        fetchEvaluationHistory(); // Refresh evaluation history
       }
     } catch (error) {
       const errorMessage = extractErrorMessage(error);
@@ -195,7 +200,6 @@ export default function CandidatesStages() {
     setIsPolling(false);
   }, [instanceId, currentStage]);
 
-  // Polling Effect
   useEffect(() => {
     let interval: number;
     if (isPolling && instanceId) {
@@ -205,6 +209,41 @@ export default function CandidatesStages() {
     }
     return () => clearInterval(interval);
   }, [isPolling, instanceId]);
+
+  const fetchEvaluationHistory = async () => {
+    if (!instanceId || currentStage === "Resume Screening") return;
+    setIsLoadingHistory(true);
+    try {
+      const history = await candidateStageService.getEvaluationHistory(instanceId);
+      setEvaluationHistory(history);
+    } catch (error) {
+      console.error("Failed to fetch evaluation history:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvaluationHistory();
+  }, [instanceId, currentStage]);
+
+  const handleSelectHistoryVersion = (version: EvaluationHistoryRead) => {
+    const mappedEvaluation: EvaluationRead = {
+      id: version.id,
+      interview_id: version.interview_id,
+      transcript_id: version.transcript_id,
+      candidate_stage_id: version.candidate_stage_id,
+      evaluation_data: (version.evaluation_data as any)?.criteria || version.evaluation_data,
+      overall_score: version.overall_score,
+      recommendation: version.result,
+      sim_jd_resume: version.sim_jd_resume,
+      sim_jd_transcript: version.sim_jd_transcript,
+      sim_resume_transcript: version.sim_resume_transcript,
+      created_at: version.created_at,
+      highlights: version.highlights as any,
+    };
+    setEvaluation(mappedEvaluation);
+  };
 
   const fetchHistory = async () => {
     if (!candidate?.id) return;
@@ -426,6 +465,17 @@ export default function CandidatesStages() {
               </div>
             ) : evaluation ? (
               <>
+                <div className="flex justify-end px-4 mb-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsHistoryModalOpen(true)}
+                    className="rounded-xl border-primary/20 hover:bg-primary/5 font-bold"
+                  >
+                    <History className="h-4 w-4 mr-2" />
+                    Evaluation History ({evaluationHistory.length})
+                  </Button>
+                </div>
                 <EvaluationGrid
                   data={evaluation?.evaluation_data}
                 />
@@ -519,6 +569,14 @@ export default function CandidatesStages() {
           }}
         />
       )}
+      <EvaluationHistoryModal
+        isOpen={isHistoryModalOpen}
+        onOpenChange={setIsHistoryModalOpen}
+        history={evaluationHistory}
+        isLoading={isLoadingHistory}
+        onSelectVersion={handleSelectHistoryVersion}
+        currentVersionId={evaluation?.id}
+      />
     </AppPageShell>
   );
 }
