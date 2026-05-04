@@ -170,6 +170,7 @@ export const jobCreateSchema = jobBaseSchema.extend({
     is_mandatory: z.boolean().default(true),
     config: z.record(z.string(), z.any()).optional().default({}),
   })).optional().nullable().default(null),
+  processing_version: z.number().int().positive().optional(),
 });
 
 /** Type inferred from jobCreateSchema. */
@@ -185,6 +186,7 @@ export const jobUpdateSchema = jobBaseSchema.partial().extend({
   skill_ids: z.array(uuidSchema("Invalid skill ID")).min(1, "Please select at least one skill").optional(),
   position_id: uuidSchema("Please select a valid job position"),
   priority_id: uuidSchema("Please select a valid priority"),
+  processing_version: z.number("Please select a valid version").int("Please enter a valid version").positive("Please enter a valid version").optional()
 });
 
 /** Type inferred from jobUpdateSchema. */

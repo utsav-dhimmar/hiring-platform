@@ -94,6 +94,7 @@ export interface Job {
   priority?: JobPriorityRead | null;
   position_id: string;
   position?: JobPositionRead | null;
+  processing_version?: number | null;
 }
 
 /**

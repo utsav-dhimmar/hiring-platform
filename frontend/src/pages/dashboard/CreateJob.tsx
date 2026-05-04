@@ -30,6 +30,8 @@ import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { extractErrorMessage } from "@/utils/error";
 import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
+import { MoreJobSetting } from "@/components/job-form/MoreJobSetting";
+import type { Job, JobVersionMinimal } from "@/types/job";
 
 
 export default function CreateJob() {
@@ -44,6 +46,7 @@ export default function CreateJob() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [job, setJob] = useState<Job | null>(null);
   const isEditMode = !!jobSlug;
 
   const form = useForm<JobCreateFormValues>({
@@ -60,6 +63,7 @@ export default function CreateJob() {
       priority_id: "",
       position_id: "",
       stages: null,
+      processing_version: undefined,
     },
   });
   const fetchFormData = useCallback(async () => {
@@ -109,6 +113,7 @@ export default function CreateJob() {
 
             if (jobData) {
               setJobId(id);
+              setJob(jobData);
               setJobSkills(jobData.skills as SkillBase[] || []);
               form.reset({
                 title: jobData.title,
@@ -121,6 +126,7 @@ export default function CreateJob() {
                 custom_extraction_fields: jobData.custom_extraction_fields || [],
                 priority_id: jobData.priority_id || "",
                 position_id: jobData.position_id || "",
+                processing_version: jobData.version || undefined,
               });
             }
           } catch (error) {
@@ -204,6 +210,7 @@ export default function CreateJob() {
                 jobId={jobId}
                 onChange={(stages) => form.setValue("stages" as any, stages)}
               />
+              <MoreJobSetting jobId={jobId} versions={job?.job_versions as JobVersionMinimal[]} />
 
               {/* Form Actions */}
               <div className="flex flex-wrap items-center justify-center gap-4 border-t pt-8">

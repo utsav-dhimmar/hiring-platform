@@ -68,12 +68,12 @@ export const getJobColumns = ({
             >
               {row.original.title}
 
-              {row.original.version && (
+              {(row.original.version ?? row.original.processing_version) && (
                 <Badge
                   variant="secondary"
                   className="ml-1 text-xs font-normal h-5 px-1.5 rounded-md shrink-0"
                 >
-                  v{row.original.version}
+                  v{row.original.processing_version ?? row.original.version}
                 </Badge>
               )}
             </span>

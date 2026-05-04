@@ -29,7 +29,8 @@ import {
   ListTodo,
   type LucideIcon,
   ReceiptText,
-  User
+  User,
+  PencilIcon
 } from "lucide-react";
 
 /**
@@ -41,7 +42,7 @@ const ROUTE_META: Record<string, { label: string; icon?: LucideIcon }> = {
   jobs: { label: "Jobs", icon: Briefcase },
   candidates: { label: "Candidates", icon: Users },
   new: { label: "Create Job", icon: PlusCircle },
-  edit: { label: "Edit", icon: Settings },
+  edit: { label: "Edit", icon: PencilIcon },
   versions: { label: "Versions", icon: GitBranch },
   admin: { label: "Admin Dashboard", icon: ShieldCheck },
   departments: { label: "Departments", icon: Building2 },
