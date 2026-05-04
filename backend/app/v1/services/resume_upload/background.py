@@ -31,6 +31,7 @@ class BackgroundProcessor:
         resume_id: uuid.UUID,
         file_path: str,
         existing_resume_id: uuid.UUID | None = None,
+        override_version: int | None = None,
     ) -> None:
         """Schedule the resume processing task via Celery.
 
@@ -47,6 +48,7 @@ class BackgroundProcessor:
             resume_id_str=str(resume_id),
             file_path=file_path,
             existing_resume_id_str=str(existing_resume_id) if existing_resume_id else None,
+            override_version_num=override_version,
         )
         logger.info("Celery task scheduled for resume_id=%s", resume_id)
 
@@ -85,6 +87,7 @@ class BackgroundProcessor:
         resume_id: uuid.UUID,
         file_path: str,
         existing_resume_id: uuid.UUID | None = None,
+        override_version: int | None = None,
     ) -> None:
         from .pipeline import run_resume_processing_pipeline
 
@@ -95,6 +98,7 @@ class BackgroundProcessor:
             processor=self.processor,
             mark_failed_cb=self._mark_resume_failed,
             existing_resume_id=existing_resume_id,
+            override_version=override_version,
         )
 
     def schedule_mass_refresh(
@@ -111,13 +115,15 @@ class BackgroundProcessor:
         )
 
     def schedule_candidate_reanalyze(
-        self, job_id: uuid.UUID, candidate_id: uuid.UUID
+        self, job_id: uuid.UUID, candidate_id: uuid.UUID, override_version: int | None = None
     ) -> None:
         """Schedule a background task to reanalyze a single candidate against the latest JD version."""
         from .tasks import reanalyze_candidate_task
 
         reanalyze_candidate_task.delay(
-            job_id_str=str(job_id), candidate_id_str=str(candidate_id)
+            job_id_str=str(job_id), 
+            candidate_id_str=str(candidate_id),
+            override_version_num=override_version
         )
         logger.info(
             "Celery task scheduled for candidate reanalysis. job_id=%s, candidate_id=%s",
@@ -185,6 +191,7 @@ class BackgroundProcessor:
         *,
         job_id: uuid.UUID,
         candidate_id: uuid.UUID,
+        override_version: int | None = None,
     ) -> None:
         """Re-run extraction/analysis for a single candidate based on latest JD."""
         from sqlalchemy import select
@@ -222,7 +229,8 @@ class BackgroundProcessor:
                 file_path=file_path,
                 processor=self.processor,
                 mark_failed_cb=self._mark_resume_failed,
-                reanalyze=True
+                reanalyze=True,
+                override_version=override_version
             )
             
             logger.info(

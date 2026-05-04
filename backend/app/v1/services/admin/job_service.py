@@ -361,7 +361,7 @@ class JobAdminService:
 
             # Clear cache for job embedding if JD or Title changed
             if "jd_text" in updated_fields or "title" in updated_fields:
-                await cache.delete(f"job_embedding:{job_id}")
+                await cache.delete(f"job_embedding:{job_id}_v{updated_job.version}")
 
             # Only trigger mass refresh for major changes if desired, 
             # but clearing the cache ensures the NEXT manual re-analysis is fresh.

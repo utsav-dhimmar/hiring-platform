@@ -10,7 +10,7 @@ from app.v1.schemas.job_stage import JobStageConfigRead
 from app.v1.schemas.skill import SkillRead
 from app.v1.schemas.job_priority import JobPriorityRead
 from app.v1.schemas.job_position import JobPositionRead
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Any
 
 
@@ -19,6 +19,7 @@ class JobBase(BaseModel):
     Base schema for Job data with shared attributes.
     """
 
+    processing_version: int | None = Field(None, json_schema_extra={"example": 1})
     title: str
     vacancy: int | None = None
     department_id: uuid.UUID | None = None
@@ -51,8 +52,8 @@ class JobCreate(JobBase):
     If stages is [] (empty list), no stages will be created.
     """
 
-    from pydantic import Field
     skill_ids: list[uuid.UUID] = []
+    processing_version: int | None = Field(None, description="Pin to a specific job version for matching")
     stages: list[StageInput] | None = Field(
         default=None,
         json_schema_extra={
@@ -73,6 +74,7 @@ class JobUpdate(BaseModel):
     Schema for updating an existing Job.
     """
 
+    processing_version: int | None = Field(None, json_schema_extra={"example": 1})
     title: str | None = None
     vacancy: int | None = None
     department_id: uuid.UUID | None = None

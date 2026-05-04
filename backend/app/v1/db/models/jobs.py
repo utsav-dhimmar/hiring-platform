@@ -127,6 +127,11 @@ class Job(Base):
         nullable=False,
     )
 
+    processing_version: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
     # PRIORITY FIELDS
     priority_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

@@ -578,6 +578,7 @@ class ResumeUploadService:
         job_id: uuid.UUID,
         candidate_id: uuid.UUID,
         background_tasks,
+        override_version: int | None = None,
     ) -> None:
         """Trigger re-analysis for a single candidate."""
         job = await job_repository.get(db, job_id)
@@ -588,7 +589,7 @@ class ResumeUploadService:
 
         bg_processor = BackgroundProcessor(ResumeProcessor())
         bg_processor.schedule_candidate_reanalyze(
-            job_id=job_id, candidate_id=candidate_id
+            job_id=job_id, candidate_id=candidate_id, override_version=override_version
         )
 
     async def delete_resume(

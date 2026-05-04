@@ -36,6 +36,7 @@ def process_resume_task(
     resume_id_str: str,
     file_path: str,
     existing_resume_id_str: str | None = None,
+    override_version_num: int | None = None,
 ):
     """Celery task to process a single resume upload."""
     print(f"[V2] Received task for resume_id={resume_id_str}, path={file_path}")
@@ -59,6 +60,7 @@ def process_resume_task(
                     resume_id=resume_id,
                     file_path=normalized_path,
                     existing_resume_id=existing_resume_id,
+                    override_version=override_version_num,
                 )
             )
         )
@@ -88,7 +90,7 @@ def mass_refresh_task(self, job_id_str: str, full_refresh: bool = False):
         raise self.retry(exc=exc, countdown=60)
 
 @celery_app.task(name="reanalyze_candidate_task", bind=True, max_retries=3)
-def reanalyze_candidate_task(self, job_id_str: str, candidate_id_str: str):
+def reanalyze_candidate_task(self, job_id_str: str, candidate_id_str: str, override_version_num: int | None = None):
     """Celery task to reanalyze a single candidate based on the current Job Description."""
     job_id = uuid.UUID(job_id_str)
     candidate_id = uuid.UUID(candidate_id_str)
@@ -100,7 +102,9 @@ def reanalyze_candidate_task(self, job_id_str: str, candidate_id_str: str):
         asyncio.run(
             run_task_with_disposal(
                 bg_processor.reanalyze_candidate_in_background(
-                    job_id=job_id, candidate_id=candidate_id
+                    job_id=job_id, 
+                    candidate_id=candidate_id,
+                    override_version=override_version_num
                 )
             )
         )

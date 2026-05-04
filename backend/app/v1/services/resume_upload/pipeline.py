@@ -1,13 +1,17 @@
 """
 Pipeline for processing a single resume upload.
 """
+import asyncio
 import hashlib
 import time
 import uuid
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from app.v1.db.models.job_versions import JobVersion
+from app.v1.db.models.resumes import Resume
 
 
 
@@ -33,6 +37,7 @@ async def run_resume_processing_pipeline(
     mark_failed_cb: Callable[[AsyncSession, uuid.UUID, dict | None, str], Awaitable[None]],
     reanalyze: bool = False,
     existing_resume_id: uuid.UUID | None = None,
+    override_version: int | None = None,
 ) -> None:
     """Full background processing workflow for an uploaded or re-analyzed resume.
 
@@ -55,11 +60,25 @@ async def run_resume_processing_pipeline(
 
     async with async_session_maker() as db:
         stage_started_at = time.perf_counter()
-        resume_record = await resume_upload_repository.get_resume_for_job(
-            db,
-            job_id=job_id,
-            resume_id=resume_id,
-        )
+        
+        # Retry logic for race conditions where Celery starts before commit is fully visible
+        resume_record = None
+        for attempt in range(3):
+            resume_record = await db.scalar(
+                select(Resume)
+                .options(
+                    selectinload(Resume.file),
+                    selectinload(Resume.version_results),
+                    selectinload(Resume.candidate),
+                )
+                .where(Resume.id == resume_id)
+            )
+            if resume_record:
+                break
+            if attempt < 2:
+                logger.warning("Resume %s not found in DB, retrying in 1s... (attempt %d)", resume_id, attempt + 1)
+                await asyncio.sleep(1)
+
         log_stage(
             stage="load_resume_for_background",
             started_at=stage_started_at,
@@ -68,7 +87,7 @@ async def run_resume_processing_pipeline(
         )
         if resume_record is None:
             logger.error(
-                "resume_processing missing resume_id=%s job_id=%s",
+                "resume_processing missing resume_id=%s job_id=%s after retries",
                 resume_id,
                 job_id,
             )
@@ -107,6 +126,25 @@ async def run_resume_processing_pipeline(
             )
             return
 
+        target_job = job
+        # Use override_version if provided, otherwise fallback to pinned processing_version
+        target_version_num = override_version or getattr(job, "processing_version", None)
+        
+        if target_version_num and target_version_num != job.version:
+            target_version_obj = (await db.execute(select(JobVersion).where(JobVersion.job_id == job.id, JobVersion.version_number == target_version_num))).scalar_one_or_none()
+            if target_version_obj:
+                class JobVersionProxy:
+                    def __init__(self, main_job, job_version):
+                        self.id = main_job.id
+                        self.version = job_version.version_number
+                        self.title = job_version.title
+                        self.jd_text = job_version.jd_text
+                        self.jd_json = job_version.jd_json
+                        self.custom_extraction_fields = job_version.custom_extraction_fields
+                        self.passing_threshold = job_version.passing_threshold
+                        self.jd_embedding = job_version.jd_embedding 
+                target_job = JobVersionProxy(job, target_version_obj)
+
         try:
             raw_text = ""
             parsed_summary = {}
@@ -116,7 +154,6 @@ async def run_resume_processing_pipeline(
             if existing_resume_id and not reanalyze:
                 logger.info("[PIPELINE] DUPLICATE DETECTED: Re-using data from existing resume %s for resume %s", existing_resume_id, resume_id)
                 raw_text = await resume_upload_repository.get_resume_full_text(db, existing_resume_id)
-                from app.v1.db.models.resumes import Resume
                 existing_resume_obj = await db.get(Resume, existing_resume_id)
                 if existing_resume_obj:
                     parsed_summary = dict(existing_resume_obj.parse_summary or {})
@@ -270,7 +307,7 @@ async def run_resume_processing_pipeline(
             insights = await processor.generate_resume_insights(
                 raw_text=raw_text,
                 parsed_summary=parsed_summary,
-                job=job,
+                job=target_job,
                 job_skills=job_skills,
                 candidate_skills=extracted_skill_names_list,
             )
@@ -295,16 +332,16 @@ async def run_resume_processing_pipeline(
             needs_job_embedding_update = False
             if insights["job_embedding"]:
                 current_dim = len(insights["job_embedding"])
-                if job.jd_embedding is None:
+                if target_job.jd_embedding is None:
                     needs_job_embedding_update = True
-                elif len(job.jd_embedding) != current_dim:
+                elif len(target_job.jd_embedding) != current_dim:
                     logger.info(
                         "Updating job %s embedding due to dimension mismatch (old=%d, new=%d)",
                         job_id, len(job.jd_embedding), current_dim
                     )
                     needs_job_embedding_update = True
 
-            if needs_job_embedding_update:
+            if needs_job_embedding_update and target_job.version == job.version:
                 await resume_upload_repository.update_job_embedding(
                     db,
                     job=job,
@@ -348,7 +385,7 @@ async def run_resume_processing_pipeline(
                 candidate.info_embedding = insights["candidate_embedding"]
             
             resume_record.resume_embedding = insights["candidate_embedding"]
-            candidate.applied_version_number = job.version
+            candidate.applied_version_number = target_job.version
             log_stage(
                 stage="persist_candidate_profile",
                 started_at=stage_started_at,
@@ -357,12 +394,12 @@ async def run_resume_processing_pipeline(
             )
 
             custom_extractions = {}
-            if getattr(job, "custom_extraction_fields", None):
+            if getattr(target_job, "custom_extraction_fields", None):
                 logger.info("[PIPELINE] Starting Custom Field Extraction for resume_id=%s", resume_id)
                 from app.v1.services.resume_upload.custom_extractor import custom_extractor_service
                 custom_extractions = await custom_extractor_service.extract_background_custom_fields(
                     raw_text=raw_text,
-                    fields_list=job.custom_extraction_fields,
+                    fields_list=target_job.custom_extraction_fields,
                 )
                 logger.info("[PIPELINE] Custom Field Extraction complete for resume_id=%s", resume_id)
 
@@ -382,15 +419,15 @@ async def run_resume_processing_pipeline(
             resume_record.parsed = True
             resume_record.parse_summary = parse_summary_with_analysis
             resume_record.resume_score = analysis.match_percentage
-            resume_record.pass_fail = "passed" if float(resume_record.resume_score or 0) >= (job.passing_threshold or 70.0) else "failed"
+            resume_record.pass_fail = "passed" if float(resume_record.resume_score or 0) >= (target_job.passing_threshold or 70.0) else "failed"
             resume_record.text_hash = text_hash
 
             # --- Save versioned result ---
             from app.v1.db.models.resume_version_results import ResumeVersionResult
             versioned = ResumeVersionResult(
                 resume_id=resume_record.id,
-                job_id=job.id,
-                job_version_number=job.version,
+                job_id=target_job.id,
+                job_version_number=target_job.version,
                 resume_score=resume_record.resume_score,
                 pass_fail=resume_record.pass_fail,
                 analysis_data=analysis.model_dump(),

@@ -100,10 +100,12 @@ class ResumeProcessor:
         job_text = build_job_text(job)
         job_id = getattr(job, "id", None)
 
+        job_version = getattr(job, "version", 1)
+
         # ---- Redis Cache for Job Embedding ----
         job_embedding = None
         if job_id:
-            cache_key = f"job_embedding:{job_id}"
+            cache_key = f"job_embedding:{job_id}_v{job_version}"
             job_embedding = await cache.get(cache_key)
             if job_embedding:
                 log_event(
@@ -120,7 +122,7 @@ class ResumeProcessor:
                 job_chars=len(job_text) if job_text else 0,
             )
             if job_id and job_embedding:
-                await cache.set(f"job_embedding:{job_id}", job_embedding)
+                await cache.set(f"job_embedding:{job_id}_v{job_version}", job_embedding)
         elif len(job_embedding) != embedding_service.target_dim:
             # Handle dimension mismatch from cache (e.g. model changed from 1024 to 384)
             log_event(
@@ -137,7 +139,7 @@ class ResumeProcessor:
                 job_chars=len(job_text) if job_text else 0,
             )
             if job_id and job_embedding:
-                await cache.set(f"job_embedding:{job_id}", job_embedding)
+                await cache.set(f"job_embedding:{job_id}_v{job_version}", job_embedding)
         # ---------------------------------------
 
         logger.info("[INSIGHTS] Starting Candidate Embedding for resume_id=%s", getattr(job, "id", "unknown"))

@@ -7,7 +7,7 @@ and retrieving candidate/resume lists for specific jobs.
 
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status, Query
 from fastapi import File as FastAPIFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -148,6 +148,7 @@ async def reanalyze_candidate(
     job_id: uuid.UUID,
     candidate_id: uuid.UUID,
     background_tasks: BackgroundTasks,
+    version: int | None = Query(None, description="Specific job version to match against. If null, uses global job setting."),
     db: AsyncSession = Depends(get_db),
     current_user: UserRead = Depends(check_permission("jobs:manage")),
 ) -> dict[str, str]:
@@ -157,6 +158,7 @@ async def reanalyze_candidate(
         job_id=job_id,
         candidate_id=candidate_id,
         background_tasks=background_tasks,
+        override_version=version,
     )
     return {"message": f"Background re-analysis started for candidate {candidate_id}."}
 
