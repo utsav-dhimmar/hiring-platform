@@ -114,7 +114,7 @@ export const JobTableFilters = ({
                           : [...statusFilter, s]
                       )
                     }
-                    className="rounded-lg my-0.5"
+                    className="rounded-lg my-0.5 capitalize"
                   >
                     {capitalize(s)}
                   </DropdownMenuCheckboxItem>
@@ -188,7 +188,7 @@ export const JobTableFilters = ({
                                   : [...departmentFilter, d]
                               )
                             }
-                            className="rounded-lg my-0.5"
+                            className="rounded-lg my-0.5 capitalize"
                           >
                             {d}
                           </DropdownMenuCheckboxItem>

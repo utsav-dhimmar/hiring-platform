@@ -259,8 +259,8 @@ export interface JobUpdate {
   skill_ids?: string[];
   passing_threshold?: number;
   custom_extraction_fields?: string[];
-  priority_id: string;
-  position_id: string;
+  priority_id?: string;
+  position_id?: string;
   priority_start_date?: string | null;
   priority_end_date?: string | null;
 }

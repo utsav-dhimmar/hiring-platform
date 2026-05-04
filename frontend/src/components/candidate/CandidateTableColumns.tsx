@@ -53,7 +53,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold "
+            className="hover:bg-transparent p-0 font-semibold text-base"
           >
             Candidate
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -69,8 +69,8 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           return (
             <div className="flex flex-col gap-0.5 min-w-[160px] max-w-[250px]">
               <span
-                className="font-bold  text-foreground truncate block capitalize"
-                title={fullName}
+                className="text-foreground truncate block capitalize"
+
               >
                 {isProcessing && !c.first_name ? (
                   <span className="text-muted-foreground italic text-sm">
@@ -80,10 +80,10 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   toTitleCase(fullName)
                 )}
               </span>
-              <span className="text-muted-foreground truncate block" title={c.email || "N/A"}>
+              <span className="text-muted-foreground truncate block">
                 {c.email || "N/A"}
               </span>
-              <span className="text-muted-foreground truncate block" title={c.phone || "N/A"}>
+              <span className="text-muted-foreground truncate block">
                 {c.phone || "N/A"}
               </span>
             </div>
@@ -131,7 +131,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold"
+            className="hover:bg-transparent p-0 font-semibold text-base"
           >
             Result
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -147,13 +147,13 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
                   <div className="h-3.5 w-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs font-medium text-muted-foreground italic">
+                  <span className="text-xs text-muted-foreground italic">
                     Analyzing…
                   </span>
                 </div>
                 <Badge
                   variant="outline"
-                  className="rounded-full px-2 py-0 text-[10px] uppercase font-bold w-fit tracking-wider bg-blue-500/5 text-blue-500 border-blue-200/50 animate-pulse"
+                  className="rounded-full px-2 py-0 text-[10px] uppercase w-fit tracking-wider bg-blue-500/5 text-blue-500 border-blue-200/50 animate-pulse"
                 >
                   Processing
                 </Badge>
@@ -169,7 +169,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           return (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm">{score.toFixed(1)}%</span>
+                <span className=" text-sm">{score.toFixed(1)}%</span>
                 <div className="w-14 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${scoreColor(score, passing_threshold)}`}
@@ -200,7 +200,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         // header: "HR Decision",
         header: () => {
           return <div className="flex items-center justify-between">
-            <span className="font-semibold">HR Decision</span>
+            <span className="font-semibold text-base">HR Decision</span>
           </div>
         },
         cell: ({ row }) => <CandidateStatusBadge status={row.original.hr_decision} />,
@@ -213,20 +213,20 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         // header: "Stage",
         header: () => {
           return <div className="flex items-center justify-between">
-            <span className="font-semibold">Stage</span>
+            <span className="font-semibold text-base">Stage</span>
           </div>
         },
         cell: ({ row }) => {
           const stage = row.original.current_stage;
           if (!stage) {
             return (
-              <span className="text-muted-foreground text-sm italic font-medium">N/A</span>
+              <span className="text-muted-foreground text-sm italic">N/A</span>
             );
           }
 
           return (
             <div className="flex flex-col gap-1 min-w-[120px]">
-              <span className="font-semibold text-sm text-foreground text-wrap max-w-[150px]" title={stage.template_name}>
+              <span className=" text-sm text-foreground text-wrap max-w-[150px]" title={stage.template_name}>
                 {stage.template_name}
               </span>
               <CandidateStatusBadge status={stage.status == "completed" ? stage.status.replace("completed", "complete") : stage.status.replace("ed", "")} />
@@ -241,7 +241,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         // header: "Socials",
         header: () => {
           return <div className="flex items-center justify-between">
-            <span className="font-semibold">Socials</span>
+            <span className="font-semibold text-base">Socials</span>
           </div>
         },
         cell: ({ row }) => {
@@ -348,7 +348,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold"
+            className="hover:bg-transparent p-0 font-semibold text-base"
           >
             Applied At
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -370,7 +370,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold"
+            className="hover:bg-transparent p-0 font-semibold text-base"
           >
             Location
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -398,7 +398,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         ? [
           {
             id: "actions",
-            header: () => <div className="text-right pr-2">Actions</div>,
+            header: () => <div className="text-right pr-2 text-base">Actions</div>,
             cell: ({ row }: { row: { original: T } }) => (
               <div className="flex items-center justify-end gap-2 pr-2">
                 {renderActions(row.original)}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import jobService from "@/apis/job";
 import type { Job, JobVersionDetail } from "@/types/job";
 import { Button } from "@/components/ui/button";
@@ -17,17 +17,39 @@ interface JobInfoModalProps {
   job: Job | null;
 }
 
+const InfoSection = ({
+  title,
+  children,
+  className = "space-y-3",
+  titleClassName = "",
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  titleClassName?: string;
+}) => (
+  <div className={className}>
+    <h3 className={`text-sm font-bold text-muted-foreground uppercase tracking-widest ${titleClassName}`}>
+      {title}
+    </h3>
+    {children}
+  </div>
+);
+
 export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<JobVersionDetail | null>(null);
   const [isLoadingVersion, setIsLoadingVersion] = useState(false);
 
+  const sortedVersions = useMemo(() => {
+    return [...(job?.job_versions || [])].sort((a, b) => b.version_num - a.version_num);
+  }, [job?.job_versions]);
+
   useEffect(() => {
     if (isOpen && job) {
       // Initialize with latest version or current job info
-      const sorted = [...(job.job_versions || [])].sort((a, b) => b.version_num - a.version_num);
-      if (sorted.length > 0) {
-        setSelectedVersionId(sorted[0].id);
+      if (sortedVersions.length > 0) {
+        setSelectedVersionId(sortedVersions[0].id);
       } else {
         // Fallback to current job data if no versions
         setSelectedVersion({
@@ -65,7 +87,7 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card/95 backdrop-blur-xl border-muted-foreground/20 shadow-2xl rounded-2xl h-[600px]">
         <DialogHeader className="p-2 pb-2 border-b border-muted-foreground/10 bg-muted/30">
-          <div className="flex flex-row items-start justify-between gap-4 sm:flex-col sm:justify-start sm:items-start">
+          <div className="flex flex-col items-start justify-between gap-4">
             <DialogTitle className="text-xl font-black tracking-tight text-foreground capitalize">
               {job.title}
             </DialogTitle>
@@ -106,15 +128,15 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
         <div className="flex-1 p-2 overflow-y-auto overflow-x-hidden min-h-0">
           <div className="space-y-1 pb-4">
             {/* Job Description */}
-            <div >
+            <div>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest py-2">
                   Job Description
                 </h3>
 
-                {job.job_versions && job.job_versions.length > 0 && (
+                {sortedVersions.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {[...(job.job_versions)].sort((a, b) => b.version_num - a.version_num).map((v) => (
+                    {sortedVersions.map((v) => (
                       <Button
                         key={v.id}
                         variant={selectedVersionId === v.id ? "default" : "outline"}
@@ -151,10 +173,7 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
 
             {/* Required Skills */}
             {job.skills && job.skills.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                  Required Skills
-                </h3>
+              <InfoSection title="Required Skills">
                 <div className="flex flex-wrap gap-2">
                   {job.skills.map((skill) => (
                     <Badge
@@ -167,16 +186,13 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                     </Badge>
                   ))}
                 </div>
-              </div>
+              </InfoSection>
             )}
 
 
             {/* Passing Threshold */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                  Passing Threshold
-                </h3>
+              <InfoSection title="Passing Threshold">
                 <div className="flex flex-wrap gap-2">
                   <Badge
                     variant="secondary"
@@ -185,11 +201,9 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                     {job.passing_threshold}%
                   </Badge>
                 </div>
-              </div>
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                  Vacancy
-                </h3>
+              </InfoSection>
+
+              <InfoSection title="Vacancy">
                 <div className="flex flex-wrap gap-2">
                   <Badge
                     variant="secondary"
@@ -198,8 +212,31 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                     {job.vacancy}
                   </Badge>
                 </div>
+              </InfoSection>
+
+              <InfoSection title="Position Level">
+                <div className="flex flex-wrap gap-2">
+                  <Badge
+                    variant="outline"
+                    className="rounded-xl px-3 py-1 font-medium bg-secondary/50 hover:bg-secondary text-secondary-foreground border-muted-foreground/10 transition-colors"
+                  >
+                    {job.position?.name}
+                  </Badge>
+                </div>
+              </InfoSection>
+              <div>
+                {/* job stategs */}
               </div>
             </div>
+            <InfoSection title="Job Stages" className="mt-2">
+              <ul className="list-disc list-inside">
+                {job?.stages?.map((stage) => (
+                  <li key={stage.id} className="font-medium text-foreground/90">
+                    {stage.template?.name}
+                  </li>
+                ))}
+              </ul>
+            </InfoSection>
           </div>
 
         </div>

@@ -52,7 +52,7 @@ export const getJobColumns = ({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold"
+            className="hover:bg-transparent p-0 font-semibold text-base"
           >
             Title
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -63,8 +63,8 @@ export const getJobColumns = ({
         <div className="flex flex-col gap-1 min-w-[200px] max-w-[300px]">
           <div className="flex items-center gap-2">
             <span
-              className="font-bold text-lg text-wrap capitalize"
-            // text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl
+              className="font-medium text-wrap capitalize"
+            // text-sm md:text-base lg:text-base xl:text-xl 2xl:text-2xl
             >
               {row.original.title}
 
@@ -110,7 +110,7 @@ export const getJobColumns = ({
             <Button
               variant="ghost"
               onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-              className="hover:bg-transparent p-0 font-semibold"
+              className="hover:bg-transparent p-0 font-semibold text-base"
             >
               Job Status
               <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -148,7 +148,7 @@ export const getJobColumns = ({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold"
+            className="hover:bg-transparent p-0 font-semibold text-base"
           >
             Created
             <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -165,7 +165,7 @@ export const getJobColumns = ({
       header: () => {
         return (
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Hiring Activity</span>
+            <span className="font-semibold text-base">Hiring Activity</span>
           </div>
         )
       },
@@ -218,7 +218,7 @@ export const getJobColumns = ({
                               onSessionCandidates(row.original, s.start_date, s.end_date as string);
                             }}
                           >
-                            <Users className="h-4 w-4" /><span className="font-bold group-hover/session:text-primary transition-colors" >  {s.candidate_count}</span>
+                            <Users className="h-4 w-4" /><span className=" group-hover/session:text-primary transition-colors" >  {s.candidate_count}</span>
                           </Badge>
                         )}
                       />
@@ -257,9 +257,9 @@ export const getJobColumns = ({
             )}
 
             <div className="flex items-center gap-1.5 pt-0.5 border-t border-border/40">
-              <span className="text-[13px] font-semibold text-muted-foreground">
+              <span className="text-xs font-semibold text-muted-foreground">
                 Total candidates:{" "}
-                <span className="font-bold text-foreground">
+                <span className="font-medium text-foreground">
                   {totalCandidates}
                 </span>
               </span>
@@ -274,7 +274,7 @@ export const getJobColumns = ({
       header: () => {
         return (
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Skills</span>
+            <span className="font-semibold text-base">Skills</span>
           </div>
         )
       },
@@ -290,7 +290,7 @@ export const getJobColumns = ({
       header: () => {
         return (
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Actions</span>
+            <span className="font-semibold text-base">Actions</span>
           </div>
         )
       },

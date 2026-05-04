@@ -42,7 +42,7 @@ export function JobCandidatesCharts({
     title: CHART_TEXTS.priorityTimeline.label,
     description: CHART_TEXTS.priorityTimeline.description,
     chart: <ProgressBarChart priorityTimeline={jobStats?.priority_timeline || null} />,
-    takeFullSpace: true
+    takeFullSpace: false
   },
   {
     title: CHART_TEXTS.hrDecision.label,
@@ -70,13 +70,13 @@ export function JobCandidatesCharts({
   ];
   return (
     <div className={cn(
-      "grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 p-0.5",
+      "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 p-0.5",
       isRefreshing && "opacity-60 transition-opacity duration-300"
     )}>
       {
         obj.map(({ chart, title, description, takeFullSpace }) => (
-          <div className={cn("group overflow-hidden relative w-full", takeFullSpace && "md:col-span-2")} key={title}>
-            <div className="flex items-center gap-3 mb-2 border-b border-muted-foreground/10 pb-4">
+          <div className={cn("group overflow-hidden relative w-full", takeFullSpace && "col-span-2 md:col-span-3 w-full")} key={title}>
+            <div className="flex items-center gap-1 mb-2 border-b border-muted-foreground/10 pb-4">
               <div>
                 <h4 className="font-black text-xl text-foreground tracking-tight uppercase">{title}</h4>
                 <p className="text-sm text-muted-foreground font-medium">{description}</p>

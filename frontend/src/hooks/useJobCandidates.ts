@@ -99,14 +99,14 @@ export const useJobCandidates = (
         currentJobId.current = id;
 
         if (isPolling) {
-          const candidatesResponse = await jobService.getJobCandidates(id, jdVersion, skip, limit, filters);
+          const candidatesResponse = await jobService.getJobCandidates(id, jdVersion, skip, limit, undefined, undefined, filters);
           setCandidates(candidatesResponse.data || []);
           setTotalCandidates(candidatesResponse.total || 0);
         } else {
           // Fetch job data, candidates and stats when not polling
           const [jobData, candidatesResponse, statsData] = await Promise.all([
             jobService.getJob(id),
-            jobService.getJobCandidates(id, jdVersion, skip, limit, filters),
+            jobService.getJobCandidates(id, jdVersion, skip, limit, undefined, undefined, filters),
             jobService.getJobStats(id, {
               start_date: filters.start_date,
               end_date: filters.end_date,

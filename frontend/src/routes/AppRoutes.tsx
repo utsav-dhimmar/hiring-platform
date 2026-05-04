@@ -25,7 +25,7 @@ const ProfilePage = lazy(() => import("@/pages/Profile"));
 const CandidatesStages = lazy(() => import("@/pages/dashboard/CandidatesStages"));
 const TranscriptPage = lazy(() => import("@/pages/dashboard/TranscriptPage"));
 
-// Admin pages (lazy-loaded for bundle size optimization)
+// Admin pages 
 const AdminDashboard = lazy(() => import("@/pages/Admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/pages/Admin/AdminUsers"));
 const AdminRoles = lazy(() => import("@/pages/Admin/AdminRoles"));

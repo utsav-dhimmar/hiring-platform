@@ -194,7 +194,7 @@ export default function JobBoard() {
     <AppPageShell width="wide">
       <JobBoardHeader />
 
-      <div className="app-surface-card">
+      <div>
         {loading && jobs.length === 0 ? (
           <div className="flex flex-col gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
