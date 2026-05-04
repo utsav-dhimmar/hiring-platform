@@ -988,7 +988,18 @@ class CandidateAdminService:
                     ev["event_date"] = dec_at
 
         # 4. Finalize and Sort
-        events = list(events_map.values())
+        # Filter out redundant 'stage' events for Stage 0 if a 'screening' event exists for that job.
+        # This removes the generic "Candidate was in Resume Screening" in favor of the detailed screening result.
+        job_ids_with_screening = {ev["job_id"] for ev in events_map.values() if ev["event_type"] == "screening"}
+        
+        final_events = []
+        for ev in events_map.values():
+            if ev["event_type"] == "stage" and ev.get("stage_order") == 0:
+                if ev["job_id"] in job_ids_with_screening:
+                    continue
+            final_events.append(ev)
+            
+        events = final_events
         
         if query:
             q_lower = query.lower()

@@ -634,28 +634,30 @@ class AdminRepository:
                 stage_data_map[jid] = {}
             stage_data_map[jid][s_name] = count
 
-        # C. Get All unique stage names across these jobs to build the final list
         all_stages_stmt = (
-            select(StageTemplate.name, JobStageConfig.stage_order)
+            select(StageTemplate.name)
             .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
             .where(JobStageConfig.job_id.in_(job_ids))
-            .distinct()
-            .order_by(JobStageConfig.stage_order.asc())
+            .group_by(StageTemplate.name)
+            .order_by(func.min(JobStageConfig.stage_order).asc(), StageTemplate.name.asc())
         )
-        unique_stages = (await db.execute(all_stages_stmt)).all()
+        unique_stages_res = await db.execute(all_stages_stmt)
+        unique_stages = [row[0] for row in unique_stages_res.all()]
 
         # D. Transform to requested format: [{stage: "N", Job1: C1, Job2: C2}, ..., {job_names: [...]}]
-        # We'll use a dictionary to ensure we have one entry per stage name
-        final_pipeline_stats = []
+        # Map job titles to their total candidate counts for Resume Screening (Top of Funnel)
+        job_title_to_total = {c["job_title"]: c["candidate_count"] for c in candidates_by_job}
         
-        for s_name, s_order in unique_stages:
+        final_pipeline_stats = []
+        for s_name in unique_stages:
             if stage_name and stage_name.lower() != s_name.lower():
                 continue
                 
             entry = {"stage": s_name}
             for job in jobs:
                 if s_name == "Resume Screening":
-                    entry[job.title] = screening_counts.get(job.id, 0)
+                    # Use total candidates for the job as the top-of-funnel count
+                    entry[job.title] = job_title_to_total.get(job.title, 0)
                 else:
                     entry[job.title] = stage_data_map.get(job.id, {}).get(s_name, 0)
             final_pipeline_stats.append(entry)
@@ -728,19 +730,20 @@ class AdminRepository:
             if jid not in stage_data_map: stage_data_map[jid] = {}
             stage_data_map[jid][s_name] = count
 
-        # 4. Get unique stages
+        # 4. Get unique stages ordered by their minimum occurrence in any job pipeline
         unique_stages_stmt = (
-            select(StageTemplate.name, JobStageConfig.stage_order)
+            select(StageTemplate.name)
             .join(JobStageConfig, JobStageConfig.template_id == StageTemplate.id)
             .where(JobStageConfig.job_id.in_(job_ids))
-            .distinct()
-            .order_by(JobStageConfig.stage_order.asc())
+            .group_by(StageTemplate.name)
+            .order_by(func.min(JobStageConfig.stage_order).asc(), StageTemplate.name.asc())
         )
-        unique_stages = (await db.execute(unique_stages_stmt)).all()
+        unique_stages_res = await db.execute(unique_stages_stmt)
+        unique_stages = [row[0] for row in unique_stages_res.all()]
 
         # 5. Transform
         result = []
-        for s_name, s_order in unique_stages:
+        for s_name in unique_stages:
             if stage_name and stage_name.lower() != s_name.lower():
                 continue
             entry = {"stage": s_name}
