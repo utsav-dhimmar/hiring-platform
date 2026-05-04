@@ -247,7 +247,7 @@ export default function JobCandidates() {
                               </HoverCardContent>
                             </HoverCard>
                           </PermissionGuard>
-                          <HoverCard>
+                          {/* <HoverCard>
                             <HoverCardTrigger
                               render={(props) => (
                                 <Button
@@ -269,7 +269,7 @@ export default function JobCandidates() {
                             <HoverCardContent side="top" className="w-auto p-2 min-w-0">
                               <div className="text-sm font-semibold">More Info</div>
                             </HoverCardContent>
-                          </HoverCard>
+                          </HoverCard> */}
                           <HoverCard>
                             <HoverCardTrigger
                               render={(props) => (
