@@ -358,7 +358,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           const date = row.original.applied_at || row.original.created_at;
           if (!date)
             return <span className="text-muted-foreground text-sm">N/A</span>;
-          return <DateDisplay date={date} showTime={false} />;
+          return <DateDisplay date={date} showTime={false} className="text-sm" />;
         },
       },
 

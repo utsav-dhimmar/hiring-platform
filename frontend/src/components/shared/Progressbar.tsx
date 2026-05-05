@@ -37,9 +37,9 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
     const safeProgress = Math.min(Math.max(priorityTimeline.progress_pct, 0), 100);
 
     return (
-        <div className="md:w-full h-56 flex flex-col justify-between p-1 sm:w-full">
+        <div className="md:w-full h-auto flex flex-col justify-between p-1 sm:w-full">
             {/* Header Info */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center md:justify-between mb-1">
                 <div className="space-y-1">
                     <h5 className="text-lg font-bold flex items-center gap-2">
                         <Timer className="w-5 h-5 text-primary" />
@@ -66,7 +66,38 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
                         </span>
                     </div>
                 </div>
-
+                <div className="flex items-center  gap-2 sm:flex-col md:flex-row">
+                    <div className="rounded-2xl p-0.5 text-center space-y-0.5 border w-25 ">
+                        <div className="flex items-baseline justify-center gap-0.5">
+                            <p className="text-xl font-black text-foreground">{priorityTimeline.days_total}</p>
+                        </div>
+                        <div className="min-h-10 flex items-center justify-center mt-1">
+                            <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
+                                Total Days
+                            </span>
+                        </div>
+                    </div>
+                    <div className="rounded-2xl p-0.5 text-center space-y-0.5 border w-25">
+                        <div className="flex items-baseline justify-center gap-0.5">
+                            <p className="text-xl font-black ">{priorityTimeline.days_elapsed}</p>
+                        </div>
+                        <div className="min-h-10 flex items-center justify-center mt-1">
+                            <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
+                                Days Passed
+                            </span>
+                        </div>
+                    </div>
+                    <div className="rounded-2xl p-0.5 text-center space-y-0.5 border w-25">
+                        <div className="flex items-baseline justify-center gap-0.5">
+                            <p className="text-xl font-black ">{priorityTimeline.days_remaining}</p>
+                        </div>
+                        <div className="min-h-10 flex items-center justify-center mt-1">
+                            <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
+                                Remaining Days
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Progress Bar Container */}
@@ -88,38 +119,7 @@ export function ProgressBarChart({ priorityTimeline }: ProgressBarChartProps) {
             </div>
 
             {/* Stats Footer */}
-            <div className="flex items-center justify-end gap-2">
-                <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
-                    <div className="flex items-baseline justify-center gap-0.5">
-                        <p className="text-xl font-black text-foreground">{priorityTimeline.days_total}</p>
-                    </div>
-                    <div className="min-h-10 flex items-center justify-center mt-1">
-                        <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
-                            Total Days
-                        </span>
-                    </div>
-                </div>
-                <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
-                    <div className="flex items-baseline justify-center gap-0.5">
-                        <p className="text-xl font-black ">{priorityTimeline.days_elapsed}</p>
-                    </div>
-                    <div className="min-h-10 flex items-center justify-center mt-1">
-                        <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
-                            Days Passed
-                        </span>
-                    </div>
-                </div>
-                <div className="rounded-2xl p-2 text-center space-y-0.5 border w-25">
-                    <div className="flex items-baseline justify-center gap-0.5">
-                        <p className="text-xl font-black ">{priorityTimeline.days_remaining}</p>
-                    </div>
-                    <div className="min-h-10 flex items-center justify-center mt-1">
-                        <span className="text-xs leading-tight font-bold text-muted-foreground px-1">
-                            Remaining Days
-                        </span>
-                    </div>
-                </div>
-            </div>
+
         </div>
     );
 }

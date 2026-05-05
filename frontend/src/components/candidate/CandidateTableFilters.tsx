@@ -243,7 +243,7 @@ export const CandidateTableFilters = ({
               >
                 <span className="truncate mr-auto text-left">
                   {locationFilter.length === 0
-                    ? "All Locations"
+                    ? "Locations"
                     : locationFilter.length <= FILTER_DISPLAY_LIMIT
                       ? locationFilter.join(", ")
                       : `${locationFilter.slice(0, FILTER_DISPLAY_LIMIT).join(", ")} and ${locationFilter.length - FILTER_DISPLAY_LIMIT} more`}

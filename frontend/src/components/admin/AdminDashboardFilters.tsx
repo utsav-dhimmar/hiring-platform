@@ -19,8 +19,8 @@ interface AdminDashboardFiltersProps {
   selectedDepartments: string[];
   departments: string[];
   selectedJobIds: string[];
-  jobs: JobTitle[];
-  filteredJobs: JobTitle[];
+  jobs: (JobTitle & { candidate_count?: number })[];
+  filteredJobs: (JobTitle & { candidate_count?: number })[];
   selectedStageNames: string[];
   stages: { name: string }[];
   setFilter: <K extends keyof FilterState>(key: K, values: FilterState[K]) => void;
@@ -62,11 +62,11 @@ const AdminDashboardFilters = ({
   const [departmentSearch, setDepartmentSearch] = useState("");
 
   const searchedJobs = useMemo(() => {
-    if (!jobSearch.trim()) return filteredJobs;
+    if (!jobSearch.trim()) return filteredJobs.sort((a, b) => (b?.candidate_count || 0) - (a?.candidate_count || 0));
     const query = jobSearch.toLowerCase();
     return filteredJobs.filter((job) =>
       job.title.toLowerCase().includes(query)
-    );
+    ).sort((a, b) => (b?.candidate_count || 0) - (a?.candidate_count || 0));
   }, [filteredJobs, jobSearch]);
 
   const searchedStages = useMemo(() => {
@@ -146,18 +146,26 @@ const AdminDashboardFilters = ({
                     onClick={() =>
                       toggleFilter("jobIds", job.id)
                     }
-                    className={"capitalize"}
+                    className={"capitalize px-1"}
                   >
                     <HoverCard>
-                      <HoverCardTrigger delay={10} closeDelay={10}>
-                        <div className="truncate w-full max-w-40 ">
-                          <span className="capitalize">
+                      <HoverCardTrigger delay={10} closeDelay={10} className={"w-full"}>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="capitalize truncate max-w-[140px] ">
                             {job.title}
-                          </span>
+                          </div>
+                          <div className="text-xs bg-primary/10 px-1.5 py-0.5 rounded-full font-bold ml-2 shrink-0">
+                            {job.candidate_count ?? 0}
+                          </div>
                         </div>
                       </HoverCardTrigger>
                       <HoverCardContent className="w-64 p-2 rounded-lg" side="right" sideOffset={40}>
-                        <div className="text-sm font-medium mb-0.5 capitalize">{job.title}</div>
+                        <div className="text-sm font-medium mb-0.5 capitalize flex items-center justify-between">
+                          <span>{job.title}</span>
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                            {job.candidate_count ?? 0}
+                          </span>
+                        </div>
                       </HoverCardContent>
                     </HoverCard>
                   </DropdownMenuCheckboxItem>

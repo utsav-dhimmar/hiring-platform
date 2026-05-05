@@ -218,7 +218,7 @@ const AdminPrompts = () => {
                                 >
                                     <span className="truncate">
                                         {selectedStages.length === 0
-                                            ? "All Stages"
+                                            ? "Stages"
                                             : selectedStages.length === 1
                                                 ? selectedStages[0]
                                                 : `${selectedStages.length} Stages`}

@@ -52,8 +52,8 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
   };
 
   return (
-    <div className="w-full h-full min-h-[300px] animate-in fade-in zoom-in-95 duration-700">
-      <ChartContainer config={chartConfig} className="h-full w-full">
+    <div className="w-full animate-in fade-in zoom-in-95 duration-700">
+      <ChartContainer config={chartConfig} className="w-full min-h-[100px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
@@ -209,9 +209,11 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
 
 interface StagesBarChartProps {
   stages: Record<string, number>;
+  onStageClick?: (stageName: string) => void;
+  selectedStage?: string | null;
 }
 
-export function StagesBarChart({ stages }: StagesBarChartProps) {
+export function StagesBarChart({ stages, onStageClick, selectedStage }: StagesBarChartProps) {
   const data = Object.entries(stages)
     .map(([name, value], index) => ({
       name,
@@ -239,7 +241,7 @@ export function StagesBarChart({ stages }: StagesBarChartProps) {
   }
 
   return (
-    <div className="w-full h-full min-h-[300px] animate-in fade-in zoom-in-95 duration-700">
+    <div className="w-full animate-in fade-in zoom-in-95 duration-700">
       <ChartContainer
         config={{
           value: {
@@ -247,7 +249,7 @@ export function StagesBarChart({ stages }: StagesBarChartProps) {
             color: "hsl(var(--primary))",
           },
         }}
-        className="h-full w-full"
+        className="w-full min-h-[100px] max-h-[300px]"
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -330,6 +332,16 @@ export function StagesBarChart({ stages }: StagesBarChartProps) {
               animationBegin={100}
               animationDuration={1500}
               animationEasing="ease-out"
+              cursor={onStageClick ? "pointer" : undefined}
+              onClick={(data: any) => {
+                if (onStageClick && data?.name) {
+                  onStageClick(data.name);
+                  window.scrollTo({
+                    top: 400,
+                    behavior: "smooth",
+                  });
+                }
+              }}
               label={(props: any) => {
                 const { x, y, width, value } = props;
                 return (
@@ -345,6 +357,7 @@ export function StagesBarChart({ stages }: StagesBarChartProps) {
               }}
               shape={(props: any) => {
                 const { x, y, width, height, payload } = props;
+                const isSelected = !selectedStage || payload?.name === selectedStage;
                 return (
                   <Rectangle
                     x={x}
@@ -354,6 +367,10 @@ export function StagesBarChart({ stages }: StagesBarChartProps) {
                     radius={[10, 10, 0, 0]}
                     fill={`url(#${payload?.gradientId})`}
                     className="transition-all duration-300 hover:opacity-80"
+                    opacity={isSelected ? 1 : 0.3}
+                    style={selectedStage && payload?.name === selectedStage ? {
+                      filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))",
+                    } : undefined}
                   />
                 );
               }}
@@ -396,7 +413,7 @@ export function LocationBarChart({ locations }: LocationBarChartProps) {
   }
 
   return (
-    <div className="w-full h-full min-h-[300px] animate-in fade-in zoom-in-95 duration-700">
+    <div className="w-full animate-in fade-in zoom-in-95 duration-700">
       <ChartContainer
         config={{
           value: {
@@ -404,7 +421,7 @@ export function LocationBarChart({ locations }: LocationBarChartProps) {
             color: "hsl(var(--primary))",
           },
         }}
-        className="h-full w-full"
+        className="w-full min-h-[100px] max-h-[300px]"
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

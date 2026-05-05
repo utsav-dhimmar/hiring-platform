@@ -589,6 +589,10 @@ export interface JobStatsResponse {
   stages: Record<string, number>;
   hr_decisions: JobHRDecisionStats;
   priority_timeline: PriorityTimeline
+  stage_details: Record<string, {
+    hr_decisions: Record<string, number>;
+    ai_results: JobResultStats;
+  }>;
 }
 
 /**

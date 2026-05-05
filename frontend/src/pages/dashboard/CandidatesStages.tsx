@@ -393,6 +393,12 @@ export default function CandidatesStages() {
             job={job}
             candidate={candidate}
             refetch={refetchTimeline}
+            currentStage={currentStage}
+            stageId={instanceId}
+            isPolling={isPolling}
+            fetchHistory={fetchHistory}
+            setIsPolling={setIsPolling}
+            setIsJobModalOpen={setIsJobModalOpen}
           />
           {/* <StageControls
             stages={stages}
@@ -532,7 +538,7 @@ export default function CandidatesStages() {
           </div>
 
           {/* Footer Action Bar */}
-          {canTakeDecision && (isResumeScreening || evaluation) && (
+          {!isLoadingEvaluation && !isSubmitting && !isPolling && !isLoadingHistory && canTakeDecision && (isResumeScreening ? !!candidateData : !!evaluation) && (
             <PermissionGuard permissions={PERMISSIONS.CANDIDATES_DECIDE} hideWhenDenied>
               <ActionButtons
                 onAction={handleAction}

@@ -8,8 +8,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
 import { Badge } from "@/components/ui/badge";
-import { DateDisplay } from "../shared";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import { Check } from "lucide-react";
 
 interface JobInfoModalProps {
   isOpen: boolean;
@@ -130,26 +136,41 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
             {/* Job Description */}
             <div>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest py-2">
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
                   Job Description
                 </h3>
 
                 {sortedVersions.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {sortedVersions.map((v) => (
-                      <Button
-                        key={v.id}
-                        variant={selectedVersionId === v.id ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedVersionId(v.id)}
-                        className={`rounded-full h-7 px-3 text-[10px] font-bold uppercase transition-all ${selectedVersionId === v.id
-                          ? "bg-primary text-primary-foreground shadow-md"
-                          : "hover:bg-primary/5"
-                          }`}
-                      >
-                        V{v.version_num}
-                      </Button>
-                    ))}
+                  <div className="flex flex-wrap gap-2 mb-1.5">
+                    {sortedVersions.map((v) => {
+                      const isProcessing = job.processing_version === v.version_num;
+                      const button = (
+                        <Button
+                          key={v.id}
+                          variant={selectedVersionId === v.id ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedVersionId(v.id)}
+                          className="rounded-full h-9 px-4 text-xs font-bold uppercase transition-all"
+                        >
+                          V{v.version_num} {isProcessing && <Check className="w-3 h-3 ml-1" />}
+                        </Button>
+                      );
+
+                      if (isProcessing) {
+                        return (
+                          <HoverCard key={v.id}>
+                            <HoverCardTrigger>
+                              {button}
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-fit p-3 text-xs font-medium">
+                              This version is currently being processed.
+                            </HoverCardContent>
+                          </HoverCard>
+                        );
+                      }
+
+                      return button;
+                    })}
                   </div>
                 )}
               </div>

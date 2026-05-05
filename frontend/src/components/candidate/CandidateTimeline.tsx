@@ -9,6 +9,8 @@ import { TimelineEventDetailModal } from "./TimelineEventDetailModal";
 import { CandidateStatusBadge, DateDisplay } from "@/components/shared";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "@/utils/slug";
+import { Button } from "@/components/ui/button";
+import { TranscriptUpload } from "./TranscriptUpload";
 
 
 interface CandidateTimelineProps {
@@ -19,7 +21,13 @@ interface CandidateTimelineProps {
   selectedStage?: string;
   job?: any;
   candidate?: any;
-  refetch?: number | boolean
+  refetch?: number | boolean;
+  currentStage: string
+  stageId: string | undefined
+  isPolling: boolean,
+  fetchHistory: () => void,
+  setIsPolling: (value: boolean) => void
+  setIsJobModalOpen: (value: boolean) => void
 }
 
 export function CandidateTimeline({
@@ -31,6 +39,12 @@ export function CandidateTimeline({
   job,
   candidate,
   refetch,
+  currentStage,
+  stageId,
+  isPolling,
+  fetchHistory,
+  setIsPolling,
+  setIsJobModalOpen
 }: CandidateTimelineProps) {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -94,10 +108,31 @@ export function CandidateTimeline({
   return (
     <div className={cn("w-full py-2", className)}>
       <div className="px-4 mb-2 flex justify-between items-center">
-        <h3 className="text-xs font-black text-muted-foreground flex items-center gap-2">
+        <h3 className="text-xs font-black text-muted-foreground flex items-center gap-2 w-full">
           <Clock className="h-3 w-3" />
           Hiring Journey Timeline
         </h3>
+        <div className="w-full flex items-end justify-end px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              className="rounded-xl border border-muted-foreground/10 px-5 font-semibold"
+              onClick={() => setIsJobModalOpen(true)}
+            >
+              JD
+            </Button>
+            {<TranscriptUpload
+              stageId={stageId}
+              className="w-full sm:max-w-xs"
+              job={job!}
+              disabled={isPolling || currentStage === "Resume Screening"}
+              onSuccess={() => {
+                setIsPolling(true);
+                fetchHistory();
+              }}
+            />}
+          </div>
+        </div>
       </div>
       <ScrollArea className="w-full whitespace-nowrap rounded-md border-0">
         <div className="flex w-max space-x-1 p-1">
@@ -134,37 +169,6 @@ export function CandidateTimeline({
                     isAfterRejection && "opacity-40 grayscale-[0.5]"
                   )}
                 >
-                  {/* <div className="flex justify-between items-center">
-                    <div className={cn(
-                      "p-1.5 rounded-lg",
-                      isDecision ? "bg-purple-500/10" :
-                        isPassed ? "bg-green-500/10" :
-                          isRejected ? "bg-red-500/10" : "bg-primary/10"
-                    )}>
-                      {isDecision ? (
-                        <HelpCircle className="h-3.5 w-3.5 text-purple-500" />
-                      ) : isPassed ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                      ) : isRejected ? (
-                        <XCircle className="h-3.5 w-3.5 text-red-500" />
-                      ) : (
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                      )}
-                    </div>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "text-[8px] h-4 px-1.5 uppercase font-black tracking-tighter border-0",
-                        isDecision ? "bg-purple-500 text-white" :
-                          isPassed ? "bg-green-500 text-white" :
-                            isRejected ? "bg-red-600 text-white" :
-                              isPending ? "bg-slate-500 text-white" : "bg-primary text-white"
-                      )}
-                    >
-                      {event.event_type}
-                    </Badge>
-                  </div> */}
-
                   <div className="space-y-0.5">
                     <h4 className={cn(
                       "font-black text-xs text-wrap line-clamp-1",
@@ -184,44 +188,23 @@ export function CandidateTimeline({
                       }
                     </p>
                   </div>
-                  {/* 
-                  <p className={cn(
-                    "text-[11px] leading-tight line-clamp-2 whitespace-normal font-medium",
-                    isPending ? "text-foreground" : "text-muted-foreground"
-                  )}>
-                    {event.description || `No description for this ${event.event_type}.`}
-                  </p> */}
-
                   {event.result && (
                     <>
                       <div className="pt-1.5 border-t border-muted-foreground/10 mt-auto">
                         <div className="flex flex-col gap-2">
                           {event.ai_result && !isAfterRejection && <div className="flex items-center justify-start gap-2">
                             <span className="text-xs font-bold uppercase tracking-tight text-muted-foreground">AI result:</span>
-                            <CandidateStatusBadge status={event.ai_result?.replace("ed", "") || "N/A"} />
+                            <CandidateStatusBadge status={event.ai_result?.replace("ed", "") || "N/A"} /> {event.score !== null && event.score !== undefined && (
+                              <span className="text-xs font-bold ">
+                                {event.score}{event.title !== "Resume Screening" ? "/5" : "%"}
+                              </span>
+                            )}
                           </div>}
                           {event.hr_decision && event.hr_decision.toLowerCase() !== "may be" && <div className="flex items-center justify-start gap-2">
                             <span className="text-xs font-bold uppercase tracking-tight text-muted-foreground">HR decision:</span>
                             <CandidateStatusBadge status={event.hr_decision?.replace("ed", "") || "N/A"} />
                           </div>}
                         </div>
-
-
-                        {/* <div className="flex flex-wrap items-center justify-between gap-2"> */}
-                        {/* <span className={cn(
-                          "text-[10px] font-black uppercase tracking-tighter truncate",
-                          isPassed ? "text-green-600" :
-                            isRejected ? "text-red-600" :
-                              isPending ? "text-foreground" : "text-primary"
-                        )}>
-                          {event.result}
-                        </span> */}
-                        {event.score !== null && event.score !== undefined && (
-                          <span className="text-xs font-bold text-muted-foreground shrink-0">
-                            {event.event_type === "stage" ? "Score:" : "Percentage:"} {event.score}{event.event_type === "stage" ? "/5" : "%"}
-                          </span>
-                        )}
-                        {/* </div> */}
                       </div>
                     </>
                   )}

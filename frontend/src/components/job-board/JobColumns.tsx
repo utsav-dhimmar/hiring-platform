@@ -156,7 +156,7 @@ export const getJobColumns = ({
         );
       },
       cell: ({ row }) => (
-        <DateDisplay date={row.getValue("created_at")} showIcon />
+        <DateDisplay date={row.getValue("created_at")} showIcon className="text-sm" />
       ),
     },
     {
@@ -203,7 +203,7 @@ export const getJobColumns = ({
                         </Badge>
                       )}
                       <span className="truncate mr-0.5">
-                        <DateDisplay date={s.start_date} />
+                        <DateDisplay date={s.start_date} className="text-sm" />
                       </span>
                     </div>
                     <HoverCard>

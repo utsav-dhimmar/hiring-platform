@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Field,
   // FieldLabel
@@ -9,6 +9,11 @@ import { transcriptService } from "@/apis/transcript";
 import { Input } from "../ui/input";
 import type { Job } from "@/types/job";
 import { cn } from "@/lib/utils";
+import { PERMISSIONS } from "@/lib/permissions";
+import PermissionGuard from "../auth/PermissionGuard";
+import { Button } from "../ui/button";
+import { Upload } from "lucide-react";
+
 
 const DEFAULT_EXTENSIONS = ".txt,.docx,.pdf";
 
@@ -45,6 +50,7 @@ export function TranscriptUpload({
     .split(",")
     .map((ext: string) => ext.trim().toLowerCase());
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   /**
    * Handles the file selection and upload process.
    */
@@ -82,14 +88,33 @@ export function TranscriptUpload({
 
   return (
     <Field className={cn("w-full gap-1", className)}>
-      {/* <FieldLabel htmlFor="transcript" className="text-center">{label}</FieldLabel> */}
-      <Input
-        id="transcript"
-        type="file"
-        accept={rawExtensions}
-        onChange={handleFileChange}
-        disabled={isUploading || disabled}
-      />
+      <PermissionGuard permissions={PERMISSIONS.CANDIDATES_ACCESS} hideWhenDenied>
+
+        <Button variant="outline" className="text-center" disabled={disabled} onClick={() => !disabled && fileInputRef.current?.click()}>
+          <Upload className="mr-2 h-4 w-4" />
+          {isUploading ? "Uploading..." : "Upload Transcript"}
+          <Input
+            ref={fileInputRef}
+            id="transcript"
+            type="file"
+            accept={rawExtensions}
+            onChange={handleFileChange}
+            disabled={isUploading || disabled}
+            style={{ visibility: "hidden" }}
+          />
+        </Button>
+      </PermissionGuard>
+      {/* <PermissionGuard permissions={PERMISSIONS.CANDIDATES_ACCESS} hideWhenDenied>
+        <Button
+          variant="outline"
+          onClick={handleFileChange}
+          disabled={isUploading || disabled}
+
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          {isUploading ? "Uploading..." : "Upload Resumes"}
+        </Button>
+      </PermissionGuard> */}
       {/* <FieldDescription>Upload an interview transcript ({rawExtensions})</FieldDescription> */}
     </Field>
   );

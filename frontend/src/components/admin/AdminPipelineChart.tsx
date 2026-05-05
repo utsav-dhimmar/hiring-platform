@@ -76,6 +76,10 @@ const CustomTooltipContent = ({ active, payload, label, activeKey }: CustomToolt
   );
 };
 
+interface StageJob {
+  stage: string;
+  [jobName: string]: string | number;
+}
 
 
 /**
@@ -96,6 +100,24 @@ export function StageCentricChart({ data }: StageCentricChartProps) {
 
     return { chartData: filteredData, jobNames: names };
   }, [data]);
+  // console.log(chartData);
+
+  // @ts-ignore
+  const cleanData = useMemo(() => chartData.reduce<StageJob[]>((acc, jobData) => {
+    // job with non zero candidates
+    const validEnt = Object.entries(jobData).filter(
+      ([key, value]) => key === "stage" || (value as number) > 0,
+    );
+
+    // if stage has more then 0 cand. then stage entry in validEnt
+    if (validEnt.length > 1) {
+      const ob = Object.fromEntries(validEnt);
+      acc.push(ob as StageJob);
+    }
+
+    return acc;
+  }, [])
+    , [chartData]);
 
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {};
@@ -123,8 +145,8 @@ export function StageCentricChart({ data }: StageCentricChartProps) {
     return (
       <Card className="shadow-xs border-0">
         <CardHeader>
-          <CardTitle>Pipeline Statistics</CardTitle>
-          <CardDescription>No stage data available to display</CardDescription>
+          <CardTitle>Stages - Job Distribution</CardTitle>
+          <CardDescription>No data available to display</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -133,17 +155,17 @@ export function StageCentricChart({ data }: StageCentricChartProps) {
   return (
     <Card className="shadow-xs border-0">
       <CardHeader>
-        <CardTitle>Pipeline Statistics</CardTitle>
+        <CardTitle>Stages - Job Distribution</CardTitle>
         <CardDescription>Candidate distribution across stages by job</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="max-h-[300px] w-full">
+        <ChartContainer config={chartConfig} className="max-h-[350px] w-full">
           <BarChart
             data={chartData}
             accessibilityLayer
             margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
           >
-            <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />
+            <CartesianGrid vertical={false} strokeDasharray="2 2" stroke="var(--muted-foreground)" strokeOpacity={0.5} />
             <XAxis
               dataKey="stage"
               tickLine={false}
@@ -180,6 +202,7 @@ export function StageCentricChart({ data }: StageCentricChartProps) {
             <ChartTooltip
               content={<CustomTooltipContent activeKey={activeKey} />}
               cursor={{ fill: "hsl(var(--muted)/0.2)" }}
+
             />
 
             {/* <ChartLegend content={<ChartLegendContent />} /> */}
@@ -196,11 +219,11 @@ export function StageCentricChart({ data }: StageCentricChartProps) {
                   onMouseEnter={() => { setActiveKey(name) }}
                   onMouseLeave={() => setActiveKey(null)}
                 >
-                  <LabelList
+                  {/* <LabelList
                     dataKey={name}
                     position="insideTop"
                     className="fill-black text-xs font-bold"
-                  />
+                  /> */}
                 </Bar>
               );
             })}

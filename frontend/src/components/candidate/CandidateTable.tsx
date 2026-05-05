@@ -34,6 +34,7 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   onFiltersChange?: (filters: CandidateActiveFilters) => void;
   stageOptions?: string[];
   activitySessions?: [number, { start_date: string; end_date: string }][];
+  initialDateRange?: { from?: Date; to?: Date };
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -55,6 +56,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
   onFiltersChange,
   stageOptions: stageOptionsProp,
   activitySessions,
+  initialDateRange,
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -90,7 +92,7 @@ export function CandidateTable<T extends UnifiedCandidate>({
     setActivitySession,
     activitySearch,
     setActivitySearch,
-  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold, stageOptionsProp, activitySessions);
+  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold, stageOptionsProp, activitySessions, initialDateRange);
 
   const columns = useCandidateTableColumns({
     renderActions,

@@ -1,7 +1,6 @@
-import { Button, Badge, Switch, Label } from "@/components/";
+import { Badge, Switch, Label } from "@/components/";
 import AppPageHeader from "@/components/shared/AppPageHeader";
 import PermissionGuard from "@/components/auth/PermissionGuard";
-import { Upload } from "lucide-react";
 import type { Job } from "@/types/job";
 import { cn } from "@/lib/utils";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -20,9 +19,9 @@ interface JobCandidatesHeaderProps {
 export const JobCandidatesHeader = ({
   job,
   onBack,
-  onInfoClick,
-  onUploadClick,
-  isUploading,
+  // onInfoClick,
+  // onUploadClick,
+  // isUploading,
   onToggleStatus,
 
 }: JobCandidatesHeaderProps) => {
@@ -63,34 +62,34 @@ export const JobCandidatesHeader = ({
               variant="secondary"
               className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider"
             >
-              v{job.version}
+              v{job.processing_version ? job.processing_version : job.version}
             </Badge>
           ) : null}
 
         </>
       }
-      actions={
-        <>
+    /*actions={
+      <>
+        <Button 
+          variant="secondary"
+          className="rounded-xl border border-muted-foreground/10 px-5 font-semibold"
+          onClick={onInfoClick}
+        >
+          JD
+        </Button>
+        <PermissionGuard permissions={PERMISSIONS.CANDIDATES_ACCESS} hideWhenDenied>
           <Button
-            variant="secondary"
-            className="rounded-xl border border-muted-foreground/10 px-5 font-semibold"
-            onClick={onInfoClick}
+            variant="outline"
+            onClick={onUploadClick}
+            disabled={isUploading || !job?.is_active}
+            title={!job?.is_active ? "Resume upload is disabled for inactive jobs" : undefined}
           >
-            Info
+            <Upload className="mr-2 h-4 w-4" />
+            {isUploading ? "Uploading..." : "Upload Resumes"}
           </Button>
-          <PermissionGuard permissions={PERMISSIONS.CANDIDATES_ACCESS} hideWhenDenied>
-            <Button
-              variant="outline"
-              onClick={onUploadClick}
-              disabled={isUploading || !job?.is_active}
-              title={!job?.is_active ? "Resume upload is disabled for inactive jobs" : undefined}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              {isUploading ? "Uploading..." : "Upload Resumes"}
-            </Button>
-          </PermissionGuard>
-        </>
-      }
+        </PermissionGuard>
+      </>
+    }*/
     />
   );
 };

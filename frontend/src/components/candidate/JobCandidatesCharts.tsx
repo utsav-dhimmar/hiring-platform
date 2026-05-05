@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { CandidatesDistributionChart, StagesBarChart, LocationBarChart } from "@/components/shared/BarChart";
 import { ProgressBarChart } from "@/components/shared/Progressbar";
 import { ResultPieChart } from "@/components/shared/ResultPieChart";
 import type { JobStatsResponse } from "@/types/admin";
 import { CHART_TEXTS } from "@/constants";
+import { X } from "lucide-react";
 
 interface JobCandidatesChartsProps {
   loading: boolean;
@@ -16,7 +18,44 @@ interface JobCandidatesChartsProps {
     undecidedCount: number;
   };
   jobStats: JobStatsResponse | null;
+}
 
+/**
+ * Extracts HR decision stats for a specific stage from jobStats.stage_details.
+ * The API returns partial hr_decisions keys like "approve", "reject", "may be".
+ */
+function getStageHrStats(
+  jobStats: JobStatsResponse | null,
+  stageName: string
+): { totalCandidates: number; approveCount: number; rejectCount: number; maybeCount: number; undecidedCount: number } | null {
+  const stageDetail = jobStats?.stage_details?.[stageName];
+  if (!stageDetail) return null;
+
+  const hrDec = stageDetail.hr_decisions ?? {};
+  const approveCount = hrDec["approve"] ?? 0;
+  const rejectCount = hrDec["reject"] ?? 0;
+  const maybeCount = hrDec["may be"] ?? 0;
+  const pendingCount = hrDec["pending"] ?? 0;
+  const totalCandidates = approveCount + rejectCount + maybeCount + pendingCount;
+
+  return { totalCandidates, approveCount, rejectCount, maybeCount, undecidedCount: pendingCount };
+}
+
+/**
+ * Extracts AI screening results for a specific stage from jobStats.stage_details.
+ */
+function getStageScreening(
+  jobStats: JobStatsResponse | null,
+  stageName: string
+): { passCount: number; failCount: number } | null {
+  const stageDetail = jobStats?.stage_details?.[stageName];
+  if (!stageDetail) return null;
+
+  const aiResults = stageDetail.ai_results ?? {};
+  return {
+    passCount: aiResults.passed ?? 0,
+    failCount: aiResults.failed ?? 0,
+  };
 }
 
 export function JobCandidatesCharts({
@@ -24,10 +63,23 @@ export function JobCandidatesCharts({
   isRefreshing,
   stats,
   jobStats,
-
 }: JobCandidatesChartsProps) {
+  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+
   const passCount = jobStats?.result?.passed ?? 0;
   const failCount = jobStats?.result?.failed ?? 0;
+
+  // Determine the HR decision stats and screening results based on selected stage
+  const stageHrStats = selectedStage ? getStageHrStats(jobStats, selectedStage) : null;
+  const activeHrStats = stageHrStats ?? stats;
+
+  const stageScreening = selectedStage ? getStageScreening(jobStats, selectedStage) : null;
+  const activeScreening = stageScreening ?? { passCount, failCount };
+
+  const handleStageClick = (stageName: string) => {
+    // Toggle: clicking the same stage again deselects it
+    setSelectedStage((prev) => (prev === stageName ? null : stageName));
+  };
 
   if (loading) {
     return (
@@ -38,26 +90,35 @@ export function JobCandidatesCharts({
       </div>
     );
   }
+
   const obj: { title: string; description: string; chart: React.JSX.Element, takeFullSpace?: boolean }[] = [{
     title: CHART_TEXTS.priorityTimeline.label,
     description: CHART_TEXTS.priorityTimeline.description,
     chart: <ProgressBarChart priorityTimeline={jobStats?.priority_timeline || null} />,
-    takeFullSpace: false
+    takeFullSpace: true
   },
   {
     title: CHART_TEXTS.hrDecision.label,
-    description: CHART_TEXTS.hrDecision.description,
-    chart: <CandidatesDistributionChart stats={stats} />
+    description: selectedStage
+      ? `HR decisions for "${selectedStage}" stage`
+      : CHART_TEXTS.hrDecision.description,
+    chart: <CandidatesDistributionChart stats={activeHrStats} />,
   },
   {
     title: CHART_TEXTS.screeningResults.label,
-    description: CHART_TEXTS.screeningResults.description,
-    chart: <ResultPieChart passCount={passCount} failCount={failCount} />
+    description: selectedStage
+      ? `Screening results for "${selectedStage}" stage`
+      : CHART_TEXTS.screeningResults.description,
+    chart: <ResultPieChart passCount={activeScreening.passCount} failCount={activeScreening.failCount} />,
   },
   {
     title: CHART_TEXTS.recruitmentStages.label,
     description: CHART_TEXTS.recruitmentStages.description,
-    chart: <StagesBarChart stages={jobStats?.stages || {}} />,
+    chart: <StagesBarChart
+      stages={jobStats?.stages || {}}
+      onStageClick={handleStageClick}
+      selectedStage={selectedStage}
+    />,
     takeFullSpace: true
   },
   {
@@ -70,19 +131,35 @@ export function JobCandidatesCharts({
   ];
   return (
     <div className={cn(
-      "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 p-0.5",
+      "grid grid-cols-1 sm:grid-cols-2 gap-8 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 p-0.5",
       isRefreshing && "opacity-60 transition-opacity duration-300"
     )}>
+      {/* Stage filter indicator */}
+      {selectedStage && (
+        <div className="sm:col-span-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-sm font-semibold text-primary">
+            <span>Filtering by stage:</span>
+            <span className="font-black">{selectedStage}</span>
+            <button
+              onClick={() => setSelectedStage(null)}
+              className="ml-1 p-0.5 rounded-full hover:bg-primary/20 transition-colors duration-200"
+              title="Clear stage filter"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
       {
         obj.map(({ chart, title, description, takeFullSpace }) => (
-          <div className={cn("group overflow-hidden relative w-full", takeFullSpace && "col-span-2 md:col-span-3 w-full")} key={title}>
+          <div className={cn("group overflow-hidden relative w-full", takeFullSpace && "md:col-span-2 w-full")} key={title}>
             <div className="flex items-center gap-1 mb-2 border-b border-muted-foreground/10 pb-4">
               <div>
                 <h4 className="font-black text-xl text-foreground tracking-tight uppercase">{title}</h4>
                 <p className="text-sm text-muted-foreground font-medium">{description}</p>
               </div>
             </div>
-            <div className="w-full h-[300px]">
+            <div className="w-full min-h-[100px] max-h-[300px]">
               {chart}
             </div>
           </div>

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { startOfDay, endOfDay } from "date-fns";
-import type { DateRange } from "react-day-picker";
 import type { UnifiedCandidate } from "@/types/candidate";
 import { toTitleCase } from "@/lib/utils";
 import { adminLocationService } from "@/apis/admin/location";
@@ -31,7 +30,8 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   onFiltersChange?: (filters: CandidateActiveFilters) => void,
   passingThreshold = DEFAULT_PASSING_THRESHOLD,
   stageOptionsProp?: string[],
-  activitySessionsData?: [number, { start_date: string; end_date: string }][]
+  activitySessionsData?: [number, { start_date: string; end_date: string }][],
+  initialDateRange?: { from?: Date; to?: Date }
 ) => {
   const [internalNameFilter, setInternalNameFilter] = useState("");
 
@@ -60,7 +60,7 @@ export const useCandidateTableFilters = <T extends UnifiedCandidate>(
   // jobFilter stores IDs internally for filtering and API calls
   const [jobFilter, setJobFilter] = useState<string[]>([]);
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(initialDateRange);
 
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState("");

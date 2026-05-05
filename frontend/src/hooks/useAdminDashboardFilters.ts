@@ -72,6 +72,7 @@ export const useAdminDashboardFilters = (
   report: HiringReport | undefined,
   jobs: JobTitle[]
 ) => {
+
   const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS);
 
   // Lookup maps
@@ -87,10 +88,22 @@ export const useAdminDashboardFilters = (
     [report]
   );
 
+  // Jobs with candidate counts merged from report
+  const jobsWithCounts = useMemo(() => {
+    if (!report) return jobs.map(j => ({ ...j, candidate_count: 0 }));
+
+    const countMap = new Map(report.candidates_by_job.map(c => [c.job_id, c.candidate_count]));
+    return jobs.map(j => ({
+      ...j,
+      candidate_count: countMap.get(j.id) || 0
+    }));
+  }, [jobs, report]);
+
   // When departments are selected show only those jobs
   const filteredJobs = useMemo(() => {
     // no department filter selected show all jobs
-    if (!report || filters.departments.length === 0) return jobs;
+    if (!report || filters.departments.length === 0) return jobsWithCounts;
+
     // Set is used for quick lookup in O(1)
     const deptSet = new Set(filters.departments);
     // Get all Job names for the selected departments
@@ -101,8 +114,8 @@ export const useAdminDashboardFilters = (
     );
 
     // Filter jobs based on the valid job names
-    return jobs.filter((j) => validTitles.has(j.title));
-  }, [jobs, filters.departments, report]);
+    return jobsWithCounts.filter((j) => validTitles.has(j.title));
+  }, [jobsWithCounts, filters.departments, report]);
 
   // Derived: filtered report
   const filteredReport = useMemo(() => {
