@@ -17,6 +17,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import func, select, or_, and_, case, Text, cast, Date
+from sqlalchemy.orm import selectinload
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,11 +29,14 @@ from app.v1.db.models.job_stage_configs import JobStageConfig
 from app.v1.db.models.stage_templates import StageTemplate
 from app.v1.db.models.hr_decisions import HrDecision
 from app.v1.db.models.locations import Location
+from app.v1.db.models.resume_version_results import ResumeVersionResult
+from app.v1.db.models.evaluations import Evaluation
 from app.v1.schemas.job_stats import (
     JobResultStats,
     JobHRDecisionStats,
     JobPriorityTimeline,
     JobStatsResponse,
+    JobStageDetails,
 )
 
 
@@ -63,6 +67,7 @@ class JobStatsService:
         location = await self._get_location_stats(db, job_id, start_date, end_date)
         stages = await self._get_stage_stats(db, job_id, start_date, end_date)
         hr_decisions = await self._get_hr_decision_stats(db, job_id, start_date, end_date)
+        stage_details = await self._get_stage_details(db, job_id, start_date, end_date)
         priority_timeline = await self._get_priority_timeline(db, job_id)
 
         return JobStatsResponse(
@@ -70,6 +75,7 @@ class JobStatsService:
             location=location,
             stages=stages,
             hr_decisions=hr_decisions,
+            stage_details=stage_details,
             priority_timeline=priority_timeline,
         )
 
@@ -443,6 +449,113 @@ class JobStatsService:
             progress_pct=progress_pct,
             status=status,
         )
+
+    async def _get_stage_details(
+        self,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+        start_date: datetime | None,
+        end_date: datetime | None,
+    ) -> dict[str, JobStageDetails]:
+        """
+        Provides a stage-wise breakdown of HR decisions and AI results.
+        """
+        # 1. Fetch all stages for this job
+        stage_configs_res = await db.execute(
+            select(JobStageConfig)
+            .join(StageTemplate, JobStageConfig.template_id == StageTemplate.id)
+            .where(JobStageConfig.job_id == job_id)
+            .options(selectinload(JobStageConfig.template))
+            .order_by(JobStageConfig.stage_order)
+        )
+        stage_configs = stage_configs_res.scalars().all()
+
+        stage_details: dict[str, JobStageDetails] = {}
+
+        for config in stage_configs:
+            stage_name = config.template.name
+            is_resume_screening = (config.stage_order == 0 or stage_name == "Resume Screening")
+            
+            # HR Decisions for this stage
+            hr_stmt = (
+                select(func.lower(HrDecision.decision), func.count())
+                .where(HrDecision.job_id == job_id)
+                .group_by(func.lower(HrDecision.decision))
+            )
+            
+            if is_resume_screening:
+                # Include both explicit Stage 0 and NULL stage_config_id (Legacy/Default)
+                hr_stmt = hr_stmt.where(
+                    or_(
+                        HrDecision.stage_config_id == config.id,
+                        HrDecision.stage_config_id.is_(None)
+                    )
+                )
+            else:
+                hr_stmt = hr_stmt.where(HrDecision.stage_config_id == config.id)
+                
+            hr_rows = await db.execute(hr_stmt)
+            hr_counts = {str(d).lower().strip(): cnt for d, cnt in hr_rows.all() if d}
+
+            # AI Results for this stage
+            ai_counts: dict[str, int] = {"passed": 0, "failed": 0, "pending": 0}
+            
+            if is_resume_screening:
+                # Stage 0 (Resume Screening) - Use same robust logic as _get_result_stats
+                from app.v1.db.models.jobs import Job
+                job = await db.get(Job, job_id)
+                threshold = float(job.passing_threshold) if job and job.passing_threshold else 70.0
+
+                # Filters for native and cross-match
+                native_filter = Candidate.applied_job_id == job_id
+                cross_filter = CrossJobMatch.matched_job_id == job_id
+
+                subq = (
+                    select(
+                        func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
+                        func.coalesce(Resume.pass_fail, 
+                            case((CrossJobMatch.match_score >= threshold, "passed"),
+                                 (CrossJobMatch.match_score < threshold, "failed"),
+                                 else_="pending")
+                        ).label("final_pass_fail")
+                    )
+                    .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
+                    .outerjoin(Resume, Resume.candidate_id == Candidate.id)
+                    .outerjoin(CrossJobMatch, CrossJobMatch.candidate_id == Candidate.id)
+                    .where(or_(native_filter, cross_filter))
+                    .subquery()
+                )
+
+                ai_stmt = select(subq.c.final_pass_fail, func.count()).group_by(subq.c.final_pass_fail)
+                ai_rows = await db.execute(ai_stmt)
+                for pf, cnt in ai_rows.all():
+                    if pf in ai_counts:
+                        ai_counts[pf] = cnt
+                    else:
+                        ai_counts["pending"] += cnt
+            else:
+                # Interview Rounds (Evaluations)
+                ai_stmt = (
+                    select(func.lower(Evaluation.result), func.count())
+                    .join(CandidateStage, Evaluation.candidate_stage_id == CandidateStage.id)
+                    .where(CandidateStage.job_stage_id == config.id)
+                    .group_by(func.lower(Evaluation.result))
+                )
+                ai_rows = await db.execute(ai_stmt)
+                for res, cnt in ai_rows.all():
+                    if res == "pass":
+                        ai_counts["passed"] += cnt
+                    elif res == "fail":
+                        ai_counts["failed"] += cnt
+                    else:
+                        ai_counts["pending"] += cnt
+
+            stage_details[stage_name] = JobStageDetails(
+                hr_decisions=hr_counts,
+                ai_results=ai_counts
+            )
+
+        return stage_details
 
 
 # Singleton instance

@@ -51,6 +51,13 @@ class JobPriorityTimeline(BaseModel):
     status: str = "not_set"             # "active" | "expired" | "not_started" | "not_set"
 
 
+class JobStageDetails(BaseModel):
+    """Stage-wise breakdown of HR and AI results."""
+    
+    hr_decisions: dict[str, int] = {} # { "approve": 5, "reject": 2, ... }
+    ai_results: dict[str, int] = {}    # { "passed": 7, "failed": 3, ... }
+
+
 class JobStatsResponse(BaseModel):
     """Full stats response for GET /candidates/jobs/{job_id}/stats."""
 
@@ -58,4 +65,5 @@ class JobStatsResponse(BaseModel):
     location: dict[str, int]                  # { "Mumbai": 12, "Delhi": 5, ... }
     stages: dict[str, int]                    # { "HR Screening": 8, "Technical Round": 3, ... }
     hr_decisions: JobHRDecisionStats
+    stage_details: dict[str, JobStageDetails] = {} # { "Resume Screening": { ... }, ... }
     priority_timeline: JobPriorityTimeline | None = None   # None if job has no priority set
