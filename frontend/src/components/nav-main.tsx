@@ -24,12 +24,14 @@ export function NavMain({
 }: {
   items: {
     title: string
-    url: string
+    url?: string
     icon?: LucideIcon
     isActive?: boolean
+    onClick?: () => void
     items?: {
       title: string
-      url: string
+      url?: string
+      onClick?: () => void
     }[]
   }[]
   label?: string
@@ -62,8 +64,8 @@ export function NavMain({
                 {item.items?.map((subItem) => (
                   <SidebarMenuSubItem key={subItem.title}>
                     <SidebarMenuSubButton 
-                      isActive={location.pathname === subItem.url}
-                      render={<Link to={subItem.url} />}
+                      isActive={subItem.url ? location.pathname === subItem.url : false}
+                      render={subItem.onClick ? <button onClick={subItem.onClick} /> : <Link to={subItem.url || "#"} />}
                     >
                       <span>{subItem.title}</span>
                     </SidebarMenuSubButton>

@@ -22,6 +22,7 @@ export const PERMISSIONS = {
   SKILLS_MANAGE: "skills:manage",
   USERS_READ: "users:read",
   USERS_MANAGE: "users:manage",
+  SYSTEM_MANAGE: "system:manage",
 } as const;
 
 export const ADMIN_ALL_PERMISSION = "admin:all";
