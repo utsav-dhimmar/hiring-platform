@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Optional
 
 from sqlalchemy import select, update
@@ -94,7 +94,7 @@ class CandidateStageService:
 
         # 2. Mark current stage as done
         current_cs.status = "completed" if success else "failed"
-        current_cs.completed_at = datetime.now(timezone.utc)
+        current_cs.completed_at = datetime.utcnow()
         job_id = current_cs.job_stage.job_id
 
         if not success:
@@ -130,13 +130,13 @@ class CandidateStageService:
 
             if next_cs:
                 next_cs.status = "active"
-                next_cs.started_at = datetime.now(timezone.utc)
+                next_cs.started_at = datetime.utcnow()
             else:
                 next_cs = CandidateStage(
                     candidate_id=candidate_id,
                     job_stage_id=next_js.id,
                     status="pending",
-                    started_at=datetime.now(timezone.utc)
+                    started_at=datetime.utcnow()
                 )
                 db.add(next_cs)
 
@@ -174,7 +174,7 @@ class CandidateStageService:
         if status:
             cs.status = status
             if status in ["completed", "failed", "skipped"]:
-                cs.completed_at = datetime.now(timezone.utc)
+                cs.completed_at = datetime.utcnow()
 
         await db.flush()
         return cs

@@ -138,7 +138,7 @@ class JobStageService:
             stage_config = JobStageConfig(
                 job_id=job_id,
                 template_id=template.id,
-                stage_order=template.default_order if template.default_order is not None else index, # Use template order or fallback to sequence
+                stage_order=template.default_order or index, # Use template order or fallback to sequence
                 config=template.default_config,
                 is_mandatory=True,
             )
