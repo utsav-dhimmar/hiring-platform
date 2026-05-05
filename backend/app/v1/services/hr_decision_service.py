@@ -87,14 +87,7 @@ class HRDecisionService:
         resolved to the correct JobStageConfig.id.
         """
         
-        # Smart ID Resolution: if they passed a CandidateStage ID instead of a Config ID, fix it
-        if stage_config_id:
-            from app.v1.db.models.candidate_stages import CandidateStage
-            cs_check = await db.get(CandidateStage, stage_config_id)
-            if cs_check and cs_check.job_stage_id:
-                stage_config_id = cs_check.job_stage_id
-
-        # Validate candidate exists (load resumes eagerly so cross-match can pick latest)
+        # 1. Validate candidate exists
         candidate_result = await db.execute(
             select(Candidate)
             .options(selectinload(Candidate.resumes))
@@ -104,9 +97,37 @@ class HRDecisionService:
         if not candidate:
             raise ValueError(f"Candidate with id {candidate_id} not found")
 
+        # 2. Determine the job context
         actual_job_id = getattr(decision_data, "job_id", None) or getattr(
             candidate, "applied_job_id", None
         )
+
+        # 3. Smart ID Resolution: if they passed a CandidateStage ID instead of a Config ID, fix it
+        if stage_config_id:
+            from app.v1.db.models.candidate_stages import CandidateStage
+            cs_check = await db.get(CandidateStage, stage_config_id)
+            if cs_check and cs_check.job_stage_id:
+                stage_config_id = cs_check.job_stage_id
+        else:
+            # If no stage_config_id is provided, try to default to the Resume Screening stage (Order 0)
+            from app.v1.db.models.job_stage_configs import JobStageConfig
+            if actual_job_id:
+                from app.v1.db.models.stage_templates import StageTemplate
+                stage_zero_stmt = (
+                    select(JobStageConfig.id)
+                    .join(StageTemplate, JobStageConfig.template_id == StageTemplate.id)
+                    .where(JobStageConfig.job_id == actual_job_id)
+                    .where(
+                        or_(
+                            JobStageConfig.stage_order == 0,
+                            StageTemplate.name == "Resume Screening"
+                        )
+                    )
+                    .limit(1)
+                )
+                stage_zero_id = await db.scalar(stage_zero_stmt)
+                if stage_zero_id:
+                    stage_config_id = stage_zero_id
 
         # Check "May Be" decision limit (only 1 per candidate per stage)
         if decision_data.decision == "May Be":
