@@ -893,9 +893,15 @@ class CandidateAdminService:
                 "metadata": metadata
             }
 
-        # 4. Handle Standalone Screenings (Fallbacks)
+        # 4. Handle Standalone Screenings (Fallbacks for missing stages)
         for j_id, r_res in resume_by_job.items():
-            if not any(ev.get("job_id") == j_id and ev.get("stage_order") == 0 for ev in events_map.values()):
+            # Robust check: does this job already have a Resume Screening event?
+            has_rs = any(
+                str(ev.get("job_id")) == str(j_id) and 
+                (ev.get("stage_order") == 0 or ev.get("title") == "Resume Screening")
+                for ev in events_map.values()
+            )
+            if not has_rs:
                 event_key = f"screening_{r_res.id}"
                 events_map[event_key] = {
                     "event_type": "stage",
@@ -928,12 +934,23 @@ class CandidateAdminService:
         decisions = (await db.execute(decision_stmt.order_by(HrDecision.decided_at.asc()))).scalars().all()
         
         for dec in decisions:
+            # Match decision to the best possible event
             target_ev = None
-            # Find matching stage event
+            dec_job_id_str = str(dec.job_id)
+            dec_order = dec.stage_config.stage_order if dec.stage_config else 0
+            
+            # Prioritize matching by stage_id if we have it in the decision
+            # (Though legacy decisions might not have it)
+            
+            # Search for best match
             for ev in events_map.values():
-                if ev.get("job_id") == dec.job_id and ev.get("stage_order") == (dec.stage_config.stage_order if dec.stage_config else 0):
+                if str(ev.get("job_id")) == dec_job_id_str and ev.get("stage_order") == dec_order:
+                    # If we found a direct stage match, take it and stop searching
+                    if ev.get("stage_id"):
+                        target_ev = ev
+                        break
+                    # Otherwise, keep it as a potential fallback (standalone event)
                     target_ev = ev
-                    break
             
             if target_ev:
                 target_ev["hr_decision"] = dec.decision
