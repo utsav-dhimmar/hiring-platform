@@ -6,6 +6,7 @@ from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.job_service import job_admin_service
 from app.v1.services.admin.skill_service import skill_service
 from app.v1.services.admin.candidate_service import candidate_admin_service
+from app.v1.services.admin.system_service import system_service
 
 __all__ = [
     "audit_service",
@@ -16,4 +17,5 @@ __all__ = [
     "job_admin_service",
     "skill_service",
     "candidate_admin_service",
+    "system_service",
 ]

@@ -71,6 +71,31 @@ class RedisCache:
         except Exception as exc:  # noqa: BLE001
             _log.debug("Redis DELETE failed key=%s: %s", key, exc)
 
+    async def clear(self, pattern: str = "*") -> bool:
+        """
+        Clear keys matching a pattern.
+        Defaults to "*" which clears all keys in the current DB.
+        """
+        client = self._get_client()
+        if client is None:
+            return False
+        try:
+            if pattern == "*":
+                # If we really want to clear EVERYTHING, flushdb is faster
+                # But we'll default to scan/delete if we want to be safe in the future
+                await client.flushdb()
+            else:
+                # Selective delete using SCAN
+                count = 0
+                async for key in client.scan_iter(match=pattern):
+                    await client.delete(key)
+                    count += 1
+                _log.info("Cleared %d keys matching pattern: %s", count, pattern)
+            return True
+        except Exception as exc:  # noqa: BLE001
+            _log.error("Redis clear failed: %s", exc)
+            return False
+
     async def close(self) -> None:
         """Gracefully close the Redis connection."""
         if self._client is not None:

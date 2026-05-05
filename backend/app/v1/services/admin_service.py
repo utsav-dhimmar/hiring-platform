@@ -26,6 +26,7 @@ from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.job_service import job_admin_service
 from app.v1.services.admin.role_service import role_service
 from app.v1.services.admin.skill_service import skill_service
+from app.v1.services.admin.system_service import system_service
 from app.v1.services.admin.user_admin_service import user_admin_service
 
 
@@ -164,6 +165,11 @@ class AdminService:
         return await candidate_admin_service.delete_candidate_by_identifier(*args, **kwargs)
 
     # Candidate evaluations removed as part of resume-screening focus.
+
+
+    # System Management
+    async def clear_cache(self, *args, **kwargs) -> bool:
+        return await system_service.clear_cache(*args, **kwargs)
 
 
 admin_service = AdminService()

@@ -8,6 +8,7 @@ the main API router for the application.
 from fastapi import APIRouter
 
 from app.v1.routes.admin import router as admin_router
+from app.v1.routes.admin_system import router as admin_system_router
 from app.v1.routes.candidates import router as candidates_router
 from app.v1.routes.health import router as health_router
 from app.v1.routes.departments import router as departments_router
@@ -33,6 +34,7 @@ api_router.include_router(skills_router, prefix="/skills", tags=["skills"])
 api_router.include_router(departments_router, prefix="/departments", tags=["departments"])
 api_router.include_router(candidates_router, prefix="/candidates", tags=["candidates"])
 api_router.include_router(admin_router, prefix="/admin", tags=["admin"])
+api_router.include_router(admin_system_router, prefix="/admin", tags=["admin"])
 api_router.include_router(cross_job_match_router, prefix="/cross-match", tags=["cross-match"])
 api_router.include_router(locations_router, prefix="/locations", tags=["locations"])
 api_router.include_router(job_priorities_router, prefix="/job-priorities", tags=["job-priorities"])
