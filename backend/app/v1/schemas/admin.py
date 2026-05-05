@@ -189,6 +189,8 @@ class JobCandidatesStats(BaseModel):
     job_title: str
     department: str | None
     candidate_count: int
+    passed_count: int = 0
+    failed_count: int = 0
 
 
 class PipelineStageStats(BaseModel):

@@ -395,22 +395,12 @@ async def get_active_prompts(
         {
             "name": "Interview Evaluation System Prompt",
             "content": EVALUATION_SYSTEM_PROMPT,
-            "stage": "Interview Evaluation",
+            "stage": "HR Screening Round",
         },
         {
             "name": "Interview Evaluation User Prompt Template",
             "content": EVALUATION_USER_PROMPT_TEMPLATE,
-            "stage": "Interview Evaluation",
-        },
-        {
-            "name": "Prompt Enhancer System Prompt",
-            "content": PROMPT_ENHANCER_SYSTEM_PROMPT,
-            "stage": "System Utility",
-        },
-        {
-            "name": "Prompt Enhancer User Prompt Template",
-            "content": PROMPT_ENHANCER_USER_PROMPT_TEMPLATE,
-            "stage": "System Utility",
+            "stage": "HR Screening Round",
         },
     ]
 

@@ -209,8 +209,8 @@ class HRDecisionService:
                 if success and cs_to_advance.status == "pending" and not is_stage_zero:
                     # Step 1: Resume Approval -> Make the stage "active" for interview
                     cs_to_advance.status = "active"
-                    from datetime import datetime
-                    cs_to_advance.started_at = datetime.utcnow()
+                    from datetime import datetime, timezone
+                    cs_to_advance.started_at = datetime.now(timezone.utc)
                     
                     # Ensure candidate status reflects "Active"
                     from app.v1.db.models.stage_templates import StageTemplate

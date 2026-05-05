@@ -573,6 +573,8 @@ class AdminRepository:
         jobs_result = await db.execute(jobs_stmt)
         jobs = list(jobs_result.scalars().all())
 
+        from app.v1.db.models.resume_version_results import ResumeVersionResult
+
         candidates_by_job = []
         for job in jobs:
             job_unique_stmt = select(
@@ -590,12 +592,27 @@ class AdminRepository:
             )
             job_candidate_count = await db.scalar(job_unique_stmt) or 0
             
+            # Count passed/failed screening results for this job
+            job_passed_stmt = select(func.count(func.distinct(ResumeVersionResult.resume_id))).where(
+                ResumeVersionResult.job_id == job.id,
+                ResumeVersionResult.pass_fail == "passed"
+            )
+            job_failed_stmt = select(func.count(func.distinct(ResumeVersionResult.resume_id))).where(
+                ResumeVersionResult.job_id == job.id,
+                ResumeVersionResult.pass_fail == "failed"
+            )
+            
+            job_passed_count = await db.scalar(job_passed_stmt) or 0
+            job_failed_count = await db.scalar(job_failed_stmt) or 0
+            
             candidates_by_job.append(
                 {
                     "job_id": str(job.id),
                     "job_title": job.title,
                     "department": job.department.name if job.department else None,
                     "candidate_count": job_candidate_count,
+                    "passed_count": job_passed_count,
+                    "failed_count": job_failed_count,
                 }
             )
 
@@ -643,6 +660,13 @@ class AdminRepository:
         )
         unique_stages_res = await db.execute(all_stages_stmt)
         unique_stages = [row[0] for row in unique_stages_res.all()]
+        
+        # Ensure 'Resume Screening' is always the first stage in the funnel
+        if "Resume Screening" not in unique_stages:
+            unique_stages.insert(0, "Resume Screening")
+        elif unique_stages[0] != "Resume Screening":
+            unique_stages.remove("Resume Screening")
+            unique_stages.insert(0, "Resume Screening")
 
         # D. Transform to requested format: [{stage: "N", Job1: C1, Job2: C2}, ..., {job_names: [...]}]
         # Map job titles to their total candidate counts for Resume Screening (Top of Funnel)
@@ -740,6 +764,13 @@ class AdminRepository:
         )
         unique_stages_res = await db.execute(unique_stages_stmt)
         unique_stages = [row[0] for row in unique_stages_res.all()]
+        
+        # Ensure 'Resume Screening' is always included as the starting funnel point
+        if "Resume Screening" not in unique_stages:
+            unique_stages.insert(0, "Resume Screening")
+        elif unique_stages[0] != "Resume Screening":
+            unique_stages.remove("Resume Screening")
+            unique_stages.insert(0, "Resume Screening")
 
         # 5. Transform
         result = []
