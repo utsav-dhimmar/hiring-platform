@@ -7,12 +7,12 @@ and retrieving candidate/resume lists for specific jobs.
 
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status, Query
 from fastapi import File as FastAPIFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
-from app.v1.dependencies import check_permission, get_current_user
+from app.v1.dependencies import check_permission
 from app.v1.schemas.upload import (
     JobCandidatesResponse,
     ResumeStatusResponse,
@@ -35,7 +35,7 @@ async def upload_resume_for_job(
     job_id: uuid.UUID,
     resume: UploadFile = FastAPIFile(...),
     db: AsyncSession = Depends(get_db),
-    current_user: UserRead = Depends(get_current_user),
+    current_user: UserRead = Depends(check_permission("candidates:access")),
 ) -> ResumeUploadResponse:
     """Upload a resume for a specific job.
 
@@ -85,7 +85,7 @@ async def get_resume_status(
     job_id: uuid.UUID,
     resume_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: UserRead = Depends(get_current_user),
+    current_user: UserRead = Depends(check_permission("candidates:access")),
 ) -> ResumeStatusResponse:
     """Retrieve the status and analysis results for a specific resume."""
     return await resume_upload_service.get_resume_status(
@@ -103,7 +103,7 @@ async def refresh_custom_extractions_for_job(
     job_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: UserRead = Depends(get_current_user),
+    current_user: UserRead = Depends(check_permission("jobs:manage")),
 ) -> dict[str, str]:
     """Mass refresh all custom extractions for all existing resumes of a job."""
     await resume_upload_service.trigger_mass_refresh(
@@ -122,7 +122,7 @@ async def delete_resume(
     job_id: uuid.UUID,
     resume_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: UserRead = Depends(get_current_user),
+    current_user: UserRead = Depends(check_permission("jobs:manage")),
 ):
     """Delete a specific resume from a job.
     
@@ -138,3 +138,29 @@ async def delete_resume(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Resume not found for this job.",
         )
+
+
+@router.post(
+    "/jobs/{job_id}/candidates/{candidate_id}/reanalyze",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def reanalyze_candidate(
+    job_id: uuid.UUID,
+    candidate_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    version: int | None = Query(None, description="Specific job version to match against. If null, uses global job setting."),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("jobs:manage")),
+) -> dict[str, str]:
+    """Manually trigger background re-analysis for a single candidate against the latest JD version."""
+    await resume_upload_service.trigger_candidate_reanalyze(
+        db=db,
+        job_id=job_id,
+        candidate_id=candidate_id,
+        background_tasks=background_tasks,
+        override_version=version,
+    )
+    return {"message": f"Background re-analysis started for candidate {candidate_id}."}
+
+
+

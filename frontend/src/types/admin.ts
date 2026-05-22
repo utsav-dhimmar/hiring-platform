@@ -4,15 +4,21 @@
  */
 
 import type { Job } from "@/types/job";
-import type { JobStageConfig } from "@/types/stage";
+import type { JobStageConfig, CandidateStageSummary } from "@/types/stage";
+
+/**
+ * Generic paginated response wrapper.
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+}
 
 /**
  * Base fields for a permission.
  */
 export interface PermissionBase {
-  /** Unique name of the permission */
   name: string;
-  /** Detailed description of what this permission allows */
   description: string;
 }
 
@@ -20,9 +26,7 @@ export interface PermissionBase {
  * Permission returned from read operations.
  */
 export interface PermissionRead extends PermissionBase {
-  /** Unique identifier (UUID) */
   id: string;
-  /** ISO timestamp of when the permission was created */
   created_at?: string;
 }
 
@@ -35,7 +39,6 @@ export interface PermissionCreate extends PermissionBase { }
  * Base fields for a role.
  */
 export interface RoleBase {
-  /** Name of the role (e.g., "admin", "recruiter") */
   name: string;
 }
 
@@ -43,7 +46,6 @@ export interface RoleBase {
  * Payload for creating a new role.
  */
 export interface RoleCreate extends RoleBase {
-  /** List of permission IDs to associate with this role */
   permission_ids?: string[];
 }
 
@@ -51,9 +53,7 @@ export interface RoleCreate extends RoleBase {
  * Payload for updating an existing role.
  */
 export interface RoleUpdate {
-  /** Optional new name for the role */
   name?: string;
-  /** Optional new list of permission IDs (replaces existing) */
   permission_ids?: string[];
 }
 
@@ -61,12 +61,10 @@ export interface RoleUpdate {
  * Role returned from read operations.
  */
 export interface RoleRead extends RoleBase {
-  /** Unique identifier (UUID) */
   id: string;
-  /** ISO timestamp of when the role was created */
   created_at?: string;
-  /** ISO timestamp of last update */
   updated_at?: string;
+  user_count: number
 }
 
 /**
@@ -80,15 +78,10 @@ export interface RoleWithPermissions extends RoleRead {
  * Payload for creating a new user via admin.
  */
 export interface UserAdminCreate {
-  /** User's email address (must be unique) */
   email: string;
-  /** Optional initial password */
   password?: string;
-  /** User's full name */
   full_name?: string;
-  /** Whether the account is active */
   is_active?: boolean;
-  /** ID of the role to assign */
   role_id: string;
 }
 
@@ -96,11 +89,8 @@ export interface UserAdminCreate {
  * Payload for updating an existing user via admin.
  */
 export interface UserAdminUpdate {
-  /** Optional new full name */
   full_name?: string;
-  /** Optional status update */
   is_active?: boolean;
-  /** Optional new role assignment */
   role_id?: string;
 }
 
@@ -108,19 +98,13 @@ export interface UserAdminUpdate {
  * User returned from admin read operations.
  */
 export interface UserAdminRead {
-  /** Unique identifier (UUID) */
   id: string;
-  /** User's full name */
   full_name?: string;
-  /** User's email address */
   email: string;
-  /** Whether the account is currently active */
   is_active: boolean;
-  /** ID of the assigned role */
   role_id: string;
-  /** ISO timestamp of creation */
+  role_name: string;
   created_at?: string;
-  /** ISO timestamp of last update */
   updated_at?: string;
 }
 
@@ -135,19 +119,13 @@ export interface UserWithRole extends UserAdminRead {
  * Audit log entry for tracking admin actions.
  */
 export interface AuditLogRead {
-  /** Unique identifier of the log entry */
   id: string;
-  /** ID of the user who performed the action */
   user_id: string;
-  /** Description of the action performed (e.g., "create_user") */
+  user_name: string;
   action: string;
-  /** Type of object affected (e.g., "user", "job") */
   target_type?: string;
-  /** ID of the specific target object affected */
   target_id?: string;
-  /** Additional structured data about the change */
   details?: Record<string, unknown>;
-  /** ISO timestamp of the action */
   created_at?: string;
 }
 
@@ -162,21 +140,15 @@ export interface AuditLogWithUser extends AuditLogRead {
  * Recent file upload record.
  */
 export interface RecentUploadRead {
-  /** Unique identifier of the upload */
   id: string;
-  /** Original name of the uploaded file */
   file_name?: string;
-  /** MIME type or extension of the file */
   file_type?: string;
-  /** File size in bytes */
   size?: number;
-  /** Associated candidate ID if applicable */
   candidate_id?: string;
-  /** Associated job ID if applicable */
+  candidate_name?: string;
   job_id?: string;
-  /** Name or ID of the user who uploaded the file */
   uploaded_by: string;
-  /** ISO timestamp of the upload */
+  uploader_name?: string;
   created_at?: string;
 }
 
@@ -193,51 +165,64 @@ export interface RecentUploadWithDetails extends RecentUploadRead {
  * Summary of platform analytics.
  */
 export interface AnalyticsSummary {
-  /** Total number of users registered in the system */
   total_users: number;
-  /** Total number of defined roles */
   total_roles: number;
-  /** Total number of defined permissions */
   total_permissions: number;
-  /** Total number of job postings */
   total_jobs: number;
-  /** Total number of candidates in the database */
   total_candidates: number;
-  /** Total number of resumes uploaded */
   total_resumes: number;
-  /** Number of jobs currently marked as active */
+  total_passed: number;
+  total_failed: number;
+  total_pending: number;
+  total_unprocessed: number;
   active_jobs: number;
-  /** Number of users currently marked as active */
   active_users: number;
+  passed_count: number;
+  maybe_count: number;
+  failed_count: number;
+  hr_decision_count: number;
+  pending_decision_count: number;
 }
 
 /**
  * Candidate statistics for a specific job.
  */
-export interface JobCandidateStats {
+export interface JobCandidatesStats {
   job_id: string;
   job_title: string;
+  department?: string | null;
   candidate_count: number;
+}
+
+export interface PipelineStageStats {
+  stage_name: string;
+  order: number;
+  count: number;
+}
+
+export interface JobPipelineStats {
+  stage?: string;
+  job_names?: string[];
+  [jobTitle: string]: any;
 }
 
 /**
  * Detailed hiring report with statistics.
  */
 export interface HiringReport {
-  /** Total number of jobs created */
   total_jobs: number;
-  /** Number of active job postings */
   active_jobs: number;
-  /** Total number of unique candidates */
   total_candidates: number;
-  /** Breakdown of candidate counts for each job */
-  candidates_by_job: JobCandidateStats[];
-  /** Number of resumes uploaded in the past 30 days */
+  total_passed: number;
+  total_failed: number;
+  total_pending: number;
+  total_unprocessed: number;
+  candidates_by_job: JobCandidatesStats[];
+  job_pipeline_stats: JobPipelineStats[];
   resumes_uploaded_last_30_days: number;
-  /** Optional aggregate resume score across all candidates */
   average_resume_score?: number;
-
-  pass_rate?: number;
+  hr_decided_count: number;
+  pending_count: number;
 }
 
 /**
@@ -248,18 +233,18 @@ export interface HiringReport {
  * Payload for creating a new job posting.
  */
 export interface JobCreate {
-  /** Job title (e.g., "Senior Software Engineer") */
   title: string;
-  /** Department or team name */
-  department?: string;
-  /** Plain text job description */
-  jd_text?: string;
-  /** Structured JSON data for the job description */
-  jd_json?: Record<string, unknown>;
-  /** Whether the job is immediately active */
+  vacancy: number;
+  department_id: string;
+  jd_text: string;
   is_active?: boolean;
-  /** List of skill IDs required for this job */
-  skill_ids?: string[];
+  skill_ids: string[];
+  passing_threshold?: number;
+  custom_extraction_fields?: string[];
+  priority_id: string;
+  position_id: string;
+  priority_start_date?: string | null;
+  priority_end_date?: string | null;
 }
 
 /**
@@ -267,11 +252,17 @@ export interface JobCreate {
  */
 export interface JobUpdate {
   title?: string;
-  department?: string;
+  vacancy?: number;
+  department_id?: string;
   jd_text?: string;
-  jd_json?: Record<string, unknown>;
   is_active?: boolean;
   skill_ids?: string[];
+  passing_threshold?: number;
+  custom_extraction_fields?: string[];
+  priority_id?: string;
+  position_id?: string;
+  priority_start_date?: string | null;
+  priority_end_date?: string | null;
 }
 
 /**
@@ -282,31 +273,25 @@ export interface JobUpdate {
  * Base fields for a skill.
  */
 export interface SkillBase {
-  /** Name of the skill (e.g., "React", "Python") */
+  id: string;
   name: string;
-  /** Optional description of what this skill entails */
   description?: string;
 }
 
 /**
  * Payload for creating a new skill.
  */
-export interface SkillCreate extends SkillBase { }
+export interface SkillCreate extends Omit<SkillBase, "id"> { }
 
 /**
  * Payload for updating an existing skill.
  */
-export interface SkillUpdate {
-  name?: string;
-  description?: string;
-}
+export interface SkillUpdate extends Partial<SkillCreate> { }
 
 /**
  * Skill returned from read operations.
  */
-export interface SkillRead extends SkillBase {
-  id: string;
-}
+export interface SkillRead extends SkillBase { }
 
 /**
  * Department Management Types
@@ -316,9 +301,7 @@ export interface SkillRead extends SkillBase {
  * Shared fields for a department.
  */
 export interface DepartmentBase {
-  /** Unique name of the department */
   name: string;
-  /** Optional description of the department */
   description?: string | null;
 }
 
@@ -339,8 +322,78 @@ export interface DepartmentUpdate {
  * Department returned from read operations.
  */
 export interface DepartmentRead extends DepartmentBase {
-  /** Unique identifier (UUID) */
+
   id: string;
+}
+
+/**
+ * Job Priority Management Types
+ */
+
+/**
+ * Job priority returned from read operations.
+ */
+export interface JobPriorityRead {
+  id: string;
+  name: string;
+  duration_days: number;
+  created_at: string;
+  updated_at: string;
+  assigned_jobs_count: number
+}
+
+/**
+ * Payload for creating a new job priority.
+ */
+export interface JobPriorityCreate {
+  duration_days: number;
+}
+
+/**
+ * Payload for updating an existing job priority.
+ */
+export interface JobPriorityUpdate {
+  duration_days?: number;
+}
+
+/**
+ * Job Position Management Types
+ */
+
+/**
+ * Job position returned from read operations.
+ */
+export interface JobPositionRead {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Payload for creating a new job position.
+ */
+export interface JobPositionCreate {
+  name: string;
+}
+
+/**
+ * Payload for updating an existing job position.
+ */
+export interface JobPositionUpdate {
+  name?: string;
+}
+
+/**
+ * Location Management Types
+ */
+
+/**
+ * Location returned from read operations.
+ */
+export interface LocationRead {
+  id: string;
+  name: string;
 }
 
 /**
@@ -351,11 +404,8 @@ export interface DepartmentRead extends DepartmentBase {
  * Payload for creating a new stage template.
  */
 export interface StageTemplateCreate {
-  /** Name of the interview stage (e.g., "Technical Assessment") */
   name: string;
-  /** Description of what happens during this stage */
   description?: string;
-  /** Default configuration parameters for this stage type */
   default_config?: Record<string, any>;
 }
 
@@ -366,6 +416,7 @@ export interface StageTemplateUpdate {
   name?: string;
   description?: string;
   default_config?: Record<string, any>;
+  is_default: boolean
 }
 
 /**
@@ -376,13 +427,9 @@ export interface StageTemplateUpdate {
  * Payload for adding a stage to a job.
  */
 export interface JobStageConfigCreate {
-  /** ID of the stage template to use */
   template_id: string;
-  /** Order in which this stage appears (0-indexed) */
   stage_order: number;
-  /** Job-specific configuration overrides for this stage */
   config?: Record<string, any>;
-  /** Whether passing this stage is required to advance */
   is_mandatory?: boolean;
 }
 
@@ -405,53 +452,183 @@ export interface JobStageReorder {
 /**
  * Job returned from read operations.
  */
-export interface JobRead extends Job {
+export interface JobRead extends Omit<Job, "skills"> {
   skills?: SkillRead[];
   stages?: JobStageConfig[];
 }
 
 /**
- * Result of a resume screening for a single candidate.
+ * Detailed AI analysis of a resume.
  */
-export interface ResumeScreeningResult {
-  candidate_id: string;
+export interface CandidateMatchAnalysis {
+  match_percentage: number;
+  skill_gap_analysis: string;
+  experience_alignment: string;
+  strength_summary: string;
+  missing_skills?: { name: string; score: number }[];
+  extraordinary_points?: string[];
+  custom_extractions?: any;
+}
+
+/**
+ * Historical analysis/screening result for a candidate for a specific JD version.
+ */
+export interface CandidateVersionResult {
+  id: string;
+  resume_id: string;
+  job_id: string;
+  job_version_number: number;
+  resume_score: number | null;
+  pass_fail: string | null;
+  analysis_data: CandidateMatchAnalysis | null;
+  analyzed_at: string | null;
+}
+
+/**
+ * Result of a candidate analysis/screening for a single candidate.
+ */
+export interface CandidateAnalysis {
+  id: string;
   first_name?: string;
   last_name?: string;
   email?: string;
+  phone?: string;
+  current_status?: string;
   resume_score?: number;
-  pass_fail?: boolean;
-  analysis?: any;
-  applied_at: string;
+  pass_fail?: string | boolean | null;
+  resume_analysis?: CandidateMatchAnalysis | null;
+  resume_id?: string;
+  created_at: string;
+  is_parsed?: boolean;
+  processing_status?: string;
+  processing_error?: string | null;
+  hr_decision?: "approve" | "reject" | "may be" | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  /**
+   * Candidate's location (city, country, etc.).
+   * May be null/undefined if not extracted — render as "N/A".
+   */
+  location?: string | null;
+  /**
+   * Timestamp when the HR uploaded the candidate's resume.
+   * Falls back to created_at when not provided — render as "N/A" if both are absent.
+   */
+  applied_at?: string | null;
+  /**
+   * The JD version number at which this candidate's resume was last analyzed.
+   * Compare against job.version to determine if reanalysis is needed.
+   * null/undefined means it has never been successfully analyzed.
+   */
+  applied_version_number?: number | null;
+  /**
+   * Historical screening results for previous/all JD versions.
+   */
+  version_results?: CandidateVersionResult[] | null;
+  /**
+   * Current recruitment stage information.
+   */
+  current_stage?: CandidateStageSummary | null;
+  /**
+   * Full recruitment pipeline for this candidate.
+   */
+  pipeline?: CandidateStageSummary[] | null;
 }
 
 /**
- * Response containing all resume screening results for a job.
+ * Response containing all candidate analysis results for a job.
  */
-export interface ResumeScreeningResultsResponse {
-  job_id: string;
-  results: ResumeScreeningResult[];
+export interface CandidateAnalysisResponse {
+  data: CandidateAnalysis[];
+  total: number;
 }
 
 /**
- * Result of an HR round interview for a single candidate.
+ * Detailed AI analysis of a resume.
  */
-export interface HRRoundResult {
-  interview_id: string;
-  candidate_id: string;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  status: string;
-  overall_score?: number;
-  recommendation?: string;
-  evaluation?: any;
-  scheduled_at: string;
+export interface PromptRead {
+  name: string;
+  content: string;
+  stage: string
 }
 
 /**
- * Response containing all HR round results for a job.
+ * AI resume-screening pass/fail breakdown for a job.
  */
-export interface HRRoundResultsResponse {
-  job_id: string;
-  results: HRRoundResult[];
+export interface JobResultStats {
+  passed: number;
+  failed: number;
+  pending: number;
+}
+
+/**
+ * HR decision summary for a job.
+ */
+export interface JobHRDecisionStats {
+  total_candidates: number;
+  passed: number;
+  failed: number;
+  maybe: number;
+  pending: number;
+  undecidedCount: number;
+}
+
+export interface PriorityTimeline {
+  name: string,
+  start_date: string,
+  due_date: string,
+  days_total: number,
+  days_elapsed: number,
+  days_remaining: number,
+  progress_pct: number,
+  status: string,
+}
+/**
+ * Comprehensive statistics for a specific job.
+ */
+export interface JobStatsResponse {
+  result: JobResultStats;
+  location: Record<string, number>;
+  stages: Record<string, number>;
+  hr_decisions: JobHRDecisionStats;
+  priority_timeline: PriorityTimeline
+  stage_details: Record<string, {
+    hr_decisions: Record<string, number>;
+    ai_results: JobResultStats;
+  }>;
+}
+
+/**
+ * Criteria Management Types
+ */
+
+/**
+ * Shared fields for an evaluation criterion.
+ */
+export interface CriterionBase {
+  name: string;
+  description?: string | null;
+  prompt_text: string;
+}
+
+/**
+ * Payload for creating a new evaluation criterion.
+ */
+export interface CriterionCreate extends CriterionBase { }
+
+/**
+ * Payload for updating an existing evaluation criterion.
+ */
+export interface CriterionUpdate {
+  name?: string;
+  description?: string | null;
+  prompt_text?: string;
+}
+
+/**
+ * Evaluation criterion returned from read operations.
+ */
+export interface CriterionRead extends CriterionBase {
+  id: string;
+  created_at: string;
 }

@@ -9,8 +9,11 @@ from ..db.models.interviews import Interview
 from ..db.models.job_skills import job_skills
 from ..db.models.job_stage_configs import JobStageConfig
 from ..db.models.jobs import Job
+from ..db.models.locations import Location
+from ..db.models.job_versions import JobVersion
 from ..db.models.permissions import Permission
 from ..db.models.recordings import Recording  # NOT USED
+from ..db.models.job_chunks import JobChunk
 from ..db.models.resume_chunks import ResumeChunk
 from ..db.models.resumes import Resume
 from ..db.models.roleAndPermission import role_permission
@@ -19,6 +22,7 @@ from ..db.models.skills import Skill
 from ..db.models.stage_templates import StageTemplate
 from ..db.models.transcripts import Transcript
 from ..db.models.user import User
+from ..db.models.cross_job_matches import CrossJobMatch
 
 __all__ = [
     "User",
@@ -27,6 +31,7 @@ __all__ = [
     "Permission",
     "role_permission",
     "Job",
+    "JobVersion",
     "Skill",
     "job_skills",
     "Candidate",
@@ -37,9 +42,12 @@ __all__ = [
     "Resume",
     "CoverLetter",
     "ResumeChunk",
+    "JobChunk",
     "HrDecision",
     "Interview",
     "Recording",  # NOT USED
     "Transcript",
     "AuditLog",
+    "CrossJobMatch",
+    "Location",
 ]

@@ -9,14 +9,16 @@ export const adminSkillService = {
    * Get all skills with pagination.
    * @param skip - Number of records to skip
    * @param limit - Maximum number of records to return
+   * @param search - Search query
    * @returns Promise resolving to skills and total count
    */
   getAllSkills: async (
     skip: number = 0,
     limit: number = 100,
+    search?: string,
   ): Promise<{ data: SkillRead[]; total: number }> => {
     const response = await apiClient.get<{ data: SkillRead[]; total: number }>("/skills", {
-      params: { skip, limit },
+      params: { skip, limit, q: search ? search : undefined },
     });
     return response.data;
   },

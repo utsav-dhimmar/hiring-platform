@@ -13,6 +13,7 @@ from app.v1.utils.uuid import UUIDHelper
 if TYPE_CHECKING:
     from app.v1.db.models.jobs import Job
     from app.v1.db.models.stage_templates import StageTemplate
+    from app.v1.db.models.candidate_stages import CandidateStage
 
 
 class JobStageConfig(Base):
@@ -43,7 +44,7 @@ class JobStageConfig(Base):
     # FOREIGN KEYS
     job_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("jobs.id"),
+        ForeignKey("jobs.id", ondelete="CASCADE"),
         nullable=False,
     )
 
@@ -70,6 +71,12 @@ class JobStageConfig(Base):
         nullable=False,
     )
 
+    is_default: Mapped[bool] = mapped_column(
+        Boolean(),
+        default=False,
+        nullable=False,
+    )
+
     # TIMESTAMPS
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -82,4 +89,7 @@ class JobStageConfig(Base):
     )
     template: Mapped["StageTemplate"] = relationship(
         "StageTemplate", foreign_keys=[template_id]
+    )
+    candidate_stages: Mapped[list["CandidateStage"]] = relationship(
+        "CandidateStage", back_populates="job_stage", cascade="all, delete-orphan"
     )

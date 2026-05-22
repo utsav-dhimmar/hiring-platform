@@ -6,8 +6,8 @@ This guide covers the complete setup process for the HR Platform Frontend.
 
 Ensure you have the following installed:
 
-- **Node.js** 18 or higher
-- **npm** (comes with Node.js)
+- **Node.js** 18 or higher (or **Bun**)
+- **npm** (comes with Node.js) or **Bun**
 - **Backend API** running at `http://localhost:8000`
 
 ## Installation Steps
@@ -21,7 +21,11 @@ cd frontend
 ### 2. Install Dependencies
 
 ```bash
+# Using npm
 npm install
+
+# Using bun
+bun install
 ```
 
 This will install all required packages defined in `package.json`.
@@ -47,7 +51,11 @@ VITE_API_URL=http://localhost:8000/api/v1
 ### 4. Start Development Server
 
 ```bash
+# Using npm
 npm run dev
+
+# Using bun
+bun dev
 ```
 
 The application will be available at `http://localhost:5173`.
@@ -58,16 +66,16 @@ The application will be available at `http://localhost:5173`.
 
 ```bash
 # Development server with hot reload
-npm run dev
+npm run dev      # or bun dev
 
 # Build for production
-npm run build
+npm run build    # or bun run build
 
 # Preview production build
-npm run preview
+npm run preview  # or bun run preview
 
 # Run linter
-npm run lint
+npm run lint     # or bun run lint
 ```
 
 ### Connecting to Backend
@@ -108,9 +116,13 @@ If you encounter CORS errors, ensure the backend allows requests from `http://lo
 ### Build Errors
 
 ```bash
-# Clear node_modules and reinstall
+# Using npm
 rm -rf node_modules package-lock.json
 npm install
+
+# Using bun
+rm -rf node_modules bun.lockb
+bun install
 ```
 
 ## Available Admin Features

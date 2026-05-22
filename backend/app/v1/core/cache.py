@@ -61,6 +61,19 @@ class RedisCache:
         except Exception as exc:  # noqa: BLE001
             _log.debug("Redis SET failed key=%s: %s", key, exc)
 
+    async def set_nx(self, key: str, value: Any, ttl: int) -> bool:
+        """Serialize and store a value only if it doesn't exist (NX). Returns True if set."""
+        client = self._get_client()
+        if client is None:
+            return True  # Fallback to True if Redis is down
+        try:
+            raw = json.dumps(value, default=str)
+            result = await client.set(key, raw, ex=ttl, nx=True)
+            return bool(result)
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("Redis SETNX failed key=%s: %s", key, exc)
+            return True
+
     async def delete(self, key: str) -> None:
         """Remove a value from the cache."""
         client = self._get_client()
@@ -70,6 +83,45 @@ class RedisCache:
             await client.delete(key)
         except Exception as exc:  # noqa: BLE001
             _log.debug("Redis DELETE failed key=%s: %s", key, exc)
+
+    async def clear(self, pattern: str = "*") -> bool:
+        """
+        Clear keys matching a pattern.
+        Defaults to "*" which clears all keys in the current DB.
+        """
+        client = self._get_client()
+        if client is None:
+            return False
+        try:
+            if pattern == "*":
+                # If we really want to clear EVERYTHING, flushdb is faster
+                # But we'll default to scan/delete if we want to be safe in the future
+                await client.flushdb()
+            else:
+                # Selective delete using SCAN
+                count = 0
+                async for key in client.scan_iter(match=pattern):
+                    await client.delete(key)
+                    count += 1
+                _log.info("Cleared %d keys matching pattern: %s", count, pattern)
+            return True
+        except Exception as exc:  # noqa: BLE001
+            _log.error("Redis clear failed: %s", exc)
+            return False
+
+    async def keys(self, pattern: str = "*") -> list[str]:
+        """
+        List keys matching a pattern.
+        Returns a list of string keys.
+        """
+        client = self._get_client()
+        if client is None:
+            return []
+        try:
+            return [key async for key in client.scan_iter(match=pattern)]
+        except Exception as exc:  # noqa: BLE001
+            _log.error("Redis KEYS failed pattern=%s: %s", pattern, exc)
+            return []
 
     async def close(self) -> None:
         """Gracefully close the Redis connection."""

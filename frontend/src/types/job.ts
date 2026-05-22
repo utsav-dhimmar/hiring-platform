@@ -1,6 +1,48 @@
+import type { JobStageConfig } from "@/types/stage";
+import type { JobPositionRead, JobPriorityRead } from "@/types/admin";
+
+export interface JobDecisionSummary {
+  job_id: string;
+  total_candidates: number;
+  approved_count: number;
+  reject_count: number;
+  maybe_count: number;
+  undecided_count: number;
+}
+
+export interface JobActivitySession {
+  session_id: number;
+  start_date: string;
+  end_date: string | null;
+  candidate_count: number;
+  is_current: boolean;
+  approved_count: number,
+  rejected_count: number,
+  pending_count: number
+}
+
+/**
+ * Minimal job version metadata returned by the backend.
+ */
+export interface JobVersionMinimal {
+  id: string;
+  version_num: number;
+}
+
+export interface JobVersionDetail {
+  id: string;
+  job_id: string;
+  version_number: number;
+  title: string;
+  jd_text: string | null;
+  jd_json: Record<string, unknown> | null;
+  custom_extraction_fields: string[] | null;
+  created_at: string;
+}
+
 /**
  * Represents a job posting in the hiring platform.
- * Contains job details, description, and status information.
+ * Contains job details, description, status information, and workflow metadata.
  */
 export interface Job {
   /** Unique identifier for the job */
@@ -19,8 +61,57 @@ export interface Job {
   jd_json: Record<string, unknown> | null;
   /** Whether the job is currently accepting applications */
   is_active: boolean;
+  /** Optional custom extraction fields used during resume parsing */
+  custom_extraction_fields?: string[] | null;
+  /** Threshold score (0-100) for considering a candidate as 'pass' */
+  passing_threshold: number;
+  /** Current active version number */
+  version?: number;
+  /** Total number of saved versions */
+  total_versions?: number;
+  /** Version history metadata */
+  job_versions?: JobVersionMinimal[];
+  /** Configured interview stages */
+  stages?: JobStageConfig[];
+  /** Backend-provided decision summary for the job */
+  decision_summary?: JobDecisionSummary | null;
+  /** Real-time automated screening summary from the backend */
+  automated_screening_summary?: Record<string, any> | null;
   /** ID of the user who created the job posting */
   created_by: string;
   /** Timestamp when the job was created */
   created_at: string;
+  /** Skills linked to the job */
+  skills: { id: string; name: string; description: string | null }[];
+
+  total_candidates: number;
+  current_session_candidates: number;
+  activity_sessions?: JobActivitySession[] | null;
+  vacancy: number | null;
+  priority_id: string | null;
+  priority_start_date: string | null;
+  priority_end_date: string | null;
+  priority?: JobPriorityRead | null;
+  position_id: string;
+  position?: JobPositionRead | null;
+  processing_version?: number | null;
+}
+
+/**
+ * Paginated response for job lists including global dashboard metrics.
+ */
+export interface JobsListResponse {
+  data: Job[];
+  total: number;
+  global_decision_summary: Record<string, any> | null;
+  global_screening_summary: Record<string, any> | null;
+}
+
+
+/**
+ * Represents a job title.
+ */
+export interface JobTitle {
+  id: string;
+  title: string;
 }

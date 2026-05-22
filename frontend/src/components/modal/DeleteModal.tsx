@@ -3,8 +3,15 @@
  * Displays a title, message, and confirmation/cancel buttons.
  */
 
-import { Alert, Modal } from "react-bootstrap";
-import { Button } from "@/components/shared";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 /**
  * Props for the DeleteModal component.
@@ -24,27 +31,18 @@ interface DeleteModalProps {
   confirmButtonText?: string;
   /** Text for the cancel button (default: "Cancel") */
   cancelButtonText?: string;
+  /** Whether to show the footer buttons (Delete/Cancel) or just a Close button (default: true) */
+  showFooterButtons?: boolean;
   /** Whether the confirm action is in progress */
   isLoading?: boolean;
   /** Error message to display (if any) */
-  error?: string | null;
-  /** Variant for the confirm button (default: "danger") */
-  confirmVariant?: "danger" | "primary" | "warning";
+  error?: string | React.ReactNode | null;
+  /** Variant for the confirm button (default: "destructive") */
+  confirmVariant?: "destructive" | "default";
 }
 
 /**
  * Reusable modal for confirming destructive delete actions.
- * @example
- * ```tsx
- * <DeleteModal
- *   show={showModal}
- *   handleClose={() => setShowModal(false)}
- *   handleConfirm={handleDelete}
- *   title="Delete User"
- *   message="Are you sure you want to delete this user?"
- *   isLoading={isDeleting}
- * />
- * ```
  */
 const DeleteModal = ({
   show,
@@ -54,28 +52,51 @@ const DeleteModal = ({
   message,
   confirmButtonText = "Delete",
   cancelButtonText = "Cancel",
+  showFooterButtons = true,
   isLoading = false,
   error = null,
-  confirmVariant = "danger",
+  confirmVariant = "destructive",
 }: DeleteModalProps) => {
   return (
-    <Modal show={show} onHide={handleClose} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>{title}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {error && <Alert variant="danger">{error}</Alert>}
-        <p className="mb-0">{message}</p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={handleClose} disabled={isLoading}>
-          {cancelButtonText}
-        </Button>
-        <Button variant={confirmVariant} onClick={handleConfirm} isLoading={isLoading}>
-          {confirmButtonText}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+    <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <div>
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-3">
+              {typeof error === "string" ? (
+                <div className="text-sm text-destructive">{error}</div>
+              ) : (
+                error
+              )}
+            </div>
+          )}
+          {showFooterButtons && <p className="mb-0">{message}</p>}
+        </div>
+        <DialogFooter>
+          {showFooterButtons && (
+            <>
+              <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+                {cancelButtonText}
+              </Button>
+              <Button variant={confirmVariant} onClick={handleConfirm} isLoading={isLoading}>
+                {confirmButtonText}
+              </Button>
+
+
+              {/* <Button variant="outline" onClick={handleClose}>
+                Close
+              </Button> */}
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

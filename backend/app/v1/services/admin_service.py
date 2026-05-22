@@ -15,6 +15,7 @@ from app.v1.db.models.user import User
 from app.v1.schemas.admin import (
     AnalyticsSummary,
     HiringReport,
+    JobPipelineStats,
 )
 from app.v1.schemas.skill import SkillRead
 from app.v1.schemas.upload import CandidateResponse
@@ -25,6 +26,7 @@ from app.v1.services.admin.department_service import department_service
 from app.v1.services.admin.job_service import job_admin_service
 from app.v1.services.admin.role_service import role_service
 from app.v1.services.admin.skill_service import skill_service
+from app.v1.services.admin.system_service import system_service
 from app.v1.services.admin.user_admin_service import user_admin_service
 
 
@@ -38,8 +40,11 @@ class AdminService:
     async def log_action(self, *args, **kwargs) -> None:
         return await audit_service.log_action(*args, **kwargs)
 
-    async def get_audit_logs(self, *args, **kwargs) -> list[AuditLog]:
+    async def get_audit_logs(self, *args, **kwargs) -> list[Any]:
         return await audit_service.get_audit_logs(*args, **kwargs)
+
+    async def get_candidates_for_job(self, *args, **kwargs) -> dict[str, Any]:
+        return await candidate_admin_service.get_candidates_for_job(*args, **kwargs)
 
     # User Management
     async def get_all_users(self, *args, **kwargs) -> list[User]:
@@ -92,6 +97,9 @@ class AdminService:
     async def get_hiring_report(self, *args, **kwargs) -> HiringReport:
         return await analytics_service.get_hiring_report(*args, **kwargs)
 
+    async def get_pipeline_stats(self, *args, **kwargs) -> list[JobPipelineStats]:
+        return await analytics_service.get_pipeline_stats(*args, **kwargs)
+
     # Job Management
     async def get_all_jobs(self, *args, **kwargs) -> list[Job]:
         return await job_admin_service.get_all_jobs(*args, **kwargs)
@@ -99,11 +107,20 @@ class AdminService:
     async def get_job_by_id(self, *args, **kwargs) -> Job:
         return await job_admin_service.get_job_by_id(*args, **kwargs)
 
+    async def get_job_version(self, *args, **kwargs) -> Any:
+        return await job_admin_service.get_job_version(*args, **kwargs)
+
     async def create_job(self, *args, **kwargs) -> Job:
         return await job_admin_service.create_job(*args, **kwargs)
 
     async def update_job(self, *args, **kwargs) -> Job:
         return await job_admin_service.update_job(*args, **kwargs)
+
+    async def update_job_status(self, *args, **kwargs) -> Job:
+        return await job_admin_service.update_job_status(*args, **kwargs)
+
+    async def get_job_activity_history(self, *args, **kwargs) -> Any:
+        return await job_admin_service.get_job_activity_history(*args, **kwargs)
 
     async def delete_job(self, *args, **kwargs) -> None:
         return await job_admin_service.delete_job(*args, **kwargs)
@@ -140,35 +157,22 @@ class AdminService:
     async def delete_skill(self, *args, **kwargs) -> None:
         return await skill_service.delete_skill(*args, **kwargs)
 
-    # Candidate Management
-    async def get_candidates_for_job(
-        self, *args, **kwargs
-    ) -> list[CandidateResponse]:
-        return await candidate_admin_service.get_candidates_for_job(
-            *args, **kwargs
-        )
 
-    async def search_candidates_for_job(
-        self, *args, **kwargs
-    ) -> list[CandidateResponse]:
-        return await candidate_admin_service.search_candidates_for_job(
-            *args, **kwargs
-        )
-
-    async def search_candidates(
-        self, *args, **kwargs
-    ) -> list[CandidateResponse]:
+    async def search_candidates(self, *args, **kwargs) -> list[CandidateResponse]:
         return await candidate_admin_service.search_candidates(*args, **kwargs)
 
-    async def get_candidate_evaluations(self, *args, **kwargs) -> list[Any]:
-        return await candidate_admin_service.get_candidate_evaluations(
-            *args, **kwargs
-        )
+    async def delete_candidate(self, *args, **kwargs) -> bool:
+        return await candidate_admin_service.delete_candidate_by_identifier(*args, **kwargs)
 
-    async def get_candidate_stage_evaluation(self, *args, **kwargs) -> Any:
-        return await candidate_admin_service.get_candidate_stage_evaluation(
-            *args, **kwargs
-        )
+    # Candidate evaluations removed as part of resume-screening focus.
+
+
+    # System Management
+    async def clear_cache(self, *args, **kwargs) -> bool:
+        return await system_service.clear_cache(*args, **kwargs)
+
+    async def get_cache_info(self, *args, **kwargs) -> dict:
+        return await system_service.get_cache_info(*args, **kwargs)
 
 
 admin_service = AdminService()

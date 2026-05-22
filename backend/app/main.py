@@ -21,6 +21,7 @@ from app.v1.core.resume_executor import (
     shutdown_resume_executor,
 )
 from app.v1.db.session import init_db
+from app.v1.core.observability import setup_phoenix_tracing
 
 setup_logging(debug=settings.DEBUG)
 logger = get_logger(__name__)
@@ -39,6 +40,10 @@ async def lifespan(app: FastAPI):
         f"Starting {settings.PROJECT_NAME} in {settings.ENVIRONMENT} mode"
     )
     await init_db()
+    
+    # Arize Phoenix — AI Observability
+    setup_phoenix_tracing(project_name=settings.PHOENIX_PROJECT_NAME)
+    
     initialize_resume_executor()
     logger.info("Database initialized successfully")
     yield
@@ -74,3 +79,6 @@ async def root():
         dict: A dictionary containing a welcome message with the project name.
     """
     return {"message": f"Welcome to {settings.PROJECT_NAME}"}
+
+# Trigger Uvicorn reload for new settings
+

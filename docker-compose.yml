@@ -1,0 +1,96 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: postgres-pgvector
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/setup_extensions.sql:/docker-entrypoint-initdb.d/setup_extensions.sql
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    restart: always
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+
+  api:
+    build: .
+    container_name: hr_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./uploads:/app/uploads
+    env_file:
+      - .env
+    environment:
+      POSTGRES_SERVER: db
+      REDIS_URL: redis://redis:6379/0
+      PHOENIX_COLLECTOR_ENDPOINT: http://phoenix:4317
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build: .
+    container_name: hr_worker
+    restart: always
+    volumes:
+      - ./backend:/app/backend
+      - ./uploads:/app/uploads
+    env_file:
+      - .env
+    environment:
+      POSTGRES_SERVER: db
+      REDIS_URL: redis://redis:6379/0
+      PHOENIX_COLLECTOR_ENDPOINT: http://phoenix:4317
+    command: celery -A app.v1.core.celery_app worker --loglevel=info --pool=solo
+    depends_on:
+      - db
+      - redis
+
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    container_name: phoenix_observability
+    restart: always
+    ports:
+      - "6006:6006" # Dashboard UI
+      - "4317:4317" # OTLP gRPC collector
+      - "4318:4318" # OTLP HTTP collector
+    environment:
+      PHOENIX_COLLECTOR_ENDPOINT: http://localhost:4317
+
+volumes:
+  postgres_data:
+  redis_data:

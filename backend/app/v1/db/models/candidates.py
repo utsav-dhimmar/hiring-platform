@@ -1,21 +1,26 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, ForeignKey, Numeric, Text
+from sqlalchemy import DateTime, ForeignKey, Numeric, Text, Integer
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.v1.core.config import settings
 from app.v1.db.base import Base
+from app.v1.db.models.candidate_skills import candidate_skills
 from app.v1.utils.uuid import UUIDHelper
 
 if TYPE_CHECKING:
     from app.v1.db.models.files import File
     from app.v1.db.models.jobs import Job
+    from app.v1.db.models.locations import Location
     from app.v1.db.models.resumes import Resume
+    from app.v1.db.models.hr_decisions import HrDecision
+    from app.v1.db.models.candidate_stages import CandidateStage
+    from app.v1.db.models.skills import Skill
 
 
 class Candidate(Base):
@@ -60,6 +65,7 @@ class Candidate(Base):
     email: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
+        index=True,
     )
 
     phone: Mapped[str | None] = mapped_column(
@@ -67,11 +73,23 @@ class Candidate(Base):
         nullable=True,
     )
 
-    # FOREIGN KEY
-    applied_job_id: Mapped[uuid.UUID] = mapped_column(
+    # LOCATION FK (replaces plain text location column)
+    location_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("jobs.id"),
-        nullable=False,
+        ForeignKey("locations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # FOREIGN KEY
+    applied_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("jobs.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    applied_version_number: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
     )
 
     # RESUME / AI FIELDS
@@ -106,5 +124,19 @@ class Candidate(Base):
     applied_job: Mapped["Job"] = relationship(
         "Job", back_populates="candidates", foreign_keys=[applied_job_id]
     )
-    resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="candidate")
-    files: Mapped[list["File"]] = relationship("File", back_populates="candidate")
+    location_rel: Mapped[Optional["Location"]] = relationship(
+        "Location",
+        back_populates="candidates",
+        foreign_keys=[location_id],
+        lazy="joined",
+    )
+    resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="candidate", cascade="all, delete-orphan")
+    files: Mapped[list["File"]] = relationship("File", back_populates="candidate", cascade="all, delete-orphan")
+    hr_decisions: Mapped[list["HrDecision"]] = relationship("HrDecision", back_populates="candidate", cascade="all, delete-orphan")
+    stages: Mapped[list["CandidateStage"]] = relationship("CandidateStage", back_populates="candidate", cascade="all, delete-orphan")
+    skills: Mapped[list["Skill"]] = relationship("Skill", secondary=candidate_skills)
+
+    @property
+    def location_name(self) -> str | None:
+        """Return the location name for convenience (used in serialisation)."""
+        return self.location_rel.name if self.location_rel else None

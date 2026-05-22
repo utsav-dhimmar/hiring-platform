@@ -3,17 +3,31 @@
  * Provides a form to input permission name and description.
  */
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
-import { useState } from "react";
-import { Alert, Form, Modal } from "react-bootstrap";
-import { useForm } from "react-hook-form";
-import { adminPermissionService } from "@/apis/admin/service";
-import { Button, Input } from "@/components/shared";
+import { useCallback } from "react";
+import { adminPermissionService } from "@/apis/admin";
+import {
+  Button,
+  Input,
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useFormModal } from "@/hooks";
 import { permissionCreateSchema, type PermissionCreateFormValues } from "@/schemas/admin";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 
 /**
- * Props for the CreatePermissionModal component.
+ * Props for the CreatePermissionModalProps component.
  */
 interface CreatePermissionModalProps {
   /** Controls visibility of the modal */
@@ -26,102 +40,84 @@ interface CreatePermissionModalProps {
 
 /**
  * Modal dialog for creating a new permission.
- * @example
- * ```tsx
- * <CreatePermissionModal
- *   show={showModal}
- *   handleClose={() => setShowModal(false)}
- *   onPermissionCreated={refreshPermissions}
- * />
- * ```
  */
 const CreatePermissionModal = ({
   show,
   handleClose,
   onPermissionCreated,
 }: CreatePermissionModalProps) => {
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const onSubmit = useCallback(
+    async (data: PermissionCreateFormValues) => {
+      await adminPermissionService.createPermission(data);
+      onPermissionCreated();
+      handleClose();
+    },
+    [onPermissionCreated, handleClose]
+  );
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<PermissionCreateFormValues>({
-    resolver: zodResolver(permissionCreateSchema),
+  const formModal = useFormModal<PermissionCreateFormValues, null>({
+    schema: permissionCreateSchema,
     defaultValues: {
       name: "",
       description: "",
     },
+    show,
+    onSubmit,
   });
 
-  const onSubmit = async (data: PermissionCreateFormValues) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await adminPermissionService.createPermission(data);
-      onPermissionCreated();
-      reset();
-      handleClose();
-    } catch (err: unknown) {
-      let errorMsg = "Failed to create permission.";
-      if (axios.isAxiosError(err)) {
-        errorMsg = err.response?.data?.detail || err.message || errorMsg;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      }
-      setError(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const onHide = () => {
-    reset();
-    setError(null);
-    handleClose();
-  };
+  const { handleFormSubmit, isSubmitting, submitError, control } = formModal;
 
   return (
-    <Modal show={show} onHide={onHide} centered scrollable>
-      <Modal.Header closeButton>
-        <Modal.Title>Create New Permission</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {error && (
-          <Alert variant="danger" dismissible onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
+    <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New Permission</DialogTitle>
+        </DialogHeader>
 
-        <Form id="create-permission-form" onSubmit={handleSubmit(onSubmit)}>
-          <Input
-            label="Permission Name"
-            placeholder="e.g. users:write"
-            {...register("name")}
-            error={errors.name?.message}
-            className="mb-3"
-          />
+        {submitError && <ErrorDisplay message={submitError} />}
 
-          <Input
-            label="Description"
-            placeholder="Describe what this permission allows"
-            {...register("description")}
-            error={errors.description?.message}
-            className="mb-3"
-          />
+        <Form {...formModal}>
+          <form id="create-permission-form" onSubmit={handleFormSubmit} className="space-y-4">
+            <FormField
+              control={control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Permission Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. users:write" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Describe what this permission allows" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
         </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={onHide} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="primary" form="create-permission-form" isLoading={isLoading}>
-          Create Permission
-        </Button>
-      </Modal.Footer>
-    </Modal>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="create-permission-form" isLoading={isSubmitting}>
+            Create Permission
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

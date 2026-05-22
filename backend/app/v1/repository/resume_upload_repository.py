@@ -9,18 +9,27 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
+from fastcrud import FastCRUD
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidate_skills import candidate_skills
 from app.v1.db.models.candidates import Candidate
+from app.v1.db.models.cover_letters import CoverLetter
 from app.v1.db.models.files import File as FileRecord
 from app.v1.db.models.job_skills import job_skills
 from app.v1.db.models.jobs import Job
 from app.v1.db.models.resume_chunks import ResumeChunk
 from app.v1.db.models.resumes import Resume
 from app.v1.db.models.skills import Skill
+from app.v1.db.models.locations import Location
+from app.v1.db.models.hr_decisions import HrDecision
+from app.v1.db.models.interviews import Interview
+from app.v1.db.models.cross_job_matches import CrossJobMatch
+from app.v1.db.models.transcripts import Transcript
+from app.v1.db.models.recordings import Recording
+from app.v1.schemas.upload import ResumeRead, CandidateRead
 
 _log = logging.getLogger(__name__)
 
@@ -31,6 +40,11 @@ class ResumeUploadRepository:
     Provides methods for managing candidates, file records, and resume data
     during the resume screening process.
     """
+
+    def __init__(self) -> None:
+        """Initialize the ResumeUploadRepository with FastCRUD instances."""
+        self.crud = FastCRUD(Resume, ResumeRead)
+        self.candidate_crud = FastCRUD(Candidate, CandidateRead)
 
     # ------------------------------------------------------------------ #
     # Job
@@ -55,18 +69,7 @@ class ResumeUploadRepository:
         job_id: uuid.UUID,
         content_hash: str,
     ) -> FileRecord | None:
-        """Find an existing file record for a job that matches the given content hash.
-
-        Used to prevent the same file from being uploaded twice to the same job.
-
-        Args:
-            db: The async database session.
-            job_id: The ID of the target job.
-            content_hash: SHA-256 hex digest of the raw file bytes.
-
-        Returns:
-            The existing FileRecord if a duplicate is found, None otherwise.
-        """
+        """Find an existing file record for a job that matches the given content hash."""
         return await db.scalar(
             select(FileRecord)
             .join(Candidate, Candidate.id == FileRecord.candidate_id)
@@ -74,6 +77,19 @@ class ResumeUploadRepository:
                 Candidate.applied_job_id == job_id,
                 FileRecord.content_hash == content_hash,
             )
+        )
+
+    async def get_file_by_content_hash_global(
+        self,
+        db: AsyncSession,
+        *,
+        content_hash: str,
+    ) -> FileRecord | None:
+        """Find ANY existing file record in the database with this hash."""
+        return await db.scalar(
+            select(FileRecord)
+            .where(FileRecord.content_hash == content_hash)
+            .limit(1)
         )
 
     async def get_resume_by_text_hash_for_job(
@@ -217,7 +233,7 @@ class ResumeUploadRepository:
         parse_summary: dict[str, object],
         parsed: bool = True,
         resume_score: float | None = None,
-        pass_fail: bool | None = None,
+        pass_fail: str | None = None,
     ) -> Resume:
         """Create a new resume record with parsing summary.
 
@@ -278,6 +294,7 @@ class ResumeUploadRepository:
         last_name: str | None = None,
         email: str | None = None,
         phone: str | None = None,
+        location: str | None = None,
         info: dict[str, object],
         info_embedding: list[float] | None = None,
     ) -> Candidate:
@@ -296,13 +313,37 @@ class ResumeUploadRepository:
         Returns:
             The updated candidate object.
         """
-        candidate.first_name = first_name or candidate.first_name
-        candidate.last_name = last_name or candidate.last_name
+        if first_name is not None and first_name != "Parsing...":
+            candidate.first_name = first_name
+        elif first_name is None and candidate.first_name == "Parsing...":
+            candidate.first_name = None
 
-        if email and (not candidate.email or "pending_" in candidate.email):
+        if last_name is not None:
+            candidate.last_name = last_name
+
+        if email:
             candidate.email = email
+        elif email is None and (candidate.email is None or "pending_" in (candidate.email or "")):
+            # Clear placeholder or keep as None if no new email found
+            candidate.email = None
+
         if phone and not candidate.phone:
             candidate.phone = phone
+
+        if location is not None:
+            # Normalize and get-or-create Location row
+            loc_name = location.strip().title()
+            if loc_name and loc_name.lower() not in ("not mentioned", "null", "none", "unknown", "n/a"):
+                loc_obj = await db.scalar(
+                    select(Location).where(func.lower(Location.name) == loc_name.lower())
+                )
+                if loc_obj is None:
+                    loc_obj = Location(name=loc_name)
+                    db.add(loc_obj)
+                    await db.flush()
+                candidate.location_id = loc_obj.id
+            else:
+                candidate.location_id = None
 
         candidate.info = info
         candidate.info_embedding = info_embedding
@@ -360,11 +401,10 @@ class ResumeUploadRepository:
             .options(
                 selectinload(Resume.candidate),
                 selectinload(Resume.file),
+                selectinload(Resume.version_results),
             )
-            .join(Candidate, Candidate.id == Resume.candidate_id)
             .where(
                 Resume.id == resume_id,
-                Candidate.applied_job_id == job_id,
             )
         )
         if owner_id is not None:
@@ -372,6 +412,20 @@ class ResumeUploadRepository:
                 FileRecord.owner_id == owner_id
             )
         return await db.scalar(query)
+
+    async def resume_exists(self, db: AsyncSession, resume_id: uuid.UUID) -> bool:
+        """Check if a resume record exists in the database.
+
+        Args:
+            db: The async database session.
+            resume_id: The UUID of the resume.
+
+        Returns:
+            True if it exists, False otherwise.
+        """
+        return (
+            await db.scalar(select(func.count(Resume.id)).where(Resume.id == resume_id))
+        ) > 0
 
     async def mark_resume_failed(
         self,
@@ -518,14 +572,29 @@ class ResumeUploadRepository:
                     select(Candidate)
                     .options(
                         selectinload(Candidate.resumes).selectinload(Resume.file),
+                        selectinload(Candidate.resumes).selectinload(Resume.version_results),
+                        selectinload(Candidate.hr_decisions),
                     )
                     .where(
                         Candidate.applied_job_id == job_id,
                         Candidate.resumes.any(),
                     )
+                    .order_by(Candidate.created_at.desc())
                 )
             ).all()
         )
+
+    async def get_resume_full_text(self, db: AsyncSession, resume_id: uuid.UUID) -> str:
+        """Fetch and combine all raw_text from ResumeChunks for a given resume_id."""
+        from app.v1.db.models.resume_chunks import ResumeChunk
+        stmt = (
+            select(ResumeChunk.raw_text)
+            .where(ResumeChunk.resume_id == resume_id)
+            .order_by(ResumeChunk.id.asc()) # Assuming UUID7 order is chronological
+        )
+        result = await db.execute(stmt)
+        chunks = result.scalars().all()
+        return "\n\n".join([c for c in chunks if c])
 
     async def get_resumes_for_job(
         self,
@@ -542,23 +611,18 @@ class ResumeUploadRepository:
         Returns:
             A list of Resume objects.
         """
-        return list(
-            (
-                await db.scalars(
-                    select(Resume)
-                    .options(
-                        selectinload(Resume.candidate),
-                        selectinload(Resume.file),
-                    )
-                    .join(Candidate, Candidate.id == Resume.candidate_id)
-                    .where(
-                        Candidate.applied_job_id == job_id,
-                        Candidate.resumes.any(),
-                    )
-                    .order_by(Resume.uploaded_at.desc())
-                )
-            ).all()
+        # Using stable SQLAlchemy query with selectinload to ensure relations are available
+        query = (
+            select(Resume)
+            .join(Candidate, Resume.candidate_id == Candidate.id)
+            .options(
+                selectinload(Resume.candidate),
+                selectinload(Resume.file),
+            )
+            .where(Candidate.applied_job_id == job_id)
+            .order_by(Resume.uploaded_at.desc())
         )
+        return list((await db.scalars(query)).all())
 
     async def commit(self, db: AsyncSession) -> None:
         """Commit the current transaction.
@@ -584,6 +648,25 @@ class ResumeUploadRepository:
         """
         await db.rollback()
 
+    async def get_resume_full_text(self, db: AsyncSession, resume_id: uuid.UUID) -> str:
+        """Fetch and concatenate all raw text chunks for a specific resume.
+
+        Args:
+            db: The async database session.
+            resume_id: UUID of the resume to retrieve text for.
+
+        Returns:
+            Concatenated raw text from all chunks. Empty string if no chunks found.
+        """
+        chunks = (
+            await db.scalars(
+                select(ResumeChunk.raw_text)
+                .where(ResumeChunk.resume_id == resume_id)
+                .order_by(ResumeChunk.id.asc())
+            )
+        ).all()
+        return "\n\n".join(chunks).strip()
+
     async def refresh_file_and_resume(
         self,
         db: AsyncSession,
@@ -608,44 +691,76 @@ class ResumeUploadRepository:
         resume_id: uuid.UUID,
         job_id: uuid.UUID,
     ) -> bool:
-        """Delete a resume and its associated records (chunk, file, candidate).
-
-        Args:
-            db: The async database session.
-            resume_id: UUID of the resume to delete.
-            job_id: UUID of the job it belongs to (for scoped lookup).
-
-        Returns:
-            True if deleted, False if not found.
         """
-        # Load the resume with candidate relation
-        resume = await db.scalar(
-            select(Resume)
-            .join(Candidate, Resume.candidate_id == Candidate.id)
-            .options(selectinload(Resume.candidate), selectinload(Resume.file))
-            .where(Resume.id == resume_id, Candidate.applied_job_id == job_id)
+        Delete a resume or candidate from a specific job.
+        Preserves the candidate if they are matched to other jobs.
+        """
+        # 1. Look for the candidate and their link to this job
+        candidate = await db.scalar(
+            select(Candidate)
+            .options(selectinload(Candidate.resumes))
+            .where(
+                (Candidate.applied_job_id == job_id) | 
+                (Candidate.id.in_(select(CrossJobMatch.candidate_id).where(CrossJobMatch.matched_job_id == job_id)))
+            )
+            .distinct()
         )
-        if not resume:
+        if not candidate:
             return False
 
-        file_id = resume.file_id
+        candidate_id = candidate.id
 
-        # Delete resume chunks first (FK dependency)
-        await db.execute(
-            delete(ResumeChunk).where(ResumeChunk.resume_id == resume_id)
-        )
-
-        # Delete the resume row
-        await db.delete(resume)
-
-        # Explicitly delete the file record to clear deduplication hash
-        if file_id:
-            await db.execute(
-                delete(FileRecord).where(FileRecord.id == file_id)
+        # 2. Check if the candidate is needed elsewhere (other cross-matches)
+        other_matches_count = await db.scalar(
+            select(func.count(CrossJobMatch.id)).where(
+                (CrossJobMatch.candidate_id == candidate_id) & (CrossJobMatch.matched_job_id != job_id)
             )
+        ) or 0
+        
+        # Also check if they are the primary applicant for a DIFFERENT job (unlikely here but safe)
+        is_primary_elsewhere = (candidate.applied_job_id is not None and candidate.applied_job_id != job_id)
 
-        await db.commit()
-        return True
+        should_keep_profile = (other_matches_count > 0) or is_primary_elsewhere
+
+        # 3. Cleanup job-specific data
+        # Decisions for this job only
+        await db.execute(delete(HrDecision).where(HrDecision.candidate_id == candidate_id, HrDecision.job_id == job_id))
+        
+        # Interviews for this job only (and their transients)
+        job_interview_ids = select(Interview.id).where(Interview.candidate_id == candidate_id, Interview.job_id == job_id)
+        await db.execute(delete(Transcript).where(Transcript.interview_id.in_(job_interview_ids)))
+        await db.execute(delete(Recording).where(Recording.interview_id.in_(job_interview_ids)))
+        await db.execute(delete(Interview).where(Interview.candidate_id == candidate_id, Interview.job_id == job_id))
+
+        # Cross-job match entry for THIS job
+        await db.execute(delete(CrossJobMatch).where(CrossJobMatch.candidate_id == candidate_id, CrossJobMatch.matched_job_id == job_id))
+
+        # Unlink if they were the primary applicant for this job
+        if candidate.applied_job_id == job_id:
+            candidate.applied_job_id = None
+            await db.flush()
+
+        # 4. Final Decision: Delete or Keep?
+        if should_keep_profile:
+            # We keep the Candidate, Resumes, and Files because they are used elsewhere
+            await db.commit()
+            return True
+        else:
+            # Hard delete if this was their only job
+            # Delete resume chunks
+            resume_ids_subq = select(Resume.id).where(Resume.candidate_id == candidate_id)
+            await db.execute(delete(ResumeChunk).where(ResumeChunk.resume_id.in_(resume_ids_subq)))
+            
+            # Delete resumes and files
+            await db.execute(delete(Resume).where(Resume.candidate_id == candidate_id))
+            await db.execute(delete(FileRecord).where(FileRecord.candidate_id == candidate_id))
+            await db.execute(delete(CoverLetter).where(CoverLetter.candidate_id == candidate_id))
+            await db.execute(delete(candidate_skills).where(candidate_skills.c.candidate_id == candidate_id))
+            
+            # Delete the person
+            await db.delete(candidate)
+            await db.commit()
+            return True
 
 
 resume_upload_repository = ResumeUploadRepository()

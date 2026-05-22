@@ -3,61 +3,73 @@
  * Displays all roles and permissions with ability to create new permissions.
  */
 
-import { useCallback, useState } from "react";
-import { adminPermissionService, adminRoleService } from "@/apis/admin/service";
+import { useEffect, useState } from "react";
+import { adminPermissionService, adminRoleService } from "@/apis/admin";
 import type { PermissionRead, RoleRead } from "@/types/admin";
-import {
-  AdminDataTable,
-  Button,
-  Card,
-  CardHeader,
-  DateDisplay,
-  PageHeader,
-  type Column,
-} from "@/components/shared";
+import { DataTable } from "@/components/shared/DataTable";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import PageHeader from "@/components/shared/PageHeader";
 import { CreatePermissionModal, DeleteModal, RoleModal } from "@/components/modal";
-import "@/css/adminDashboard.css";
-import { useAdminData, useDeleteConfirmation } from "@/hooks";
+import { useAdminData, useDebouncedValue, useDeleteConfirmation } from "@/hooks";
+import { Button } from "@/components/ui/button";
+import PermissionGuard from "@/components/auth/PermissionGuard";
+import { PERMISSIONS } from "@/lib/permissions";
+import { useAuth } from "@/store/hooks";
+import { Plus } from "lucide-react";
 
 const AdminRoles = () => {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 500);
 
-  const fetchAll = useCallback(async () => {
-    const [roles, permissions] = await Promise.all([
-      adminRoleService.getAllRoles(),
-      adminPermissionService.getAllPermissions(),
-    ]);
-    return { roles, permissions };
-  }, []);
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch]);
 
   const {
-    data: combinedData,
+    data: roles,
+    total,
     loading,
     error,
-    fetchData,
-  } = useAdminData<{ roles: RoleRead[]; permissions: PermissionRead[] }>(
-    async () => {
-      const data = await fetchAll();
-      return [data]; // useAdminData expects an array
-    },
-    { initialData: [{ roles: [], permissions: [] }] },
+    fetchData: fetchRoles,
+  } = useAdminData<RoleRead>(
+    () => adminRoleService.getAllRoles(pageIndex * pageSize, pageSize, debouncedSearch),
+    { fetchOnMount: false }
   );
 
-  const roles = combinedData[0]?.roles || [];
-  const permissions = combinedData[0]?.permissions || [];
+  // Refetch when pagination or search changes
+  useEffect(() => {
+    fetchRoles();
+  }, [pageIndex, pageSize, debouncedSearch, fetchRoles]);
+
+  const [overallTotal, setOverallTotal] = useState(0);
+  useEffect(() => {
+    if (!debouncedSearch) {
+      setOverallTotal(total);
+    }
+  }, [total, debouncedSearch]);
+
+  const { user: currentUser } = useAuth();
 
   // Two separate delete hooks for clarity.
   const roleDelete = useDeleteConfirmation<RoleRead>({
     deleteFn: (id) => adminRoleService.deleteRole(id as string),
-    onSuccess: fetchData,
+    onSuccess: fetchRoles,
     itemTitle: (role) => `role "${role.name}"`,
   });
 
   const permissionDelete = useDeleteConfirmation<PermissionRead>({
     deleteFn: (id) => adminPermissionService.deletePermission(id as string),
-    onSuccess: fetchData,
+    onSuccess: fetchRoles,
     itemTitle: (perm) => `permission "${perm.name}"`,
   });
 
@@ -71,121 +83,180 @@ const AdminRoles = () => {
     setShowRoleModal(true);
   };
 
-  const roleColumns: Column<RoleRead>[] = [
+  const roleColumns: ColumnDef<RoleRead>[] = [
     {
-      header: "Role Name",
-      accessor: (role) => <strong>{role.name}</strong>,
-    },
-    {
-      header: "Created At",
-      accessor: (role) => <DateDisplay date={role.created_at} showTime={false} />,
-    },
-    {
-      header: "Actions",
-      accessor: (role) => (
-        <>
-          <Button
-            variant="outline-primary"
-            size="sm"
-            className="me-2"
-            onClick={() => handleEditRole(role.id)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="outline-danger"
-            size="sm"
-            onClick={() => roleDelete.handleDeleteClick(role)}
-          >
-            Delete
-          </Button>
-        </>
+      accessorKey: "name",
+      header: () => (
+        <div className="text-left font-semibold">Role Name</div>
       ),
+      cell: ({ row }) => <div className="text-left">{row.original.name}</div>,
+    },
+    {
+      accessorKey: "created_at",
+      header: () => (
+        <div className="text-center font-semibold">Created At</div>
+      ),
+      cell: ({ row }) =>
+        <div className="text-center">
+          <DateDisplay date={row.original.created_at} showTime={false} />
+        </div>
+    },
+    {
+      accessorKey: "user_count",
+      header: () => (
+        <div className="text-center font-semibold">Users Count</div>
+      ),
+      cell: ({ row }) => <div className="text-center">
+        {row.original.user_count}
+      </div>,
+    },
+    {
+      id: "actions",
+      header: () => (
+        <div className="text-center font-semibold">Actions</div>
+      ),
+      cell: ({ row }) => {
+        const role = row.original;
+        return (
+
+          <div className="flex items-center justify-center">
+            {currentUser && role.name.toLocaleLowerCase() !== "superadmin" && (
+              <>
+                <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => handleEditRole(role.id)}
+                    disabled={currentUser.role_id === role.id}
+                  >
+                    Edit
+                  </Button>
+                </PermissionGuard>
+                <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => roleDelete.handleDeleteClick(role)}
+                    disabled={currentUser.role_id === role.id || role?.user_count > 0}
+                  >
+                    Delete
+                  </Button>
+                </PermissionGuard>
+              </>
+            )}
+          </div>
+
+        );
+      },
     },
   ];
 
-  const permissionColumns: Column<PermissionRead>[] = [
-    {
-      header: "Name",
-      accessor: (perm) => (
-        <>
-          <code>{perm.name}</code>
-          <div className="text-muted small">{perm.description}</div>
-        </>
-      ),
-    },
-    {
-      header: "Actions",
-      accessor: (perm) => (
-        <Button
-          variant="outline-danger"
-          size="sm"
-          onClick={() => permissionDelete.handleDeleteClick(perm)}
-        >
-          Delete
-        </Button>
-      ),
-    },
-  ];
+  // const permissionColumns: ColumnDef<PermissionRead>[] = [
+  //   {
+  //     accessorKey: "name",
+  //     header: () => (
+  //       <div className="text-center font-semibold">Name</div>
+  //     ),
+  //     cell: ({ row }) => {
+  //       const perm = row.original;
+  //       return (
+  //         <>
+  //           <code>{perm.name}</code>
+  //           <div className="text-muted-foreground text-sm">{perm.description}</div>
+  //         </>
+  //       );
+  //     },
+  //   },
+  //   {
+  //     id: "actions",
+  //     header: () => (
+  //       <div className="text-center font-semibold">Actions</div>
+  //     ),
+  //     cell: ({ row }) => (
+  //       <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
+  //         <Button
+  //           variant="destructive"
+  //           size="sm"
+  //           onClick={() => permissionDelete.handleDeleteClick(row.original)}
+  //         >
+  //           Delete
+  //         </Button>
+  //       </PermissionGuard>
+  //     ),
+  //   },
+  // ];
 
   return (
-    <div className="admin-dashboard">
+    <AppPageShell width="wide">
       <PageHeader
         title="Role & Permission Management"
-        actions={
+
+        breadcrumbActions={
           <>
-            <Button variant="outline-primary" onClick={() => setShowPermissionModal(true)}>
+            {/* <PermissionGuard permissions={PERMISSIONS.PERMISSIONS_MANAGE} hideWhenDenied>
+            <Button variant="outline" onClick={() => setShowPermissionModal(true)}>
               Create Permission
             </Button>
-            <Button variant="primary" onClick={handleCreateRole}>
-              Create Role
-            </Button>
+          </PermissionGuard> */}
+            <PermissionGuard permissions={PERMISSIONS.ROLES_MANAGE} hideWhenDenied>
+              <Button onClick={handleCreateRole} size={"sm"} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Role</Button>
+            </PermissionGuard>
           </>
         }
       />
 
-      <div className="row">
-        <div className="col-md-7">
-          <Card>
-            <CardHeader>Roles</CardHeader>
-            <AdminDataTable
+      {error && !roles.length ? (
+        <ErrorDisplay message={error} onRetry={fetchRoles} />
+      ) : (
+        <div className="flex flex-col gap-8">
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold tracking-tight">Roles</h2>
+            <DataTable
               columns={roleColumns}
               data={roles}
               loading={loading}
-              error={error}
-              onRetry={fetchData}
-              rowKey="id"
-              className="border-0 shadow-none"
+              searchKey="name"
+              searchPlaceholder="Filter roles by name..."
+              searchValue={search}
+              onSearchChange={setSearch}
+              initialSorting={[{ id: "name", desc: false }]}
+              isServerSide={true}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              pageCount={Math.ceil(total / pageSize)}
+              onPaginationChange={setPagination}
+              totalRecords={total}
+              totalCount={overallTotal}
+              resultCount={roles.length}
+              entityName="Roles"
             />
-          </Card>
-        </div>
+          </div>
 
-        <div className="col-md-5">
-          <Card>
-            <CardHeader>Permissions</CardHeader>
-            <AdminDataTable
+          {/* <div className="space-y-4">
+            <h2 className="text-xl font-bold tracking-tight">Permissions</h2>
+            <DataTable
               columns={permissionColumns}
               data={permissions}
               loading={loading}
-              error={error}
-              onRetry={fetchData}
-              rowKey="id"
-              className="border-0 shadow-none"
+              emptyMessage="No permissions found."
             />
-          </Card>
+          </div> */}
         </div>
-      </div>
+      )}
 
       <CreatePermissionModal
         show={showPermissionModal}
         handleClose={() => setShowPermissionModal(false)}
-        onPermissionCreated={fetchData}
+        onPermissionCreated={fetchRoles}
       />
 
       <RoleModal
         show={showRoleModal}
         handleClose={() => setShowRoleModal(false)}
-        onSuccess={fetchData}
+        onSuccess={fetchRoles}
         editRoleId={editingRoleId}
       />
 
@@ -208,7 +279,7 @@ const AdminRoles = () => {
         isLoading={permissionDelete.isDeleting}
         error={permissionDelete.error}
       />
-    </div>
+    </AppPageShell>
   );
 };
 

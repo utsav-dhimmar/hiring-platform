@@ -1,5 +1,4 @@
 import type { ReactElement, SyntheticEvent } from "react";
-import { Card, CardBody } from "react-bootstrap";
 import SearchBar from "@/components/shared/SearchBar";
 
 interface CandidateSearchFormProps {
@@ -18,17 +17,16 @@ const CandidateSearchForm = ({
   placeholder = "Search candidates by name or email...",
 }: CandidateSearchFormProps): ReactElement => {
   return (
-    <Card className="mb-4">
-      <CardBody>
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onSearch={handleSearch}
-          isLoading={loading}
-          placeholder={placeholder}
-        />
-      </CardBody>
-    </Card>
+    <div className="">
+      <SearchBar
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onSearch={handleSearch}
+        isLoading={loading}
+        placeholder={placeholder}
+      />
+    </div>
+
   );
 };
 

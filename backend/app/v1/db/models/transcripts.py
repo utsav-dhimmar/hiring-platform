@@ -60,6 +60,24 @@ class Transcript(Base):
         nullable=True,
     )
 
+    transcript_hash: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        index=True,
+        unique=True,
+        comment="SHA-256 hash of the parsed clean transcript text to avoid duplicate evaluation processing",
+    )
+
+    clean_transcript_text: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    transcript_embeddings: Mapped[list[float] | None] = mapped_column(
+        JSONB, # We can use pgvector/vector later, storing as JSONB array for now
+        nullable=True,
+    )
+
     # TIMESTAMPS
     generated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

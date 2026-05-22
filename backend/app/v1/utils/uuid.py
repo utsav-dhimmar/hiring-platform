@@ -54,5 +54,5 @@ class UUIDHelper:
         try:
             uuid.UUID(str(uuid_to_test))
             return True
-        except ValueError, TypeError, AttributeError:
+        except (ValueError, TypeError, AttributeError):
             return False

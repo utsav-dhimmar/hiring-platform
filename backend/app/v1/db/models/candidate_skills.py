@@ -12,14 +12,14 @@ candidate_skills = Table(
     Column(
         "candidate_id",
         UUID(as_uuid=True),
-        ForeignKey("candidates.id"),
+        ForeignKey("candidates.id", ondelete="CASCADE"),
         primary_key=True,
         nullable=False,
     ),
     Column(
         "skill_id",
         UUID(as_uuid=True),
-        ForeignKey("skills.id"),
+        ForeignKey("skills.id", ondelete="CASCADE"),
         primary_key=True,
         nullable=False,
     ),

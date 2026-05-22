@@ -58,6 +58,7 @@ class RoleRead(RoleBase):
     id: uuid.UUID
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    user_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -96,6 +97,7 @@ class UserAdminRead(BaseModel):
     email: EmailStr
     is_active: bool
     role_id: uuid.UUID
+    role_name: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -115,6 +117,7 @@ class AuditLogRead(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
+    user_name: str | None = None
     action: str
     target_type: str | None = None
     target_id: uuid.UUID | None = None
@@ -140,8 +143,10 @@ class RecentUploadRead(BaseModel):
     file_type: str | None = None
     size: int | None = None
     candidate_id: uuid.UUID | None = None
+    candidate_name: str | None = None
     job_id: uuid.UUID | None = None
     uploaded_by: uuid.UUID = Field(validation_alias="owner_id")
+    uploader_name: str | None = None
     created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -164,8 +169,17 @@ class AnalyticsSummary(BaseModel):
     total_jobs: int
     total_candidates: int
     total_resumes: int
+    total_passed: int
+    total_failed: int
+    total_pending: int
+    total_unprocessed: int
     active_jobs: int
     active_users: int
+    passed_count: int
+    maybe_count: int
+    failed_count: int
+    hr_decision_count: int
+    pending_decision_count: int
 
 
 class JobCandidatesStats(BaseModel):
@@ -175,6 +189,24 @@ class JobCandidatesStats(BaseModel):
     job_title: str
     department: str | None
     candidate_count: int
+    passed_count: int = 0
+    failed_count: int = 0
+
+
+class PipelineStageStats(BaseModel):
+    """Model for stage-level candidate counts."""
+
+    stage_name: str
+    order: int
+    count: int
+
+
+class JobPipelineStats(BaseModel):
+    """Model for job-level pipeline statistics for charts."""
+
+    job_id: uuid.UUID
+    job_name: str
+    stages: list[PipelineStageStats]
 
 
 class HiringReport(BaseModel):
@@ -183,7 +215,14 @@ class HiringReport(BaseModel):
     total_jobs: int
     active_jobs: int
     total_candidates: int
+    total_passed: int
+    total_failed: int
+    total_pending: int
+    total_unprocessed: int
     candidates_by_job: list[JobCandidatesStats]
+    job_pipeline_stats: list[dict] = []
     resumes_uploaded_last_30_days: int
     average_resume_score: float | None
-    pass_rate: float | None
+    hr_decided_count: int
+    pending_count: int
+

@@ -1,19 +1,31 @@
 import apiClient from "@/apis/client";
-import type { StageTemplateCreate, StageTemplateUpdate } from "@/types/admin";
+import type { StageTemplateCreate, StageTemplateUpdate, PaginatedResponse } from "@/types/admin";
 import type { StageTemplate } from "@/types/stage";
 
-const ADMIN_PATH = "/admin";
+const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
 /**
  * Stage Template Management APIs (Admin only)
  */
 export const adminStageTemplateService = {
   /**
-   * Get all stage templates.
-   * @returns Promise resolving to an array of stage templates
+   * Get all stage templates with pagination.
+   * @param skip - Number of records to skip
+   * @param limit - Maximum number of records to return
+   * @param search - Search query
+   * @returns Promise resolving to a paginated response of stage templates
    */
-  getAllTemplates: async (): Promise<StageTemplate[]> => {
-    const response = await apiClient.get<StageTemplate[]>(`${ADMIN_PATH}/stage-templates`);
+  getAllTemplates: async (
+    skip: number = 0,
+    limit: number = 10,
+    search?: string
+  ): Promise<PaginatedResponse<StageTemplate>> => {
+    const response = await apiClient.get<PaginatedResponse<StageTemplate>>(
+      `${ADMIN_PATH}/stage-templates`,
+      {
+        params: { skip, limit, q: search ? search : undefined },
+      }
+    );
     return response.data;
   },
 
@@ -47,5 +59,15 @@ export const adminStageTemplateService = {
    */
   deleteTemplate: async (id: string): Promise<void> => {
     await apiClient.delete(`${ADMIN_PATH}/stage-templates/${id}`);
+  },
+
+  /**
+   * Get a stage template by ID.
+   * @param id - Template ID
+   * @returns Promise resolving to the stage template
+   */
+  getTemplateById: async (id: string): Promise<StageTemplate> => {
+    const response = await apiClient.get<StageTemplate>(`${ADMIN_PATH}/stage-templates/${id}`);
+    return response.data;
   },
 };

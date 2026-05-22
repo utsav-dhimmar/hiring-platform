@@ -128,6 +128,7 @@ async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
         job.department_id = department.id
         job.jd_text = JOB_DESCRIPTION
         job.jd_json = JOB_JSON
+        job.vacancy = 5
         job.is_active = True
     else:
         job = Job(
@@ -135,6 +136,7 @@ async def ensure_job(session, creator_id, skills: list[Skill]) -> Job:
             department_id=department.id,
             jd_text=JOB_DESCRIPTION,
             jd_json=JOB_JSON,
+            vacancy=5,
             created_by=creator_id,
             is_active=True,
         )

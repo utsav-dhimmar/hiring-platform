@@ -1,6 +1,7 @@
 import apiClient from "@/apis/client";
 import type { CandidateResponse } from "@/types/resume";
 import type { StageEvaluation } from "@/types/stage";
+import type { HiringTimelineResponse } from "@/types/candidate";
 
 /**
  * Candidate Management APIs
@@ -17,11 +18,19 @@ export const adminCandidateService = {
     jobId: string,
     skip: number = 0,
     limit: number = 100,
+    filters?: {
+      hr_decision?: string[];
+      city?: string[];
+      status?: string[];
+      stage_id?: string[];
+      result?: string[];
+      hr_score?: number[];
+    },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       `/candidates/jobs/${jobId}`,
       {
-        params: { skip, limit },
+        params: { skip, limit, ...filters },
       },
     );
     return response.data;
@@ -37,14 +46,22 @@ export const adminCandidateService = {
    */
   searchJobCandidates: async (
     jobId: string,
-    query: string,
+    query?: string,
     skip: number = 0,
     limit: number = 100,
+    filters?: {
+      hr_decision?: string[];
+      city?: string[];
+      status?: string[];
+      stage_id?: string[];
+      result?: string[];
+      hr_score?: number[];
+    },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       `/candidates/jobs/${jobId}/search`,
       {
-        params: { query, skip, limit },
+        params: { query: query ? query : undefined, skip, limit, ...filters },
       },
     );
     return response.data;
@@ -58,14 +75,26 @@ export const adminCandidateService = {
    * @returns Promise resolving to matching candidates
    */
   searchCandidates: async (
-    query: string,
+    query?: string,
     skip: number = 0,
     limit: number = 100,
+    filters?: {
+      job?: string[];
+      hr_decision?: string[];
+      city?: string[];
+      status?: string[];
+      stage_id?: string[];
+      result?: string[];
+      hr_score?: number[];
+    },
   ): Promise<{ data: CandidateResponse[]; total: number }> => {
     const response = await apiClient.get<{ data: CandidateResponse[]; total: number }>(
       "/candidates/search",
       {
-        params: { query, skip, limit },
+        params: { query: query ? query : undefined, skip, limit, ...filters },
+        paramsSerializer: {
+          indexes: null,
+        },
       },
     );
     return response.data;
@@ -94,6 +123,22 @@ export const adminCandidateService = {
   ): Promise<StageEvaluation> => {
     const response = await apiClient.get<StageEvaluation>(
       `/candidates/${candidateId}/evaluations/${stageConfigId}`,
+    );
+    return response.data;
+  },
+
+  /**
+   * Get candidate timeline.
+   * @param candidateId - Candidate ID
+   * @param jobId - Optional Job ID filter
+   */
+  getCandidateTimeline: async (
+    candidateId: string,
+    jobId?: string,
+  ): Promise<HiringTimelineResponse> => {
+    const response = await apiClient.get<HiringTimelineResponse>(
+      `/candidates/${candidateId}/timeline`,
+      { params: { job_id: jobId } },
     );
     return response.data;
   },

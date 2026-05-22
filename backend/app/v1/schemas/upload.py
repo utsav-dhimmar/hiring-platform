@@ -11,9 +11,9 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, ConfigDict, Field
 from app.v1.schemas.job import JobRead
+from app.v1.schemas.candidate_stage import CandidateStageSummary
 
 
 class ResumeProcessingInfo(BaseModel):
@@ -47,7 +47,7 @@ class ResumeUploadResponse(BaseModel):
 
     message: str
     job_id: uuid.UUID
-    candidate_id: uuid.UUID
+    candidate_id: uuid.UUID | None = None
     file_id: uuid.UUID
     resume_id: uuid.UUID
     file_name: str
@@ -57,13 +57,15 @@ class ResumeUploadResponse(BaseModel):
     parsed: bool
     processing: ResumeProcessingInfo
     analysis: ResumeMatchAnalysis | None = None
+    version_results: list[dict] | None = None
+
 
 
 class ResumeStatusResponse(BaseModel):
     """Response containing the current status and analysis of a resume."""
 
     job_id: uuid.UUID
-    candidate_id: uuid.UUID
+    candidate_id: uuid.UUID | None = None
     file_id: uuid.UUID
     resume_id: uuid.UUID
     file_name: str
@@ -73,13 +75,14 @@ class ResumeStatusResponse(BaseModel):
     parsed: bool
     processing: ResumeProcessingInfo
     analysis: ResumeMatchAnalysis | None = None
+    version_results: list[dict] | None = None
 
 
 class JobResumeInfoResponse(BaseModel):
     """Detailed information about a resume associated with a job."""
 
     job_id: uuid.UUID
-    candidate_id: uuid.UUID
+    candidate_id: uuid.UUID | None = None
     candidate_first_name: str | None = None
     candidate_last_name: str | None = None
     candidate_email: str | None = None
@@ -94,7 +97,13 @@ class JobResumeInfoResponse(BaseModel):
     processing: ResumeProcessingInfo
     analysis: ResumeMatchAnalysis | None = None
     resume_score: float | None = None
-    pass_fail: bool | None = None
+    pass_fail: str | None = None
+
+
+class ResumeStatusUpdateRequest(BaseModel):
+    """Request to update the manual review decision for a resume."""
+
+    pass_fail: str | None = None
 
 
 class JobResumesResponse(BaseModel):
@@ -113,14 +122,48 @@ class CandidateResponse(BaseModel):
     last_name: str | None = None
     email: str | None = None
     phone: str | None = None
+    location: str | None = None
+    linkedin_url: str | None = None
+    github_url: str | None = None
     current_status: str | None = None
     created_at: datetime
+    applied_job_id: uuid.UUID | None = None
+    resume_id: uuid.UUID | None = None
+    applied_version_number: int | None = None
     resume_analysis: ResumeMatchAnalysis | None = None
     resume_score: float | None = None
-    pass_fail: bool | None = None
+    pass_fail: str | None = None
     is_parsed: bool = False
     processing_status: str | None = None
     processing_error: str | None = None
+    hr_decision: str | None = None
+    hr_score: float | None = None
+    job_id: uuid.UUID | None = None
+    job_name: str | None = None
+    is_cross_match: bool = False
+    version_results: list[dict] | None = None
+    current_stage: CandidateStageSummary | None = None
+    pipeline: list[CandidateStageSummary] | None = None
+
+
+# Alias for backward compatibility
+CandidateRead = CandidateResponse
+
+
+class ResumeRead(BaseModel):
+    """Schema for reading Resume data."""
+
+    id: uuid.UUID
+    candidate_id: uuid.UUID | None = None
+    file_id: uuid.UUID
+    parsed: bool
+    uploaded_at: datetime
+    parse_summary: dict | None = None
+    resume_score: float | None = None
+    pass_fail: str | None = None
+    pass_threshold: float
+    text_hash: str | None = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class JobCandidatesResponse(BaseModel):
@@ -128,5 +171,3 @@ class JobCandidatesResponse(BaseModel):
 
     job_id: uuid.UUID
     candidates: list[CandidateResponse]
-
-

@@ -51,10 +51,10 @@ class Resume(Base):
     )
 
     # FOREIGN KEYS
-    candidate_id: Mapped[uuid.UUID] = mapped_column(
+    candidate_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("candidates.id"),
-        nullable=False,
+        nullable=True,
     )
 
     file_id: Mapped[uuid.UUID] = mapped_column(
@@ -86,8 +86,8 @@ class Resume(Base):
         nullable=True,
     )
 
-    pass_fail: Mapped[bool | None] = mapped_column(
-        Boolean(),
+    pass_fail: Mapped[str | None] = mapped_column(
+        Text,
         nullable=True,
     )
 
@@ -105,7 +105,11 @@ class Resume(Base):
     )
 
     # RELATIONSHIPS
-    candidate: Mapped["Candidate"] = relationship(
+    candidate: Mapped["Candidate | None"] = relationship(
         "Candidate", back_populates="resumes", foreign_keys=[candidate_id]
     )
     file: Mapped["File"] = relationship("File", foreign_keys=[file_id])
+    version_results: Mapped[list["ResumeVersionResult"]] = relationship(
+        "ResumeVersionResult", back_populates="resume", cascade="all, delete-orphan", order_by="desc(ResumeVersionResult.job_version_number)"
+    )
+

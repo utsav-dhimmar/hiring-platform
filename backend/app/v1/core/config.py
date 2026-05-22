@@ -5,6 +5,8 @@ This module defines the application settings using Pydantic BaseSettings.
 Settings are loaded from environment variables and .env files.
 """
 
+from pathlib import Path
+
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -51,14 +53,17 @@ class Settings(BaseSettings):
         CACHE_TTL_SECONDS: Time-to-live for cached items in seconds.
     """
 
+    # Resolve .env relative to this file: backend/app/v1/core/config.py → root/.env
+    _env_file: Path = Path(__file__).resolve().parents[4] / ".env"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_env_file),
         env_ignore_empty=True,
         extra="ignore",
     )
 
     PROJECT_NAME: str = Field(
-        default="HR Platform", description="The name of the project"
+        default="Hiring Platform", description="The name of the project"
     )
     ENVIRONMENT: str = Field(
         default="development",
@@ -178,6 +183,10 @@ class Settings(BaseSettings):
         default="uploads/resumes",
         description="Directory where uploaded resumes are stored",
     )
+    TRANSCRIPT_UPLOAD_DIR: str = Field(
+        default="uploads/transcripts",
+        description="Directory where uploaded interview transcripts are stored",
+    )
     ALLOWED_RESUME_EXTENSIONS: list[str] = Field(
         default=["pdf", "docx"],
         description="List of allowed file extensions for resumes",
@@ -209,6 +218,31 @@ class Settings(BaseSettings):
     )
     CACHE_TTL_SECONDS: int = Field(
         default=300, description="Time-to-live for cached items in seconds"
+    )
+
+    ENABLE_OBSERVABILITY: bool = Field(
+        default=True,
+        description="Whether to enable OpenTelemetry tracing",
+    )
+    PHOENIX_PROJECT_NAME: str = Field(
+        default="hiring-platform", description="Project name for Arize Phoenix"
+    )
+    PHOENIX_COLLECTOR_ENDPOINT: str = Field(
+        default="http://localhost:4317",
+        description="OTLP collector endpoint for Phoenix",
+    )
+    PHOENIX_SERVICE_NAME: str = Field(
+        default="hiring-platform-backend", description="Service name for tracing"
+    )
+
+    SKIP_RESUME_CONTEXT: bool = Field(
+        default=False, 
+        description="Whether to skip sending resume context to LLM during evaluation"
+    )
+
+    USE_CROSS_ENCODER: bool = Field(
+        default=False,
+        description="Whether to use a cross-encoder for re-ranking",
     )
 
     @computed_field

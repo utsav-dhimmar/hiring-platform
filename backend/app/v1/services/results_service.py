@@ -5,11 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.v1.db.models.candidates import Candidate
-from app.v1.db.models.interviews import Interview
-from app.v1.db.models.transcripts import Transcript
 from app.v1.schemas.results import (
-    HRRoundResult,
-    HRRoundResultsResponse,
     ResumeScreeningResult,
     ResumeScreeningResultsResponse,
 )
@@ -60,55 +56,6 @@ class ResultsService:
             )
 
         return ResumeScreeningResultsResponse(job_id=job_id, results=results)
-
-    async def get_hr_round_results(
-        self, db: AsyncSession, job_id: uuid.UUID
-    ) -> HRRoundResultsResponse:
-        # Fetch interviews for the job and stage 1 (HR screening)
-        stmt = (
-            select(Interview)
-            .where(Interview.job_id == job_id, Interview.stage == 1)
-            .options(
-                selectinload(Interview.candidate),
-            )
-        )
-        result = await db.execute(stmt)
-        interviews = result.scalars().all()
-
-        results = []
-        for interview in interviews:
-            # Fetch transcript for this interview to get evaluation
-            transcript_stmt = select(Transcript).where(
-                Transcript.interview_id == interview.id
-            )
-            transcript_result = await db.execute(transcript_stmt)
-            transcript = transcript_result.scalar_one_or_none()
-
-            evaluation = None
-            overall_score = None
-            recommendation = None
-            if transcript and transcript.segments:
-                evaluation = transcript.segments.get("stage1_evaluation")
-                if evaluation:
-                    overall_score = evaluation.get("stage_score")
-                    recommendation = evaluation.get("recommendation")
-
-            results.append(
-                HRRoundResult(
-                    interview_id=interview.id,
-                    candidate_id=interview.candidate_id,
-                    first_name=interview.candidate.first_name,
-                    last_name=interview.candidate.last_name,
-                    email=interview.candidate.email,
-                    status=interview.status,
-                    overall_score=overall_score,
-                    recommendation=recommendation,
-                    evaluation=evaluation,
-                    scheduled_at=interview.created_at,
-                )
-            )
-
-        return HRRoundResultsResponse(job_id=job_id, results=results)
 
 
 results_service = ResultsService()

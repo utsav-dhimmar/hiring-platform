@@ -6,7 +6,14 @@ from app.v1.core.logging import get_logger
 from app.v1.db.models.permissions import Permission
 from app.v1.db.models.roles import Role
 from app.v1.repository.admin_repository import admin_repository
-from app.v1.schemas.admin import PermissionCreate, RoleCreate, RoleUpdate
+from app.v1.schemas.admin import (
+    PermissionCreate,
+    PermissionRead,
+    RoleCreate,
+    RoleRead,
+    RoleUpdate,
+)
+from app.v1.schemas.response import PaginatedData
 from app.v1.services.admin.audit_service import audit_service
 
 logger = get_logger(__name__)
@@ -17,18 +24,18 @@ class RoleService:
     """
 
     async def get_all_roles(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> list[Role]:
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, search: str | None = None
+    ) -> PaginatedData[RoleRead]:
         """
-        Retrieve all roles with pagination.
-
-        @param db - Database session
-        @param skip - Number of records to skip for pagination
-        @param limit - Maximum number of records to return
-        @returns List of Role objects
+        Retrieve all roles with pagination and optional search by name.
         """
-        return await admin_repository.get_all_roles(
-            db=db, skip=skip, limit=limit
+        roles = await admin_repository.get_all_roles(
+            db=db, skip=skip, limit=limit, search=search
+        )
+        total = await admin_repository.count_all_roles(db=db, search=search)
+        return PaginatedData[RoleRead](
+            data=[RoleRead.model_validate(role) for role in roles],
+            total=total,
         )
 
     async def get_role_by_id(
@@ -152,13 +159,14 @@ class RoleService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, role_id: uuid.UUID
     ) -> None:
         """
-        Delete a role from the system.
-
-        @param db - Database session
-        @param admin_user_id - Unique identifier of the admin deleting the role
-        @param role_id - Unique identifier of the role to delete
-        @throws HTTPException 404 if role not found, 400 if users are assigned to this role
+        Delete a role and its associations, but ONLY if no Users are assigned to it.
+        Includes a direct database count and detailed error reporting.
         """
+        from sqlalchemy import select, func, delete
+        from app.v1.db.models.user import User
+        from app.v1.db.models.roles import role_permission
+
+        # 1. Fetch the role to check existence
         role = await admin_repository.get_role_by_id(db=db, role_id=role_id)
         if not role:
             raise HTTPException(
@@ -166,14 +174,32 @@ class RoleService:
                 detail="Role not found.",
             )
 
-        users_with_role = await admin_repository.get_all_users(db=db)
-        users_count = len([u for u in users_with_role if u.role_id == role_id])
+        # 2. Detailed assigned users check
+        stmt = select(User).where(User.role_id == role_id).limit(5)
+        result = await db.execute(stmt)
+        assigned_users = result.scalars().all()
+        
+        # Get total count
+        count_stmt = select(func.count(User.id)).where(User.role_id == role_id)
+        users_count = await db.scalar(count_stmt) or 0
+
         if users_count > 0:
+            user_details = ", ".join([u.full_name for u in assigned_users])
+            if users_count > 5:
+                user_details += " and others"
+            
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot delete role. {users_count} user(s) have this role.",
+                detail=(
+                    f"Cannot delete role '{role.name}'. There are {users_count} user(s) assigned to this role: "
+                    f"[{user_details}]. Please reassign them to another role first."
+                )
             )
 
+        # 3. Clean up associations (junction table)
+        await db.execute(delete(role_permission).where(role_permission.c.role_id == role_id))
+
+        # 4. Success Log and Deletion
         await audit_service.log_action(
             db=db,
             user_id=admin_user_id,
@@ -188,7 +214,7 @@ class RoleService:
 
     async def get_all_permissions(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> list[Permission]:
+    ) -> PaginatedData[PermissionRead]:
         """
         Retrieve all permissions with pagination.
 
@@ -197,8 +223,13 @@ class RoleService:
         @param limit - Maximum number of records to return
         @returns List of Permission objects
         """
-        return await admin_repository.get_all_permissions(
+        permissions = await admin_repository.get_all_permissions(
             db=db, skip=skip, limit=limit
+        )
+        total = await admin_repository.count_all_permissions(db=db)
+        return PaginatedData[PermissionRead](
+            data=[PermissionRead.model_validate(permission) for permission in permissions],
+            total=total,
         )
 
     async def create_permission(

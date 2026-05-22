@@ -2,58 +2,163 @@
  * Admin page for viewing audit logs.
  * Displays a history of user actions and system events.
  */
-
-import { adminAnalyticsService } from "@/apis/admin/service";
+import { useState, useEffect } from "react";
+import { adminAnalyticsService } from "@/apis/admin";
 import type { AuditLogRead } from "@/types/admin";
-import { AdminDataTable, DateDisplay, PageHeader, type Column } from "@/components/shared";
-import "@/css/adminDashboard.css";
-import { useAdminData } from "@/hooks";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { DataTable } from "@/components/shared/DataTable";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import PageHeader from "@/components/shared/PageHeader";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import { useAdminData, useDebouncedValue } from "@/hooks";
+import { ArrowUpDown } from "lucide-react";
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { toTitleCase } from "@/lib/utils";
 
 const AdminAuditLogs = () => {
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [searchValue, setSearchValue] = useState("");
+
+  const debouncedSearch = useDebouncedValue(searchValue)
+
   const {
     data: logs,
+    total,
     loading,
     error,
     fetchData,
-  } = useAdminData<AuditLogRead>(() => adminAnalyticsService.getAuditLogs());
+  } = useAdminData<AuditLogRead>(
+    () => adminAnalyticsService.getAuditLogs(pageIndex * pageSize, pageSize, debouncedSearch),
+    { fetchOnMount: false }
+  );
 
-  const columns: Column<AuditLogRead>[] = [
+  // Refetch data when pagination or search changes
+  useEffect(() => {
+    fetchData();
+  }, [pageIndex, pageSize, debouncedSearch, fetchData]);
+
+  const [overallTotal, setOverallTotal] = useState(0);
+  useEffect(() => {
+    if (!debouncedSearch) {
+      setOverallTotal(total);
+    }
+  }, [total, debouncedSearch]);
+
+  // Handle search with pagination reset
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const columns: ColumnDef<AuditLogRead>[] = [
     {
-      header: "Timestamp",
-      accessor: (log) => <DateDisplay date={log.created_at} />,
+      accessorKey: "created_at",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Date
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <DateDisplay date={row.original.created_at} />,
     },
     {
-      header: "Action",
-      accessor: (log) => <strong>{log.action}</strong>,
+      accessorKey: "action",
+      // header: "Action",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Action</span>
+          </div>
+        )
+      },
+      cell: ({ row }) => {
+        const action = toTitleCase(row.original.action);
+        return <span className="font-bold text-primary">{action}</span>
+      },
     },
     {
-      header: "User ID",
-      accessor: (log) => <small>{log.user_id}</small>,
-    },
-    { header: "Target Type", accessor: (log) => log.target_type || "N/A" },
-    {
-      header: "Details",
-      accessor: (log) => (
-        <pre style={{ fontSize: "0.75rem", margin: 0 }}>{JSON.stringify(log.details, null, 2)}</pre>
+      accessorKey: "user_name",
+      // header: "User Name",
+      header: () => {
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">User Name</span>
+          </div>
+        )
+      },
+      cell: ({ row }) => (
+        <span
+          className="font-medium text-foreground"
+          title={row.original.user_name}
+        >
+          {row.original.user_name}
+        </span>
       ),
     },
+    /*
+    {
+      accessorKey: "target_type",
+      header: "Target Type",
+      cell: ({ row }) => (
+        <span className="capitalize text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+          {row.original.target_type || "N/A"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "details",
+      header: "Details",
+      cell: ({ row }) => (
+        <div className="max-w-[300px] overflow-hidden">
+          <pre className="text-[10px] bg-muted/50 p-2 rounded-lg border overflow-x-auto whitespace-pre-wrap max-h-[100px]">
+            {JSON.stringify(row.original.details, null, 2)}
+          </pre>
+        </div>
+      ),
+    },
+    */
   ];
 
   return (
-    <div className="admin-dashboard">
+    <AppPageShell width="wide">
       <PageHeader title="Audit Logs" />
 
-      <AdminDataTable
-        columns={columns}
-        data={logs}
-        loading={loading}
-        error={error}
-        onRetry={fetchData}
-        rowKey="id"
-        emptyMessage="No audit logs found."
-      />
-    </div>
+      {error && !logs.length ? (
+        <ErrorDisplay message={error} onRetry={fetchData} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={logs}
+          loading={loading}
+          searchKey="action"
+          searchPlaceholder="Filter by action..."
+          initialSorting={[{ id: "created_at", desc: true }]}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
+          onPaginationChange={setPagination}
+          onSearchChange={handleSearchChange}
+          searchValue={searchValue}
+          isServerSide={true}
+          pageCount={Math.ceil(total / pageSize)}
+          totalRecords={total}
+          totalCount={overallTotal}
+          resultCount={logs.length}
+          entityName="Logs"
+        />
+
+      )}
+    </AppPageShell>
   );
 };
+
+
 
 export default AdminAuditLogs;

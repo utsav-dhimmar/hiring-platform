@@ -76,7 +76,7 @@ async def logout_user(
     return None
 
 
-@router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def create_user(
     *,
     db: AsyncSession = Depends(get_db),
@@ -231,6 +231,16 @@ async def swagger_login_user(
     )
 
     return login_response
+
+
+@router.get("/me", response_model=UserRead)
+async def read_user_me(
+    current_user: UserRead = Depends(get_current_user),
+) -> Any:
+    """
+    Get current user.
+    """
+    return current_user
 
 
 @router.get("/{userid}", response_model=UserRead)

@@ -70,3 +70,7 @@ class AuditLog(Base):
 
     # RELATIONSHIPS
     user = relationship("User", foreign_keys=[user_id])
+
+    @property
+    def user_name(self) -> str | None:
+        return self.user.full_name if self.user else None

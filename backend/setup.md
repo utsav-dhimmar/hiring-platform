@@ -1,275 +1,149 @@
 # Backend Setup
 
-This backend follows a package-based feature layout.
+This backend follows a package-based feature layout, optimized for scalability and clarity. 
 
-Working code is split into:
+---
 
-- `app/`: application entry point and shared infrastructure
-- `app/v1/`: version 1 of the API (config, database, router, services, repositories)
-- `test/`: test suite
-- `seed/`: database seeding scripts
+## 🚀 Option 1: Running with Docker (Recommended)
 
-## Prerequisites
+Docker Compose provides the most stable environment by containerizing the API, Worker, Database, Redis, and PGAdmin into a single network.
 
-- Python `3.14+`
-- `uv`
-- PostgreSQL (with pgvector)
-- Redis (for caching & Celery broker)
-- Docker (for containerized services)
+### Prerequisites
 
-### Installing uv
+*   [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running.
+*   WSL2 enabled (if on Windows).
 
-uv is a fast Python package manager.
+### Steps
 
-**Windows (PowerShell):**
+1.  **Configure Environment**:
+    Create a `.env` file in the root directory (using `.env.example` as a template).
+    ```bash
+    cp .env.example .env
+    ```
 
-```powershell
-irm https://astral.sh/uv/install.ps1 | iex
-```
+2.  **Start Services**:
+    From the project root, run:
+    ```bash
+    docker-compose up --build
+    ```
 
-**macOS / Linux:**
+3.  **Access Services**:
+    *   **API**: [http://localhost:8000/docs](http://localhost:8000/docs)
+    *   **PGAdmin**: [http://localhost:5050](http://localhost:5050) (Login with credentials in `.env`)
+    *   **Redis**: `localhost:6379`
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+4.  **Stopping services**:
+    ```bash
+    docker-compose down
+    ```
 
-**Verify installation:**
+---
 
-```bash
-uv --version
-```
+## 🛠️ Option 2: Running Without Docker (Local Development)
 
-### Installing PostgreSQL
+Ideal for active development with faster hot-reloading and direct integration with local tools.
 
-**Windows:**
+### Prerequisites
 
-- Download from [postgresql.org](https://www.postgresql.org/download/windows/) or use [PostgreSQL Portable](https://github.com/garethflowers/postgresql-portable)
-- Alternatively, use Docker (see below)
+*   **Python 3.14+**
+*   **[uv](https://astral.sh/uv/)** (Fast Python package manager)
+    - Windows: `irm https://astral.sh/uv/install.ps1 | iex`
+    - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+*   **PostgreSQL 16+** with **[pgvector](https://github.com/pgvector/pgvector)** extension.
+*   **Redis 7+** (For caching and Celery broker).
 
-**macOS:**
-
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-```
-
-**Linux (Ubuntu/Debian):**
-
-```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-```
-
-### Installing Redis
-
-**Windows:**
-
-- Redis does not run natively on Windows. Use [WSL2](https://docs.microsoft.com/en-us/windows/wsl/), Docker
-- Alternative: Use Docker (see below)
-
-**macOS:**
-
-```bash
-brew install redis
-brew services start redis
-```
-
-**Linux (Ubuntu/Debian):**
-
-```bash
-sudo apt install redis-server
-sudo systemctl start redis-server
-```
-
-### Installing Docker (optional but recommended)
-
-Docker can run PostgreSQL and Redis without native installation.
-
-**Windows:**
-
-- Install [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- Enable WSL2 backend in Docker Desktop settings
-
-**macOS:**
-
-```bash
-brew install --cask docker
-```
-
-**Linux:**
-
-```bash
-curl -fsSL https://get.docker.com | sh
-sudo systemctl start docker
-sudo usermod -aG docker $USER
-```
-
-### Running with Docker Compose (Recommended)
-
-Docker Compose manages the application, PostgreSQL, Redis, and the Celery worker.
-
-**1. Build and start services:**
-
-```bash
-docker-compose up --build
-```
-
-**2. Access the API:**
-
-The app will be available at `http://localhost:8000`.
-
-**3. Stopping services:**
-
-```bash
-docker-compose down
-```
-
-### Running PostgreSQL and Redis with Docker (Individual)
-
-If you prefer to run only the dependencies in Docker and the application locally:
-
-```bash
-# PostgreSQL
-docker run -d --name postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=app \
-  -p 5432:5432 \
-  postgres:16
-
-# Redis
-docker run -d --name redis \
-  -p 6379:6379 \
-  redis:7-alpine
-```
-
-Stop and remove containers when done:
-
-```bash
-docker stop postgres redis
-docker rm postgres redis
-```
-
-## 1. Install dependencies
+### 1. Install Dependencies
 
 ```bash
 uv sync
 ```
 
-## 2. Create environment file
+### 2. Configure Environment
 
-Create `.env` in the project root from the example:
+Create `.env` in the `backend/` directory from the example:
 
 ```bash
 cp .env.example .env
 ```
 
-If you are on PowerShell, use:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Minimum variables:
-
-- `PROJECT_NAME`
-- `DEBUG`
+*Ensure the following are correctly configured:*
 - `POSTGRES_SERVER`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_DB`
-- `REDIS_URL` (e.g., redis://localhost:6379/0)
+- `POSTGRES_USER` / `POSTGRES_PASSWORD`
+- `POSTGRES_DB` (e.g., `app`)
+- `REDIS_URL` (e.g., `redis://localhost:6379/0`)
 
-You can also set `SQLALCHEMY_DATABASE_URI` directly instead of composing it from the Postgres variables.
+### 3. Database Initialization
 
-## 3. Start PostgreSQL
+1. Create a database named `app` (or as specified in your `.env`).
+2. Enable the **pgvector** extension using the provided script:
+   ```bash
+   psql -d app -f setup_extensions.sql
+   ```
+   *Note: This is required for vector-based resume screening.*
 
-Make sure the target database exists and is reachable with the values in `.env`.
+### 4. Running the Application
 
-Default connection used by the app:
+You need to run two processes in separate terminals:
 
-```text
-postgresql+asyncpg://postgres:postgres@localhost/app
-```
-
-## 4. Run the API
-
-### Start Celery Worker (In a separate terminal)
-This is required for resume parsing and analysis:
+**Terminal 1: Celery Worker**
+Required for heavy background tasks like resume parsing and LLM analysis.
 ```bash
-uv run celery -A app.core.celery_app worker --loglevel=info --pool=solo
+uv run celery -A app.v1.core.celery_app worker --loglevel=info --pool=solo
 ```
 
-### Start FastAPI Server
-Use either command:
-
+**Terminal 2: FastAPI Server**
 ```bash
 uv run fastapi dev app/main.py
+# or uv run uvicorn --app-dir backend app.main:app --reload
 ```
 
-```bash
-uv run uvicorn app.main:app --reload
-```
+---
 
-## 5. Verify
+## 🔍 Verification
 
-After startup, open:
+After startup, verify the backend is running correctly:
 
-- `http://localhost:8000/`
-- `http://localhost:8000/docs`
-- `http://localhost:8000/redoc`
+- **Root Endpoint**: [http://localhost:8000/](http://localhost:8000/)
+- **Swagger Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Alternative Redoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-Current API endpoints:
+### Key Endpoints:
+- `GET /api/v1/jobs` - List jobs
+- `GET /api/v1/candidates` - List candidates
+- `POST /api/v1/jobs/{job_id}/resume` - Screen a resume
 
-- `GET /api/v1/users`
-- `POST /api/v1/users`
-- `GET /api/v1/jobs`
-- `POST /api/v1/jobs`
-- `GET /api/v1/candidates`
-- `POST /api/v1/candidates`
-- `GET /api/v1/skills`
-- `POST /api/v1/skills`
-- `POST /api/v1/jobs/{job_id}/resume` (resume screening)
-- `/api/v1/admin/*` (admin routes)
+---
 
-## Project Structure
+## 📁 Project Structure
 
-The active project structure is:
+The project follows a modular architecture for clarity and maintainability:
 
 ```text
 app/
-  main.py                    # FastAPI entry point
+  main.py                    # FastAPI entry point & lifespan events
   core/
     celery_app.py            # Celery application setup
     cache.py                 # Redis global cache utility
   v1/
     api/
       main.py                 # Top-level router composition
-    core/                     # Config, security, embeddings, extractor
+    core/                     # Global Config, Security, Embeddings
     db/
-      models/                 # SQLAlchemy models
-      session.py              # Async engine + session maker
-    routes/                   # API route handlers
+      models/                 # SQLAlchemy domain models
+      session.py              # Async engine & session management
+    routes/                   # API route handlers (Controllers)
     services/                 # Business logic & Celery tasks
-    repository/               # Data access layer
-    schemas/                  # Pydantic schemas
-    prompts/                  # LLM prompts
-    dependencies/             # FastAPI dependencies
-    utils/                    # Utility functions
+    repository/               # Data access logic (CRUD)
+    schemas/                  # Pydantic data validation
+    prompts/                  # LLM integration prompts
 ```
 
-Rules used in this repo:
+---
 
-- All feature code lives in `app/v1/` under appropriate subdirectories
-- `app/v1/api/main.py` acts as the top-level router composition layer
-- imports from shared infrastructure use `app.v1.db.*` and `app.v1.core.*` prefixes
-- Models are in `app/v1/db/models/`
-- Services are in `app/v1/services/`
-- Repositories are in `app/v1/repository/`
-- Routes are in `app/v1/routes/`
+## 💡 Notes
 
-## Notes
+- **Automatic Tables**: The application uses `Base.metadata.create_all` in `app/main.py`. Tables are automatically created on startup if they do not exist.
+- **Passwords**: Hashed via bcrypt before storage.
+- **Worker Configuration**: The `--pool=solo` flag is mandatory for Celery when running on Windows.
+- **Database URI**: If preferred, `SQLALCHEMY_DATABASE_URI` can be set directly in `.env`.
 
-- Passwords are hashed using bcrypt before storage.
-- `app/v1/core/config.py` handles settings from `.env`.
-- Redis is used for both caching (Job Embeddings) and as a broker for Celery.

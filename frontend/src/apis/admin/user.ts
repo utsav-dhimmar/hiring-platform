@@ -1,7 +1,7 @@
 import apiClient from "@/apis/client";
 import type { UserAdminCreate, UserAdminRead, UserAdminUpdate } from "@/types/admin";
 
-const ADMIN_PATH = "/admin";
+const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
 /**
  * User Management APIs
@@ -10,10 +10,17 @@ export const adminUserService = {
   /**
    * Get all users (admin only).
    */
-  getAllUsers: async (skip: number = 0, limit: number = 100): Promise<UserAdminRead[]> => {
-    const response = await apiClient.get<UserAdminRead[]>(`${ADMIN_PATH}/users`, {
-      params: { skip, limit },
-    });
+  getAllUsers: async (
+    skip: number = 0,
+    limit: number = 100,
+    search?: string,
+  ): Promise<{ data: UserAdminRead[]; total: number }> => {
+    const response = await apiClient.get<{ data: UserAdminRead[]; total: number }>(
+      `${ADMIN_PATH}/users`,
+      {
+        params: { skip, limit, q: search ? search : undefined },
+      },
+    );
     return response.data;
   },
 

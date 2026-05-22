@@ -40,6 +40,16 @@ export const authService = {
   },
 
   /**
+   * Retrieves the current authenticated user's profile information.
+   * @returns Promise resolving to the current user's data
+   * @throws {Error} When user is not authenticated
+   */
+  getMe: async (): Promise<UserRead> => {
+    const response = await apiClient.get<UserRead>("/users/me");
+    return response.data;
+  },
+
+  /**
    * Retrieves a user's profile information by ID.
    * @param userId - The unique identifier of the user
    * @returns Promise resolving to the user's profile data

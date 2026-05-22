@@ -3,6 +3,7 @@
  */
 
 import type { Job } from "@/types/job";
+import type { CandidateVersionResult } from "@/types/admin";
 
 /**
  * Processing status information for a resume.
@@ -32,6 +33,8 @@ export interface ResumeMatchAnalysis {
   missing_skills: MissingSkill[];
   /** Notable qualifications beyond job requirements */
   extraordinary_points: string[];
+  /** Custom data extracted from the resume (e.g. Notice Period) */
+  custom_extractions?: Record<string, any> | null;
 }
 
 /**
@@ -120,6 +123,10 @@ export interface CandidateResponse {
   email: string | null;
   /** Candidate's phone number */
   phone: string | null;
+  /** Candidate's LinkedIn profile URL */
+  linkedin_url: string | null;
+  /** Candidate's GitHub profile URL */
+  github_url: string | null;
   /** Current screening status */
   current_status: string | null;
   /** Timestamp when the candidate was added */
@@ -129,13 +136,39 @@ export interface CandidateResponse {
   /** Computed resume score (0-100) */
   resume_score: number | null;
   /** Pass/fail decision from screening */
-  pass_fail: boolean | null;
+  pass_fail: string | boolean | null;
   /** Whether the resume was successfully parsed */
   is_parsed: boolean;
   /** Current processing status */
   processing_status: string | null;
   /** Error message if processing failed */
   processing_error: string | null;
+  /** Current HR screening decision, if one has been made */
+  hr_decision?: string;
+  /** Current HR screening score out of 5 */
+  hr_score?: number;
+  /** ID of the job the candidate applied for */
+  applied_job_id?: string | null;
+  /** ID of the associated resume record */
+  resume_id?: string | null;
+  /**
+   * Candidate's location (city, country, etc.).
+   * May be null/undefined if not extracted — render as "N/A".
+   */
+  location?: string | null;
+  /**
+   * Timestamp when the candidate applied / resume was uploaded.
+   * Falls back to created_at when not provided — render as "N/A" if both are absent.
+   */
+  applied_at?: string | null;
+  /**
+   * JD version number at which the candidate's resume was last analyzed.
+   */
+  applied_version_number?: number | null;
+  /**
+   * Historical screening results for previous/all JD versions.
+   */
+  version_results?: CandidateVersionResult[] | null;
 }
 
 /**
@@ -178,7 +211,7 @@ export interface JobResumeInfoResponse {
   /** Computed resume score (0-100) */
   resume_score: number | null;
   /** Pass/fail decision from screening */
-  pass_fail: boolean | null;
+  pass_fail: string | boolean | null;
 }
 
 /**
@@ -197,10 +230,8 @@ export interface JobResumesResponse {
  * Response containing job details and all associated candidates.
  */
 export interface JobCandidatesResponse {
-  /** ID of the job */
-  job_id: string;
-  /** List of candidates who applied for this job */
-  candidates: CandidateResponse[];
+  data: CandidateResponse[];
+  total: number;
 }
 
 /**

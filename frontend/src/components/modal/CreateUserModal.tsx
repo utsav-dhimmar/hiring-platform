@@ -1,13 +1,36 @@
 /**
  * Modal component for creating new users in the admin panel.
  * Provides a form with role selection to create user accounts.
+ * Uses Zod for form validation and shadcn components.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Col, Form, Modal, Row } from "react-bootstrap";
-import { adminRoleService, adminUserService } from "@/apis/admin/service";
+import { adminRoleService, adminUserService } from "@/apis/admin";
 import type { RoleRead, UserAdminRead } from "@/types/admin";
-import { Button, ErrorDisplay, Input } from "@/components/shared";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Button,
+  Input,
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  Switch,
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components";
 import { useFormModal } from "@/hooks";
 import { userCreateSchema, type UserCreateFormValues } from "@/schemas/admin";
 
@@ -15,13 +38,9 @@ import { userCreateSchema, type UserCreateFormValues } from "@/schemas/admin";
  * Props for the CreateUserModal component.
  */
 interface CreateUserModalProps {
-  /** Controls visibility of the modal */
   show: boolean;
-  /** Callback to close the modal */
   handleClose: () => void;
-  /** Callback fired after user is successfully created or updated */
   onUserSaved: () => void;
-  /** Optional user data for editing mode */
   user?: UserAdminRead | null;
 }
 
@@ -47,7 +66,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
       email: u.email,
       is_active: u.is_active,
       role_id: u.role_id,
-      password: "", // Password is not returned from API
+      password: "",
     }),
     [],
   );
@@ -74,14 +93,7 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
     [isEditMode, user, onUserSaved, handleClose],
   );
 
-  const {
-    register,
-    handleSubmit,
-    isSubmitting,
-    submitError,
-    formState: { errors },
-    setSubmitError,
-  } = useFormModal<UserCreateFormValues, UserAdminRead>({
+  const formModal = useFormModal<UserCreateFormValues, UserAdminRead>({
     schema: userCreateSchema,
     defaultValues: DEFAULT_USER_VALUES,
     item: user || null,
@@ -90,13 +102,21 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
     onSubmit,
   });
 
+  const {
+    handleFormSubmit,
+    isSubmitting,
+    submitError,
+    setSubmitError,
+    control,
+  } = formModal;
+
   useEffect(() => {
     if (show) {
       const fetchRoles = async () => {
         try {
           setFetchingRoles(true);
           const data = await adminRoleService.getAllRoles();
-          setRoles(data);
+          setRoles(data.data);
         } catch (err) {
           console.error("Failed to fetch roles:", err);
           setSubmitError("Failed to load roles. Please try again.");
@@ -109,102 +129,117 @@ const CreateUserModal = ({ show, handleClose, onUserSaved, user }: CreateUserMod
   }, [show, setSubmitError]);
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered scrollable>
-      <Modal.Header closeButton>
-        <Modal.Title>{isEditMode ? "Edit User" : "Create New User"}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
+        <DialogHeader>
+          <DialogTitle>{isEditMode ? "Edit User" : "Create New User"}</DialogTitle>
+        </DialogHeader>
+
         {submitError && <ErrorDisplay message={submitError} />}
 
-        <Form onSubmit={handleSubmit} id="create-user-form">
-          <Row>
-            <Col md={6}>
-              <Input
-                label="Full Name"
-                placeholder="Enter full name"
-                {...register("full_name")}
-                error={errors.full_name?.message}
-                className="mb-3"
-              />
-            </Col>
-            <Col md={6}>
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="Enter email"
-                {...register("email")}
-                error={errors.email?.message}
-                className="mb-3"
-                disabled={isEditMode}
-              />
-            </Col>
-          </Row>
-
-          <Row>
-            <Col md={6}>
-              {!isEditMode && (
-                <Input
-                  label="Password (Optional)"
-                  type="password"
-                  placeholder="Enter password"
-                  {...register("password")}
-                  error={errors.password?.message}
-                  className="mb-3"
-                />
-              )}
-              {isEditMode && (
-                <div className="mb-3">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Password cannot be changed here"
-                    disabled
-                    readOnly
-                  />
-                  <small className="text-muted">
-                    Passwords must be reset via forgot password or a separate dedicated endpoint.
-                  </small>
-                </div>
-              )}
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Role</Form.Label>
-                <Form.Select
-                  {...register("role_id")}
-                  isInvalid={!!errors.role_id}
-                  disabled={fetchingRoles}
-                >
-                  <option value="">Select a role</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </Form.Select>
-                {errors.role_id && (
-                  <Form.Control.Feedback type="invalid">
-                    {errors.role_id.message}
-                  </Form.Control.Feedback>
+        <Form {...formModal}>
+          <form id="create-user-form" onSubmit={handleFormSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={control}
+                name="full_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter full name" {...field} disabled />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </Form.Group>
-            </Col>
-          </Row>
+              />
 
-          <Form.Group className="mb-3">
-            <Form.Check type="checkbox" label="Active User" {...register("is_active")} />
-          </Form.Group>
+              <FormField
+                control={control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="Enter email"
+                        disabled={isEditMode}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={control}
+                name="role_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={fetchingRoles}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a role">
+                            {roles.find((r) => r.id === field.value)?.name || user?.role_name}
+                          </SelectValue>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active Account</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Enable or disable this user's access to the platform.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </form>
         </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={handleClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="primary" form="create-user-form" isLoading={isSubmitting}>
-          {isEditMode ? "Update User" : "Create User"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="submit" form="create-user-form" isLoading={isSubmitting}>
+            {isEditMode ? "Update User" : "Create User"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

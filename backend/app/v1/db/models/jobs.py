@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, Numeric
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -14,9 +14,14 @@ from app.v1.db.base import Base
 if TYPE_CHECKING:
     from app.v1.db.models.candidates import Candidate
     from app.v1.db.models.departments import Department
+    from app.v1.db.models.job_chunks import JobChunk
     from app.v1.db.models.job_stage_configs import JobStageConfig
+    from app.v1.db.models.job_versions import JobVersion
     from app.v1.db.models.skills import Skill
     from app.v1.db.models.user import User
+    from app.v1.db.models.job_versions import JobVersion
+    from app.v1.db.models.job_priorities import JobPriority
+    from app.v1.db.models.job_positions import JobPosition
 
 from app.v1.db.models.job_skills import job_skills
 from app.v1.utils.uuid import UUIDHelper
@@ -52,7 +57,13 @@ class Job(Base):
     # JOB FIELDS
     title: Mapped[str] = mapped_column(
         Text,
+        unique=True,
         nullable=False,
+    )
+
+    vacancy: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
     )
 
     # DEPARTMENT FK (replaces plain text department column)
@@ -79,10 +90,10 @@ class Job(Base):
     )
 
     # FOREIGN KEY
-    created_by: Mapped[uuid.UUID] = mapped_column(
+    created_by: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=False,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     # TIMESTAMPS
@@ -98,9 +109,49 @@ class Job(Base):
         nullable=False,
     )
 
+    passing_threshold: Mapped[float] = mapped_column(
+        Numeric(10, 2),
+        default=70.0,
+        nullable=False,
+    )
+
     # CUSTOM EXTRACTION
     custom_extraction_fields: Mapped[list[str] | None] = mapped_column(
         JSONB,
+        nullable=True,
+    )
+
+    version: Mapped[int] = mapped_column(
+        Integer,
+        default=1,
+        nullable=False,
+    )
+
+    processing_version: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    # PRIORITY FIELDS
+    priority_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("job_priorities.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    position_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("job_positions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    priority_start_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    priority_end_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True,
     )
 
@@ -109,7 +160,13 @@ class Job(Base):
         "User", back_populates="jobs", foreign_keys=[created_by]
     )
     candidates: Mapped[list["Candidate"]] = relationship(
-        "Candidate", back_populates="applied_job"
+        "Candidate", back_populates="applied_job", cascade="save-update, merge, refresh-expire"
+    )
+    versions: Mapped[list["JobVersion"]] = relationship(
+        "JobVersion",
+        back_populates="job",
+        order_by="JobVersion.version_number",
+        cascade="all, delete-orphan",
     )
     skills: Mapped[list["Skill"]] = relationship(
         "Skill",
@@ -122,10 +179,25 @@ class Job(Base):
         order_by="JobStageConfig.stage_order",
         cascade="all, delete-orphan",
     )
+    chunks: Mapped[list["JobChunk"]] = relationship(
+        "JobChunk",
+        back_populates="job",
+        cascade="all, delete-orphan",
+    )
     department: Mapped[Optional["Department"]] = relationship(
         "Department",
         back_populates="jobs",
         foreign_keys=[department_id],
+        lazy="joined",
+    )
+    priority: Mapped[Optional["JobPriority"]] = relationship(
+        "JobPriority",
+        foreign_keys=[priority_id],
+        lazy="joined",
+    )
+    position: Mapped[Optional["JobPosition"]] = relationship(
+        "JobPosition",
+        foreign_keys=[position_id],
         lazy="joined",
     )
 
@@ -133,3 +205,16 @@ class Job(Base):
     def department_name(self) -> str | None:
         """Return the department name for convenience (used in serialisation)."""
         return self.department.name if self.department else None
+
+    @property
+    def total_versions(self) -> int:
+        """Return the total number of versions for this job."""
+        return len(self.versions)
+
+    @property
+    def job_versions(self) -> list[dict]:
+        """Return a list of version objects with version_num and id."""
+        return [
+            {"version_num": v.version_number, "id": v.id} 
+            for v in self.versions
+        ]

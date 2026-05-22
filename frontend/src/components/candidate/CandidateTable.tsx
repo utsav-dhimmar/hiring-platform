@@ -1,173 +1,170 @@
-import type { ReactElement } from "react";
-import { Badge, Spinner } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
-import { AdminDataTable, type Column, StatusBadge, Button, DateDisplay } from "@/components/shared";
-import type { CandidateResponse } from "@/types/resume";
-
 /**
- * Props for the CandidateTable component.
+ * Unified CandidateTable component.
+ *
+ * Renders a consistent candidate table across all pages in the hiring platform.
+ * Columns: Candidate (name · email · phone), Score, Status, Socials, Applied At, Location, Actions.
+ *
+ * Front-end filters: name search, status dropdown, location dropdown, applied-at date range.
+ * All optional fields (location, applied_at, phone) safely fall back to "N/A".
  */
-interface CandidateTableProps {
-  /** Array of candidate records to display */
-  candidates: CandidateResponse[];
-  /** Whether the table is in a loading state */
-  loading: boolean;
-  /** Optional error message to display */
-  error?: string | null;
-  /** Total number of candidates (for pagination) */
+
+import type { PaginationState, OnChangeFn } from "@tanstack/react-table";
+import { DataTable } from "@/components/shared/DataTable";
+import { useCandidateTableFilters, type CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";
+import { useCandidateTableColumns } from "./CandidateTableColumns";
+import { CandidateTableFilters } from "./CandidateTableFilters";
+import type { UnifiedCandidate } from "@/types/candidate";
+import type { DateRange } from "react-day-picker";
+
+export interface CandidateTableProps<T extends UnifiedCandidate> {
+  candidates: T[];
   total?: number;
-  /** Current page number */
-  page?: number;
-  /** Number of items per page */
-  pageSize?: number;
-  /** Callback when page is changed */
-  onPageChange?: (page: number) => void;
-  /** Callback to retry data fetching on error */
-  onRetry: () => void;
-  /** Message to show when no candidates match filters */
+  renderActions?: (candidate: T) => React.ReactNode;
+  headerActions?: React.ReactNode;
+  isServerSide?: boolean;
+  pagination?: PaginationState;
+  onPaginationChange?: OnChangeFn<PaginationState>;
+  pageCount?: number;
+  passing_threshold?: number;
   emptyMessage?: string;
-  /** Callback when a candidate's "Show More" or "View Details" is clicked */
-  onShowMore: (candidate: CandidateResponse) => void;
-  /** Whether to show the "Evaluate" action button */
-  showEvaluateAction?: boolean;
-  /** Optional job ID context for evaluations */
-  jobId?: string;
-  /** Additional CSS class for the wrapper */
-  className?: string;
+  nameFilter?: string;
+  onNameFilterChange?: (value: string) => void;
+  showJobContext?: boolean;
+  showLocationFilter?: boolean;
+  showStatusFilter?: boolean;
+  onFiltersChange?: (filters: CandidateActiveFilters) => void;
+  stageOptions?: string[];
+  activitySessions?: [number, { start_date: string; end_date: string }][];
+  initialDateRange?: DateRange | undefined;
 }
 
-/**
- * Table component for displaying and managing a list of candidates.
- * Supports pagination, searching (via parent), and contextual actions.
- */
-const CandidateTable = ({
+export function CandidateTable<T extends UnifiedCandidate>({
   candidates,
-  loading,
-  error,
   total,
-  page,
-  pageSize,
-  onPageChange,
-  onRetry,
-  emptyMessage,
-  onShowMore,
-  showEvaluateAction = false,
-  jobId,
-  className,
-}: CandidateTableProps): ReactElement => {
-  const navigate = useNavigate();
+  renderActions,
+  headerActions,
+  isServerSide = false,
+  pagination,
+  onPaginationChange,
+  pageCount,
+  passing_threshold,
+  emptyMessage = "0 applicants found",
+  nameFilter: externalNameFilter,
+  onNameFilterChange,
+  showJobContext = false,
+  showLocationFilter = true,
+  showStatusFilter = true,
+  onFiltersChange,
+  stageOptions: stageOptionsProp,
+  activitySessions,
+  initialDateRange,
+}: CandidateTableProps<T>) {
+  const {
+    nameFilter,
+    setNameFilter,
+    statusFilter,
+    setStatusFilter,
+    locationFilter,
+    setLocationFilter,
+    hrDecisionFilter,
+    setHrDecisionFilter,
+    jobFilter,
+    setJobFilter,
+    dateRange,
+    setDateRange,
+    statusOptions,
+    locationOptions,
+    jobOptions,
+    locationSearch,
+    setLocationSearch,
+    jobSearch,
+    setJobSearch,
+    resultFilter,
+    setResultFilter,
+    minDate,
+    filteredCandidates,
+    hasActiveFilters,
+    clearFilters,
+    availableJobs,
+    stageFilter,
+    setStageFilter,
+    stageOptions,
+    hrDecisionOptions,
+    resultOptions,
+    activitySession,
+    setActivitySession,
+    activitySearch,
+    setActivitySearch,
+    hrScoreFilter,
+    setHrScoreFilter,
+  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold, stageOptionsProp, activitySessions, initialDateRange);
 
-  const columns: Column<CandidateResponse>[] = [
-    {
-      header: "Name",
-      accessor: (c) => (
-        <strong>
-          {c.is_parsed ? (
-            `${c.first_name || ""} ${c.last_name || ""}`.trim() || "N/A"
-          ) : (
-            <span className="text-muted fst-italic">Processing...</span>
-          )}
-        </strong>
-      ),
-    },
-    { header: "Email", accessor: "email" },
-    {
-      header: "Score",
-      accessor: (c) =>
-        c.resume_score !== null ? (
-          <Badge
-            bg={c.resume_score >= 65 ? "success" : "warning"}
-            className={`px-3 py-2 rounded-pill bg-${c.resume_score >= 65 ? "success" : "warning"}-subtle text-${c.resume_score >= 65 ? "success" : "warning"
-              }`}
-          >
-            {c.resume_score.toFixed(1)}%
-          </Badge>
-        ) : (
-          <span className="text-muted">N/A</span>
-        ),
-    },
-    {
-      header: "Result",
-      style: { width: "120px", minWidth: "120px" },
-      accessor: (c) => (
-        <StatusBadge
-          status={c.pass_fail === null ? "pending" : c.pass_fail ? "pass" : "fail"}
-          mapping={{
-            pass: "success",
-            fail: "danger",
-            pending: "secondary",
-          }}
-        />
-      ),
-    },
-    {
-      header: "Status",
-      style: { width: "150px", minWidth: "150px" },
-      accessor: (c) => {
-        const status = c.processing_status;
-        if (status === "processing" || status === "queued") {
-          return (
-            <Badge bg="info" className="d-inline-flex align-items-center gap-1">
-              <Spinner animation="border" size="sm" />
-              Processing
-            </Badge>
-          );
-        }
-        return <StatusBadge status={status === "failed" ? "failed" : "completed"} />;
-      },
-    },
-    {
-      header: "Applied At",
-      accessor: (c) => <DateDisplay date={c.created_at} showTime={false} />,
-    },
-    {
-      header: "Actions",
-      className: "text-end text-nowrap",
-      style: { width: showEvaluateAction ? "250px" : "150px" },
-      accessor: (c) => (
-        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
-          <Button
-            variant="outline-primary"
-            size="sm"
-            className="flex-shrink-0"
-            onClick={() => onShowMore(c)}
-          >
-            {showEvaluateAction ? "Show More" : "View Details"}
-          </Button>
-          {showEvaluateAction && jobId && c.pass_fail !== false && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="flex-shrink-0"
-              onClick={() => navigate(`/admin/jobs/${jobId}/candidates/${c.id}/evaluation`)}
-              disabled={c.processing_status === "processing" || c.processing_status === "queued"}
-            >
-              Evaluate
-            </Button>
-          )}
-        </div>
-      ),
-    },
-  ];
-
-  const paginationProps =
-    total !== undefined && page !== undefined && pageSize !== undefined && onPageChange
-      ? { total, page, pageSize, onPageChange }
-      : {};
+  const columns = useCandidateTableColumns({
+    renderActions,
+    passing_threshold,
+    showJobContext,
+  });
 
   return (
-    <AdminDataTable
-      columns={columns}
-      data={candidates}
-      loading={loading}
-      error={error || null}
-      onRetry={onRetry}
-      rowKey="id"
-      emptyMessage={emptyMessage || "No candidates found."}
-      className={className}
-      {...paginationProps}
-    />
+    <div className="w-full space-y-3">
+      <CandidateTableFilters
+        nameFilter={nameFilter}
+        setNameFilter={setNameFilter}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        locationFilter={locationFilter}
+        setLocationFilter={setLocationFilter}
+        jobFilter={jobFilter}
+        setJobFilter={setJobFilter}
+        showJobContext={showJobContext}
+        showLocationFilter={showLocationFilter}
+        showStatusFilter={showStatusFilter}
+        dateRange={dateRange!}
+        setDateRange={setDateRange}
+        hrDecisionFilter={hrDecisionFilter}
+        setHrDecisionFilter={setHrDecisionFilter}
+        statusOptions={statusOptions}
+        locationOptions={locationOptions}
+        locationSearch={locationSearch}
+        setLocationSearch={setLocationSearch}
+        jobOptions={jobOptions}
+        jobSearch={jobSearch}
+        setJobSearch={setJobSearch}
+        resultFilter={resultFilter}
+        setResultFilter={setResultFilter}
+        stageFilter={stageFilter}
+        setStageFilter={setStageFilter}
+        stageOptions={stageOptions}
+        hrDecisionOptions={hrDecisionOptions}
+        resultOptions={resultOptions}
+        activitySession={activitySession}
+        setActivitySession={setActivitySession}
+        activitySearch={activitySearch}
+        setActivitySearch={setActivitySearch}
+        activitySessionOptions={activitySessions}
+        hasActiveFilters={hasActiveFilters}
+        clearFilters={clearFilters}
+        resultCount={filteredCandidates.length}
+        totalCount={total != null && total !== candidates.length ? total : candidates.length}
+        minDate={minDate}
+        availableJobs={availableJobs}
+        hrScoreFilter={hrScoreFilter}
+        setHrScoreFilter={setHrScoreFilter}
+      />
+
+      <DataTable
+        columns={columns}
+        data={filteredCandidates}
+        headerActions={headerActions}
+        isServerSide={isServerSide}
+        pageIndex={pagination?.pageIndex}
+        pageSize={pagination?.pageSize}
+        pageCount={pageCount}
+        onPaginationChange={onPaginationChange}
+        emptyMessage={emptyMessage}
+      />
+    </div>
   );
-};
+}
 
 export default CandidateTable;

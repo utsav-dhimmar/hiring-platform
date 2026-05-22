@@ -3,33 +3,82 @@
  * Displays all users with ability to create new users.
  */
 
-import { useState } from "react";
-import { adminUserService } from "@/apis/admin/service";
+import { useState, useEffect } from "react";
+import { adminUserService } from "@/apis/admin";
 import type { UserAdminRead } from "@/types/admin";
+import AppPageShell from "@/components/shared/AppPageShell";
+import { DateDisplay } from "@/components/shared/DateDisplay";
+import PageHeader from "@/components/shared/PageHeader";
+import StatusBadge from "@/components/shared/StatusBadge";
+import { useToast } from "@/components/shared/ToastProvider";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import { DataTable } from "@/components/shared/DataTable";
 import {
-  AdminDataTable,
-  Button,
-  DateDisplay,
-  PageHeader,
-  StatusBadge,
-  useToast,
-  type Column,
-} from "@/components/shared";
-import { CreateUserModal, DeleteModal } from "@/components/modal";
-import "@/css/adminDashboard.css";
-import { useAdminData, useDeleteConfirmation } from "@/hooks";
+  CreateUserModal,
+  // CreateUserModal,
+  DeleteModal
+} from "@/components/modal";
+import { useAdminData, useDebouncedValue, useDeleteConfirmation } from "@/hooks";
+import PermissionGuard from "@/components/auth/PermissionGuard";
+import { PERMISSIONS } from "@/lib/permissions";
+import { UserTableFilters } from "./components/UserTableFilters";
+import { useUserTableFilters } from "@/hooks/useUserTableFilters";
+
+import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
+import { Button } from "@/components";
+import { useAuth } from "@/store/hooks";
 
 const AdminUsers = () => {
   const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserAdminRead | null>(null);
 
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   const {
     data: users,
+    total,
     loading,
     error,
     fetchData: fetchUsers,
-  } = useAdminData<UserAdminRead>(() => adminUserService.getAllUsers());
+  } = useAdminData<UserAdminRead>(
+    () => adminUserService.getAllUsers(pageIndex * pageSize, pageSize, debouncedSearch),
+    { fetchOnMount: false }
+  );
+
+  const {
+    searchFilter,
+    setSearchFilter,
+    statusFilter,
+    setStatusFilter,
+    roleFilter,
+    setRoleFilter,
+    dateRange,
+    setDateRange,
+    roleOptions,
+    filteredUsers,
+    hasActiveFilters,
+    clearFilters,
+    minDate,
+  } = useUserTableFilters(users);
+
+  const debouncedSearch = useDebouncedValue(searchFilter)
+  const { user: currentUser } = useAuth();
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [debouncedSearch]);
+
+
+
+  // Refetch when pagination or search changes
+  useEffect(() => {
+    fetchUsers();
+  }, [pageIndex, pageSize, debouncedSearch, fetchUsers]);
 
   const {
     showModal: showDeleteModal,
@@ -48,10 +97,12 @@ const AdminUsers = () => {
     itemTitle: (user) => `user "${user.full_name || user.email}"`,
   });
 
+  /*
   const handleCreateClick = () => {
     setSelectedUser(null);
     setShowModal(true);
   };
+  */
 
   const handleEditClick = (user: UserAdminRead) => {
     setSelectedUser(user);
@@ -63,70 +114,160 @@ const AdminUsers = () => {
     setSelectedUser(null);
   };
 
-  const columns: Column<UserAdminRead>[] = [
-    { header: "Full Name", accessor: (user) => user.full_name || "N/A" },
-    { header: "Email", accessor: "email" },
+  const columns: ColumnDef<UserAdminRead>[] = [
     {
-      header: "Status",
-      accessor: (user) => <StatusBadge status={user.is_active} />,
-    },
-    {
-      header: "Role ID",
-      accessor: (user) => <small>{user.role_id}</small>,
-    },
-    {
-      header: "Created At",
-      accessor: (user) => <DateDisplay date={user.created_at} showTime={false} />,
-    },
-    {
-      header: "Actions",
-      className: "text-end text-nowrap",
-      style: { width: "200px", minWidth: "200px" },
-      accessor: (user) => (
-        <div className="d-flex gap-2 justify-content-end align-items-center flex-nowrap">
-          <Button
-            variant="outline-primary"
-            size="sm"
-            className="flex-shrink-0"
-            onClick={() => handleEditClick(user)}
-          >
-            Edit
-          </Button>
-          {user.full_name !== "System Admin" && (
-            <Button
-              variant="outline-danger"
-              size="sm"
-              className="flex-shrink-0"
-              onClick={() => handleDeleteClick(user)}
-            >
-              Delete
-            </Button>
-          )}
-        </div>
+      accessorKey: "full_name",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Full Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
       ),
+      cell: ({ row }) => <span>{row.original.full_name || "N/A"}</span>,
+    },
+    {
+      accessorKey: "email",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Email
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+    },
+    {
+      accessorKey: "is_active",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Status
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <StatusBadge status={row.original.is_active} />,
+    },
+    {
+      accessorKey: "role_name",
+      header: "Role Name",
+      cell: ({ row }) => (
+        <small
+          className="font-semibold"
+          title={row.original.role_name || "N/A"}
+        >
+          {row.original.role_name || "N/A"}
+        </small>
+      ),
+    },
+    {
+      accessorKey: "created_at",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent p-0 font-semibold"
+        >
+          Created At
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <DateDisplay date={row.original.created_at} showTime={false} />,
+    },
+    {
+      id: "actions",
+      header: () => <div className="flex items-center justify-center ">Actions</div>,
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          (currentUser && < div className="flex items-center justify-center gap-2 flex-nowrap" >
+            {user.full_name !== "System Admin" && user.role_name.toLowerCase() !== "super admin" && <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => handleEditClick(user)}
+                disabled={currentUser && currentUser.id === user.id}
+              >
+                Edit
+              </Button>
+            </PermissionGuard>}
+            {
+              user.full_name !== "System Admin" && user.role_name.toLowerCase() !== "super admin" && (
+                <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => handleDeleteClick(user)}
+                    disabled={currentUser && currentUser.id === user.id || row.original.is_active}
+                  >
+                    Delete
+                  </Button>
+                </PermissionGuard>
+              )
+            }
+          </div >)
+        );
+      },
     },
   ];
 
   return (
-    <div className="admin-dashboard">
+    <AppPageShell width="wide">
       <PageHeader
         title="User Management"
-        actions={
-          <Button variant="primary" onClick={handleCreateClick}>
-            Create User
-          </Button>
-        }
+      // breadcrumbActions={
+      //   <PermissionGuard permissions={PERMISSIONS.USERS_MANAGE} hideWhenDenied>
+      //     <Button onClick={handleCreateClick} size={"sm"}>Create User</Button>
+      //   </PermissionGuard>
+      // }
       />
 
-      <AdminDataTable
-        columns={columns}
-        data={users}
-        loading={loading}
-        error={error}
-        onRetry={fetchUsers}
-        rowKey="id"
-        emptyMessage="No users found."
-      />
+      {error && !users.length ? (
+        <ErrorDisplay message={error} onRetry={fetchUsers} />
+      ) : (
+        <div className="space-y-4">
+          <UserTableFilters
+            searchFilter={searchFilter}
+            setSearchFilter={setSearchFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            roleFilter={roleFilter}
+            setRoleFilter={setRoleFilter}
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            roleOptions={roleOptions}
+            hasActiveFilters={hasActiveFilters}
+            clearFilters={clearFilters}
+            resultCount={filteredUsers.length}
+            totalCount={total}
+            minDate={minDate}
+          />
+          <DataTable
+            columns={columns}
+            data={filteredUsers}
+            loading={loading}
+            initialSorting={[
+              { id: "is_active", desc: true },
+              { id: "created_at", desc: true },
+            ]}
+            isServerSide={true}
+            pageIndex={pageIndex}
+            pageSize={pageSize}
+            pageCount={Math.ceil((total || 0) / pageSize)}
+            onPaginationChange={setPagination}
+          />
+        </div>
+      )}
 
       <CreateUserModal
         show={showModal}
@@ -144,7 +285,7 @@ const AdminUsers = () => {
         isLoading={isDeleting}
         error={deleteError}
       />
-    </div>
+    </AppPageShell>
   );
 };
 

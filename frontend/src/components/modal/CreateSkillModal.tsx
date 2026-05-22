@@ -1,16 +1,32 @@
 /**
  * Modal for creating or updating a skill.
- * Uses Zod for form validation.
+ * Uses Zod for form validation and shadcn components.
  */
 
 import { useCallback } from "react";
-import { Modal } from "react-bootstrap";
-import { adminSkillService } from "@/apis/admin/service";
+import { adminSkillService } from "@/apis/admin";
 import type { SkillRead } from "@/types/admin";
-import { Button, Input } from "@/components/shared";
-import "@/css/adminDashboard.css";
+import {
+  Button,
+  Input,
+  Textarea,
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useFormModal } from "@/hooks";
 import { skillCreateSchema, type SkillCreateFormValues } from "@/schemas/admin";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 
 interface CreateSkillModalProps {
   show: boolean;
@@ -48,13 +64,7 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
     [isEditMode, skill, onSkillSaved, handleClose],
   );
 
-  const {
-    register,
-    handleSubmit,
-    isSubmitting,
-    submitError,
-    formState: { errors },
-  } = useFormModal<SkillCreateFormValues, SkillRead>({
+  const formModal = useFormModal<SkillCreateFormValues, SkillRead>({
     schema: skillCreateSchema,
     defaultValues: DEFAULT_SKILL_VALUES,
     item: skill,
@@ -63,46 +73,59 @@ const CreateSkillModal = ({ show, handleClose, onSkillSaved, skill }: CreateSkil
     onSubmit,
   });
 
+  const { handleFormSubmit, isSubmitting, submitError, control } = formModal;
+
   return (
-    <Modal show={show} onHide={handleClose} centered size="lg" scrollable>
-      <Modal.Header closeButton>
-        <Modal.Title>{isEditMode ? "Edit Skill" : "Create New Skill"}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <form id="create-skill-form" onSubmit={handleSubmit}>
-          {submitError && <div className="alert alert-danger">{submitError}</div>}
+    <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEditMode ? "Edit Skill" : "Create New Skill"}</DialogTitle>
+        </DialogHeader>
 
-          <Input
-            label="Skill Name"
-            {...register("name")}
-            error={errors.name?.message}
-            placeholder="e.g. React.js"
-            required
-          />
+        {submitError && <ErrorDisplay message={submitError} />}
 
-          <div className="form-group mb-3">
-            <label className="form-label">Description</label>
-            <textarea
-              className={`form-control ${errors.description ? "is-invalid" : ""}`}
-              rows={3}
-              {...register("description")}
-              placeholder="Briefly describe the skill..."
+        <Form {...formModal}>
+          <form id="create-skill-form" onSubmit={handleFormSubmit} className="space-y-4">
+            <FormField
+              control={control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Skill Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. React.js" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {errors.description && (
-              <div className="invalid-feedback">{errors.description.message}</div>
-            )}
-          </div>
-        </form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={handleClose} type="button">
-          Cancel
-        </Button>
-        <Button variant="primary" type="submit" form="create-skill-form" isLoading={isSubmitting}>
-          {isEditMode ? "Update Skill" : "Create Skill"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+
+            <FormField
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Briefly describe the skill..." rows={4} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} type="button" disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={handleFormSubmit} disabled={isSubmitting}>
+            {isEditMode ? "Update Skill" : "Create Skill"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

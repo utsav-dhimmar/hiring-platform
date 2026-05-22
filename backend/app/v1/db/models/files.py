@@ -42,16 +42,16 @@ class File(Base):
     )
 
     # FOREIGN KEYS
-    owner_id: Mapped[uuid.UUID] = mapped_column(
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id"),
-        nullable=False,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
-    candidate_id: Mapped[uuid.UUID] = mapped_column(
+    candidate_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("candidates.id"),
-        nullable=False,
+        nullable=True,
     )
 
     # FILE FIELDS
@@ -92,6 +92,17 @@ class File(Base):
     owner: Mapped["User"] = relationship(
         "User", back_populates="files", foreign_keys=[owner_id]
     )
-    candidate: Mapped["Candidate"] = relationship(
+    candidate: Mapped["Candidate | None"] = relationship(
         "Candidate", back_populates="files", foreign_keys=[candidate_id]
     )
+
+    @property
+    def uploader_name(self) -> str | None:
+        return self.owner.full_name if self.owner else None
+
+    @property
+    def candidate_name(self) -> str | None:
+        if not self.candidate:
+            return None
+        names = [n for n in [self.candidate.first_name, self.candidate.last_name] if n]
+        return " ".join(names) if names else "Unknown Candidate"

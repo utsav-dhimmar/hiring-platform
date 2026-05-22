@@ -1,4 +1,5 @@
 import apiClient from "@/apis/client";
+import type { JobVersionDetail } from "@/types/job";
 import type {
   JobCreate,
   JobRead,
@@ -7,7 +8,7 @@ import type {
   JobStageReorder,
   JobUpdate,
 } from "@/types/admin";
-import type { JobResumesResponse } from "@/types/resume";
+import type { JobResumeInfoResponse, JobResumesResponse } from "@/types/resume";
 import type { JobStageConfig } from "@/types/stage";
 
 /**
@@ -20,11 +21,22 @@ export const adminJobService = {
    * @param limit - Maximum number of records to return
    * @returns Promise resolving to the list of jobs
    */
-  getAllJobs: async (skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
+  getAllJobs: async (
+    skip: number = 0,
+    limit: number = 100,
+    filters?: {
+      q?: string;
+      status?: boolean | boolean[];
+      department_id?: string | string[];
+    },
+  ): Promise<{ data: JobRead[]; total: number }> => {
     const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs", {
-      params: { skip, limit },
+      params: { skip, limit, ...filters },
+      paramsSerializer: {
+        indexes: null,
+      },
     });
-    return response.data.data;
+    return response.data;
   },
 
   /**
@@ -36,7 +48,7 @@ export const adminJobService = {
    */
   searchJobs: async (query: string, skip: number = 0, limit: number = 100): Promise<JobRead[]> => {
     const response = await apiClient.get<{ data: JobRead[]; total: number }>("/jobs/search", {
-      params: { q: query, skip, limit },
+      params: { q: query ? query : undefined, skip, limit },
     });
     return response.data.data;
   },
@@ -153,6 +165,46 @@ export const adminJobService = {
       `/jobs/${jobId}/stages/reorder`,
       reorder,
     );
+    return response.data;
+  },
+
+  /**
+   * Refresh custom extractions for all resumes in a job.
+   * Only accessible by admin.
+   * @param jobId - Job ID
+   */
+  refreshCustomExtractions: async (jobId: string): Promise<void> => {
+    await apiClient.post(`/job/${jobId}/refresh-custom-extractions`);
+  },
+
+  /**
+   * Get detailed information for a specific resume in a job.
+   * Only accessible by admin.
+   * @param jobId - Job ID
+   * @param resumeId - Resume ID
+   * @returns Promise resolving to resume details
+   */
+  /**
+   * Get detailed information for a specific resume in a job.
+   * Only accessible by admin.
+   * @param jobId - Job ID
+   * @param resumeId - Resume ID
+   * @returns Promise resolving to resume details
+   */
+  getJobResumeDetail: async (jobId: string, resumeId: string): Promise<JobResumeInfoResponse> => {
+    const response = await apiClient.get<JobResumeInfoResponse>(
+      `/job/${jobId}/resumes/${resumeId}`,
+    );
+    return response.data;
+  },
+
+  /**
+   * Retrieves a specific job version snapshot by its unique record ID.
+   * @param versionId - Unique identifier of the version snapshot
+   * @returns Promise resolving to the version details
+   */
+  getJobVersion: async (versionId: string): Promise<JobVersionDetail> => {
+    const response = await apiClient.get<JobVersionDetail>(`/jobs/versions/${versionId}`);
     return response.data;
   },
 };

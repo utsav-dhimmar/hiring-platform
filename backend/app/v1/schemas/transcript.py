@@ -7,7 +7,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DialogueTurn(BaseModel):
@@ -51,3 +51,15 @@ class TranscriptStatusResponse(BaseModel):
     clean_text: str | None = None
     generated_at: datetime | None = None
     error: str | None = None
+
+
+class TranscriptUpdate(BaseModel):
+    """Payload for updating an existing transcript."""
+
+    transcript_text: str
+
+
+
+class TranscriptPathUpdate(BaseModel):
+    """Payload for updating system settings like default path."""
+    path: str = Field(..., description="The new system path")

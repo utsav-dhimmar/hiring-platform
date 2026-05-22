@@ -22,21 +22,22 @@ from app.v1.services.admin.department_service import department_service
 router = APIRouter()
 
 
-@router.get("/", response_model=PaginatedData[DepartmentRead])
+@router.get("", response_model=PaginatedData[DepartmentRead])
 async def get_all_departments(
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("departments:access")),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
+    q: str | None = Query(None),
 ) -> Any:
     """Get all departments with pagination."""
     return await department_service.get_all_departments(
-        db=db, skip=skip, limit=limit
+        db=db, skip=skip, limit=limit, q=q
     )
 
 
 @router.post(
-    "/", response_model=DepartmentRead, status_code=status.HTTP_201_CREATED
+    "", response_model=DepartmentRead, status_code=status.HTTP_201_CREATED
 )
 async def create_department(
     *,

@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import jobService from "@/apis/job";
 import type { Job } from "@/types/job";
 import SearchBar from "@/components/shared/SearchBar";
+import { extractErrorMessage } from "@/utils/error";
 
 /**
  * Props for the JobSearch component.
@@ -46,9 +47,10 @@ const JobSearch = ({ onResultsFound, onClear, onError, onSearching }: JobSearchP
     onSearching(true);
     try {
       const results = await jobService.searchJobs(query);
-      onResultsFound(results);
+      onResultsFound(results.data);
     } catch (error) {
-      console.error("Failed to search jobs:", error);
+      const errorMessage = extractErrorMessage(error)
+      console.error(errorMessage || "Failed to search jobs:", error);
       onError("Failed to search jobs. Please try again.");
     } finally {
       setIsLoading(false);

@@ -9,11 +9,17 @@ from celery import Celery
 from celery.signals import worker_process_init
 
 from app.v1.core.config import settings
+from app.v1.core.observability import setup_phoenix_tracing
 
 celery_app = Celery(
     "worker",
     broker=settings.CELERY_BROKER_URL,
-    include=["app.v1.services.resume_upload.tasks"],
+    include=[
+        "app.v1.services.resume_upload.tasks",
+        "app.v1.services.admin.job_tasks",
+        "app.v1.services.evaluation_tasks",
+        "app.v1.services.transcript_tasks"
+    ],
 )
 
 @worker_process_init.connect
@@ -24,6 +30,9 @@ def init_worker(**kwargs):
     """
     from app.v1.core.embeddings import preload_embedding_model
     preload_embedding_model()
+    
+    # Initialize Phoenix Tracing for the worker
+    setup_phoenix_tracing(project_name=settings.PHOENIX_PROJECT_NAME)
 
 celery_app.conf.update(
     task_serializer="json",
@@ -34,3 +43,11 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
 )
+
+# Configure Celery Beat for periodic tasks
+celery_app.conf.beat_schedule = {
+    "deactivate-expired-jobs-every-hour": {
+        "task": "deactivate_expired_jobs_task",
+        "schedule": 3600.0,  # Run every hour (3600 seconds)
+    },
+}

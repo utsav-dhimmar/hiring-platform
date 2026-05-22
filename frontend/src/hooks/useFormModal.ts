@@ -111,7 +111,7 @@ export const useFormModal = <TFormValues extends FieldValues, TItem>(
     ...formMethods,
     isSubmitting,
     submitError,
-    handleSubmit: handleSubmit(handleFormSubmit as any),
+    handleFormSubmit: handleSubmit(handleFormSubmit as any),
     setSubmitError,
   };
 };

@@ -6,7 +6,8 @@ from app.v1.core.logging import get_logger
 from app.v1.core.security import hash_password
 from app.v1.db.models.user import User
 from app.v1.repository.admin_repository import admin_repository
-from app.v1.schemas.admin import UserAdminCreate, UserAdminUpdate
+from app.v1.schemas.admin import UserAdminCreate, UserAdminRead, UserAdminUpdate
+from app.v1.schemas.response import PaginatedData
 from app.v1.services.admin.audit_service import audit_service
 
 logger = get_logger(__name__)
@@ -17,8 +18,8 @@ class UserAdminService:
     """
 
     async def get_all_users(
-        self, db: AsyncSession, skip: int = 0, limit: int = 100
-    ) -> list[User]:
+        self, db: AsyncSession, skip: int = 0, limit: int = 100, q: str | None = None
+    ) -> PaginatedData[UserAdminRead]:
         """
         Retrieve all users with pagination.
 
@@ -27,8 +28,13 @@ class UserAdminService:
         @param limit - Maximum number of records to return
         @returns List of User objects
         """
-        return await admin_repository.get_all_users(
-            db=db, skip=skip, limit=limit
+        users = await admin_repository.get_all_users(
+            db=db, skip=skip, limit=limit, search=q
+        )
+        total = await admin_repository.count_all_users(db=db, search=q)
+        return PaginatedData[UserAdminRead](
+            data=[UserAdminRead.model_validate(user) for user in users],
+            total=total,
         )
 
     async def get_user_by_id(
@@ -92,7 +98,8 @@ class UserAdminService:
         )
         db.add(user)
         await db.commit()
-        await db.refresh(user)
+        # Fetch with role pre-loaded to avoid Lazy Loading error in serialization
+        full_user = await self.get_user_by_id(db, user.id)
 
         await audit_service.log_action(
             db=db,
@@ -104,7 +111,7 @@ class UserAdminService:
         )
 
         logger.info(f"Admin created user with email: {user.email}")
-        return user
+        return full_user
 
     async def update_user(
         self,

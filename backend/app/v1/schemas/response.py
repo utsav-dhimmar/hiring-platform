@@ -6,7 +6,7 @@ This module defines common response schemas for the API.
 
 from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar("T")
 
@@ -45,3 +45,5 @@ class PaginatedData(BaseModel, Generic[T]):
 
     data: list[T]
     total: int
+
+    model_config = ConfigDict(from_attributes=True)

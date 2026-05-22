@@ -6,7 +6,7 @@ Provides data access layer for stage templates and job stage configurations.
 
 import uuid
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -21,12 +21,29 @@ class StageRepository:
 
     # --- Stage Template CRUD ---
 
-    async def get_all_templates(self, db: AsyncSession) -> list[StageTemplate]:
-        """Retrieve all stage templates."""
-        result = await db.execute(
-            select(StageTemplate).order_by(StageTemplate.name)
-        )
-        return list(result.scalars().all())
+    async def get_all_templates(
+        self, 
+        db: AsyncSession, 
+        skip: int = 0, 
+        limit: int = 100, 
+        search: str | None = None
+    ) -> tuple[list[StageTemplate], int]:
+        """Retrieve all stage templates with pagination and search."""
+        stmt = select(StageTemplate)
+        if search:
+            stmt = stmt.where(
+                StageTemplate.name.ilike(f"%{search}%") | 
+                StageTemplate.description.ilike(f"%{search}%")
+            )
+        
+        # Get total count
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = await db.scalar(count_stmt) or 0
+
+        # Get paginated data
+        stmt = stmt.order_by(StageTemplate.name).offset(skip).limit(limit)
+        result = await db.execute(stmt)
+        return list(result.scalars().all()), total
 
     async def get_template_by_id(
         self, db: AsyncSession, template_id: uuid.UUID
@@ -60,6 +77,16 @@ class StageRepository:
         """Delete a stage template."""
         await db.delete(template)
         await db.commit()
+
+    async def count_template_usage(
+        self, db: AsyncSession, template_id: uuid.UUID
+    ) -> int:
+        """Count how many job stage configurations are using this template."""
+        stmt = select(func.count(JobStageConfig.id)).where(
+            JobStageConfig.template_id == template_id
+        )
+        result = await db.execute(stmt)
+        return result.scalar() or 0
 
     # --- Job Stage Config CRUD ---
 
@@ -104,8 +131,14 @@ class StageRepository:
             if value is not None:
                 setattr(stage_config, key, value)
         await db.commit()
-        await db.refresh(stage_config)
-        return stage_config
+        
+        # Re-fetch with template info to satisfy response schema
+        result = await db.execute(
+            select(JobStageConfig)
+            .where(JobStageConfig.id == stage_config.id)
+            .options(selectinload(JobStageConfig.template))
+        )
+        return result.scalar_one()
 
     async def delete_job_stage(
         self, db: AsyncSession, stage_config: JobStageConfig
