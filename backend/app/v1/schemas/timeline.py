@@ -1,7 +1,14 @@
 from datetime import datetime
 from typing import Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uuid
+
+class AssociateMarkEntry(BaseModel):
+    """A single associate's weighted evaluation result for a stage."""
+    associate_name: str
+    marks: Optional[float] = None
+    result: Optional[str] = None
+
 
 class TimelineEvent(BaseModel):
     event_type: str  # "stage" or "decision"
@@ -17,7 +24,12 @@ class TimelineEvent(BaseModel):
     stage_id: Optional[uuid.UUID] = None
     stage_name: Optional[str] = None
     job_id: Optional[uuid.UUID] = None
+    job_stage_config_id: Optional[uuid.UUID] = None
     metadata: Optional[dict[str, Any]] = None
+    associate_marks: list[AssociateMarkEntry] = Field(
+        default_factory=list,
+        description="Associate evaluation marks (name: marks out of 5) for github+question round stages",
+    )
 
 class HiringTimelineResponse(BaseModel):
     candidate_id: uuid.UUID

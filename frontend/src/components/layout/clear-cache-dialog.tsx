@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { adminSystemService } from "@/apis/admin/admin-system"
 import { toast } from "sonner"
 import { Loader2, Search } from "lucide-react"
 import { extractErrorMessage } from "@/utils/error"
+import { useGetAllCacheKeys } from "@/hooks/queries/admin/useClearCache"
+import { useClearCacheMutation } from "@/hooks/mutations/admin/useClearCache"
+import { useDebouncedValue } from "@/hooks/useDebounced"
 
 interface ClearCacheDialogProps {
   open: boolean
@@ -23,33 +25,26 @@ interface ClearCacheDialogProps {
 }
 
 export function ClearCacheDialog({ open, onOpenChange }: ClearCacheDialogProps) {
-  const [availableKeys, setAvailableKeys] = useState<string[]>([])
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
-  const [isLoadingKeys, setIsLoadingKeys] = useState(false)
-  const [isClearing, setIsClearing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const fetchKeys = useCallback(async () => {
-    setIsLoadingKeys(true)
-    try {
-      const response = await adminSystemService.getAllKeys()
-      if (response.success) {
-        setAvailableKeys(() => response.data.keys.filter((key) => !key.includes("_kombu") && !key.includes("_celery"))) // remove celery and kombu keys
-      }
-    } catch (error: any) {
-      toast.error("Failed to fetch cache keys")
-    } finally {
-      setIsLoadingKeys(false)
-    }
-  }, [])
+  const debouncedSearchQuery = useDebouncedValue(searchQuery)
+
+  const { data: availableKeys = [], error, loading } = useGetAllCacheKeys({ enableQuery: open, pattern: debouncedSearchQuery })
+  const clearCacheMutation = useClearCacheMutation()
+
+  if (error) {
+    toast.error(extractErrorMessage(error))
+  }
 
   useEffect(() => {
     if (open) {
-      fetchKeys()
-      setSelectedKeys(new Set())
-      setSearchQuery("")
+      queueMicrotask(() => {
+        setSelectedKeys(new Set())
+        setSearchQuery("")
+      })
     }
-  }, [open, fetchKeys])
+  }, [open])
 
   const filteredKeys = availableKeys.filter((key) =>
     key.toLowerCase().includes(searchQuery.toLowerCase())
@@ -74,50 +69,34 @@ export function ClearCacheDialog({ open, onOpenChange }: ClearCacheDialogProps) 
   }
 
   const handleClear = async () => {
-    setIsClearing(true)
     const keysToClear = Array.from(selectedKeys)
 
     try {
-      if (keysToClear.length === 0) {
-        // Clear everything if nothing selected
-        await adminSystemService.clearCache()
-        toast.success("System cache cleared successfully")
+      const result = await clearCacheMutation.mutateAsync(keysToClear)
+
+      if (result.success) {
+        toast.success(result.message || "Cache cleared successfully")
       } else {
-        // Clear selected keys one by one as requested
-        const results = await Promise.allSettled(
-          keysToClear.map((key) => adminSystemService.clearCache(key))
-        )
-
-        const successCount = results.filter((r) => r.status === "fulfilled").length
-        const failCount = results.filter((r) => r.status === "rejected").length
-
-        if (failCount === 0) {
-          toast.success(`Successfully cleared ${successCount} cache keys`)
-        } else {
-          toast.error(`Cleared ${successCount} keys, failed to clear ${failCount} keys`)
-        }
+        toast.error(result.message || "Failed to clear cache")
       }
       onOpenChange(false)
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage = extractErrorMessage(error);
-
       toast.error(errorMessage || "Failed to clear cache")
-    } finally {
-      setIsClearing(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card/95 backdrop-blur-xl border-muted-foreground/20 shadow-2xl rounded-2xl h-[600px]">
-        <DialogHeader className="p-4 pb-2 border-b border-muted-foreground/10 bg-muted/30">
+        <DialogHeader className="p-2 pb-1 border-b border-muted-foreground/10 bg-muted/30">
           <DialogTitle className="text-xl font-black tracking-tight text-foreground capitalize">Clear System Cache</DialogTitle>
           <DialogDescription className="text-sm">
             Select specific cache keys to clear or clear the entire system cache.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 py-2 px-4 flex-1 overflow-hidden">
+        <div className="flex flex-col gap-2 py-1 px-2 flex-1 overflow-hidden">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -147,12 +126,12 @@ export function ClearCacheDialog({ open, onOpenChange }: ClearCacheDialogProps) 
           </div>
 
           <ScrollArea className="flex-1 rounded-xl border border-muted-foreground/10 bg-muted/20 p-2 shadow-inner overflow-hidden">
-            {isLoadingKeys ? (
+            {loading ? (
               <div className="flex h-full  items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : filteredKeys.length > 0 ? (
-              <div className="flex flex-col gap-2 pb-8">
+              <div className="flex flex-col gap-2 pb-2">
                 {filteredKeys.map((key) => (
                   <div key={key} className="flex items-center gap-3 p-2 rounded-lg hover:bg-background transition-colors ">
                     <Checkbox
@@ -192,7 +171,7 @@ export function ClearCacheDialog({ open, onOpenChange }: ClearCacheDialogProps) 
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isClearing}
+            disabled={clearCacheMutation.isPending}
             className="rounded-xl"
           >
             Cancel
@@ -200,7 +179,7 @@ export function ClearCacheDialog({ open, onOpenChange }: ClearCacheDialogProps) 
           <Button
             variant="destructive"
             onClick={handleClear}
-            isLoading={isClearing}
+            isLoading={clearCacheMutation.isPending}
             className="rounded-xl  px-6 shadow-destructive/20"
           >
             {filteredKeys.length == selectedKeys.size ? "Clear Everything" : `Clear Selected (${selectedKeys.size})`}

@@ -5,9 +5,8 @@ import type {
   HiringReport,
   RecentUploadRead,
   PaginatedResponse,
-  JobPipelineStats,
 } from "@/types/admin";
-
+import type { JobPipelineStats } from "@/types/job";
 const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
 /**
@@ -18,9 +17,7 @@ export const adminAnalyticsService = {
    * Get all audit logs (admin and hr admin only).
    */
   getAuditLogs: async (
-    skip: number = 0,
-    limit: number = 100,
-    q?: string
+    { skip = 0, limit = 10, q }: { skip?: number; limit?: number; q?: string }
   ): Promise<PaginatedResponse<AuditLogRead>> => {
     const response = await apiClient.get<PaginatedResponse<AuditLogRead>>(
       `${ADMIN_PATH}/audit-logs`,
@@ -35,9 +32,7 @@ export const adminAnalyticsService = {
    * Get recent file uploads (admin only).
    */
   getRecentUploads: async (
-    skip: number = 0,
-    limit: number = 50,
-    q?: string
+    { skip = 0, limit = 10, q }: { skip?: number; limit?: number; q?: string }
   ): Promise<PaginatedResponse<RecentUploadRead>> => {
     const response = await apiClient.get<PaginatedResponse<RecentUploadRead>>(
       `${ADMIN_PATH}/recent-uploads`,

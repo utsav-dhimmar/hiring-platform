@@ -30,6 +30,8 @@ from app.v1.schemas.upload import (
     ResumeMatchAnalysis,
     ResumeStatusResponse,
     ResumeUploadResponse,
+    BulkResumeUploadResponse,
+    FailedUpload,
 )
 from app.v1.schemas.user import UserRead
 
@@ -52,7 +54,48 @@ class ResumeUploadService:
         self.processor = ResumeProcessor()
         self.background = BackgroundProcessor(self.processor)
 
-    async def upload_resume_for_job(
+    async def upload_resumes_for_job(
+        self,
+        *,
+        db: AsyncSession,
+        job_id: uuid.UUID,
+        resumes: list[UploadFile],
+        current_user: UserRead,
+    ) -> BulkResumeUploadResponse:
+        """Handle the upload of multiple resumes."""
+        successful = []
+        failed = []
+
+        for resume in resumes:
+            try:
+                result = await self._upload_single_resume(
+                    db=db,
+                    job_id=job_id,
+                    resume=resume,
+                    current_user=current_user,
+                )
+                successful.append(result)
+            except HTTPException as e:
+                failed.append(
+                    FailedUpload(
+                        file_name=resume.filename or "Unknown",
+                        error=e.detail,
+                    )
+                )
+            except Exception as e:
+                failed.append(
+                    FailedUpload(
+                        file_name=resume.filename or "Unknown",
+                        error=str(e),
+                    )
+                )
+
+        return BulkResumeUploadResponse(
+            successful=successful,
+            failed=failed,
+        )
+
+    async def _upload_single_resume(
         self,
         *,
         db: AsyncSession,
@@ -158,9 +201,15 @@ class ResumeUploadService:
                     detail="This candidate is already linked to this job.",
                 )
             
-            # Find the resume record for this file (only fully parsed ones)
-            resume_stmt = select(Resume.id).where(Resume.file_id == existing_global_file.id, Resume.parsed == True)
+            # Find the resume record for this file (in any parsing state)
+            resume_stmt = select(Resume.id).where(Resume.file_id == existing_global_file.id).order_by(Resume.uploaded_at.desc()).limit(1)
             existing_resume_id = (await db.execute(resume_stmt)).scalar()
+
+            if not existing_resume_id:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to find existing resume record for deduplication.",
+                )
 
             # Link existing candidate to this new job via CrossJobMatch
             new_xm = CrossJobMatch(

@@ -1,7 +1,8 @@
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Rectangle, ResponsiveContainer, Label } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig, } from "@/components/ui/chart"
-import { MAX_LOCATION_BAR_CHART_DISPLAY_LIMIT, HR_DECISION_OPTIONS } from "@/constants";
-import type { JobCandidatesStatsProps } from "@/components/candidate/JobCandidatesStats";
+import { MAX_LOCATION_BAR_CHART_DISPLAY_LIMIT, HR_DECISION_OPTIONS, CHART_COLORS } from "@/constants";
+import type { JobCandidatesStatsProps } from "@/components/job/candidates/JobCandidatesStats";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const chartConfig = {
   value: {
@@ -40,16 +41,16 @@ export function CandidatesDistributionChart({ stats }: CandidatesDistributionCha
   ];
 
   const colors = {
-    Total: ["#93c5fd", "#60a5fa"],     // soft blue
-    [HR_DECISION_OPTIONS.PASS]: ["#86efac", "#4ade80"],  // soft green
-    [HR_DECISION_OPTIONS.MAY_BE]: ["#fde68a", "#fcd34d"],     // soft amber
-    [HR_DECISION_OPTIONS.FAIL]: ["#fca5a5", "#f87171"],  // soft red
-    [HR_DECISION_OPTIONS.PENDING]: ["#cbd5f5", "#a5b4fc"],   // soft slate/indigo
+    Total: CHART_COLORS.decisions.total.gradient,
+    [HR_DECISION_OPTIONS.PASS]: CHART_COLORS.decisions[HR_DECISION_OPTIONS.PASS].gradient,
+    [HR_DECISION_OPTIONS.MAY_BE]: CHART_COLORS.decisions[HR_DECISION_OPTIONS.MAY_BE].gradient,
+    [HR_DECISION_OPTIONS.FAIL]: CHART_COLORS.decisions[HR_DECISION_OPTIONS.FAIL].gradient,
+    [HR_DECISION_OPTIONS.PENDING]: CHART_COLORS.decisions[HR_DECISION_OPTIONS.PENDING].gradient,
   };
 
   return (
     <div className="w-full animate-in fade-in zoom-in-95 duration-700">
-      <ChartContainer config={chartConfig} className="w-full min-h-[100px] max-h-[300px]">
+      <ChartContainer config={chartConfig} className="w-full min-h-25 max-h-75">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
@@ -216,18 +217,11 @@ export function StagesBarChart({ stages, onStageClick, selectedStage }: StagesBa
       value,
       gradientId: `gradientStage-${index}`,
     }));
-  const colors = [
-    ["#ddd6fe", "#c4b5fd"], // soft violet
-    ["#c7d2fe", "#a5b4fc"], // soft indigo
-    ["#bfdbfe", "#93c5fd"], // soft blue
-    ["#a5f3fc", "#67e8f9"], // soft cyan
-    ["#99f6e4", "#5eead4"], // soft teal
-    ["#a7f3d0", "#6ee7b7"], // soft emerald
-  ];
+  const colors = CHART_COLORS.stages;
 
   if (data.length === 0) {
     return (
-      <div className="w-full h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-3xl">
+      <div className="w-full h-75 flex items-center justify-center border-2 border-dashed border-muted rounded-3xl">
         <div className="text-center space-y-2">
           <p className="text-muted-foreground font-medium italic">No stage data available yet.</p>
           <p className="text-xs text-muted-foreground/60">Upload candidates to see stage distribution.</p>
@@ -245,7 +239,7 @@ export function StagesBarChart({ stages, onStageClick, selectedStage }: StagesBa
             color: "hsl(var(--primary))",
           },
         }}
-        className="w-full min-h-[100px] max-h-[300px]"
+        className="w-full min-h-25 max-h-75"
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -384,11 +378,16 @@ interface LocationBarChartProps {
 
 export function LocationBarChart({ locations }: LocationBarChartProps) {
   const sortedEntries = Object.entries(locations).sort((a, b) => b[1] - a[1]);
+  const isMobile = useIsMobile();
 
   let displayData: [string, number][];
-  if (sortedEntries.length > MAX_LOCATION_BAR_CHART_DISPLAY_LIMIT) {
+  if (sortedEntries.length > MAX_LOCATION_BAR_CHART_DISPLAY_LIMIT && !isMobile) {
     const topX = sortedEntries.slice(0, MAX_LOCATION_BAR_CHART_DISPLAY_LIMIT);
     const others = sortedEntries.slice(MAX_LOCATION_BAR_CHART_DISPLAY_LIMIT).reduce((acc, [_, val]) => acc + val, 0);
+    displayData = [...topX, ["Other", others]];
+  } else if (isMobile && sortedEntries.length > 3) {
+    const topX = sortedEntries.slice(0, 3);
+    const others = sortedEntries.slice(3).reduce((acc, [_, val]) => acc + val, 0);
     displayData = [...topX, ["Other", others]];
   } else {
     displayData = sortedEntries;
@@ -400,17 +399,11 @@ export function LocationBarChart({ locations }: LocationBarChartProps) {
     gradientId: `gradientLocation-${index}`,
   }));
 
-  const colors = [
-    ["#fed7aa", "#fdba74"], // soft orange
-    ["#fde68a", "#fcd34d"], // soft amber
-    ["#fef08a", "#fde047"], // soft yellow
-    ["#fdba74", "#fb923c"], // peach
-    ["#fcd34d", "#fbbf24"], // warm amber
-  ];
+  const colors = CHART_COLORS.locations;
 
   if (data.length === 0) {
     return (
-      <div className="w-full h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-3xl">
+      <div className="w-full h-75 flex items-center justify-center border-2 border-dashed border-muted rounded-3xl">
         <div className="text-center space-y-2">
           <p className="text-muted-foreground font-medium italic">No location data available yet.</p>
           <p className="text-xs text-muted-foreground/60">Candidate locations will appear here once extracted.</p>
@@ -428,7 +421,7 @@ export function LocationBarChart({ locations }: LocationBarChartProps) {
             color: "hsl(var(--primary))",
           },
         }}
-        className="w-full min-h-[100px] max-h-[300px]"
+        className="w-full min-h-25 max-h-75"
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

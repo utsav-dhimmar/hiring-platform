@@ -1,11 +1,12 @@
 import client from "@/apis/client";
 import type {
+  PaginatedResponse
+} from "@/types/admin";
+import type {
   JobPositionRead,
   JobPositionCreate,
   JobPositionUpdate,
-  PaginatedResponse
-} from "@/types/admin";
-
+} from "@/types/jobPosition";
 /**
  * Service for managing job positions via the admin API.
  */
@@ -17,14 +18,12 @@ export const adminJobPositionService = {
    * @param search - Optional search query
    */
   getAllPositions: async (
-    skip: number = 0,
-    limit: number = 100,
-    search?: string
+    { skip = 0, limit = 10, q }: { skip?: number; limit?: number; q?: string },
   ): Promise<PaginatedResponse<JobPositionRead>> => {
     const response = await client.get<PaginatedResponse<JobPositionRead>>(
       "/job-positions",
       {
-        params: { skip, limit, q: search ? search : undefined },
+        params: { skip, limit, q: q ? q : undefined },
       }
     );
     return response.data;

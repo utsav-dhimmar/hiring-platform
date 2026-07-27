@@ -315,6 +315,7 @@ class AdminRepository:
         @param permission_ids - List of permission identifiers to assign
         @returns Updated role with assigned permissions
         """
+        role = await self.get_role_by_id(db, role.id)
         permissions = await db.execute(
             select(Permission).where(Permission.id.in_(permission_ids))
         )
@@ -633,7 +634,7 @@ class AdminRepository:
         screening_stmt = (
             select(JobStageConfig.job_id, func.count(func.distinct(CandidateStage.candidate_id)))
             .join(CandidateStage, JobStageConfig.id == CandidateStage.job_stage_id)
-            .where(JobStageConfig.job_id.in_(job_ids), JobStageConfig.stage_order == 0)
+            .where(JobStageConfig.job_id.in_(job_ids), JobStageConfig.stage_order == 1)
             .group_by(JobStageConfig.job_id)
         )
         screening_res = await db.execute(screening_stmt)
@@ -741,7 +742,7 @@ class AdminRepository:
         screening_stmt = (
             select(JobStageConfig.job_id, func.count(func.distinct(CandidateStage.candidate_id)))
             .join(CandidateStage, JobStageConfig.id == CandidateStage.job_stage_id)
-            .where(JobStageConfig.job_id.in_(job_ids), JobStageConfig.stage_order == 0)
+            .where(JobStageConfig.job_id.in_(job_ids), JobStageConfig.stage_order == 1)
             .group_by(JobStageConfig.job_id)
         )
         screening_counts = {row[0]: row[1] for row in (await db.execute(screening_stmt)).all()}

@@ -1,48 +1,29 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { transcriptService } from "@/apis/transcript";
-import type { Transcript } from "@/types/transcript";
+/**
+ * @module TranscriptPage
+ * @component TranscriptPage
+ *
+ * Dashboard view for displaying and analyzing transcripts from candidate interviews or evaluations.
+ */
+import { useNavigate, useLocation } from "react-router-dom";
+import { useTranscriptQuery } from "@/hooks/queries/candidates";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, ArrowLeft, FileText, User, UserCheck } from "lucide-react";
-import { toast } from "sonner";
 import AppPageShell from "@/components/shared/AppPageShell";
-import { DateDisplay } from "@/components/shared";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 
 /**
  * Page for viewing the full content of an interview transcript.
  * Displays the conversation in a dialogue format with speaker indicators.
  */
 export default function TranscriptPage() {
-  const { candidateName: _nameSlug } = useParams<{ candidateName: string }>();
   const location = useLocation();
   const navigate = useNavigate();
 
   const transcriptId = location.state?.transcriptId;
   const candidateName = location.state?.candidateName;
 
-  const [transcript, setTranscript] = useState<Transcript | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchTranscript = async () => {
-      if (!transcriptId) return;
-
-      setIsLoading(true);
-      try {
-        const data = await transcriptService.getTranscript(transcriptId);
-
-        setTranscript(data);
-      } catch (error) {
-        console.error("Failed to fetch transcript:", error);
-        toast.error("Failed to load interview transcript");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTranscript();
-  }, [transcriptId]);
+  const { data: transcript, isLoading } = useTranscriptQuery(transcriptId);
 
   if (isLoading) {
     return (

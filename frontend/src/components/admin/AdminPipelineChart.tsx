@@ -6,13 +6,15 @@ import {
   ChartTooltip,
 } from "@/components/ui/chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { JobPipelineStats } from "@/types/admin";
+
 import { cn } from "@/lib/utils";
+import { CHART_COLORS } from "@/constants";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
+import type { JobPipelineStats } from "@/types/job";
 
 interface StageCentricChartProps {
   data: JobPipelineStats[];
@@ -125,14 +127,7 @@ export function StageCentricChart({ data }: StageCentricChartProps) {
 
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {};
-    const colors = [
-      "hsl(210, 80%, 85%)", // Soft Blue
-      "hsl(150, 60%, 85%)", // Soft Green
-      "hsl(280, 65%, 88%)", // Soft Purple
-      "hsl(340, 70%, 90%)", // Soft Rose
-      "hsl(40, 80%, 85%)",  // Soft Amber
-      "hsl(180, 50%, 85%)", // Soft Teal
-    ];
+    const colors = CHART_COLORS.pipeline;
 
     jobNames.forEach((name, index) => {
       const safeKey = name.replace(/[^a-zA-Z0-9]/g, "_");
@@ -187,13 +182,14 @@ export function StageCentricChart({ data }: StageCentricChartProps) {
                           textAnchor="end"
                           fill="currentColor"
                           transform="rotate(-45)"
-                          className="text-xs"
+                          className="text-xs uppercase"
+                          // className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground"
                         >
                           {payload.value.length > 15 ? payload.value.substring(0, 12) + "..." : payload.value}
                         </text>
                       </HoverCardTrigger>
-                      <HoverCardContent className="w-auto p-2 bg-popover/90 backdrop-blur-sm border-primary/20 shadow-xl" side="top">
-                        <p className="text-xs font-bold uppercase text-foreground">{payload.value}</p>
+                      <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="top">
+                        <p className="text-xs">{payload.value}</p>
                       </HoverCardContent>
                     </HoverCard>
                   </g>

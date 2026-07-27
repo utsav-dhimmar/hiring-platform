@@ -3,8 +3,7 @@
  * including its description, required skills, and hiring stages.
  */
 
-import jobService from "@/apis/job";
-import { InfoLabel } from "@/components/shared";
+import { InfoLabel } from "@/components/shared/InfoLabel";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,8 +11,9 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/componen
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Separator } from "@/components/ui/separator";
+import { useJobVersion } from "@/hooks/queries/jobs/useJob";
 import { cn } from "@/lib/utils";
-import type { Job, JobVersionDetail } from "@/types/job";
+import type { Job } from "@/types/job";
 import { slugify } from "@/utils/slug";
 import { Check, Edit2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -62,7 +62,7 @@ const InfoSection = ({
     )}
   >
     <CardHeader>
-      <CardTitle className={cn("text-sm font-black text-muted-foreground ", titleClassName)}>
+      <CardTitle className={cn("text-sm font-black", titleClassName)}>
         {title}
       </CardTitle>
       {action ? <CardAction>{action}</CardAction> : null}
@@ -89,12 +89,16 @@ const InfoSection = ({
  */
 export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
-  const [selectedVersion, setSelectedVersion] = useState<JobVersionDetail | null>(null);
-  const [isLoadingVersion, setIsLoadingVersion] = useState(false);
   const navigate = useNavigate();
   const sortedVersions = useMemo(() => {
     return [...(job?.job_versions || [])].sort((a, b) => b.version_num - a.version_num);
   }, [job?.job_versions]);
+
+  // Fetch selected version using TanStack Query
+  const { data: selectedVersion, loading: isLoadingVersion } = useJobVersion(
+    selectedVersionId,
+    isOpen && !!selectedVersionId
+  );
 
   useEffect(() => {
     if (isOpen && job) {
@@ -103,48 +107,24 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
         setSelectedVersionId(
           job.processing_version
             ? sortedVersions.filter(({ version_num }) => version_num == job.processing_version)[0]
-                .id
+              .id
             : sortedVersions[0].id,
         );
       } else {
-        // Fallback to current job data if no versions
-        setSelectedVersion({
-          id: "current",
-          job_id: job.id,
-          version_number: job.version || 1,
-          title: job.title,
-          jd_text: job.jd_text,
-          jd_json: job.jd_json,
-          custom_extraction_fields: job.custom_extraction_fields || null,
-          created_at: job.created_at,
-        });
+        setSelectedVersionId(null);
       }
     } else {
       setSelectedVersionId(null);
-      setSelectedVersion(null);
     }
   }, [isOpen, job]);
-
-  useEffect(() => {
-    if (selectedVersionId && job) {
-      if (selectedVersionId === "current") return;
-
-      setIsLoadingVersion(true);
-      jobService
-        .getJobVersion(selectedVersionId)
-        .then((data) => setSelectedVersion(data))
-        .catch((err) => console.error("Failed to fetch version:", err))
-        .finally(() => setIsLoadingVersion(false));
-    }
-  }, [selectedVersionId, job]);
 
   if (!job) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card/95 backdrop-blur-xl border-muted-foreground/20 shadow-2xl rounded-2xl h-[600px]">
-        <DialogHeader className="p-2 pb-2 border-b border-muted-foreground/10 bg-muted/30">
-          <div className="flex flex-col items-start justify-between gap-4">
+        <DialogHeader className="p-2 pb-1 border-b border-muted-foreground/10 bg-muted/30">
+          <div className="flex flex-col items-start justify-between gap-1">
             <DialogTitle className="text-lg font-black tracking-tight text-foreground capitalize flex flex-row items-center justify-between gap-2 ">
               {job.title}
               <Button
@@ -161,7 +141,7 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                   <HoverCardTrigger delay={10} closeDelay={10}>
                     <Edit2 />
                   </HoverCardTrigger>
-                  <HoverCardContent side="right" className="w-auto px-2 py-1 rounded-md">
+                  <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="right">
                     Edit Job
                   </HoverCardContent>
                 </HoverCard>
@@ -198,7 +178,7 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 p-4 overflow-y-auto overflow-x-hidden min-h-0 bg-muted/5">
+        <div className="flex-1 p-2 overflow-y-auto overflow-x-hidden min-h-0 bg-muted/5">
           <div className="space-y-4 pb-4">
             {/* Job Description Card */}
             <InfoSection
@@ -229,7 +209,7 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                         return (
                           <HoverCard key={v.id}>
                             <HoverCardTrigger>{button}</HoverCardTrigger>
-                            <HoverCardContent className="w-fit p-3 text-xs font-medium">
+                            <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="top">
                               This version is currently being processed.
                             </HoverCardContent>
                           </HoverCard>
@@ -267,10 +247,9 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                     <Badge
                       key={skill.name}
                       variant="secondary"
-                      className="rounded-xl px-3 py-1 text-xs font-semibold bg-secondary/40 hover:bg-secondary text-secondary-foreground border-muted-foreground/5 transition-colors"
-                      title={skill.description || undefined}
+                      className="rounded-xl px-1.5 py-1 text-xs font-semibold bg-secondary/40 hover:bg-secondary text-secondary-foreground border-muted-foreground/5 transition-colors"
                     >
-                      {skill.name}
+                      {skill.name}{" - "} {skill.default_weightage}%
                     </Badge>
                   ))}
                 </div>
@@ -283,7 +262,11 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                 <InfoLabel
                   label="Passing Threshold"
                   value={`${job.passing_threshold}%`}
-                  valueClassName="text-base"
+                />
+                <InfoLabel
+                  label="Question Passing Threshold"
+                  value={`${job.question_bank_passing_threshold}%`}
+
                 />
                 <Separator orientation="vertical" className="h-12 bg-gray-300" />
                 <InfoLabel label="Vacancy" value={job.vacancy} valueClassName="text-base" />
@@ -291,7 +274,7 @@ export function JobInfoModal({ isOpen, onClose, job }: JobInfoModalProps) {
                 <InfoLabel
                   label="Position Level"
                   value={job.position?.name || "N/A"}
-                  valueClassName="text-base"
+
                 />
                 <Separator orientation="vertical" className="h-12 bg-gray-300" />
               </div>

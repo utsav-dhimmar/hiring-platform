@@ -2,6 +2,8 @@
 Pydantic schemas for Job-related data transfer.
 """
 
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
@@ -10,6 +12,7 @@ from app.v1.schemas.job_stage import JobStageConfigRead
 from app.v1.schemas.skill import SkillRead
 from app.v1.schemas.job_priority import JobPriorityRead
 from app.v1.schemas.job_position import JobPositionRead
+from app.v1.schemas.associate import AssociateRead
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Any
 
@@ -27,11 +30,16 @@ class JobBase(BaseModel):
     jd_json: dict | None = None
     is_active: bool = True
     passing_threshold: float = 70.0
+    question_bank_passing_threshold: float = 70.0
     custom_extraction_fields: list[str] | None = None
     priority_id: uuid.UUID | None = None
+    associate_reminder_hours: int | None = Field(None, description="Hours between reminders for associates")
     position_id: uuid.UUID | None = None
     priority_start_date: datetime | None = None
     priority_end_date: datetime | None = None
+    task_file_path: str | None = None
+    task_skills: list[str] | None = None
+    send_ai_evaluation_to_associate: bool = True
 
 
 class StageInput(BaseModel):
@@ -53,7 +61,10 @@ class JobCreate(JobBase):
     If stages is [] (empty list), no stages will be created.
     """
 
+    position_id: uuid.UUID = Field(..., description="Position is required to create a job")
     skill_ids: list[uuid.UUID] = []
+    associate_ids: list[uuid.UUID] = []
+    skill_weightages: dict[uuid.UUID, float] | None = Field(None, description="Mapping of skill ID to its weightage")
     processing_version: int | None = Field(None, description="Pin to a specific job version for matching")
     stages: list[StageInput] | None = Field(
         default=None,
@@ -83,13 +94,21 @@ class JobUpdate(BaseModel):
     jd_json: dict | None = None
     is_active: bool | None = None
     skill_ids: list[uuid.UUID] | None = None
+    associate_ids: list[uuid.UUID] | None = None
+    skill_weightages: dict[uuid.UUID, float] | None = Field(None, description="Mapping of skill ID to its weightage")
+
     passing_threshold: float | None = None
+    question_bank_passing_threshold: float | None = None
     custom_extraction_fields: list[str] | None = None
     priority_id: uuid.UUID | None = None
+    associate_reminder_hours: int | None = Field(None, description="Hours between reminders for associates")
     position_id: uuid.UUID | None = None
     priority_start_date: datetime | None = None
     priority_end_date: datetime | None = None
     stages: list[StageInput] | None = None
+    task_file_path: str | None = None
+    task_skills: list[str] | None = None
+    send_ai_evaluation_to_associate: bool | None = None
 
 
 class JobStatusUpdate(BaseModel):
@@ -137,11 +156,13 @@ class JobRead(JobBase):
     version: int = 1
     total_versions: int = 0
     job_versions: list[JobVersionMinimal] = []
-    created_by: uuid.UUID
+    created_by: uuid.UUID | None = None
     created_at: datetime
     department_name: str | None = None
     department: DepartmentRead | None = None
     skills: list[SkillRead] = []
+    associates: list[AssociateRead] = []
+    job_skill_weightages: dict[uuid.UUID, float] | None = Field(default=None, description="Mapping of skill ID to its weightage for this job")
     stages: list[JobStageConfigRead] = []
     priority: JobPriorityRead | None = None
     position: JobPositionRead | None = None
@@ -150,6 +171,8 @@ class JobRead(JobBase):
     total_candidates: int | None = None
     current_session_candidates: int | None = None
     activity_sessions: list[JobActivitySession] | None = None
+    default_paper_assigned: bool = False
+    message: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -211,3 +234,46 @@ class JobTitlesListRead(BaseModel):
     """
 
     data: list[JobTitleRead]
+
+
+class JobTaskRead(BaseModel):
+    """
+    Schema for reading a job's task file path and extracted skills.
+    """
+
+    task_file_path: str | None = None
+    task_skills: list[str] | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# --- Grouped Job Titles (title → variants) ---
+
+class JobTitleVariantRead(BaseModel):
+    """
+    A single variant under a job title group, identified by its unique (job_id, position_id).
+    """
+
+    job_id: uuid.UUID
+    position_id: uuid.UUID
+    position_name: str
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JobTitleGroupRead(BaseModel):
+    """
+    A job title with all its position variants grouped together.
+    """
+
+    title: str
+    variants: list[JobTitleVariantRead]
+
+
+class JobTitlesGroupedListRead(BaseModel):
+    """
+    Schema for a list of grouped job titles.
+    """
+
+    data: list[JobTitleGroupRead]

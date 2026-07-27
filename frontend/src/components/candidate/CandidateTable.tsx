@@ -8,13 +8,16 @@
  * All optional fields (location, applied_at, phone) safely fall back to "N/A".
  */
 
-import type { PaginationState, OnChangeFn } from "@tanstack/react-table";
+import { useMemo } from "react";
+import type { PaginationState, OnChangeFn, ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/shared/DataTable";
 import { useCandidateTableFilters, type CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";
 import { useCandidateTableColumns } from "./CandidateTableColumns";
 import { CandidateTableFilters } from "./CandidateTableFilters";
 import type { UnifiedCandidate } from "@/types/candidate";
 import type { DateRange } from "react-day-picker";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { Job } from "@/types/job";
 
 export interface CandidateTableProps<T extends UnifiedCandidate> {
   candidates: T[];
@@ -33,9 +36,15 @@ export interface CandidateTableProps<T extends UnifiedCandidate> {
   showLocationFilter?: boolean;
   showStatusFilter?: boolean;
   onFiltersChange?: (filters: CandidateActiveFilters) => void;
-  stageOptions?: string[];
+  stageOptions?: { id: string; name: string }[];
   activitySessions?: [number, { start_date: string; end_date: string }][];
   initialDateRange?: DateRange | undefined;
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: OnChangeFn<Record<string, boolean>>;
+  showCheckboxes?: boolean;
+  job?: Job | null;
+  filters: CandidateActiveFilters;
+  setFilters: (filters: Partial<CandidateActiveFilters>) => void;
 }
 
 export function CandidateTable<T extends UnifiedCandidate>({
@@ -54,10 +63,14 @@ export function CandidateTable<T extends UnifiedCandidate>({
   showJobContext = false,
   showLocationFilter = true,
   showStatusFilter = true,
-  onFiltersChange,
   stageOptions: stageOptionsProp,
   activitySessions,
-  initialDateRange,
+  filters,
+  setFilters,
+  rowSelection,
+  onRowSelectionChange,
+  showCheckboxes = false,
+  job
 }: CandidateTableProps<T>) {
   const {
     nameFilter,
@@ -97,7 +110,21 @@ export function CandidateTable<T extends UnifiedCandidate>({
     setActivitySearch,
     hrScoreFilter,
     setHrScoreFilter,
-  } = useCandidateTableFilters(candidates, externalNameFilter, onNameFilterChange, showJobContext, isServerSide, onFiltersChange, passing_threshold, stageOptionsProp, activitySessions, initialDateRange);
+    testEmailSentFilter,
+    setTestEmailSentFilter,
+    isTestPaperFilterEnabled,
+  } = useCandidateTableFilters(
+    candidates,
+    filters,
+    setFilters,
+    showJobContext,
+    isServerSide,
+    passing_threshold,
+    stageOptionsProp,
+    activitySessions,
+    externalNameFilter,
+    onNameFilterChange
+  );
 
   const columns = useCandidateTableColumns({
     renderActions,
@@ -105,6 +132,36 @@ export function CandidateTable<T extends UnifiedCandidate>({
     showJobContext,
   });
 
+  const columnsWithSelection = useMemo(() => {
+    if (!showCheckboxes) return columns;
+
+    const selectColumn: ColumnDef<T> = {
+      id: "select",
+      header: ({ table }) => (
+        <div className="flex items-center justify-center pl-2.5 pr-1.5">
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={!table.getIsAllPageRowsSelected() && table.getIsSomePageRowsSelected()}
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center pl-2.5 pr-1.5" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        </div>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    };
+
+    return [selectColumn, ...columns];
+  }, [columns, showCheckboxes]);
   return (
     <div className="w-full space-y-3">
       <CandidateTableFilters
@@ -145,15 +202,20 @@ export function CandidateTable<T extends UnifiedCandidate>({
         hasActiveFilters={hasActiveFilters}
         clearFilters={clearFilters}
         resultCount={filteredCandidates.length}
-        totalCount={total != null && total !== candidates.length ? total : candidates.length}
+        totalCount={total || candidates.length}
         minDate={minDate}
         availableJobs={availableJobs}
         hrScoreFilter={hrScoreFilter}
         setHrScoreFilter={setHrScoreFilter}
+        testEmailSentFilter={testEmailSentFilter}
+        setTestEmailSentFilter={setTestEmailSentFilter}
+        isTestPaperFilterEnabled={isTestPaperFilterEnabled}
+        job={job}
+        actions={headerActions}
       />
 
       <DataTable
-        columns={columns}
+        columns={columnsWithSelection}
         data={filteredCandidates}
         headerActions={headerActions}
         isServerSide={isServerSide}
@@ -162,6 +224,8 @@ export function CandidateTable<T extends UnifiedCandidate>({
         pageCount={pageCount}
         onPaginationChange={onPaginationChange}
         emptyMessage={emptyMessage}
+        rowSelection={rowSelection}
+        onRowSelectionChange={onRowSelectionChange}
       />
     </div>
   );

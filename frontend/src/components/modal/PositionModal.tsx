@@ -4,19 +4,21 @@
  */
 
 import { useCallback } from "react";
-import { adminJobPositionService } from "@/apis/admin";
-import type { JobPositionRead } from "@/types/admin";
-import {
-  Button,
-  Input,
+import type {
+  JobPositionRead,
+} from "@/types/jobPosition";
+import { useCreatePositionMutation, useUpdatePositionMutation } from "@/hooks/mutations/admin/useJobPosition";
 
+import {
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl,
   FormMessage,
-} from "@/components";
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +26,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useFormModal } from "@/hooks";
-import { jobPositionCreateSchema, type JobPositionCreateFormValues } from "@/schemas/admin";
+import { useFormModal } from "@/hooks/useFormModal";
+import { jobPositionCreateSchema, type JobPositionCreateFormValues } from "@/schemas/jobPosition";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
 
 interface PositionModalProps {
@@ -47,6 +49,8 @@ const PositionModal = ({
   position,
 }: PositionModalProps) => {
   const isEditMode = !!position;
+  const createPositionMutation = useCreatePositionMutation();
+  const updatePositionMutation = useUpdatePositionMutation();
 
   const mapItemToValues = useCallback(
     (p: JobPositionRead): JobPositionCreateFormValues => ({
@@ -56,18 +60,15 @@ const PositionModal = ({
     [],
   );
 
-  const onSubmit = useCallback(
-    async (data: JobPositionCreateFormValues) => {
-      if (isEditMode && position) {
-        await adminJobPositionService.updatePosition(position.id, data);
-      } else {
-        await adminJobPositionService.createPosition(data);
-      }
-      onPositionSaved();
-      handleClose();
-    },
-    [isEditMode, position, onPositionSaved, handleClose],
-  );
+  const onSubmit = async (data: JobPositionCreateFormValues) => {
+    if (isEditMode && position) {
+      await updatePositionMutation.mutateAsync({ id: position.id, data });
+    } else {
+      await createPositionMutation.mutateAsync(data);
+    }
+    onPositionSaved();
+    handleClose();
+  };
 
   const formModal = useFormModal<JobPositionCreateFormValues, JobPositionRead>({
     schema: jobPositionCreateSchema,

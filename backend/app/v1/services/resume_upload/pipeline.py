@@ -15,6 +15,7 @@ from app.v1.db.models.resumes import Resume
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.cross_job_matches import CrossJobMatch
 from app.v1.db.models.files import File
+from app.v1.utils.text import extract_heuristic_info, standardize_to_resume_spaced
 
 
 
@@ -30,6 +31,7 @@ from .logging import log_event, log_stage
 from .processor import ResumeProcessor
 from app.v1.core.observability import get_tracer
 from opentelemetry.trace import StatusCode
+from openinference.semconv.trace import SpanAttributes, OpenInferenceSpanKindValues
 
 logger = get_logger(__name__)
 tracer = get_tracer("hiring-platform.pipeline")
@@ -57,9 +59,14 @@ async def run_resume_processing_pipeline(
         reanalyze: If True, skips extraction and uses stored data.
     """
     with tracer.start_as_current_span("resume-processing-pipeline") as span:
+        span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, OpenInferenceSpanKindValues.CHAIN.value)
         span.set_attribute("job_id", str(job_id))
         span.set_attribute("resume_id", str(resume_id))
         span.set_attribute("reanalyze", reanalyze)
+        span.set_attribute(
+            SpanAttributes.INPUT_VALUE,
+            f"job_id={job_id}, resume_id={resume_id}, file_path={file_path}, reanalyze={reanalyze}"
+        )
         
         try:
             result = await _run_resume_pipeline(
@@ -74,10 +81,12 @@ async def run_resume_processing_pipeline(
                 span=span
             )
             span.set_status(StatusCode.OK)
+            span.set_attribute(SpanAttributes.OUTPUT_VALUE, "Pipeline execution completed successfully.")
             return result
         except Exception as e:
             span.set_status(StatusCode.ERROR, str(e))
             span.record_exception(e)
+            span.set_attribute(SpanAttributes.OUTPUT_VALUE, f"Pipeline execution failed: {str(e)}")
             raise e
 
 async def _run_resume_pipeline(
@@ -258,7 +267,7 @@ async def _run_resume_pipeline(
                     return
                 # --------------------------------------------------
 
-                from app.v1.utils.text import extract_heuristic_info, standardize_to_resume_spaced
+
                 
                 # Helper to check if a value is effectively missing
                 def is_missing(val):
@@ -549,7 +558,7 @@ async def _run_resume_pipeline(
             resume_record.parsed = True
             resume_record.parse_summary = parse_summary_with_analysis
             resume_record.resume_score = analysis.match_percentage
-            resume_record.pass_fail = "passed" if float(resume_record.resume_score or 0) >= (target_job.passing_threshold or 70.0) else "failed"
+            resume_record.pass_fail = "pass" if float(analysis.match_percentage or 0) >= float(target_job.passing_threshold or 70.0) else "fail"
             resume_record.text_hash = text_hash
 
             # Phoenix span mein detailed info add karo
@@ -672,26 +681,58 @@ async def _run_resume_pipeline(
                 logger.info(f"Auto-initiated pipeline for candidate {candidate.id} during background processing.")
 
             # 2. Activate Stage 0 and populate with AI results
+            from app.v1.db.models.stage_templates import StageTemplate
             cs_stmt = (
                 select(CandidateStage)
                 .join(JobStageConfig, CandidateStage.job_stage_id == JobStageConfig.id)
+                .join(StageTemplate, JobStageConfig.template_id == StageTemplate.id)
                 .where(
                     CandidateStage.candidate_id == candidate.id,
                     JobStageConfig.job_id == job_id,
-                    JobStageConfig.stage_order == 0
+                    StageTemplate.name == "Resume Screening"
                 )
             )
             cs_res = await db.execute(cs_stmt)
             cs_zero = cs_res.scalar_one_or_none()
             
             if cs_zero:
-                cs_zero.status = "active"
-                cs_zero.evaluation_data = analysis.model_dump()
+                # Wait for HR decision
+                cs_zero.status = "evaluation_completed" 
+                cs_zero.evaluation_data = {"processed": True}
+                
                 if not cs_zero.started_at:
                     from datetime import datetime
                     cs_zero.started_at = datetime.utcnow()
                 await db.commit()
-                logger.info(f"Auto-activated Stage 0 for candidate {candidate.id} with AI analysis results.")
+                
+                # Create an actual Evaluation record for the stage
+                from app.v1.db.models.evaluations import Evaluation
+                
+                ui_evaluation_data = {
+                    "Skill Gap Analysis": {"reasoning": analysis.skill_gap_analysis},
+                    "Experience Alignment": {"reasoning": analysis.experience_alignment},
+                    "Strength Summary": {"reasoning": analysis.strength_summary},
+                    "Missing Skills": [f"{ms.name} (Score: {ms.score})" for ms in analysis.missing_skills] if analysis.missing_skills else [],
+                    "Extraordinary Points": analysis.extraordinary_points,
+                    "Extracted Skills": parsed_summary.get("skills", [])
+                }
+                if analysis.custom_extractions:
+                    for k, v in analysis.custom_extractions.items():
+                        ui_evaluation_data[f"Custom: {k}"] = {"reasoning": v}
+                
+                new_eval = Evaluation(
+                    candidate_stage_id=cs_zero.id,
+                    attempt_number=1,
+                    passing_threshold=target_job.passing_threshold or 70.0,
+                    result="pass" if float(resume_record.resume_score or 0.0) >= float(target_job.passing_threshold or 70.0) else "fail",
+                    evaluation_data=ui_evaluation_data,
+                    overall_score=float(resume_record.resume_score or 0.0),
+                    recommendation="Pending HR Review"
+                )
+                db.add(new_eval)
+                await db.commit()
+                
+                logger.info(f"Auto-activated Stage 0 and created Evaluation for candidate {candidate.id} with AI analysis results.")
             
             # Force-clear cache using synchronous redis to ensure reliability in Celery
             try:

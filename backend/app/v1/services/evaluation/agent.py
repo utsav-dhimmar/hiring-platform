@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import openai
 from typing import Any, Dict, List, Optional
 from opentelemetry import trace
@@ -7,7 +8,7 @@ from opentelemetry.trace import StatusCode
 from openinference.semconv.trace import SpanAttributes
 from app.v1.core.config import settings
 
-from app.v1.prompts import EVALUATION_SYSTEM_PROMPT, EVALUATION_USER_PROMPT_TEMPLATE
+from app.v1.prompts import EVALUATION_SYSTEM_PROMPT, EVALUATION_USER_PROMPT_TEMPLATE, PANEL_EVALUATION_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,8 @@ class EvaluationAgent:
         resume_text: str,
         calculated_scores: Dict[str, float],
         evidence_snippets: Dict[str, List[str]],
-        criteria_names: Optional[List[str]] = None
+        criteria_names: Optional[List[str]] = None,
+        is_panel_interview: bool = False
     ) -> Dict[str, Any]:
         """
         Final synthesis phase. Combines deterministic scores and evidence into a readable report.
@@ -44,7 +46,12 @@ class EvaluationAgent:
         else:
             resume_mention = ""
 
-        system_prompt = EVALUATION_SYSTEM_PROMPT.replace("{resume_mention}", resume_mention)
+        if is_panel_interview:
+            base_prompt = PANEL_EVALUATION_SYSTEM_PROMPT
+        else:
+            base_prompt = EVALUATION_SYSTEM_PROMPT
+
+        system_prompt = base_prompt.replace("{resume_mention}", resume_mention)
 
         # Prepare evidence context
         evidence_context = ""
@@ -96,7 +103,7 @@ class EvaluationAgent:
                     {"role": "user", "content": user_prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.0
+                temperature=0.1
             )
 
             raw_content = response.choices[0].message.content or "{}"
@@ -126,7 +133,6 @@ class EvaluationAgent:
             except json.JSONDecodeError as je:
                 logger.warning(f"Initial JSON parse failed: {je}. Attempting basic repair...")
                 # Basic repair: remove trailing commas before closing braces/brackets
-                import re
                 repaired = re.sub(r',\s*([\]}])', r'\1', clean_content)
                 return json.loads(repaired)
                 

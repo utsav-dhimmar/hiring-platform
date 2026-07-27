@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { crossMatchApi } from "@/apis/crossMatch";
+import { useState } from "react";
 import { Search, ExternalLink, RefreshCw, Compass, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,8 +17,9 @@ import { capitalize } from "@/lib/utils";
 import { extractErrorMessage } from "@/utils/error";
 import { DEFAULT_PASSING_THRESHOLD } from "@/constants";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
-import { DataTable } from "@/components/shared";
-import { useAdminData } from "@/hooks";
+import { DataTable } from "@/components/shared/DataTable";
+import { useCandidateCrossJobMatch } from "@/hooks/queries/candidates/useCandidateCrossJobMatch";
+import { useTriggerCrossMatchMutation } from "@/hooks/mutations/candidates/useCandidateCrossJobMatchMutation";
 interface CrossMatchViewProps {
   resumeId?: string;
   candidateId?: string;
@@ -43,41 +43,23 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
     pageSize: 10,
   });
 
-  const {
-    data: matches,
-    total,
-    loading,
-    fetchData: fetchMatches,
-  } = useAdminData<CrossJobMatchRead>(
-    () => crossMatchApi.getCrossMatches(resumeId!, pageIndex * pageSize, pageSize),
-    { fetchOnMount: false, initialLoading: !!resumeId }
+  const triggerCrossMatchMutation = useTriggerCrossMatchMutation();
+
+  const { data: matches, total, loading } = useCandidateCrossJobMatch(
+    resumeId!,
+    pageIndex * pageSize,
+    pageSize,
+    isPolling ? 15000 : false
   );
-
-  // Initial fetch and refetch on pagination change
-  useEffect(() => {
-    if (resumeId) {
-      fetchMatches();
-    }
-  }, [resumeId, pageIndex, pageSize, fetchMatches]);
-
-  // Polling logic: only active after a trigger, every 6 seconds
-  useEffect(() => {
-    if (!resumeId || !isPolling) return;
-    const interval = setInterval(() => {
-      fetchMatches();
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [resumeId, isPolling, fetchMatches]);
 
   const handleTrigger = async () => {
     if (!resumeId) return;
     setIsPolling(true);
     try {
-      await crossMatchApi.triggerCrossMatch(resumeId);
+      await triggerCrossMatchMutation.mutateAsync(resumeId);
       toast.info("Cross Job Match triggered. Scanning all active jobs...");
-      fetchMatches();
     } catch (error) {
-      const errorMessage = extractErrorMessage(error)
+      const errorMessage = extractErrorMessage(error);
       toast.error(errorMessage || "Failed to trigger Cross Job Match.");
       setIsPolling(false);
     }
@@ -101,11 +83,11 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
       header: "Job",
       accessorKey: "job_title",
       cell: ({ row }) => (
-        <div className="flex  gap-1">
-          <span className="font-bold text-foreground">
+        <div className="flex gap-1">
+          <span className="font-medium text-foreground">
             {row.original.matched_job?.title || "Unknown Job"}
           </span>
-          <Badge variant="outline" className="bg-muted text-[10px] font-bold px-1.5 py-0">
+          <Badge variant="outline" className="bg-muted text-[10px] font-medium px-1.5 py-0">
             {row.original.matched_job?.department_name || "N/A"}
           </Badge>
         </div>
@@ -119,7 +101,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           className="hover:bg-transparent p-0 font-semibold"
         >
           Match Score
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="h-4 w-4" />
         </Button></>,
       accessorKey: "match_score",
       cell: ({ row }) => (
@@ -145,7 +127,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Status
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="h-4 w-4" />
         </Button>
       </>,
       cell: ({ row }) => {
@@ -175,7 +157,7 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           size="sm"
           onClick={() => handleGoToJob(row.original.matched_job?.title || "", row.original.matched_job_id)}
         >
-          <ExternalLink className="ml-2 h-3.5 w-3.5" />
+          <ExternalLink className="h-3.5 w-3.5" />
         </Button>
       )
     }
@@ -194,8 +176,8 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2.5 sm:px-1.5 sm:pr-6">
+    <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2">
         <div className="space-y-0.5">
           <h3 className="text-lg font-bold flex items-center gap-2">
             <Compass className="h-5 w-5 text-primary" />
@@ -209,13 +191,14 @@ export function CrossMatchView({ resumeId, onClose }: CrossMatchViewProps) {
           {matches.length > 0 && <Select
             value={statusFilter}
             onValueChange={(value) => value && setStatusFilter(value)}
+            modal={false}
           >
-            <SelectTrigger className="w-[110px] h-10 rounded-xl" size="sm">
+            <SelectTrigger className="w-27.5 h-10 rounded-xl" size="sm">
               <SelectValue placeholder="Filter">
                 {capitalize(statusFilter)}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent className="" align="end">
+            <SelectContent className="" align="end" alignItemWithTrigger={false}>
               <SelectItem value="all">Results</SelectItem>
               <SelectItem value="pass">Pass</SelectItem>
               <SelectItem value="fail">Fail</SelectItem>

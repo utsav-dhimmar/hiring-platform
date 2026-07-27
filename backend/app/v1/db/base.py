@@ -19,9 +19,19 @@ from app.v1.db.models.stage_templates import StageTemplate  # noqa: F401
 from app.v1.db.models.job_stage_configs import JobStageConfig  # noqa: F401
 from app.v1.db.models.candidate_stages import CandidateStage  # noqa: F401
 from app.v1.db.models.criteria import Criterion  # noqa: F401
+from app.v1.db.models.criterion_versions import CriterionVersion  # noqa: F401
 from app.v1.db.models.stage_template_criteria import StageTemplateCriterion  # noqa: F401
 from app.v1.db.models.evaluations import Evaluation  # noqa: F401
 from app.v1.db.models.transcript_chunks import TranscriptChunk  # noqa: F401
 from app.v1.db.models.job_priorities import JobPriority  # noqa: F401
 from app.v1.db.models.job_positions import JobPosition  # noqa: F401
 from app.v1.db.models.system_settings import SystemSetting  # noqa: F401
+from app.v1.db.models.question_set_paper import QuestionSetPaper  # noqa: F401
+from app.v1.db.models.candidate_test_paper import CandidateTestPaper  # noqa: F401
+from app.v1.db.models.candidate_test_paper_history import CandidateTestPaperHistory  # noqa: F401
+from app.v1.db.models.associates import Associate  # noqa: F401
+from app.v1.db.models.associate_evaluations import AssociateEvaluation  # noqa: F401
+from app.v1.db.models.guidelines import Guideline  # noqa: F401
+
+
+

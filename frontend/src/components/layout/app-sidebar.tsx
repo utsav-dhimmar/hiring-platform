@@ -58,6 +58,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     PERMISSIONS.SKILLS_ACCESS,
     PERMISSIONS.USERS_READ,
     PERMISSIONS.SYSTEM_MANAGE,
+    PERMISSIONS.ASSOCIATES_ACCESS,
   ])
 
   const navRecruitment = [
@@ -159,6 +160,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: "/dashboard/admin/criteria-stages/positions",
           permission: PERMISSIONS.ADMIN_ACCESS,
         },
+        {
+          title: "Questions Bank",
+          url: "/dashboard/questions-bank",
+          permission: PERMISSIONS.JOBS_ACCESS,
+        },
+        {
+          title: "Associates",
+          url: "/dashboard/admin/associates",
+          permission: PERMISSIONS.ASSOCIATES_ACCESS,
+        },
       ],
     },
     {
@@ -191,6 +202,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           title: "Prompts",
           url: "/dashboard/admin/settings/prompts",
           permission: [PERMISSIONS.ADMIN_ACCESS, PERMISSIONS.ANALYTICS_READ], // TODO: adjust as per backend API
+        },
+        {
+          title: "Terms & Conditions",
+          url: "/dashboard/admin/settings/terms-conditions",
+          permission: PERMISSIONS.ADMIN_ACCESS,
         },
         // {
         //   title: "Extraction Path",

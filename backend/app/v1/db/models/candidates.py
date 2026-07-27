@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.v1.db.models.hr_decisions import HrDecision
     from app.v1.db.models.candidate_stages import CandidateStage
     from app.v1.db.models.skills import Skill
+    from app.v1.db.models.candidate_test_paper import CandidateTestPaper
 
 
 class Candidate(Base):
@@ -73,6 +74,13 @@ class Candidate(Base):
         nullable=True,
     )
 
+    email_sent_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        server_default="0",
+        nullable=False,
+    )
+
     # LOCATION FK (replaces plain text location column)
     location_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
@@ -114,6 +122,21 @@ class Candidate(Base):
         nullable=True,
     )
 
+    task_file_path: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    task_skills: Mapped[list[str] | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
+
+    github_evaluation_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+    )
+
     # TIMESTAMPS
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -135,6 +158,7 @@ class Candidate(Base):
     hr_decisions: Mapped[list["HrDecision"]] = relationship("HrDecision", back_populates="candidate", cascade="all, delete-orphan")
     stages: Mapped[list["CandidateStage"]] = relationship("CandidateStage", back_populates="candidate", cascade="all, delete-orphan")
     skills: Mapped[list["Skill"]] = relationship("Skill", secondary=candidate_skills)
+    test_paper: Mapped[Optional["CandidateTestPaper"]] = relationship("CandidateTestPaper", back_populates="candidate", cascade="all, delete-orphan", uselist=False)
 
     @property
     def location_name(self) -> str | None:

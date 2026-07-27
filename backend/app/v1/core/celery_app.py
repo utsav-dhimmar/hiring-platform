@@ -11,15 +11,24 @@ from celery.signals import worker_process_init
 from app.v1.core.config import settings
 from app.v1.core.observability import setup_phoenix_tracing
 
+celery_includes = [
+    "app.v1.services.resume_upload.tasks",
+    "app.v1.services.admin.job_tasks",
+    "app.v1.services.evaluation_tasks",
+    "app.v1.services.transcript_tasks",
+    "app.v1.services.reminder_tasks"
+]
+
+try:
+    import github_code_evaluator
+    celery_includes.append("github_code_evaluator.workers.tasks")
+except ImportError:
+    pass
+
 celery_app = Celery(
     "worker",
     broker=settings.CELERY_BROKER_URL,
-    include=[
-        "app.v1.services.resume_upload.tasks",
-        "app.v1.services.admin.job_tasks",
-        "app.v1.services.evaluation_tasks",
-        "app.v1.services.transcript_tasks"
-    ],
+    include=celery_includes,
 )
 
 @worker_process_init.connect
@@ -49,5 +58,13 @@ celery_app.conf.beat_schedule = {
     "deactivate-expired-jobs-every-hour": {
         "task": "deactivate_expired_jobs_task",
         "schedule": 3600.0,  # Run every hour (3600 seconds)
+    },
+    "send-associate-reminders-every-hour": {
+        "task": "send_associate_reminders_task",
+        "schedule": 3600.0,
+    },
+    "auto-trigger-github-evaluations-every-hour": {
+        "task": "auto_trigger_github_evaluations_task",
+        "schedule": 3600.0,
     },
 }

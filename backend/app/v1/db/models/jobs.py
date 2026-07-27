@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, Numeric
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, Numeric, Index, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -19,11 +19,11 @@ if TYPE_CHECKING:
     from app.v1.db.models.job_versions import JobVersion
     from app.v1.db.models.skills import Skill
     from app.v1.db.models.user import User
-    from app.v1.db.models.job_versions import JobVersion
     from app.v1.db.models.job_priorities import JobPriority
     from app.v1.db.models.job_positions import JobPosition
-
+    from app.v1.db.models.associates import Associate
 from app.v1.db.models.job_skills import job_skills
+from app.v1.db.models.job_associates import job_associates
 from app.v1.utils.uuid import UUIDHelper
 
 
@@ -46,6 +46,18 @@ class Job(Base):
     """
 
     __tablename__ = "jobs"
+    __table_args__ = (
+        # Partial unique index: only one ACTIVE job allowed per (title, position_id).
+        # Inactive jobs with the same (title, position_id) are allowed, so a new
+        # active job can be created even if older inactive ones exist with the same combo.
+        Index(
+            "uq_jobs_title_position_active",
+            "title",
+            "position_id",
+            unique=True,
+            postgresql_where=text("is_active = true"),
+        ),
+    )
 
     # PRIMARY KEY
     id: Mapped[uuid.UUID] = mapped_column(
@@ -57,7 +69,6 @@ class Job(Base):
     # JOB FIELDS
     title: Mapped[str] = mapped_column(
         Text,
-        unique=True,
         nullable=False,
     )
 
@@ -115,10 +126,33 @@ class Job(Base):
         nullable=False,
     )
 
+    question_bank_passing_threshold: Mapped[float] = mapped_column(
+        Numeric(10, 2),
+        default=70.0,
+        nullable=False,
+    )
+
     # CUSTOM EXTRACTION
     custom_extraction_fields: Mapped[list[str] | None] = mapped_column(
         JSONB,
         nullable=True,
+    )
+
+    task_file_path: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    task_skills: Mapped[list[str] | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
+
+    send_ai_evaluation_to_associate: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        server_default="true",
+        nullable=False,
     )
 
     version: Mapped[int] = mapped_column(
@@ -139,10 +173,10 @@ class Job(Base):
         nullable=True,
     )
 
-    position_id: Mapped[uuid.UUID | None] = mapped_column(
+    position_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("job_positions.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("job_positions.id", ondelete="RESTRICT"),
+        nullable=False,
     )
 
     priority_start_date: Mapped[datetime | None] = mapped_column(
@@ -153,6 +187,12 @@ class Job(Base):
     priority_end_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
+    )
+
+    associate_reminder_hours: Mapped[int] = mapped_column(
+        Integer,
+        default=24,
+        nullable=False,
     )
 
     # RELATIONSHIPS
@@ -173,6 +213,12 @@ class Job(Base):
         secondary=job_skills,
         back_populates="jobs",
     )
+    associates: Mapped[list["Associate"]] = relationship(
+        "Associate",
+        secondary=job_associates,
+        back_populates="jobs",
+    )
+
     stages: Mapped[list["JobStageConfig"]] = relationship(
         "JobStageConfig",
         back_populates="job",
@@ -218,3 +264,5 @@ class Job(Base):
             {"version_num": v.version_number, "id": v.id} 
             for v in self.versions
         ]
+
+

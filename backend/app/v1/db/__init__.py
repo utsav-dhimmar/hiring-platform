@@ -23,6 +23,7 @@ from ..db.models.stage_templates import StageTemplate
 from ..db.models.transcripts import Transcript
 from ..db.models.user import User
 from ..db.models.cross_job_matches import CrossJobMatch
+from ..db.models.question_set_paper_skills import question_set_paper_skills
 
 __all__ = [
     "User",
@@ -50,4 +51,5 @@ __all__ = [
     "AuditLog",
     "CrossJobMatch",
     "Location",
+    "question_set_paper_skills",
 ]

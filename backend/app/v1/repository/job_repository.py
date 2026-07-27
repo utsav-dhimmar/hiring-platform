@@ -91,6 +91,7 @@ class JobRepository:
                 selectinload(Job.stages).selectinload(JobStageConfig.template),
                 selectinload(Job.department),
                 selectinload(Job.versions),
+                selectinload(Job.associates),
             )
         )
         if filters:
@@ -113,6 +114,7 @@ class JobRepository:
                 selectinload(Job.stages).selectinload(JobStageConfig.template),
                 selectinload(Job.department),
                 selectinload(Job.versions),
+                selectinload(Job.associates),
             )
             .where(Job.id == id)
         )
@@ -125,7 +127,9 @@ class JobRepository:
         """Create a job and persist its skill associations."""
         payload = object.model_dump()
         skill_ids = payload.pop("skill_ids", [])
+        associate_ids = payload.pop("associate_ids", [])
         payload.pop("stages", None)  # handled separately in job_service, not an ORM field
+        payload.pop("skill_weightages", None)  # handled separately in job_service, not an ORM field
 
         job = Job(**payload, created_by=created_by)
 
@@ -141,6 +145,7 @@ class JobRepository:
         await self._sync_job_chunks(db=db, job=job)
 
         await self._sync_skills(db=db, job_id=job.id, skill_ids=skill_ids)
+        await self._sync_associates(db=db, job_id=job.id, associate_ids=associate_ids)
 
         from app.v1.db.models.job_versions import JobVersion
 
@@ -172,7 +177,9 @@ class JobRepository:
 
         payload = object.model_dump(exclude_unset=True)
         skill_ids = payload.pop("skill_ids", None)
+        associate_ids = payload.pop("associate_ids", None)
         payload.pop("stages", None)  # handled separately in job_service, not an ORM field
+        payload.pop("skill_weightages", None)  # handled separately in job_service, not an ORM field
 
         # Remove status from payload to prevent version creation on status changes
         status_change = payload.pop("status", None)
@@ -225,6 +232,9 @@ class JobRepository:
         if skill_ids is not None:
             await self._sync_skills(db=db, job_id=id, skill_ids=skill_ids)
 
+        if associate_ids is not None:
+            await self._sync_associates(db=db, job_id=id, associate_ids=associate_ids)
+
         if version_worthy_change:
             # Increment version to record an update
             job.version = (job.version or 1) + 1
@@ -254,13 +264,13 @@ class JobRepository:
     async def delete(self, db: AsyncSession, id: uuid.UUID) -> None:
         """Force-delete a job and all dependent records by id."""
         await self.force_delete(db=db, id=id)
-
+ 
     async def force_delete(self, db: AsyncSession, id: uuid.UUID) -> None:
         """Force-delete a job and its related metadata, unlinking candidates."""
         job_exists = await db.scalar(select(Job.id).where(Job.id == id))
         if job_exists is None:
             return
-
+ 
         # 1. Delete transient data related to this job's interviews
         job_interview_ids = select(Interview.id).where(Interview.job_id == id)
         await db.execute(delete(Transcript).where(Transcript.interview_id.in_(job_interview_ids)))
@@ -274,7 +284,7 @@ class JobRepository:
         # 3. Cleanup Candidate stages for THIS job only
         job_stage_ids_subq = select(JobStageConfig.id).where(JobStageConfig.job_id == id)
         await db.execute(delete(CandidateStage).where(CandidateStage.job_stage_id.in_(job_stage_ids_subq)))
-
+ 
         # 4. Handle Cross-Job Matches
         # ONLY remove matches pointing TO this job (matched_job_id).
         # Matches originating FROM this job (original_job_id) should be PRESERVED
@@ -282,7 +292,7 @@ class JobRepository:
         await db.execute(
             delete(CrossJobMatch).where(CrossJobMatch.matched_job_id == id)
         )
-
+ 
         # 5. UNLINK candidates instead of deleting them
         # This preserves the Candidate profile, Resume, and File records for the Candidate Pool
         from sqlalchemy import update
@@ -291,7 +301,7 @@ class JobRepository:
             .where(Candidate.applied_job_id == id)
             .values(applied_job_id=None)
         )
-
+ 
         # 6. Remove job-owned configuration and metadata
         await db.execute(delete(job_skills).where(job_skills.c.job_id == id))
         await db.execute(delete(JobStageConfig).where(JobStageConfig.job_id == id))
@@ -337,6 +347,7 @@ class JobRepository:
                 selectinload(Job.stages).selectinload(JobStageConfig.template),
                 selectinload(Job.department),
                 selectinload(Job.versions),
+                selectinload(Job.associates),
             )
             .where(search_filter)
             .order_by(Job.created_at.desc())
@@ -361,15 +372,48 @@ class JobRepository:
     async def _sync_skills(
         self, db: AsyncSession, job_id: uuid.UUID, skill_ids: list[uuid.UUID]
     ) -> None:
-        """Replace a job's skill links with the provided skill ids."""
+        """Replace a job's skill links with the provided skill ids and their default weightages."""
         await db.execute(delete(job_skills).where(job_skills.c.job_id == job_id))
         if not skill_ids:
             return
 
+        # Fetch the default weightage for each skill
+        from app.v1.db.models.skills import Skill
+        from sqlalchemy import select
+        skill_stmt = select(Skill.id, Skill.default_weightage).where(Skill.id.in_(skill_ids))
+        skill_res = await db.execute(skill_stmt)
+        skill_weights = {row[0]: row[1] or 10.0 for row in skill_res.fetchall()}
+
         await db.execute(
             insert(job_skills),
-            [{"job_id": job_id, "skill_id": skill_id} for skill_id in skill_ids],
+            [
+                {
+                    "job_id": job_id, 
+                    "skill_id": skill_id, 
+                    "weightage": skill_weights.get(skill_id, 10.0)
+                } 
+                for skill_id in skill_ids
+            ],
         )
+
+    async def _sync_associates(
+        self, db: AsyncSession, job_id: uuid.UUID, associate_ids: list[uuid.UUID]
+    ) -> None:
+        """Replace a job's associate links with the provided associate ids."""
+        from app.v1.db.models.job_associates import job_associates
+        await db.execute(delete(job_associates).where(job_associates.c.job_id == job_id))
+        if not associate_ids:
+            return
+
+        await db.execute(
+            insert(job_associates),
+            [
+                {"job_id": job_id, "associate_id": associate_id}
+                for associate_id in associate_ids
+            ],
+        )
+
+
 
     async def _sync_job_chunks(self, db: AsyncSession, job: Job) -> None:
         """Partition job description into chunks and persist with embeddings."""
@@ -421,6 +465,48 @@ class JobRepository:
         stmt = stmt.order_by(Job.created_at.desc())
         result = await db.execute(stmt)
         return [{"id": row.id, "title": row.title} for row in result.all()]
+
+    async def get_titles_grouped(self, db: AsyncSession, query: str | None = None) -> list[dict[str, Any]]:
+        """
+        Retrieve active jobs grouped by title with their position variants.
+
+        Returns a flat list of rows, each containing:
+            job_id, title, position_id, position_name, is_active
+
+        The caller (service layer) is responsible for grouping by title.
+        """
+        from app.v1.db.models.job_positions import JobPosition
+
+        stmt = (
+            select(
+                Job.id.label("job_id"),
+                Job.title,
+                Job.position_id,
+                JobPosition.name.label("position_name"),
+                Job.is_active,
+            )
+            .join(JobPosition, Job.position_id == JobPosition.id)
+            .where(Job.is_active.is_(True))
+        )
+
+        if query:
+            stmt = stmt.where(Job.title.ilike(f"%{query}%"))
+
+        stmt = stmt.order_by(Job.title, JobPosition.name)
+
+        result = await db.execute(stmt)
+        rows = result.all()
+
+        return [
+            {
+                "job_id": row.job_id,
+                "title": row.title,
+                "position_id": row.position_id,
+                "position_name": row.position_name,
+                "is_active": row.is_active,
+            }
+            for row in rows
+        ]
 
 
 job_repository = JobRepository()

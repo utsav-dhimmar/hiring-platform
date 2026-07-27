@@ -7,10 +7,10 @@ import {
 } from "lucide-react";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { Badge } from "@/components/ui/badge";
-import CandidateStatusBadge from "@/components/shared/CandidateStatusBadge";
+import CandidateStatusBadge, { CandidateEmailBadge } from "@/components/shared/CandidateStatusBadge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { GithubLogo, LinkedinLogo } from "@/components/logo";
-import { cn, capitalize, toTitleCase } from "@/lib/utils";
+import { cn, toTitleCase } from "@/lib/utils";
 import type { UnifiedCandidate } from "@/types/candidate";
 import { Link } from "react-router-dom";
 import { slugify } from "@/utils/slug";
@@ -20,7 +20,6 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-
 function scoreColor(score: number, threshold: number = DEFAULT_PASSING_THRESHOLD) {
   if (score >= threshold) return "bg-green-500";
   return "bg-red-500";
@@ -59,10 +58,10 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold text-base"
+            className="hover:bg-transparent p-0 text-base font-semibold "
           >
             Candidate
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+            <ArrowUpDown className="h-4 w-4" />
           </Button>
         ),
         cell: ({ row }) => {
@@ -73,10 +72,9 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
             `${c.first_name || ""} ${c.last_name || ""}`.trim() ||
             "Unknown Candidate";
           return (
-            <div className="flex flex-col gap-0.5 min-w-[160px] max-w-[250px]">
+            <div className="flex flex-col gap-0.5 ">
               <span
-                className="text-foreground truncate block capitalize"
-
+                className="text-foreground block capitalize"
               >
                 {isProcessing && !c.first_name ? (
                   <span className="text-muted-foreground italic text-sm">
@@ -86,12 +84,27 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                   toTitleCase(fullName)
                 )}
               </span>
-              <span className="text-muted-foreground truncate block">
+              <span className="text-muted-foreground text-wrap break-all">
                 {c.email || "N/A"}
               </span>
-              <span className="text-muted-foreground truncate block">
-                {c.phone || "N/A"}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground text-wrap">
+                  {c.phone || "N/A"}
+                </span>
+                {c.current_stage?.required_inputs && (
+                  c.current_stage.required_inputs.includes("question") ||
+                  c.current_stage.required_inputs.includes("github")
+                ) && <HoverCard>
+                    <HoverCardTrigger delay={10} closeDelay={10}>
+                      <CandidateEmailBadge email_sent_count={c.email_sent_count} />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="top">
+
+                      {c.email_sent_count && c.email_sent_count > 0 ? `Total email sent: ${c.email_sent_count}` : "No email sent yet"}
+
+                    </HoverCardContent>
+                  </HoverCard>}
+              </div>
             </div>
           );
         },
@@ -102,10 +115,10 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           {
             id: "job_context",
             accessorKey: "applied_job_id",
-            // header: "Job",
+
             header: () => {
               return <div className="flex items-center justify-between">
-                <span className="font-semibold">Job</span>
+                <span className="text-base">Job</span>
               </div>
             },
             cell: ({ row }: { row: { original: T } }) => {
@@ -114,7 +127,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
               if (!jobId || !jobName) return <span className="text-muted-foreground text-sm font-medium italic">N/A</span>;
               const slug = slugify(jobName);
               return (
-                <div className="flex items-center gap-1.5 min-w-[120px] max-w-[200px]" title={jobName}>
+                <div className="flex items-center gap-1.5 min-w-[120px] max-w-50">
                   <Link
                     to={`/dashboard/jobs/${slug}/candidates`}
                     state={{ state: { jobId: jobId } }}
@@ -137,10 +150,10 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold text-base"
+            className="hover:bg-transparent p-0 text-base font-semibold "
           >
             AI Result
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+            <ArrowUpDown className="h-4 w-4" />
           </Button>
         ),
         cell: ({ row }) => {
@@ -151,7 +164,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           if (isProcessing) {
             return (
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <div className="h-3.5 w-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   <span className="text-xs text-muted-foreground italic">
                     Analyzing…
@@ -184,7 +197,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                         style={{ left: `${passing_threshold}%` }} />
                     </div>
                   </HoverCardTrigger>
-                  <HoverCardContent className="w-full p-1 py-2 text-xs rounded-lg">
+                  <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="top">
                     Score: {score.toFixed(2)}%<br />Threshold: {passing_threshold}%
                   </HoverCardContent>
                 </HoverCard>
@@ -207,25 +220,64 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
         },
       },
       // 4. SCREENING DECISION
-      // {
-      //   id: "hr_decision",
-      //   accessorKey: "hr_decision",
-      //   header: () => {
-      //     return <div className="flex items-center justify-between">
-      //       <span className="font-semibold text-base">HR Decision</span>
-      //     </div>
-      //   },
-      //   cell: ({ row }) => <CandidateStatusBadge status={row.original.hr_decision} />,
-      // },
+      {
+        id: "hr_decision",
+        accessorKey: "hr_decision",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="hover:bg-transparent p-0 text-base font-semibold "
+          >
+            HR Decision
+            <ArrowUpDown className="h-4 w-4" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const pipeline = row.original.pipeline || [];
 
+          // Find the last stage in the pipeline where HR has made a decision (not pending)
+          const lastDecidedStage = [...pipeline]
+            .reverse()
+            .find((stage) => {
+              const decision = stage.hr_decision?.toLowerCase().trim();
+              return decision && decision !== "pending";
+            });
+
+          const prevStageName = lastDecidedStage ? lastDecidedStage.template_name : "Resume Screening";
+
+          return (
+            <div className="flex flex-col gap-1 items-start justify-center">
+              <div className="flex items-center justify-start gap-1">
+                <CandidateStatusBadge status={row.original.hr_decision} />
+                {row.original.hr_score !== undefined && row.original.hr_score !== null && (
+                  <span className="text-sm font-semibold text-foreground">
+                    {row.original.hr_score.toFixed(1)}/5
+                  </span>
+                )}
+              </div>
+              {prevStageName && (
+                <span className="text-xs">
+                  {prevStageName}
+                </span>
+              )}
+            </div>
+          );
+        },
+        sortingFn: (rowA, rowB) => {
+          const a = rowA.original.hr_score ?? 0;
+          const b = rowB.original.hr_score ?? 0;
+          return a - b;
+        },
+      },
       // CURRENT STAGE
       {
         id: "current_stage",
         accessorKey: "current_stage",
-        // header: "Stage",
+
         header: () => {
           return <div className="flex items-center justify-between">
-            <span className="font-semibold text-base">Stages</span>
+            <span className="text-base">Stages</span>
           </div>
         },
         cell: ({ row }) => {
@@ -254,7 +306,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
 
         header: () => {
           return <div className="flex items-center justify-between">
-            <span className="font-semibold text-base">Socials</span>
+            <span className="text-base">Socials</span>
           </div>
         },
         cell: ({ row }) => {
@@ -307,7 +359,6 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
                 href={url.startsWith("http") ? url : `https://${url}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                title={`${capitalize(type)} Profile`}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "icon-sm" }),
                   linkColor,
@@ -361,10 +412,10 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold text-base"
+            className="hover:bg-transparent p-0 text-base font-semibold "
           >
             Applied At
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+            <ArrowUpDown className="h-4 w-4" />
           </Button>
         ),
         cell: ({ row }) => {
@@ -383,10 +434,10 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:bg-transparent p-0 font-semibold text-base"
+            className="hover:bg-transparent p-0 text-base font-semibold "
           >
             Location
-            <ArrowUpDown className="ml-2 h-4 w-4" />
+            <ArrowUpDown className="h-4 w-4" />
           </Button>
         ),
         cell: ({ row }) => {
@@ -399,7 +450,7 @@ export const useCandidateTableColumns = <T extends UnifiedCandidate>({
 
           const truncatedLoc = normalized.length > 20 ? `${normalized.slice(0, 18)}...` : normalized;
           return (
-            <div className="flex items-center gap-1.5 text-sm" title={normalized}>
+            <div className="flex items-center gap-1.5 text-sm" >
               <span>{truncatedLoc}</span>
             </div>
           );

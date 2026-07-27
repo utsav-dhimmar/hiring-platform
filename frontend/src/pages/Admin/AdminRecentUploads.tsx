@@ -1,70 +1,74 @@
 /**
+ * @module AdminRecentUploads
+ * @component AdminRecentUploads
+ *
  * Admin page for viewing recent file uploads.
  * Displays a list of recently uploaded resumes and documents.
  */
 
 import { useState, useEffect } from "react";
-import { adminAnalyticsService } from "@/apis/admin";
 import type { RecentUploadRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import { DataTable } from "@/components/shared/DataTable";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import PageHeader from "@/components/shared/PageHeader";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
-import { useAdminData, useDebouncedValue } from "@/hooks";
+
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { formatFileSize } from "@/utils/converters";
+import { formatFileSize, type FileSizeUnit } from "@/utils/converters";
+import { useRecentUploads } from "@/hooks/queries/admin/useRecentUpload";
+import { capitalize, cn } from "@/lib/utils";
+import { usePageFilters } from "@/hooks/usePageFilters";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
+import { useDebouncedValue } from "@/hooks/useDebounced";
 
 
-export type FileSizeUnit = "Auto" | "B" | "KB" | "MB";
 
-const AdminRecentUploads = () => {
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+export default function AdminRecentUploads() {
+  const { filters, setFilters, setFilter } = usePageFilters("adminRecentUploads", {
     pageIndex: 0,
     pageSize: 10,
+    searchValue: "",
+    fileSizeUnit: "Auto" as FileSizeUnit,
   });
-  const [searchValue, setSearchValue] = useState("");
-  const debouncedSearch = useDebouncedValue(searchValue)
-  const {
-    data: uploads,
-    total,
-    loading,
-    error,
-    fetchData,
-  } = useAdminData<RecentUploadRead>(
-    () => adminAnalyticsService.getRecentUploads(pageIndex * pageSize, pageSize, debouncedSearch),
-    { fetchOnMount: false },
+  const { pageIndex, pageSize, searchValue, fileSizeUnit } = filters;
 
-  );
+  const setPagination = (val: PaginationState | ((prev: PaginationState) => PaginationState)) => {
+    const currentPagination = { pageIndex: filters.pageIndex, pageSize: filters.pageSize };
+    const nextPagination = typeof val === "function" ? val(currentPagination) : val;
+    setFilters({
+      pageIndex: nextPagination.pageIndex,
+      pageSize: nextPagination.pageSize,
+    });
+  };
 
-  // Refetch data when pagination or search changes
-  useEffect(() => {
-    fetchData();
-  }, [pageIndex, pageSize, debouncedSearch, fetchData]);
+  const setFileSizeUnit = (unit: FileSizeUnit) => setFilter("fileSizeUnit", unit);
 
   const [overallTotal, setOverallTotal] = useState(0);
+
+  const debouncedSearch = useDebouncedValue(searchValue)
+
+  const { data: uploads, error, loading, refetch, total } = useRecentUploads(pageIndex * pageSize, pageSize, debouncedSearch)
+
   useEffect(() => {
-    if (!searchValue) {
-      setOverallTotal(total);
+    if (!debouncedSearch && total !== overallTotal) {
+      queueMicrotask(() => {
+        setOverallTotal(total);
+      });
     }
-  }, [total, debouncedSearch]);
+  }, [total, debouncedSearch, overallTotal]);
 
   // Handle search with pagination reset
   const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    setFilters({
+      searchValue: value,
+      pageIndex: 0,
+    });
   };
 
-  const [fileSizeUnit, setFileSizeUnit] = useState<FileSizeUnit>("Auto");
+
 
   const columns: ColumnDef<RecentUploadRead>[] = [
     {
@@ -73,10 +77,10 @@ const AdminRecentUploads = () => {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent p-0 font-semibold"
+          className="hover:bg-transparent p-0 font-semibold text-base"
         >
           Date
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="h-4 w-4" />
         </Button>
       ),
       cell: ({ row }) => <DateDisplay date={row.original.created_at} />,
@@ -87,14 +91,14 @@ const AdminRecentUploads = () => {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent p-0 font-semibold"
+          className="hover:bg-transparent p-0 font-semibold text-base"
         >
           File Name
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="h-4 w-4" />
         </Button>
       ),
       cell: ({ row }) => (
-        <span className="font-medium text-foreground ">{row.original.file_name || "N/A"}</span>
+        <span className="text-wrap">{row.original.file_name || "N/A"}</span>
       ),
     },
     // {
@@ -108,11 +112,11 @@ const AdminRecentUploads = () => {
     // },
     {
       accessorKey: "size",
-      // header: "Size",
+
       header: () => {
         return (
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Size</span>
+            <span className="text-base">Size</span>
           </div>
         )
       },
@@ -121,39 +125,37 @@ const AdminRecentUploads = () => {
     },
     {
       accessorKey: "uploader_name",
-      // header: "Uploaded By",
+
       header: () => {
         return (
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Uploaded By</span>
+            <span className="text-base">Uploaded By</span>
           </div>
         )
       },
       cell: ({ row }) => (
         <span
-          className="font-medium text-foreground "
-          title={row.original.uploader_name || "N/A"}
+          className=""
         >
-          {row.original.uploader_name || "N/A"}
+          {capitalize(row.original.uploader_name || "N/A")}
         </span>
       ),
     },
     {
       accessorKey: "candidate_name",
-      // header: "Candidate",
+
       header: () => {
         return (
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Candidate Name</span>
+            <span className="text-base">Candidate Name</span>
           </div>
         )
       },
       cell: ({ row }) => (
         <span
-          className="font-medium text-foreground "
-          title={row.original.candidate_name || "N/A"}
+          className=""
         >
-          {row.original.candidate_name || "N/A"}
+          {capitalize((row.original.candidate_name)?.toLowerCase() || "N/A")}
         </span>
       ),
     },
@@ -163,8 +165,8 @@ const AdminRecentUploads = () => {
   return (
     <AppPageShell width="wide">
       <PageHeader title="Recent Uploads" />
-      {error && !uploads.length ? (
-        <ErrorDisplay message={error} onRetry={fetchData} />
+      {error && !uploads?.length ? (
+        <ErrorDisplay message={error.message} onRetry={refetch} />
       ) : (
         <DataTable
           columns={columns}
@@ -172,7 +174,6 @@ const AdminRecentUploads = () => {
           loading={loading}
           searchKey="file_name"
           searchPlaceholder="Filter by file name..."
-          initialSorting={[{ id: "created_at", desc: true }]}
           pageIndex={pageIndex}
           pageSize={pageSize}
           onPaginationChange={setPagination}
@@ -187,20 +188,20 @@ const AdminRecentUploads = () => {
           tableActions={
 
             <div className="flex items-center gap-2">
-              <span className="font-medium text-muted-foreground whitespace-nowrap">Unit:</span>
-              <Select
+              <span className="font-medium">Unit:</span>
+
+              <SearchableSelect
                 value={fileSizeUnit}
                 onValueChange={(value) => setFileSizeUnit(value as FileSizeUnit)}
-              >
-                <SelectTrigger className="w-[150px] h-9 rounded-xl border-border/70 bg-background/90 transition-all focus:ring-2 focus:ring-primary/20">
-                  <SelectValue placeholder="Unit" className={"text-base"} />
-                </SelectTrigger>
-                <SelectContent side="bottom">
-                  <SelectItem value="Auto">Auto</SelectItem>
-                  <SelectItem value="KB">KB</SelectItem>
-                  <SelectItem value="MB">MB</SelectItem>
-                </SelectContent>
-              </Select>
+                options={[{ id: "Auto", label: "Auto" }, { id: "KB", label: "KB" }, { id: "MB", label: "MB" }]}
+                placeholder="Departments"
+                pluralLabel="Departments"
+                clearLabel="Clear Selection"
+                triggerClassName={cn(
+                  "w-fit inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-medium cursor-pointer select-none transition-colors",
+                )}
+                contentClassName="min-w-50"
+              />
             </div>
           }
         />
@@ -208,6 +209,3 @@ const AdminRecentUploads = () => {
     </AppPageShell>
   );
 };
-
-
-export default AdminRecentUploads;

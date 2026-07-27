@@ -60,6 +60,20 @@ class ResumeUploadResponse(BaseModel):
     version_results: list[dict] | None = None
 
 
+class FailedUpload(BaseModel):
+    """Information about a failed resume upload."""
+    
+    file_name: str
+    error: str
+
+
+class BulkResumeUploadResponse(BaseModel):
+    """Response returned when a batch of resumes is uploaded."""
+    
+    successful: list[ResumeUploadResponse]
+    failed: list[FailedUpload]
+
+
 
 class ResumeStatusResponse(BaseModel):
     """Response containing the current status and analysis of a resume."""
@@ -144,10 +158,28 @@ class CandidateResponse(BaseModel):
     version_results: list[dict] | None = None
     current_stage: CandidateStageSummary | None = None
     pipeline: list[CandidateStageSummary] | None = None
+    task_file_path: str | None = None
+    task_skills: list[str] | None = None
+    is_custom_task: bool = False
+    github_evaluation_id: uuid.UUID | None = None
+    email_sent_count: int = 0
 
 
 # Alias for backward compatibility
 CandidateRead = CandidateResponse
+
+
+class CandidateTaskRead(BaseModel):
+    """
+    Schema for reading a candidate's task file path, extracted skills, and custom flag.
+    """
+
+    task_file_path: str | None = None
+    task_skills: list[str] | None = None
+    is_custom_task: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class ResumeRead(BaseModel):
@@ -171,3 +203,12 @@ class JobCandidatesResponse(BaseModel):
 
     job_id: uuid.UUID
     candidates: list[CandidateResponse]
+
+
+class JobCandidateSkillsRead(BaseModel):
+    """Schema for reading job standard skills and custom/fallback task skills."""
+
+    job_skills: list[str] = []
+    task_skills: list[str] = []
+
+    model_config = ConfigDict(from_attributes=True)

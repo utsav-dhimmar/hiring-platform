@@ -1,6 +1,7 @@
 import client from "@/apis/client";
-import type { Job, JobTitle, JobVersionDetail, JobsListResponse } from "@/types/job";
+import type { Job, JobTitle, JobTitlesGroupedListResponse, JobVersionDetail, JobsListResponse } from "@/types/job";
 import type { CandidateAnalysisResponse, JobStatsResponse } from "@/types/admin";
+import type { BulkResumeUploadResponse } from "@/types/resume";
 
 type JobPayload = Record<string, unknown>;
 
@@ -131,6 +132,8 @@ const jobService = {
       city?: string[];
       result?: string[];
       hr_score?: number[];
+      test_email_sent?: boolean;
+      candidate_id?: string;
     },
   ): Promise<CandidateAnalysisResponse> => {
     const response = await client.get<CandidateAnalysisResponse>(`/candidates/jobs/${jobId}`, {
@@ -149,8 +152,10 @@ const jobService = {
         ...(filters?.activity_session !== undefined ? { activity_session: filters.activity_session } : undefined),
         ...(filters?.stage_id !== undefined ? { stage_id: filters.stage_id } : undefined),
         ...(filters?.city !== undefined ? { city: filters.city } : undefined),
-        ...(filters?.result !== undefined ? { result: filters.result } : undefined),
+        ...(filters?.result !== undefined ? { result: filters.result.map(r => r.replace(/ed$/, "")) } : undefined),
         ...(filters?.hr_score !== undefined ? { hr_score: filters.hr_score } : undefined),
+        ...(filters?.test_email_sent !== undefined ? { test_email_sent: filters.test_email_sent } : undefined),
+        ...(filters?.candidate_id !== undefined ? { candidate_id: filters.candidate_id } : undefined),
       },
       paramsSerializer: {
         indexes: null,
@@ -176,15 +181,17 @@ const jobService = {
   },
 
   /**
-   * Uploads a resume for a specific job.
+   * Uploads multiple resumes for a specific job.
    * @param jobId - The UUID of the job
-   * @param file - The resume file to upload
-   * @returns Promise resolving to the upload response
+   * @param files - The resume files to upload
+   * @returns Promise resolving to the bulk upload response
    */
-  uploadResume: async (jobId: string, file: File): Promise<unknown> => {
+  uploadResume: async (jobId: string, files: File[]): Promise<BulkResumeUploadResponse> => {
     const formData = new FormData();
-    formData.append("resume", file);
-    const response = await client.post(`/jobs/${jobId}/resume`, formData, {
+    files.forEach((file) => {
+      formData.append("resumes", file);
+    });
+    const response = await client.post<BulkResumeUploadResponse>(`/jobs/${jobId}/resume`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -214,6 +221,18 @@ const jobService = {
       params: {
         ...filters,
       },
+    });
+    return response.data;
+  },
+
+  /**
+   * Retrieves a list of job titles grouped by position.
+   * @param q - The search query 
+   * @returns Promise resolving to an array of job titles grouped by position
+   */
+  getJobTitlesGrouped: async (q: string = ""): Promise<JobTitlesGroupedListResponse> => {
+    const response = await client.get<JobTitlesGroupedListResponse>("/jobs/titles/grouped", {
+      params: { ...(q ? { q } : undefined) },
     });
     return response.data;
   },

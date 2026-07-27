@@ -4,17 +4,6 @@
  */
 
 import { useCallback } from "react";
-import { adminPermissionService } from "@/apis/admin";
-import {
-  Button,
-  Input,
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +11,20 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useFormModal } from "@/hooks";
-import { permissionCreateSchema, type PermissionCreateFormValues } from "@/schemas/admin";
+import { useFormModal } from "@/hooks/useFormModal";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { permissionCreateSchema, type PermissionCreateFormValues } from "@/schemas/permission-role";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import { useCreatePermissionMutation } from "@/hooks/mutations/admin/usePermission";
 
 /**
  * Props for the CreatePermissionModalProps component.
@@ -46,13 +46,15 @@ const CreatePermissionModal = ({
   handleClose,
   onPermissionCreated,
 }: CreatePermissionModalProps) => {
+  const { mutateAsync: createPermission } = useCreatePermissionMutation();
+
   const onSubmit = useCallback(
     async (data: PermissionCreateFormValues) => {
-      await adminPermissionService.createPermission(data);
+      await createPermission(data);
       onPermissionCreated();
       handleClose();
     },
-    [onPermissionCreated, handleClose]
+    [onPermissionCreated, handleClose, createPermission]
   );
 
   const formModal = useFormModal<PermissionCreateFormValues, null>({

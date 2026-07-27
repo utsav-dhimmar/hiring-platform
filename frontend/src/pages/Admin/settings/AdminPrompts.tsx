@@ -1,28 +1,23 @@
 /**
+ * @module AdminPrompts
+ * @component AdminPrompts
+ *
  * Admin page for viewing AI prompts.
  * Displays all prompts used by the system with ability to view their content.
  */
 import { useState, useEffect } from "react";
-import { adminPromptService } from "@/apis/admin";
 import type { PromptRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import PageHeader from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/DataTable";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
-import { Badge, Button } from "@/components";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuCheckboxItem,
-    DropdownMenuSeparator,
-    DropdownMenuLabel,
-    DropdownMenuGroup,
-} from "@/components/ui/dropdown-menu";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/permissions";
-import { ArrowUpDown, Check, Clipboard, FileText, Info, ChevronDown } from "lucide-react";
+import { ArrowUpDown, Check, Clipboard, FileText, Info } from "lucide-react";
+import { SearchableSelect } from "@/components/shared/SearchableSelect";
 import { cn } from "@/lib/utils";
 import {
     Dialog,
@@ -32,52 +27,72 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useAdminData, useDebouncedValue } from "@/hooks";
-import { ErrorDisplay } from "@/components/shared";
+import { useDebouncedValue } from "@/hooks/useDebounced";
+import { usePrompts } from "@/hooks/queries/admin/usePrompts";
+import { usePageFilters } from "@/hooks/usePageFilters";
+import ErrorDisplay from "@/components/shared/ErrorDisplay";
 
 
-const AdminPrompts = () => {
-    const [search, setSearch] = useState("");
-    const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+export default function AdminPrompts() {
+    const { filters, setFilters } = usePageFilters("adminPrompts", {
         pageIndex: 0,
         pageSize: 10,
+        search: "",
+        selectedStages: [] as string[],
     });
+    const { pageIndex, pageSize, search, selectedStages } = filters;
+
+    const setPagination = (val: PaginationState | ((prev: PaginationState) => PaginationState)) => {
+        const currentPagination = { pageIndex: filters.pageIndex, pageSize: filters.pageSize };
+        const nextPagination = typeof val === "function" ? val(currentPagination) : val;
+        setFilters({
+            pageIndex: nextPagination.pageIndex,
+            pageSize: nextPagination.pageSize,
+        });
+    };
+
     const [selectedPrompt, setSelectedPrompt] = useState<PromptRead | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-    const [selectedStages, setSelectedStages] = useState<string[]>([]);
     const [allStages, setAllStages] = useState<string[]>([]);
-    const debouncedSearch = useDebouncedValue(search)
-    // Reset to first page when search changes
-    useEffect(() => {
-        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-    }, [debouncedSearch]);
-    const { data: prompts, loading, error, fetchData, total } = useAdminData(() => adminPromptService.getAllPrompts(pageIndex * pageSize, pageSize, debouncedSearch), { fetchOnMount: false });
+    const [isCopied, setIsCopied] = useState(false);
+    const [overallTotal, setOverallTotal] = useState(0);
 
-    // Collect all unique stages from the response data over time
-    useEffect(() => {
-        if (prompts.length > 0) {
-            const currentStages = prompts.map(p => p.stage).filter(Boolean);
-            setAllStages(prev => {
-                const combined = Array.from(new Set([...prev, ...currentStages]));
-                return combined.sort();
-            });
-        }
-    }, [prompts]);
+    const debouncedSearch = useDebouncedValue(search);
+
+    const { data: prompts, loading, error, refetch, total } = usePrompts(pageIndex * pageSize, pageSize, debouncedSearch)
+
+
     const handleViewClick = (prompt: PromptRead) => {
         setSelectedPrompt(prompt);
         setIsViewModalOpen(true);
     };
 
-    const [isCopied, setIsCopied] = useState(false);
+
+
+    // Collect all unique stages from the response data over time
     useEffect(() => {
-        fetchData();
-    }, [pageIndex, pageSize, debouncedSearch, fetchData]);
-    const [overallTotal, setOverallTotal] = useState(0);
-    useEffect(() => {
-        if (!debouncedSearch) {
-            setOverallTotal(total);
+        if (prompts.length > 0) {
+            const currentStages = prompts.flatMap(p => p.stage ? [p.stage] : []);
+            const hasNewStages = currentStages.some(s => !allStages.includes(s));
+            if (hasNewStages) {
+                queueMicrotask(() => {
+                    setAllStages(prev => {
+                        const combined = Array.from(new Set([...prev, ...currentStages]));
+                        return combined.sort();
+                    });
+                });
+            }
         }
-    }, [total, debouncedSearch]);
+    }, [prompts, allStages]);
+
+
+    useEffect(() => {
+        if (!search && overallTotal !== total) {
+            queueMicrotask(() => {
+                setOverallTotal(total);
+            });
+        }
+    }, [search, total, overallTotal]);
 
     const columns: ColumnDef<PromptRead>[] = [
         {
@@ -86,15 +101,15 @@ const AdminPrompts = () => {
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="hover:bg-transparent p-0 font-semibold"
+                    className="hover:bg-transparent p-0 font-semibold text-base"
                 >
                     Prompt Name
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    <ArrowUpDown className="h-4 w-4" />
                 </Button>
             ),
             cell: ({ row }) => (
-                <div className="font-medium text-primary flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
                     {row.original.name}
                 </div>
             ),
@@ -104,12 +119,12 @@ const AdminPrompts = () => {
             header: () => {
                 return (
                     <div className="flex items-center gap-2">
-                        <span className="font-semibold">Content Preview</span>
+                        <span className="text-base">Content Preview</span>
                     </div>
                 )
             },
             cell: ({ row }) => (
-                <div className="max-w-[500px] truncate text-muted-foreground">
+                <div className="max-w-87.5 truncate">
                     {row.original.content}
                 </div>
             ),
@@ -118,12 +133,12 @@ const AdminPrompts = () => {
             header: () => {
                 return (
                     <div className="flex items-center gap-2">
-                        <span className="font-semibold">Stages</span>
+                        <span className="text-base">Stages</span>
                     </div>
                 )
             },
             cell: ({ row }) => (
-                <div className="max-w-[500px] truncate text-muted-foreground">
+                <div className="max-w-125 truncate">
                     <Badge variant="outline" className="capitalize">
                         {row.original.stage}
                     </Badge>
@@ -142,14 +157,14 @@ const AdminPrompts = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => handleViewClick(row.original)}
-                                    className="h-9 w-9 p-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors flex items-center justify-center shrink-0"
+                                    className="h-9 w-9 p-0 rounded-xl hover:bg-gray-200/60 flex items-center justify-center shrink-0"
                                 >
                                     <Info className="h-4 w-4 shrink-0" />
                                 </Button>
                             )}
                         />
-                        <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-                            <div className="text-sm font-semibold">View Prompt</div>
+                        <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="top">
+                            View Prompt
                         </HoverCardContent>
                     </HoverCard>
                 </div>
@@ -159,14 +174,18 @@ const AdminPrompts = () => {
 
     // Handle search with pagination reset
     const handleSearchChange = (value: string) => {
-        setSearch(value);
-        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+        setFilters({
+            search: value,
+            pageIndex: 0,
+        });
     };
 
     // Handle stage filter change with pagination reset
     const handleStageChange = (stages: string[]) => {
-        setSelectedStages(stages);
-        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+        setFilters({
+            selectedStages: stages,
+            pageIndex: 0,
+        });
     };
     const handleCopy = async () => {
         if (!selectedPrompt?.content) return;
@@ -176,6 +195,10 @@ const AdminPrompts = () => {
             setIsCopied(false);
         }, 2000);
     };
+
+    const filteredPrompts = prompts.filter(
+        (p) => selectedStages.length === 0 || selectedStages.includes(p.stage)
+    );
 
     return (
         <AppPageShell width="wide">
@@ -187,18 +210,18 @@ const AdminPrompts = () => {
 
 
                 {error && !prompts.length ? (
-                    <ErrorDisplay message={error} onRetry={fetchData} />
+                    <ErrorDisplay message={error.message} onRetry={refetch} />
                 ) :
                     <DataTable
                         columns={columns}
-                        data={prompts}
+                        data={filteredPrompts}
                         loading={loading}
                         isServerSide={true}
-                        pageCount={Math.ceil(total / pageSize)}
+                        pageCount={Math.ceil(filteredPrompts.length / pageSize)}
                         pageSize={pageSize}
-                        totalRecords={total}
+                        totalRecords={filteredPrompts.length}
                         totalCount={overallTotal}
-                        resultCount={prompts.length}
+                        resultCount={filteredPrompts.length}
                         onPaginationChange={setPagination}
                         onSearchChange={handleSearchChange}
                         entityName="Prompts"
@@ -206,72 +229,27 @@ const AdminPrompts = () => {
                         searchKey="name"
                         searchPlaceholder="Filter prompts by name or content..."
                         tableActions={
-                            <DropdownMenu>
-                                <DropdownMenuTrigger
-                                    className={cn(
-                                        "inline-flex items-center justify-between gap-2 h-10 px-3 w-[150px] rounded-xl border text-xs font-medium cursor-pointer select-none transition-all",
-                                        selectedStages.length > 0
-                                            ? "border-primary/30 bg-primary/5 text-primary"
-                                            : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                                    )}
-                                >
-                                    <span className="truncate">
-                                        {selectedStages.length === 0
-                                            ? "Stages"
-                                            : selectedStages.length === 1
-                                                ? selectedStages[0]
-                                                : `${selectedStages.length} Stages`}
-                                    </span>
-                                    <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="min-w-[180px] rounded-xl shadow-lg p-1">
-                                    <DropdownMenuGroup>
-                                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1.5">Stages</DropdownMenuLabel>
-                                        {allStages.length === 0 ? (
-                                            <div className="px-2 py-4 text-xs text-center text-muted-foreground">
-                                                No stages found
-                                            </div>
-                                        ) : (
-                                            <div className="max-h-[240px] overflow-y-auto custom-scrollbar">
-                                                {allStages.map((s) => (
-                                                    <DropdownMenuCheckboxItem
-                                                        key={s}
-                                                        checked={selectedStages.includes(s)}
-                                                        onSelect={(e) => e.preventDefault()}
-                                                        onClick={() =>
-                                                            handleStageChange(
-                                                                selectedStages.includes(s)
-                                                                    ? selectedStages.filter((v) => v !== s)
-                                                                    : [...selectedStages, s]
-                                                            )
-                                                        }
-                                                        className="rounded-lg capitalize"
-                                                    >
-                                                        {s}
-                                                    </DropdownMenuCheckboxItem>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {selectedStages.length > 0 && (
-                                            <>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuCheckboxItem
-                                                    checked={false}
-                                                    onClick={() => handleStageChange([])}
-                                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg"
-                                                >
-                                                    Clear selection
-                                                </DropdownMenuCheckboxItem>
-                                            </>
-                                        )}
-                                    </DropdownMenuGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <SearchableSelect
+                                multiple
+                                value={selectedStages}
+                                onValueChange={handleStageChange}
+                                options={allStages.map((s) => ({ id: s, label: s }))}
+                                placeholder="Stages"
+                                pluralLabel="Stages"
+                                onClear={() => handleStageChange([])}
+                                clearLabel="Clear selection"
+                                triggerClassName={cn(
+                                    "h-10 w-[150px] border text-xs font-medium select-none bg-background hover:bg-muted/50 hover:text-foreground",
+                                    selectedStages.length > 0
+                                        ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary"
+                                        : "border-input text-muted-foreground"
+                                )}
+                            />
                         }
                     />}
 
                 <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-                    <DialogContent className="flex w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col sm:w-[92vw] sm:max-w-[92vw] lg:max-w-250 max-h-[calc(100vh-1rem)] sm:max-h-[92vh] p-0 overflow-hidden rounded-[1.75rem] sm:rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl h-[650px] gap-0.5">
+                    <DialogContent className="flex w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col sm:w-[92vw] sm:max-w-[92vw] lg:max-w-250 max-h-[calc(100vh-1rem)] sm:max-h-[92vh] p-0 overflow-hidden rounded-[1.75rem] sm:rounded-3xl border-muted-foreground/10 bg-card/95 backdrop-blur-xl shadow-2xl h-162.5 gap-0.5">
                         <div className="px-4 py-2 ">
                             <DialogHeader className="mb-2">
                                 <DialogTitle className="flex items-center gap-2 text-xl">
@@ -303,5 +281,3 @@ const AdminPrompts = () => {
         </AppPageShell >
     );
 };
-
-export default AdminPrompts;

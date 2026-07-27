@@ -133,10 +133,13 @@ class JobStatsService:
         stmt = (
             select(
                 func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
-                func.coalesce(Resume.pass_fail, 
-                    case((CrossJobMatch.match_score >= threshold, "passed"),
-                         (CrossJobMatch.match_score < threshold, "failed"),
-                         else_="pending")
+                case(
+                    (Candidate.applied_job_id == job_id, Resume.pass_fail),
+                    else_=case(
+                        (CrossJobMatch.match_score >= threshold, "passed"),
+                        (CrossJobMatch.match_score < threshold, "failed"),
+                        else_="pending"
+                    )
                 ).label("final_pass_fail")
             )
             .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
@@ -161,10 +164,16 @@ class JobStatsService:
         rows = await db.execute(stmt)
         counts: dict[str, int] = {"passed": 0, "failed": 0, "pending": 0}
         for _, pf in rows.all():
-            if pf in counts:
-                counts[pf] += 1
-            else:
+            if not pf:
                 counts["pending"] += 1
+            else:
+                normalized = pf.lower().strip()
+                if normalized in ("pass", "passed"):
+                    counts["passed"] += 1
+                elif normalized in ("fail", "failed"):
+                    counts["failed"] += 1
+                else:
+                    counts["pending"] += 1
 
         return JobResultStats(
             passed=counts["passed"],
@@ -503,7 +512,7 @@ class JobStatsService:
 
         for config in stage_configs:
             stage_name = config.template.name
-            is_resume_screening = (config.stage_order == 0 or stage_name == "Resume Screening")
+            is_resume_screening = (config.stage_order == 1 or stage_name == "Resume Screening")
             
             # HR Decisions for this stage
             hr_stmt = (
@@ -542,10 +551,13 @@ class JobStatsService:
                 subq = (
                     select(
                         func.coalesce(Candidate.email, func.cast(Candidate.id, Text)).label("unique_id"),
-                        func.coalesce(Resume.pass_fail, 
-                            case((CrossJobMatch.match_score >= threshold, "passed"),
-                                 (CrossJobMatch.match_score < threshold, "failed"),
-                                 else_="pending")
+                        case(
+                            (Candidate.applied_job_id == job_id, Resume.pass_fail),
+                            else_=case(
+                                (CrossJobMatch.match_score >= threshold, "passed"),
+                                (CrossJobMatch.match_score < threshold, "failed"),
+                                else_="pending"
+                            )
                         ).label("final_pass_fail")
                     )
                     .distinct(func.coalesce(Candidate.email, func.cast(Candidate.id, Text)))
@@ -558,10 +570,16 @@ class JobStatsService:
                 ai_stmt = select(subq.c.final_pass_fail, func.count()).group_by(subq.c.final_pass_fail)
                 ai_rows = await db.execute(ai_stmt)
                 for pf, cnt in ai_rows.all():
-                    if pf in ai_counts:
-                        ai_counts[pf] = cnt
-                    else:
+                    if not pf:
                         ai_counts["pending"] += cnt
+                    else:
+                        normalized = pf.lower().strip()
+                        if normalized in ("pass", "passed"):
+                            ai_counts["passed"] += cnt
+                        elif normalized in ("fail", "failed"):
+                            ai_counts["failed"] += cnt
+                        else:
+                            ai_counts["pending"] += cnt
             else:
                 # Interview Rounds (Evaluations)
                 ai_stmt = (

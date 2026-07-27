@@ -1,57 +1,65 @@
 /**
+ * @module AdminAuditLogs
+ * @component AdminAuditLogs
+ *
  * Admin page for viewing audit logs.
  * Displays a history of user actions and system events.
  */
 import { useState, useEffect } from "react";
-import { adminAnalyticsService } from "@/apis/admin";
 import type { AuditLogRead } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
 import { DataTable } from "@/components/shared/DataTable";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import PageHeader from "@/components/shared/PageHeader";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
-import { useAdminData, useDebouncedValue } from "@/hooks";
+import { useDebouncedValue } from "@/hooks/useDebounced";
 import { ArrowUpDown } from "lucide-react";
 import type { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { toTitleCase } from "@/lib/utils";
+import { useAuditLogs } from "@/hooks/queries/admin/useAuditLogs";
+import { usePageFilters } from "@/hooks/usePageFilters";
 
-const AdminAuditLogs = () => {
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+export default function AdminAuditLogs() {
+  const { filters, setFilters } = usePageFilters("adminAuditLogs", {
     pageIndex: 0,
     pageSize: 10,
+    searchValue: "",
   });
-  const [searchValue, setSearchValue] = useState("");
+  const { pageIndex, pageSize, searchValue } = filters;
+
+  const setPagination = (val: PaginationState | ((prev: PaginationState) => PaginationState)) => {
+    const currentPagination = { pageIndex: filters.pageIndex, pageSize: filters.pageSize };
+    const nextPagination = typeof val === "function" ? val(currentPagination) : val;
+    setFilters({
+      pageIndex: nextPagination.pageIndex,
+      pageSize: nextPagination.pageSize,
+    });
+  };
+
+  const [overallTotal, setOverallTotal] = useState(0);
+
 
   const debouncedSearch = useDebouncedValue(searchValue)
 
-  const {
-    data: logs,
-    total,
-    loading,
-    error,
-    fetchData,
-  } = useAdminData<AuditLogRead>(
-    () => adminAnalyticsService.getAuditLogs(pageIndex * pageSize, pageSize, debouncedSearch),
-    { fetchOnMount: false }
-  );
+  const { data: logs, error, loading, refetch, total } = useAuditLogs(pageIndex * pageSize, pageSize, debouncedSearch)
 
-  // Refetch data when pagination or search changes
-  useEffect(() => {
-    fetchData();
-  }, [pageIndex, pageSize, debouncedSearch, fetchData]);
 
-  const [overallTotal, setOverallTotal] = useState(0);
   useEffect(() => {
-    if (!debouncedSearch) {
-      setOverallTotal(total);
+    if (!debouncedSearch && total !== overallTotal) {
+      queueMicrotask(() => {
+        setOverallTotal(total);
+      });
     }
-  }, [total, debouncedSearch]);
+  }, [total, debouncedSearch, overallTotal]);
+
 
   // Handle search with pagination reset
   const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    setFilters({
+      searchValue: value,
+      pageIndex: 0,
+    });
   };
 
   const columns: ColumnDef<AuditLogRead>[] = [
@@ -61,44 +69,41 @@ const AdminAuditLogs = () => {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent p-0 font-semibold"
+          className="hover:bg-transparent p-0 font-semibold text-base"
         >
           Date
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="h-4 w-4" />
         </Button>
       ),
       cell: ({ row }) => <DateDisplay date={row.original.created_at} />,
     },
     {
       accessorKey: "action",
-      // header: "Action",
+
       header: () => {
         return (
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Action</span>
+            <span className="text-base">Action</span>
           </div>
         )
       },
       cell: ({ row }) => {
         const action = toTitleCase(row.original.action);
-        return <span className="font-bold text-primary">{action}</span>
+        return <span>{action}</span>
       },
     },
     {
       accessorKey: "user_name",
-      // header: "User Name",
+
       header: () => {
         return (
           <div className="flex items-center gap-2">
-            <span className="font-semibold">User Name</span>
+            <span className="text-base">User Name</span>
           </div>
         )
       },
       cell: ({ row }) => (
-        <span
-          className="font-medium text-foreground"
-          title={row.original.user_name}
-        >
+        <span>
           {row.original.user_name}
         </span>
       ),
@@ -132,7 +137,7 @@ const AdminAuditLogs = () => {
       <PageHeader title="Audit Logs" />
 
       {error && !logs.length ? (
-        <ErrorDisplay message={error} onRetry={fetchData} />
+        <ErrorDisplay message={error.message} onRetry={refetch} />
       ) : (
         <DataTable
           columns={columns}
@@ -140,7 +145,6 @@ const AdminAuditLogs = () => {
           loading={loading}
           searchKey="action"
           searchPlaceholder="Filter by action..."
-          initialSorting={[{ id: "created_at", desc: true }]}
           pageIndex={pageIndex}
           pageSize={pageSize}
           onPaginationChange={setPagination}
@@ -158,7 +162,3 @@ const AdminAuditLogs = () => {
     </AppPageShell>
   );
 };
-
-
-
-export default AdminAuditLogs;

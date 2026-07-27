@@ -1,8 +1,13 @@
 import uuid
 import logging
+import re
+import json
+import openai
 from datetime import datetime, timedelta
 from typing import Any
 
+from app.v1.core.config import settings
+from app.v1.db.models.skills import Skill
 from app.v1.db.models.jobs import Job
 from app.v1.repository.job_repository import job_repository
 from app.v1.schemas.job import (
@@ -40,6 +45,110 @@ class JobAdminService:
     """
     Service for admin-level job management operations.
     """
+
+    async def extract_skills_from_jd(self, db: AsyncSession, jd_text: str) -> list[uuid.UUID]:
+        """
+        Automatically parse the jd_text using LLM to extract skills,
+        create them in the database if they do not exist, and return their IDs.
+        If LLM extraction fails, fallback to regex database keyword matching.
+        """
+        if not jd_text or not jd_text.strip():
+            return []
+
+        extracted_skill_names = []
+
+        system_prompt = (
+            "You are an expert technical recruiter and skill analyst.\n"
+            "Your task is to analyze a Job Description (JD) text and extract all relevant technical, conceptual, and professional skills required for this job.\n"
+            "CRITICAL:\n"
+            "1. You MUST output ONLY valid JSON format.\n"
+            "2. Your output MUST be a JSON object with a single key 'skills' which is an array of strings representing the unique skill names.\n"
+            "3. Do NOT include any conversational text, explanations, or markdown formatting (like ```json).\n"
+            "4. Be precise and use standard technology/concept names (e.g. 'FastAPI', 'React', 'CSS', 'Database Design')."
+        )
+        
+        user_prompt = f"""
+Analyze the following Job Description and extract the required skills:
+
+JOB DESCRIPTION:
+{jd_text[:8000]}
+
+Output Format Example (JSON ONLY):
+{{
+  "skills": ["Skill1", "Skill2", "Skill3"]
+}}
+"""
+
+        try:
+            base_url = settings.OLLAMA_URL
+            if not base_url.endswith("/"):
+                base_url += "/"
+            if "/v1" not in base_url:
+                base_url += "v1"
+
+            client = openai.AsyncOpenAI(
+                base_url=base_url,
+                api_key=settings.OLLAMA_API_KEY or "ollama"
+            )
+            response = await client.chat.completions.create(
+                model=settings.OLLAMA_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1,
+                timeout=15.0
+            )
+
+            response_text = response.choices[0].message.content or "{}"
+            response_text = response_text.strip()
+            
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+
+            data = json.loads(response_text)
+            skills = data.get("skills", [])
+            extracted_skill_names = [str(skill).strip() for skill in skills if skill]
+        except Exception as e:
+            logger.warning(f"LLM JD skill extraction failed or timed out: {e}. Falling back to database keyword matching.")
+            extracted_skill_names = []
+
+        stmt_all = select(Skill)
+        all_db_skills = (await db.execute(stmt_all)).scalars().all()
+
+        matched_skill_ids = []
+        
+        if extracted_skill_names:
+            for skill_name in extracted_skill_names:
+                matched_skill = None
+                for db_skill in all_db_skills:
+                    if db_skill.name.lower() == skill_name.lower():
+                        matched_skill = db_skill
+                        break
+                
+                if matched_skill:
+                    matched_skill_ids.append(matched_skill.id)
+                else:
+                    new_skill = Skill(
+                        name=skill_name,
+                        description="Auto-extracted skill from JD description."
+                    )
+                    db.add(new_skill)
+                    await db.flush()
+                    matched_skill_ids.append(new_skill.id)
+        else:
+            for db_skill in all_db_skills:
+                pattern = r'\b' + re.escape(db_skill.name.lower()) + r'\b'
+                if re.search(pattern, jd_text.lower()):
+                    matched_skill_ids.append(db_skill.id)
+
+        return list(set(matched_skill_ids))
 
     async def get_all_jobs(
         self, 
@@ -165,6 +274,44 @@ class JobAdminService:
         titles = await job_repository.get_titles(db, query=query)
         return JobTitlesListRead(data=[JobTitleRead(**t) for t in titles])
 
+    async def get_job_titles_grouped(self, db: AsyncSession, query: str | None = None):
+        """
+        Retrieve active jobs grouped by title with their position variants.
+
+        Returns a JobTitlesGroupedListRead where each entry has a unique title
+        and a list of variants (job_id, position_id, position_name, is_active).
+        """
+        from app.v1.schemas.job import (
+            JobTitleVariantRead,
+            JobTitleGroupRead,
+            JobTitlesGroupedListRead,
+        )
+        from collections import OrderedDict
+
+        rows = await job_repository.get_titles_grouped(db, query=query)
+
+        # Group by title (preserving order)
+        grouped: dict[str, list[JobTitleVariantRead]] = OrderedDict()
+        for row in rows:
+            title = row["title"]
+            if title not in grouped:
+                grouped[title] = []
+            grouped[title].append(
+                JobTitleVariantRead(
+                    job_id=row["job_id"],
+                    position_id=row["position_id"],
+                    position_name=row["position_name"],
+                    is_active=row["is_active"],
+                )
+            )
+
+        data = [
+            JobTitleGroupRead(title=title, variants=variants)
+            for title, variants in grouped.items()
+        ]
+
+        return JobTitlesGroupedListRead(data=data)
+
     async def get_job_by_id(self, db: AsyncSession, job_id: uuid.UUID) -> JobRead:
         """Get a job by ID."""
         job = await job_repository.get(db=db, id=job_id)
@@ -181,6 +328,14 @@ class JobAdminService:
         job_read.total_candidates = stats["total_candidates"]
         job_read.current_session_candidates = stats["current_session_count"]
         job_read.activity_sessions = stats["sessions"]
+        
+        # Populate skill weightages
+        from sqlalchemy import text
+        job_skills_query = text("SELECT skill_id, weightage FROM job_skills WHERE job_id = :job_id")
+        job_skills_res = await db.execute(job_skills_query, {"job_id": job_id})
+        raw_weights = {str(row[0]): float(row[1]) for row in job_skills_res.fetchall()}
+        job_read.job_skill_weightages = raw_weights
+        
         return job_read
 
     async def get_job_version(self, db: AsyncSession, version_id: uuid.UUID) -> Any:
@@ -197,6 +352,11 @@ class JobAdminService:
         self, db: AsyncSession, admin_user_id: uuid.UUID, job_in: JobCreate
     ) -> JobRead:
         """Create a new job."""
+        # Auto-extract skills from jd_text if provided
+        if job_in.jd_text and job_in.jd_text.strip():
+            extracted_ids = await self.extract_skills_from_jd(db, job_in.jd_text)
+            job_in.skill_ids = list(set((job_in.skill_ids or []) + extracted_ids))
+
         # Validate department existence if provided
         if job_in.department_id:
             await department_service.get_department_by_id(db, job_in.department_id)
@@ -206,28 +366,78 @@ class JobAdminService:
             for skill_id in job_in.skill_ids:
                 await skill_service.get_skill_by_id(db, skill_id)
 
-        # Validate title uniqueness (case-insensitive)
+        # Check if a matching question paper exists
+        from app.v1.db.models.question_set_paper import QuestionSetPaper
+        from app.v1.db.models.skills import Skill
+        from sqlalchemy import select
+        
+        stmt = select(QuestionSetPaper).where(
+            QuestionSetPaper.department_id == job_in.department_id,
+            QuestionSetPaper.position_id == job_in.position_id
+        )
+        if job_in.skill_ids:
+            stmt = stmt.where(QuestionSetPaper.skills.any(Skill.id.in_(job_in.skill_ids)))
+        
+        has_question_bank = False
+        if job_in.skill_ids:
+            res = await db.execute(stmt)
+            if res.scalars().first():
+                has_question_bank = True
+
+        # Validate (title + position_id) uniqueness against ACTIVE jobs only.
+        # Inactive duplicates are allowed because the user may want to re-create
+        # the same (title, position) combo while older inactive copies still exist.
         from sqlalchemy import func, select
-        existing_job_stmt = select(Job.id).where(func.lower(Job.title) == func.lower(job_in.title))
+        if not job_in.position_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="position_id is required to create a job.",
+            )
+        existing_job_stmt = select(Job.id).where(
+            func.lower(Job.title) == func.lower(job_in.title),
+            Job.position_id == job_in.position_id,
+            Job.is_active.is_(True),
+        )
         if await db.scalar(existing_job_stmt):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Job with title '{job_in.title}' already exists.",
+                detail=f"An active job with title '{job_in.title}' already exists for this position.",
             )
 
         # Handle priority dates calculation
+        priority = None
         if job_in.priority_id:
             if not job_in.priority_start_date:
                 job_in.priority_start_date = datetime.now()
             
-            if not job_in.priority_end_date:
-                priority = await job_priority_service.get_priority_by_id(db, job_in.priority_id)
-                if priority:
-                    job_in.priority_end_date = job_in.priority_start_date + timedelta(days=priority.duration_days)
+            priority = await job_priority_service.get_priority_by_id(db, job_in.priority_id)
+            if not job_in.priority_end_date and priority:
+                job_in.priority_end_date = job_in.priority_start_date + timedelta(days=priority.duration_days)
+
+        # Handle associate reminder hours default
+        if job_in.associate_reminder_hours is None:
+            if priority and priority.associate_reminder_hours:
+                job_in.associate_reminder_hours = priority.associate_reminder_hours
+            else:
+                job_in.associate_reminder_hours = 24
 
         job = await job_repository.create(
             db=db, object=job_in, created_by=admin_user_id
         )
+        
+        # Update skill weightages in job_skills association table if provided
+        if job_in.skill_weightages:
+            from app.v1.db.models.job_skills import job_skills
+            from sqlalchemy import update
+            for s_id, w in job_in.skill_weightages.items():
+                if str(s_id) in [str(sid) for sid in (job_in.skill_ids or [])]:
+                    stmt_update = (
+                        update(job_skills)
+                        .where(job_skills.c.job_id == job.id)
+                        .where(job_skills.c.skill_id == s_id)
+                        .values(weightage=w)
+                    )
+                    await db.execute(stmt_update)
 
         # Setup stages for the new job
         from app.v1.services.stage_service import stage_service
@@ -263,6 +473,11 @@ class JobAdminService:
         # Re-fetch the job with all stages and templates fully loaded
         job = await self.get_job_by_id(db, job_id)
 
+        # NOTE: The generic (NULL-stage) auto-paper generation has been removed.
+        # Attempt 2 below already generates a stage-specific paper tied to the
+        # first question round, which is the correct behaviour. Keeping both
+        # caused duplicate papers and let other rounds silently reuse the
+        # NULL-stage fallback paper.
         # Invalidate job board and search caches
         from app.v1.core.cache import cache
         await cache.clear(pattern="jobs:list:*")
@@ -288,6 +503,25 @@ class JobAdminService:
             },
         )
 
+        # Attempt to auto-generate a random question paper from question bank
+        from app.v1.services.admin.candidate_task_service import candidate_task_service
+        from app.v1.routes.task_papers_helpers import get_job_first_question_stage_config_id
+        job.default_paper_assigned = False
+        try:
+            first_question_stage_id = await get_job_first_question_stage_config_id(db, job.id)
+            random_paper = await candidate_task_service.generate_random_paper_for_job(
+                db=db,
+                job=job,
+                job_stage_config_id=first_question_stage_id
+            )
+            if random_paper:
+                db.add(random_paper)
+                await db.commit()
+                job.default_paper_assigned = True
+                logger.info(f"Auto-generated random question paper for new job {job.id} (stage={first_question_stage_id})")
+        except Exception as e:
+            logger.warning(f"Could not auto-generate random paper for job {job.id}: {e}")
+
         # Trigger background task to match all existing resumes to this new job
         from app.v1.services.admin.job_tasks import match_all_resumes_to_job_task
         logger.info(f"Triggering mass matching task for new job: {job.id}")
@@ -298,7 +532,10 @@ class JobAdminService:
         await cache.clear(pattern="jobs:list:*")
         await cache.clear(pattern="jobs:search:*")
 
-        return JobRead.model_validate(job)
+        if not has_question_bank:
+            job.message = "There is no question available you need to add it manualy"
+
+        return job
 
     async def update_job(
         self,
@@ -309,7 +546,15 @@ class JobAdminService:
         background_tasks=None,
     ) -> JobRead:
         # Update a job. Auto-triggers mass refresh if custom_extraction_fields changed.
-        await self.get_job_by_id(db=db, job_id=job_id)
+        current_job = await self.get_job_by_id(db=db, job_id=job_id)
+
+        # Auto-extract skills from jd_text if provided in the update request
+        if job_update.jd_text and job_update.jd_text.strip():
+            extracted_ids = await self.extract_skills_from_jd(db, job_update.jd_text)
+            current_skill_ids = job_update.skill_ids
+            if current_skill_ids is None:
+                current_skill_ids = [s.id for s in current_job.skills]
+            job_update.skill_ids = list(set(current_skill_ids + extracted_ids))
 
         # Filter out invalid department_id if provided
         if job_update.department_id:
@@ -333,17 +578,33 @@ class JobAdminService:
                     continue
             job_update.skill_ids = valid_skill_ids
 
-        # Validate title uniqueness (case-insensitive) if title is being changed
-        if job_update.title:
+        # Validate (title + position_id) uniqueness against ACTIVE jobs only.
+        # We check whenever title, position_id, or is_active is being changed —
+        # because activating/reactivating a job can also create a duplicate active pair.
+        if (
+            job_update.title is not None
+            or job_update.position_id is not None
+            or job_update.is_active is not None
+        ):
             from sqlalchemy import func, select
-            # Get current job to see if title is actually changing
             current_job = await self.get_job_by_id(db, job_id)
-            if job_update.title.lower() != current_job.title.lower():
-                existing_job_stmt = select(Job.id).where(func.lower(Job.title) == func.lower(job_update.title))
+            new_title = job_update.title if job_update.title else current_job.title
+            new_position_id = job_update.position_id if job_update.position_id else current_job.position_id
+            new_is_active = (
+                job_update.is_active if job_update.is_active is not None else current_job.is_active
+            )
+            # Only enforce uniqueness when the resulting row would be ACTIVE.
+            if new_is_active:
+                existing_job_stmt = select(Job.id).where(
+                    func.lower(Job.title) == func.lower(new_title),
+                    Job.position_id == new_position_id,
+                    Job.is_active.is_(True),
+                    Job.id != job_id,
+                )
                 if await db.scalar(existing_job_stmt):
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Job with title '{job_update.title}' already exists.",
+                        detail=f"An active job with title '{new_title}' already exists for this position.",
                     )
 
         # Handle priority dates calculation on update
@@ -358,6 +619,20 @@ class JobAdminService:
                     job_update.priority_end_date = job_update.priority_start_date + timedelta(days=priority.duration_days)
 
         updated_job = await job_repository.update(db=db, id=job_id, object=job_update)
+        
+        # Update skill weightages in job_skills association table if provided
+        if job_update.skill_weightages:
+            from app.v1.db.models.job_skills import job_skills
+            from sqlalchemy import update
+            for s_id, w in job_update.skill_weightages.items():
+                if str(s_id) in [str(sid) for sid in (job_update.skill_ids or [s.id for s in current_job.skills])]:
+                    stmt_update = (
+                        update(job_skills)
+                        .where(job_skills.c.job_id == job_id)
+                        .where(job_skills.c.skill_id == s_id)
+                        .values(weightage=w)
+                    )
+                    await db.execute(stmt_update)
         
         # Handle stages update if provided (same logic as create_job)
         if job_update.stages is not None:
@@ -445,7 +720,7 @@ class JobAdminService:
         await cache.clear(pattern="jobs:list:*")
         await cache.clear(pattern="jobs:search:*")
 
-        return JobRead.model_validate(updated_job)
+        return updated_job
 
     async def update_job_status(
         self,
@@ -481,7 +756,7 @@ class JobAdminService:
         await cache.clear(pattern="jobs:list:*")
         await cache.clear(pattern="jobs:search:*")
 
-        return JobRead.model_validate(updated_job)
+        return await self.get_job_by_id(db, job_id)
 
 
     async def delete_job(

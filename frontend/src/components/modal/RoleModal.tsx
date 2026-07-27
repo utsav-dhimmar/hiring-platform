@@ -5,9 +5,10 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { adminPermissionService, adminRoleService } from "@/apis/admin";
-import type { PermissionRead } from "@/types/admin";
-import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import { useCreateRoleMutation, useUpdateRoleMutation } from "@/hooks/mutations/admin/useRole";
+import { useAdminPermissions } from "@/hooks/queries/admin/useAdminPermissions";
+import { useAdminRoleById } from "@/hooks/queries/admin/useAdminRoleById";
+import type { RoleWithPermissions } from "@/types/permission-role";
 import {
   Dialog,
   DialogContent,
@@ -15,25 +16,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Button,
-  Input,
-  Checkbox,
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  Field,
-  FieldContent,
-  FieldLabel,
-  FieldDescription,
-} from "@/components";
-import { useFormModal } from "@/hooks";
-import { roleCreateSchema, type RoleCreateFormValues } from "@/schemas/admin";
+
+import { useFormModal } from "@/hooks/useFormModal";
+import { roleCreateSchema, type RoleCreateFormValues } from "@/schemas/permission-role";
 import { cn } from "@/lib/utils";
-import { Required } from "@/components/job-form/Required";
+import { Required } from "@/components/shared/Required";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/components/shared/ToastProvider";
+import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
+
 
 /**
  * Props for the RoleModal component.
@@ -58,29 +53,41 @@ const DEFAULT_ROLE_VALUES: RoleCreateFormValues = {
  * Modal dialog for creating or editing a role.
  */
 const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps) => {
-  const [permissions, setPermissions] = useState<PermissionRead[]>([]);
-  const [fetchingData, setFetchingData] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
+  const toast = useToast();
   const isEditMode = !!editRoleId;
+  const createRoleMutation = useCreateRoleMutation();
+  const updateRoleMutation = useUpdateRoleMutation();
 
-  const onSubmit = useCallback(
-    async (data: RoleCreateFormValues) => {
-      if (editRoleId) {
-        await adminRoleService.updateRole(editRoleId, data);
-      } else {
-        await adminRoleService.createRole(data);
-      }
-      onSuccess();
-      handleClose();
-    },
-    [editRoleId, onSuccess, handleClose],
+  const { data: permissions, loading: permissionsLoading } = useAdminPermissions({ isEnable: show });
+  const { data: roleData, loading: roleLoading } = useAdminRoleById(show ? editRoleId : null);
+
+  const fetchingData = permissionsLoading || (isEditMode && roleLoading);
+
+  const mapItemToValues = useCallback(
+    (role: RoleWithPermissions): RoleCreateFormValues => ({
+      name: role.name,
+      permission_ids: role.permissions.map((p) => p.id),
+    }),
+    [],
   );
 
-  const formModal = useFormModal<RoleCreateFormValues, any>({
+  const onSubmit = async (data: RoleCreateFormValues) => {
+    if (editRoleId) {
+      await updateRoleMutation.mutateAsync({ id: editRoleId, data });
+    } else {
+      await createRoleMutation.mutateAsync(data);
+    }
+    onSuccess();
+    handleClose();
+  };
+
+  const formModal = useFormModal<RoleCreateFormValues, RoleWithPermissions>({
     schema: roleCreateSchema,
     defaultValues: DEFAULT_ROLE_VALUES,
+    item: roleData,
     show,
+    mapItemToValues,
     onSubmit,
   });
 
@@ -89,7 +96,6 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
     isSubmitting,
     submitError,
     setSubmitError,
-    reset,
     setValue,
     control,
     watch,
@@ -105,42 +111,10 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
     );
   });
 
+  // Reset search term when modal opens
   useEffect(() => {
-    const fetchData = async () => {
-      if (!show) return;
-
-      setSearchTerm("");
-      setFetchingData(true);
-      setSubmitError(null);
-      try {
-
-        const permsData = await adminPermissionService.getAllPermissions();
-        setPermissions(permsData.data);
-
-
-        if (editRoleId) {
-          const roleData = await adminRoleService.getRoleById(editRoleId);
-          setValue("name", roleData.name);
-          setValue(
-            "permission_ids",
-            roleData.permissions.map((p) => p.id),
-          );
-        } else {
-          reset({
-            name: "",
-            permission_ids: [],
-          });
-        }
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-        setSubmitError("Failed to load required data.");
-      } finally {
-        setFetchingData(false);
-      }
-    };
-
-    fetchData();
-  }, [show, editRoleId, setValue, reset, setSubmitError]);
+    if (show) setSearchTerm("");
+  }, [show]);
 
   const onHide = () => {
     setSubmitError(null);
@@ -158,6 +132,13 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
     setValue("permission_ids", current, { shouldValidate: true });
   };
 
+  useEffect(() => {
+    if (submitError) {
+      toast.error(isEditMode ? "Failed to update role" : "Failed to create role");
+    }
+  }, [submitError]);
+
+
   return (
     <Dialog open={show} onOpenChange={(open) => !open && onHide()}>
       {/* <DialogContent className="max-w-lg font-sans h-[550px] flex flex-col"> */}
@@ -168,9 +149,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
           </DialogTitle>
         </DialogHeader>
 
-        {submitError && <ErrorDisplay message={submitError} />}
-
-        {fetchingData ? (
+        {fetchingData && !permissions.length ? (
           <div className="flex-1 flex items-center justify-center p-10">
             <p className="text-muted-foreground animate-pulse font-medium">Loading data...</p>
           </div>
@@ -197,7 +176,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
 
               <div className="flex-1 flex flex-col min-h-0 space-y-3">
                 <div className="flex sm:flex-row sm:items-center gap-2 px-2">
-                  <FormLabel className="text-md font-semibold">Assign Permissions <Required /></FormLabel>
+                  <FormLabel className="text-md font-semibold">Search Permissions </FormLabel>
                   <Input
                     placeholder="Search permissions..."
                     value={searchTerm}
@@ -205,7 +184,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
                     className="h-9 w-full sm:w-64 rounded-xl border-muted-foreground/20 focus:ring-2 focus:ring-primary/20 transition-all text-sm font-medium"
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-3 p-4 bg-muted/30 rounded-2xl border border-muted-foreground/10 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-3 gap-3 p-4 bg-muted/30 rounded-2xl border border-muted-foreground/10 flex-1 overflow-y-auto">
                   {filteredPermissions.map((permission) => {
                     const isChecked = selectedPermissionIds.includes(permission.id);
                     return (
@@ -213,7 +192,7 @@ const RoleModal = ({ show, handleClose, onSuccess, editRoleId }: RoleModalProps)
                         key={permission.id}
                         orientation="horizontal"
                         className={cn(
-                          "items-start gap-3 p-3 rounded-xl border-2 transition-all duration-200",
+                          "items-start gap-3 p-3 rounded-xl border-2 transition-all duration-200 h-20",
                           isChecked
                             ? "bg-primary/5 border-primary shadow-sm"
                             : "bg-background/50 border-transparent hover:border-muted-foreground/20",

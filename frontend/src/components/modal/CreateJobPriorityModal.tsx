@@ -4,18 +4,16 @@
  */
 
 import { useCallback } from "react";
-import { adminJobPriorityService } from "@/apis/admin";
-import type { JobPriorityRead } from "@/types/admin";
+import type { JobPriorityRead } from "@/types/jobPriority";
+import { useCreatePriorityMutation, useUpdatePriorityMutation } from "@/hooks/mutations/admin/useJobPriority";
 import {
-  Button,
-  Input,
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl,
   FormMessage,
-} from "@/components";
+} from "@/components/ui/form";
 import {
   Dialog,
   DialogContent,
@@ -23,9 +21,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useFormModal } from "@/hooks";
-import { jobPriorityCreateSchema, type JobPriorityCreateFormValues } from "@/schemas/admin";
+import { useFormModal } from "@/hooks/useFormModal";
+import { jobPriorityCreateSchema, type JobPriorityCreateFormValues } from "@/schemas/jobPriority";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface CreateJobPriorityModalProps {
   show: boolean;
@@ -37,6 +37,7 @@ interface CreateJobPriorityModalProps {
 const DEFAULT_PRIORITY_VALUES: JobPriorityCreateFormValues = {
   // name: "",
   duration_days: 7,
+  associate_reminder_hours: 24
 };
 
 const CreateJobPriorityModal = ({
@@ -46,27 +47,27 @@ const CreateJobPriorityModal = ({
   priority,
 }: CreateJobPriorityModalProps) => {
   const isEditMode = !!priority;
+  const createPriorityMutation = useCreatePriorityMutation();
+  const updatePriorityMutation = useUpdatePriorityMutation();
 
   const mapItemToValues = useCallback(
     (p: JobPriorityRead): JobPriorityCreateFormValues => ({
       // name: p.name,
       duration_days: p.duration_days,
+      associate_reminder_hours: p.associate_reminder_hours
     }),
     [],
   );
 
-  const onSubmit = useCallback(
-    async (data: JobPriorityCreateFormValues) => {
-      if (isEditMode && priority) {
-        await adminJobPriorityService.updatePriority(priority.id, data);
-      } else {
-        await adminJobPriorityService.createPriority(data);
-      }
-      onPrioritySaved();
-      handleClose();
-    },
-    [isEditMode, priority, onPrioritySaved, handleClose],
-  );
+  const onSubmit = async (data: JobPriorityCreateFormValues) => {
+    if (isEditMode && priority) {
+      await updatePriorityMutation.mutateAsync({ id: priority.id, data });
+    } else {
+      await createPriorityMutation.mutateAsync(data);
+    }
+    onPrioritySaved();
+    handleClose();
+  };
 
   const formModal = useFormModal<JobPriorityCreateFormValues, JobPriorityRead>({
     schema: jobPriorityCreateSchema,
@@ -114,6 +115,23 @@ const CreateJobPriorityModal = ({
                     <Input
                       type="number"
                       placeholder="Number of days"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name="associate_reminder_hours"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reminder Hours</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Hours"
                       {...field}
                     />
                   </FormControl>

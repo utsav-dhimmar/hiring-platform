@@ -3,14 +3,23 @@
  */
 
 /**
- * Interface for the highlights of an candidate stage evaluation
+ * A categorized item is an object with a single key (category name) mapping to a value.
+ * Used for structured highlights grouped by sub-headings like "JD Alignment", "Architecture", etc.
+ */
+export type CategorizedStringItem = Record<string, string>;
+export type CategorizedStringArrayItem = Record<string, string[]>;
+
+/**
+ * Interface for the highlights of a candidate stage evaluation.
+ * Supports both simple format (string/string[]) and categorized format (array of {category: value} objects).
  */
 export interface Highlight {
-  overall_summary: string;
+  overall_summary: string | CategorizedStringItem[];
   recommendation: string;
-  strengths: string[];
-  weaknesses: string[];
-  suggested_followups: string[];
+  strengths: string[] | CategorizedStringArrayItem[];
+  weaknesses: string[] | CategorizedStringArrayItem[];
+  suggested_followups: string[] | CategorizedStringArrayItem[];
+  [key: string]: any;
 }
 
 /**
@@ -21,8 +30,12 @@ export interface EvaluationRead {
   id: string;
   interview_id?: string | null;
   transcript_id?: string | null;
+  version?: number;
+  result?: string;
+  status?: string;
+  error_message?: string | null;
   candidate_stage_id: string;
-  evaluation_data: Record<string, any>;
+  evaluation_data: Record<string, any> | Record<string, Array<Record<string, Criteria>>>;
   overall_score?: number | null;
   recommendation?: string | null;
   sim_jd_resume?: number | null;
@@ -30,7 +43,9 @@ export interface EvaluationRead {
   sim_resume_transcript?: number | null;
   evidence_block?: Record<string, any> | null;
   created_at: string;
-  highlights: Highlight
+  highlights: Highlight;
+  jd_skills?: string[] | null;
+  project_required_skills?: string[] | null;
 }
 
 /**
@@ -81,9 +96,30 @@ export interface Criteria {
 }
 
 export interface Highlights {
-  strengths: string[]
-  weaknesses: string[]
-  suggested_followups: string[]
-  overall_summary: string
+  strengths: string[] | CategorizedStringArrayItem[]
+  weaknesses: string[] | CategorizedStringArrayItem[]
+  suggested_followups: string[] | CategorizedStringArrayItem[]
+  overall_summary: string | CategorizedStringItem[]
   recommendation: string
+  [key: string]: any;
+}
+
+export interface AssociateEmailResult {
+  associate_id: string;
+  name: string;
+  email: string;
+  status: string; // "sent" or "failed"
+  error?: string | null;
+}
+
+export interface SendToAssociatesResponse {
+  status: string;
+  message: string;
+  candidate_stage_id: string;
+  candidate_name: string;
+  github_url: string;
+  paper_id?: string | null;
+  paper_name?: string | null;
+  sent_to: AssociateEmailResult[];
+  failed: AssociateEmailResult[];
 }

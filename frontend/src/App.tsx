@@ -1,23 +1,13 @@
 /**
  * Main App component.
- * Sets up React Router for navigation throughout the application.
+ * Sets up React Router Provider using data mode.
  */
 
-import { BrowserRouter as Router } from "react-router-dom";
-import AppRoutes from "@/routes/AppRoutes";
-import { ToastProvider } from "@/components/shared/ToastProvider";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { RouterProvider } from "react-router-dom";
+import { router } from "@/routes/AppRoutes";
 
 function App() {
-  return (
-    <Router>
-      <TooltipProvider>
-        <ToastProvider>
-          <AppRoutes />
-        </ToastProvider>
-      </TooltipProvider>
-    </Router>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

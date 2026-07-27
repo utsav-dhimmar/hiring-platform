@@ -6,12 +6,14 @@ specifically for retrieving the current authenticated user.
 """
 
 import jwt
+import json
 from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.core.config import settings
+from app.v1.core.security import get_fernet_cipher
 from app.v1.db.session import get_db
 from app.v1.schemas.user import UserRead
 from app.v1.services.user_service import user_service
@@ -69,7 +71,21 @@ async def get_current_user(
             detail="Refresh tokens cannot be used for this endpoint.",
         )
 
-    subject = payload.get("sub")
+    enc_data = payload.get("enc_data")
+    if enc_data:
+        try:
+            cipher = get_fernet_cipher()
+            inner_payload = json.loads(cipher.decrypt(enc_data.encode()).decode("utf-8"))
+            subject = inner_payload.get("sub")
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid encrypted token.",
+            ) from exc
+    else:
+        # Fallback for old tokens
+        subject = payload.get("sub")
+
     if not subject:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

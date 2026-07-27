@@ -3,9 +3,10 @@ API routes for job-related operations in version 1.
 """
 
 import uuid
+import os
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status, File as FastAPIFile, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
@@ -19,6 +20,7 @@ from app.v1.schemas.job import (
     JobUpdate,
     JobActivityHistoryResponse,
     JobTitlesListRead,
+    JobTaskRead,
 )
 from app.v1.schemas.job_stage import (
     JobStageConfigCreate,
@@ -34,6 +36,7 @@ from app.v1.services.admin_service import admin_service
 from app.v1.services.job_service import job_service
 from app.v1.services.resume_upload_service import resume_upload_service
 from app.v1.services.stage_service import stage_service
+from app.v1.services.admin.task_service import task_service
 
 router = APIRouter()
 
@@ -111,6 +114,22 @@ async def get_job_titles(
     Retrieve only the IDs and titles of all jobs.
     """
     return await job_service.get_job_titles(db=db, query=q)
+
+
+@router.get("/titles/grouped", response_model=Any)
+async def get_job_titles_grouped(
+    db: AsyncSession = Depends(get_db),
+    user: UserRead = Depends(check_permission("jobs:access")),
+    q: str | None = Query(None),
+) -> Any:
+    """
+    Retrieve active jobs grouped by title with their position variants.
+
+    Each unique title appears once with a list of available position variants
+    (Fresher, Senior, Intern, etc.). The frontend uses this to populate an
+    intuitive two-level dropdown: Job Role → Position.
+    """
+    return await job_service.get_job_titles_grouped(db=db, query=q)
 
 
 @router.post("", response_model=JobRead, status_code=status.HTTP_201_CREATED)
@@ -423,3 +442,106 @@ async def get_stage_criteria(
         )
         for row in rows
     ]
+
+
+@router.post(
+    "/{job_id}/task",
+    response_model=JobTaskRead,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_job_task(
+    job_id: uuid.UUID,
+    task_file: UploadFile = FastAPIFile(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("jobs:manage")),
+) -> Any:
+    """Upload a candidate task PDF for a specific job and extract required skills."""
+    return await task_service.upload_and_extract_task_skills(
+        db=db,
+        job_id=job_id,
+        task_file=task_file,
+    )
+
+
+@router.get(
+    "/{job_id}/task",
+    response_model=JobTaskRead,
+    status_code=status.HTTP_200_OK,
+)
+async def read_job_task(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("jobs:access")),
+) -> Any:
+    """Retrieve only the task PDF file path and extracted required skills for a specific job."""
+    return await task_service.get_task_skills(
+        db=db,
+        job_id=job_id,
+    )
+
+
+@router.delete(
+    "/{job_id}/task",
+    status_code=status.HTTP_200_OK,
+)
+async def delete_job_task(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("jobs:manage")),
+) -> dict[str, str]:
+    """Delete the candidate task PDF and reset task skills to null for a specific job."""
+    await task_service.delete_task_skills(
+        db=db,
+        job_id=job_id,
+    )
+    return {"message": "Task deleted successfully."}
+
+
+@router.get(
+    "/{job_id}/task/file",
+    status_code=status.HTTP_200_OK,
+)
+async def download_job_task_file(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("jobs:access")),
+):
+    """Download/view the job's default task description file."""
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse
+    from app.v1.db.models.jobs import Job
+    from app.v1.core.storage import resolve_storage_path
+
+    # 1. Fetch Job from DB
+    job = await db.get(Job, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if not job.task_file_path:
+        raise HTTPException(status_code=404, detail="No task file uploaded for this Job")
+
+    # 2. Resolve Path
+    abs_path = resolve_storage_path(job.task_file_path)
+    if not abs_path.is_file():
+        raise HTTPException(status_code=404, detail="Task file not found on disk")
+
+    filename = os.path.basename(job.task_file_path)
+    # Determine media type based on extension
+    media_type = "application/octet-stream"
+    if filename.lower().endswith(".pdf"):
+        media_type = "application/pdf"
+    elif filename.lower().endswith(".docx"):
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    elif filename.lower().endswith(".doc"):
+        media_type = "application/msword"
+
+    return FileResponse(
+        path=abs_path,
+        filename=filename,
+        media_type=media_type
+    )
+
+
+
+
+

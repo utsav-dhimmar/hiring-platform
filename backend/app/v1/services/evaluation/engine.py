@@ -1,5 +1,6 @@
 
 import re
+import asyncio
 import numpy as np
 from typing import List, Dict, Any, Tuple
 import uuid
@@ -51,8 +52,6 @@ class EvaluationEngine:
         """
         EMBEDDING PHASE: Generate semantic signals between JD, Resume, and Transcript.
         """
-        import asyncio
-        
         # JD and Resume are small, but we can still parallelize them
         tasks = [
             asyncio.to_thread(embedding_service.encode_jd, jd_text),
@@ -77,7 +76,7 @@ class EvaluationEngine:
         self, 
         transcript_text: str, 
         criterion_query: str, 
-        top_k: int = 3, 
+        top_k: int = 10, 
         precalculated_sentences: List[str] = None,
         precalculated_vectors: List[List[float]] = None
     ) -> List[str]:

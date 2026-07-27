@@ -143,6 +143,9 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = Field(
         default="glm_5:cloud", description="Name of the Ollama model to use"
     )
+    ENHANCE_MODEL: str | None = Field(
+        default=None, description="Optional distinct model for prompt enhancement"
+    )
     OLLAMA_API_KEY: str = Field(
         default="d35ce7accc034bbc86f51347ae810ea6.mc4X9BO4XwHPR23bcHFtHWLV",
         description="API key for Ollama Cloud (if applicable)",
@@ -183,6 +186,10 @@ class Settings(BaseSettings):
         default="uploads/resumes",
         description="Directory where uploaded resumes are stored",
     )
+    TASK_UPLOAD_DIR: str = Field(
+        default="uploads/tasks",
+        description="Directory where uploaded candidate and job tasks are stored",
+    )
     TRANSCRIPT_UPLOAD_DIR: str = Field(
         default="uploads/transcripts",
         description="Directory where uploaded interview transcripts are stored",
@@ -209,6 +216,14 @@ class Settings(BaseSettings):
     )
     ADMIN_FULL_NAME: str = Field(
         default="admin", description="Full name for the default admin user"
+    )
+    DEFAULT_RECRUITER_EMAIL: str | None = Field(
+        default=None,
+        description="Default recruiter email address fallback",
+    )
+    DEFAULT_CANDIDATE_EMAIL: str | None = Field(
+        default=None,
+        description="Default candidate email address fallback",
     )
 
     # Redis cache
@@ -245,11 +260,36 @@ class Settings(BaseSettings):
         description="Whether to use a cross-encoder for re-ranking",
     )
 
+    EVALUATION_PROMPT_VERSION: str = Field(
+        default="v1",
+        description="The version of the evaluation prompt to load dynamically"
+    )
+
+    GITHUB_EVALUATOR_URL: str = Field(
+        default="http://127.0.0.1:8000/evaluator",
+        description="URL for the GitHub Evaluator microservice"
+    )
+
     @computed_field
     @property
     def CELERY_BROKER_URL(self) -> str:
         """The broker URL for Celery, defaulting to REDIS_URL."""
         return self.REDIS_URL
+
+
+    # SMTP configurations
+    SMTP_HOST: str = Field(default="smtp.gmail.com", description="SMTP server hostname")
+    SMTP_PORT: int = Field(default=587, description="SMTP server port")
+    SMTP_USER: str = Field(default="", description="SMTP username")
+    SMTP_PASSWORD: str = Field(default="", description="SMTP password")
+    SMTP_FROM_EMAIL: str = Field(default="", description="Sender email address")
+    SMTP_TARGET_EMAIL_OVERRIDE: str | None = Field(default=None, description="Override target email for testing")
+
+    # Application base URL (used to build links in emails, e.g. associate review form)
+    APP_BASE_URL: str = Field(
+        default="http://localhost:8000",
+        description="Base URL of the backend API for generating links in emails"
+    )
 
 
 settings = Settings()

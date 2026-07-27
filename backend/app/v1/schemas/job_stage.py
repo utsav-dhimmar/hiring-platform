@@ -4,9 +4,29 @@ Pydantic schemas for Job Stage and Stage Template data transfer.
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+class EvaluationCriterionConfig(BaseModel):
+    id: Optional[str] = Field(None, description="Unique identifier of the criterion, if matched")
+    name: str = Field(..., description="Name of the criterion")
+
+
+class StageConfig(BaseModel):
+    required_inputs: list[Literal["transcript", "resume", "question", "github"]] = Field(
+        default_factory=list,
+        description="Inputs required for candidate progression in this stage"
+    )
+    evaluation_criteria: Optional[list[EvaluationCriterionConfig | str]] = Field(
+        default_factory=list, 
+        description="Criteria names or IDs for evaluation"
+    )
+    is_panel_interview: Optional[bool] = Field(None, description="Whether this is a panel interview")
+
+    model_config = ConfigDict(extra="allow")
+
 
 
 class StageTemplateBase(BaseModel):
@@ -18,7 +38,7 @@ class StageTemplateBase(BaseModel):
     description: str | None = Field(
         None, description="Detailed description of the stage"
     )
-    config: dict[str, Any] | None = Field(
+    config: StageConfig | dict[str, Any] | None = Field(
         None, 
         description="Default configuration JSON for this stage type",
         validation_alias="default_config",
@@ -64,7 +84,7 @@ class StageTemplateUpdate(BaseModel):
 
     name: str | None = None
     description: str | None = None
-    config: dict[str, Any] | None = Field(
+    config: StageConfig | dict[str, Any] | None = Field(
         None, 
         description="Default configuration JSON for this stage type",
         validation_alias="default_config"
@@ -86,9 +106,9 @@ class JobStageConfigBase(BaseModel):
     """Base schema for Job Stage Configuration data."""
 
     stage_order: int = Field(
-        ..., ge=0, description="Sequence order of this stage"
+        ..., ge=1, description="Sequence order of this stage"
     )
-    config: dict[str, Any] | None = Field(
+    config: StageConfig | dict[str, Any] | None = Field(
         None, description="Job-specific configuration for this stage"
     )
     is_mandatory: bool = Field(
@@ -116,8 +136,8 @@ class JobStageBulkCreate(BaseModel):
 class JobStageConfigUpdate(BaseModel):
     """Schema for updating a job-specific stage configuration."""
 
-    stage_order: int | None = Field(None, ge=0)
-    config: dict[str, Any] | None = None
+    stage_order: int | None = Field(None, ge=1)
+    config: StageConfig | dict[str, Any] | None = None
     is_mandatory: bool | None = None
     is_default: bool | None = None
 

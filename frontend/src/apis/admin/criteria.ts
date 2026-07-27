@@ -1,5 +1,6 @@
 import apiClient from "@/apis/client";
-import type { CriterionCreate, CriterionRead, CriterionUpdate, PaginatedResponse } from "@/types/admin";
+import type { CriterionCreate, CriterionRead, CriterionUpdate } from "@/types/jobCriteria";
+import type { PaginatedResponse } from "@/types/admin";
 
 const ADMIN_PATH = import.meta.env.VITE_ADMIN_API_ENDPOINT || "/admin";
 
@@ -68,5 +69,16 @@ export const adminCriteriaService = {
    */
   deleteCriterion: async (criterionId: string): Promise<void> => {
     await apiClient.delete(`${ADMIN_PATH}/criteria/${criterionId}`);
+  },
+
+
+  /**
+   * Enhance a rough criterion prompt text using LLM.
+   * @param data - data containing criterion name
+   * @returns Promise resolving to the created criterion
+   */
+  enhanceCriterionPrompt: async (data: { name: string, description: string }): Promise<{ enhanced_prompt: string }> => {
+    const response = await apiClient.post<{ enhanced_prompt: string }>(`${ADMIN_PATH}/criteria/enhance`, data);
+    return response.data;
   },
 };

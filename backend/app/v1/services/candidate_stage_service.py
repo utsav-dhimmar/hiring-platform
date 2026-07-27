@@ -57,7 +57,7 @@ class CandidateStageService:
         new_stages = []
         default_stage_idx = 0
         for i, js in enumerate(job_stages):
-            if js.is_default:
+            if js.is_default and default_stage_idx == 0:
                 default_stage_idx = i
             
             cs = CandidateStage(
@@ -119,12 +119,15 @@ class CandidateStageService:
             await db.flush()
             return current_cs
 
-        # 3. Find the next stage in the job pipeline
-        next_order = current_cs.job_stage.stage_order + 1
-
+        # 3. Find the next stage in the job pipeline (handling missing/skipped stage orders)
         next_stage_stmt = (
             select(JobStageConfig)
-            .where(JobStageConfig.job_id == job_id, JobStageConfig.stage_order == next_order)
+            .where(
+                JobStageConfig.job_id == job_id,
+                JobStageConfig.stage_order > current_cs.job_stage.stage_order
+            )
+            .order_by(JobStageConfig.stage_order.asc())
+            .limit(1)
             .options(selectinload(JobStageConfig.template))
         )
         next_js_res = await db.execute(next_stage_stmt)

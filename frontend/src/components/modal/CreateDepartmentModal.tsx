@@ -4,19 +4,19 @@
  */
 
 import { useCallback } from "react";
-import { adminDepartmentService } from "@/apis/admin";
-import type { DepartmentRead } from "@/types/admin";
+import type { DepartmentRead } from "@/types/department";
+import { useCreateDepartmentMutation, useUpdateDepartmentMutation } from "@/hooks/mutations/admin/useDepartment";
 import {
-  Button,
-  Input,
-  Textarea,
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl,
   FormMessage,
-} from "@/components";
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +24,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useFormModal } from "@/hooks";
-import { departmentCreateSchema, type DepartmentCreateFormValues } from "@/schemas/admin";
+import { useFormModal } from "@/hooks/useFormModal";
+import { departmentCreateSchema, type DepartmentCreateFormValues } from "@/schemas/department";
 import ErrorDisplay from "@/components/shared/ErrorDisplay";
 
 interface CreateDepartmentModalProps {
@@ -47,6 +47,8 @@ const CreateDepartmentModal = ({
   department,
 }: CreateDepartmentModalProps) => {
   const isEditMode = !!department;
+  const createDepartmentMutation = useCreateDepartmentMutation();
+  const updateDepartmentMutation = useUpdateDepartmentMutation();
 
   const mapItemToValues = useCallback(
     (d: DepartmentRead): DepartmentCreateFormValues => ({
@@ -56,18 +58,15 @@ const CreateDepartmentModal = ({
     [],
   );
 
-  const onSubmit = useCallback(
-    async (data: DepartmentCreateFormValues) => {
-      if (isEditMode && department) {
-        await adminDepartmentService.updateDepartment(department.id, data);
-      } else {
-        await adminDepartmentService.createDepartment(data);
-      }
-      onDepartmentSaved();
-      handleClose();
-    },
-    [isEditMode, department, onDepartmentSaved, handleClose],
-  );
+  const onSubmit = async (data: DepartmentCreateFormValues) => {
+    if (isEditMode && department) {
+      await updateDepartmentMutation.mutateAsync({ id: department.id, data });
+    } else {
+      await createDepartmentMutation.mutateAsync(data);
+    }
+    onDepartmentSaved();
+    handleClose();
+  };
 
   const formModal = useFormModal<DepartmentCreateFormValues, DepartmentRead>({
     schema: departmentCreateSchema,

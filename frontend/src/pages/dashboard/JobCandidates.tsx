@@ -1,15 +1,19 @@
-import { useState, useRef } from "react";
+/**
+ * @module JobCandidates
+ * @component JobCandidates
+ *
+ * Detailed view listing candidates applied to a specific job, with stage details.
+ */
+import { useState, useRef, useMemo, useEffect, lazy, Suspense, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Button, Input } from "@/components/";
-import { RotateCw, Layers } from "lucide-react";
-import { CandidateDetailsModal, JobInfoModal, DeleteModal } from "@/components/modal";
+import { RotateCw } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import CandidateTable from "@/components/candidate/CandidateTable";
 import { useJobCandidates } from "@/hooks/useJobCandidates";
-import { JobCandidatesSkeleton } from "@/components/candidate/JobCandidatesSkeleton";
-import { JobCandidatesHeader } from "@/components/candidate/JobCandidatesHeader";
-import { JobCandidatesCharts } from "@/components/candidate/JobCandidatesCharts";
-import { JobCandidatesStats } from "@/components/candidate/JobCandidatesStats";
+import { usePageFilters } from "@/hooks/usePageFilters";
+import { JobCandidatesSkeleton } from "@/components/job/candidates/JobCandidatesSkeleton";
+import { JobCandidatesHeader } from "@/components/job/candidates/JobCandidatesHeader";
+import { JobCandidatesStats } from "@/components/job/candidates/JobCandidatesStats";
 import PermissionGuard from "@/components/auth/PermissionGuard";
 import type { CandidateAnalysis } from "@/types/admin";
 import AppPageShell from "@/components/shared/AppPageShell";
@@ -18,6 +22,23 @@ import type { PaginationState } from "@tanstack/react-table";
 import type { CandidateActiveFilters } from "@/hooks/useCandidateTableFilters";
 import { slugify } from "@/utils/slug";
 import type { DateRange } from "react-day-picker";
+import { useCandidatesTestPapers } from "@/hooks/queries/taskPapers/useTaskPaperQueries";
+import { Button } from "@/components/ui/button";
+import { CandidateDetailsModal } from "@/components/modal/CandidateDetailsModal";
+import { JobInfoModal } from "@/components/modal/JobInfoModal";
+import { Input } from "@/components/ui/input";
+import DeleteModal from "@/components/modal/DeleteModal";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import { CandidateAssignPaperButton } from "@/components/shared/candidate/CandidateAssignPaperButton";
+import { ProjectSubmissionDialog } from "@/components/candidate/projectSubmission/ProjectSubmissionDialog";
+import { useJobAssignedTask } from "@/hooks/queries/jobs/useJobTask";
+import { CandidateProjectSubmissionButton } from "@/components/job/candidates/columns/CandidateProjectSubmissionButton";
+import { CandidateStagesButton } from "@/components/job/candidates/columns/CandidateStagesButton";
+import { CandidateOverviewButton } from "@/components/job/candidates/columns/CandidateOverviewButton";
+
+const JobCandidatesCharts = lazy(() =>
+  import("@/components/job/candidates/JobCandidatesCharts").then((m) => ({ default: m.JobCandidatesCharts }))
+);
 
 /**
  * Page component for managing job candidates with toggle between candidates list and analytics views.
@@ -30,30 +51,43 @@ export default function JobCandidates() {
 
   const [viewMode, setViewMode] = useState<"candidates" | "analytics">("candidates");
 
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-
-
-  const [activeFilters, setActiveFilters] = useState<CandidateActiveFilters>(() => {
+  const urlFilters = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const startDate = params.get("start_date");
     const endDate = params.get("end_date");
     return {
-      status: [],
-      city: [],
-      job: [],
-      hr_decision: [],
-      hr_score: [],
+      pageIndex: 0,
+      pageSize: 10,
+      status: [] as string[],
+      city: [] as string[],
+      job: [] as string[],
+      hr_decision: [] as string[],
+      hr_score: [] as number[],
       dateRange: (startDate || endDate)
         ? {
           from: startDate ? new Date(startDate) : undefined,
           to: endDate ? new Date(endDate) : undefined,
-        }
-        : undefined,
+        } as DateRange
+        : undefined as DateRange | null | undefined,
+      q: "",
+      activity_session: [] as string[],
+      stage_id: [] as string[],
+      result: [] as string[],
+      test_email_sent: undefined as boolean | undefined,
     };
-  });
+  }, []);
+
+  const { filters, setFilters } = usePageFilters(`jobCandidates_${jobSlug}`, urlFilters);
+  const { pageIndex, pageSize } = filters;
+
+  const setPagination = (val: PaginationState | ((prev: PaginationState) => PaginationState)) => {
+    const currentPagination = { pageIndex: filters.pageIndex, pageSize: filters.pageSize };
+    const nextPagination = typeof val === "function" ? val(currentPagination) : val;
+    setFilters({
+      pageIndex: nextPagination.pageIndex,
+      pageSize: nextPagination.pageSize,
+    });
+  };
 
   const {
     candidates,
@@ -82,34 +116,123 @@ export default function JobCandidates() {
     jobStats,
     activitySession
   } = useJobCandidates(jobSlug, pageIndex, pageSize, {
-    query: activeFilters.q,
-    hr_decision: activeFilters.hr_decision,
-    start_date: activeFilters.dateRange?.from,
-    end_date: activeFilters.dateRange?.to,
-    activity_session: activeFilters.activity_session,
-    stage_id: activeFilters.stage_id,
-    city: activeFilters.city,
-    result: activeFilters.result,
-    hr_score: activeFilters.hr_score,
+    query: filters.q,
+    hr_decision: filters.hr_decision,
+    start_date: filters.dateRange?.from,
+    end_date: filters.dateRange?.to,
+    activity_session: filters.activity_session,
+    stage_id: filters.stage_id,
+    city: filters.city,
+    result: filters.result,
+    hr_score: filters.hr_score,
+    test_email_sent: filters.test_email_sent,
   });
 
-  const [selectedCandidate, _setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+  const [isProjectSubmissionOpen, setIsProjectSubmissionOpen] = useState(false);
+
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+
+
+  // Reset rowSelection when filters or pagination changes
+  useEffect(() => {
+    setRowSelection({});
+  }, [pageIndex, pageSize, filters]);
+
+  // Compute showCheckboxes: Only display after round is Coding Test / Technical Practical Round and decision is pending
+  const showCheckboxes = useMemo(() => {
+    const selectedStageConfigs = job?.stages?.filter((s) => filters.stage_id?.includes(s.id)) || [];
+    const hasTechnicalPracticalRoundSelected = selectedStageConfigs.some(
+      (s) => s.template?.name === "Technical Practical Round" || s.template?.name === "Coding Test Round"
+    );
+    const isHrDecisionPendingSelected = filters.hr_decision?.includes("pending");
+    return !!(hasTechnicalPracticalRoundSelected && isHrDecisionPendingSelected);
+  }, [job?.stages, filters.stage_id, filters.hr_decision]);
+
+  // Compute selected candidates
+  const selectedCandidates = useMemo(() => {
+    return Object.keys(rowSelection).flatMap((key) => {
+      if (!rowSelection[key]) return [];
+      const candidate = candidates[Number(key)];
+      return candidate ? [candidate] : [];
+    });
+  }, [rowSelection, candidates]);
+
+  // Compute emailFilterState from filters.test_email_sent
+  const emailFilterState = useMemo(() => {
+    if (filters.test_email_sent === true) return "sent" as const;
+    if (filters.test_email_sent === false) return "not_sent" as const;
+    return undefined;
+  }, [filters.test_email_sent]);
+
+  const selectedCandidateIds = useMemo(() => {
+    return selectedCandidates.map((c) => c.id);
+  }, [selectedCandidates]);
+
+  const { data: selectedCandidatesTestPapers, loading: loadingTestPapers } = useCandidatesTestPapers(selectedCandidateIds);
+  const { data: jobAssignedPaper } = useJobAssignedTask(job?.id);
+
+  // Derive button state from selected candidates' actual data
+  // task_file_path: null → no paper assigned, non-null → paper assigned
+  // test_email_sent: true → email sent, false/undefined → not sent
+  const resolvedEmailState = useMemo((): "sent" | "not_sent" | undefined => {
+    // If candidates are selected, their actual data takes precedence
+    if (selectedCandidates.length > 0) {
+      if (loadingTestPapers) return undefined;
+
+      const allHavePaper = selectedCandidatesTestPapers.length > 0 && selectedCandidatesTestPapers.every((paper) => !!paper);
+      if (!allHavePaper) return undefined; // No paper → "Assign Question Paper"
+
+      // All have paper — check email status
+      const allSent = selectedCandidatesTestPapers.every((paper) => paper && paper.email_sent_count && paper.email_sent_count > 0);
+      if (allSent) return "sent" as const;
+
+      return "not_sent" as const;
+    }
+
+    // Fallback: If no candidates are selected, but explicit filter is set, use the filter state
+    if (emailFilterState !== undefined) return emailFilterState;
+
+    return undefined;
+  }, [emailFilterState, selectedCandidates, selectedCandidatesTestPapers, loadingTestPapers]);
 
   const [modalInitialTab, _setModalInitialTab] = useState<"analysis" | "jd" | "cross-job-match">("analysis");
-  const handleFiltersChange = (filters: CandidateActiveFilters) => {
-    setActiveFilters(filters);
-    setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
-  };
+  const handleSetFilters = useCallback((partial: Partial<CandidateActiveFilters>) => {
+    setFilters({
+      ...partial,
+      pageIndex: 0,
+    });
+  }, [setFilters]);
 
   const handleUploadClick = () => {
     if (!job?.is_active) return;
     fileInputRef.current?.click();
   };
 
+  const navigateToAssignPage = () => {
+    const jobSlug = slugify(job?.title);
+    if (jobAssignedPaper) {
+      return navigate(`/dashboard/jobs/${jobSlug}/send-paper`, {
+        state: {
+          selectedCandidates,
+          job,
+          emailFilterState: resolvedEmailState
+        }
+      });
+    }
+    navigate(`/dashboard/jobs/${jobSlug}/assign-paper`, {
+      state: {
+        selectedCandidates,
+        job,
+        emailFilterState: resolvedEmailState
+      }
+    });
+  };
+
   return (
-    <AppPageShell width="wide" className="animate-in fade-in duration-500">
+    <AppPageShell width="wide">
 
       <JobCandidatesHeader
         job={job}
@@ -122,18 +245,25 @@ export default function JobCandidates() {
         setJdVersion={setJdVersion}
         viewMode={viewMode}
         setViewMode={setViewMode}
+        showSendQuestionPaper={true}
+        onSendQuestionPaperClick={navigateToAssignPage}
+        emailFilterState={selectedCandidates.length > 0 ? resolvedEmailState : undefined}
       />
 
       <div className="relative min-h-[400px]">
         {viewMode === "analytics" ? (
           /* Analytics View: Only Charts */
           <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-            <JobCandidatesCharts
-              loading={loading}
-              isRefreshing={isRefreshing}
-              stats={stats}
-              jobStats={jobStats}
-            />
+            <Suspense fallback={
+              <LoadingSpinner message="Loading charts..." fullPage={true} />
+            }>
+              <JobCandidatesCharts
+                loading={loading}
+                isRefreshing={isRefreshing}
+                stats={stats}
+                jobStats={jobStats}
+              />
+            </Suspense>
           </div>
         ) : (
           /* Candidates View: Stats Cards + Table */
@@ -174,146 +304,116 @@ export default function JobCandidates() {
                       candidates={candidates}
                       passing_threshold={job?.passing_threshold}
                       isServerSide={true}
+                      job={job}
                       showLocationFilter={true}
                       showStatusFilter={true}
-                      stageOptions={job?.stages?.map(s => s.template.name) || []}
+                      stageOptions={job?.stages?.map(s => ({ id: s.id, name: s.template.name })) || []}
                       pagination={{ pageIndex, pageSize }}
                       onPaginationChange={setPagination}
                       pageCount={Math.ceil(totalCandidates / pageSize)}
                       total={totalCandidates}
                       activitySessions={activitySession}
-                      onFiltersChange={handleFiltersChange}
-                      initialDateRange={activeFilters.dateRange as DateRange | undefined}
+                      filters={filters}
+                      setFilters={handleSetFilters}
+                      rowSelection={rowSelection}
+                      onRowSelectionChange={setRowSelection}
+                      showCheckboxes={showCheckboxes}
                       headerActions={
                         <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-amber-300 hover:bg-amber-500/10 text-amber-600 hover:text-amber-700 font-semibold transition-all flex items-center gap-2 h-10 rounded-xl"
-                            onClick={handleReanalyzeAll}
-                            disabled={candidates.filter(needsReanalysis).length === 0}
-                            title={
-                              candidates.filter(needsReanalysis).length === 0
-                                ? "All candidates are analyzed with the latest JD version"
-                                : `Re-analyze ${candidates.filter(needsReanalysis).length} candidate(s) that need it`
-                            }
-                          >
-                            <RotateCw className="h-4 w-4" />
-                            Reanalyze All
-                          </Button>
-                        </PermissionGuard>
-                      }
-                      renderActions={(candidate) => (
-                        <div className="flex items-center gap-2 justify-end">
-                          <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
-                            <HoverCard>
-                              <HoverCardTrigger
-                                render={(props) => (
-                                  <Button
-                                    {...props}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-9 w-9 p-0 rounded-xl border border-amber-300 hover:bg-amber-500/10 transition-all duration-300 flex items-center justify-center shrink-0"
-                                    onClick={(e) => {
-                                      if (props.onClick) props.onClick(e);
-                                      handleReanalyzeCandidate(candidate.id);
-                                    }}
-                                    isLoading={reanalyzingCandidateIds.includes(candidate.id)}
-                                    disabled={
-                                      !needsReanalysis(candidate) ||
-                                      reanalyzingCandidateIds.includes(candidate.id)
-                                    }
-                                    title={
-                                      !needsReanalysis(candidate)
-                                        ? "Already analyzed with the latest JD version"
-                                        : "Re-analyze with the latest JD version"
-                                    }
-                                  >
-                                    <RotateCw className="h-4 w-4 text-amber-600 shrink-0" />
-                                  </Button>
-                                )}
-                              />
-                              <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-                                <div className="text-sm font-semibold text-amber-700">Reanalyze</div>
-                              </HoverCardContent>
-                            </HoverCard>
-                          </PermissionGuard>
-                          {/* <HoverCard>
-                            <HoverCardTrigger
-                              render={(props) => (
-                                <Button
-                                  {...props}
-                                  variant="secondary"
-                                  size="sm"
-                                  className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
-                                  onClick={(e) => {
-                                    if (props.onClick) props.onClick(e);
-                                    setSelectedCandidate(candidate);
-                                    setModalInitialTab("analysis");
-                                    setIsModalOpen(true);
-                                  }}
-                                >
-                                  <Info className="h-4 w-4 shrink-0" />
-                                </Button>
-                              )}
-                            />
-                            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-                              <div className="text-sm font-semibold">More Info</div>
-                            </HoverCardContent>
-                          </HoverCard> */}
                           <HoverCard>
                             <HoverCardTrigger
                               render={(props) => (
                                 <Button
                                   {...props}
-                                  variant="secondary"
+                                  variant="ghost"
                                   size="sm"
-                                  className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0 "
-                                  onClick={() => {
-                                    const candidateFullName = slugify(`${candidate.first_name} ${candidate.last_name}`);
-                                    const stageSlug = slugify("Resume Screening");
-
-                                    navigate(`/dashboard/jobs/${jobSlug}/candidates/${candidateFullName}/stages/${stageSlug}`, {
-                                      state: {
-                                        candidate: candidate,
-                                        jobSlug: jobSlug,
-                                        job
-                                      }
-                                    })
-                                  }}
-                                  disabled={!candidate.pipeline}
+                                  className="h-9 px-3 rounded-xl border hover:bg-gray-200/60 flex items-center justify-center gap-2 shrink-0 font-semibold transition-all"
+                                  onClick={handleReanalyzeAll}
+                                  disabled={candidates.filter(needsReanalysis).length === 0}
                                 >
-                                  <Layers className="h-4 w-4 shrink-0 text-blue-600" />
+                                  <RotateCw className="h-4 w-4 shrink-0" />
                                 </Button>
                               )}
                             />
-                            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-                              <div className="text-sm font-semibold text-blue-600">Stages</div>
+                            <HoverCardContent className="w-fit px-3 py-1.5 text-xs font-normal" side="top">
+                              {candidates.filter(needsReanalysis).length === 0
+                                ? "All candidates are analyzed with the latest JD version"
+                                : `Re-analyze ${candidates.filter(needsReanalysis).length} candidate(s) that need it`}
                             </HoverCardContent>
                           </HoverCard>
-                          {/* <HoverCard>
-                            <HoverCardTrigger
-                              render={(props) => (
-                                <Button
-                                  {...props}
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
-                                  onClick={() => {
-                                    setSelectedCandidate(candidate);
-                                    handleDeleteClick(candidate);
-                                  }}
-                                >
-                                  <Trash className="h-4 w-4 shrink-0" />
-                                </Button>
-                              )} />
+                        </PermissionGuard>
+                      }
+                      renderActions={(candidate) => {
+                        return (
+                          <div className="flex items-center gap-0.5 justify-end">
+                            <PermissionGuard permissions={PERMISSIONS.JOBS_MANAGE} hideWhenDenied>
+                              <HoverCard>
+                                <HoverCardTrigger
+                                  render={(props) => (
+                                    <Button
+                                      {...props}
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0 rounded-xl border hover:bg-gray-200/60 flex items-center justify-center shrink-0"
+                                      onClick={(e) => {
+                                        if (props.onClick) props.onClick(e);
+                                        handleReanalyzeCandidate(candidate.id);
+                                      }}
+                                      isLoading={reanalyzingCandidateIds.includes(candidate.id)}
+                                      disabled={
+                                        !needsReanalysis(candidate) ||
+                                        reanalyzingCandidateIds.includes(candidate.id) ||
+                                        !candidate.is_parsed
+                                      }
+                                    >
+                                      <RotateCw className="h-4 w-4  shrink-0" />
+                                    </Button>
+                                  )}
+                                />
+                                <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="top">
+                                  Reanalyze
+                                </HoverCardContent>
+                              </HoverCard>
+                            </PermissionGuard>
+                            <CandidateAssignPaperButton candidate={candidate}
+                              jobSlug={jobSlug}
+                              job={job}
+                              buttonClassName="h-7 w-7 p-0 rounded-xl bg-muted/50 hover:bg-gray-200/60 text-foreground border border-muted-foreground/10 flex items-center justify-center shrink-0"
+                            />
+                            <CandidateStagesButton
+                              candidate={candidate}
+                              jobSlug={jobSlug}
+                              job={job}
+                            />
+                            <CandidateProjectSubmissionButton candidate={candidate} onClick={() => {
+                              setSelectedCandidate(candidate);
+                              setIsProjectSubmissionOpen(true);
+                            }} />
+                            <CandidateOverviewButton candidate={candidate} jobSlug={jobSlug} />
+                            {/* <HoverCard>
+                              <HoverCardTrigger
+                                render={(props) => (
+                                  <Button
+                                    {...props}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 w-9 p-0 rounded-xl bg-muted/50 hover:bg-muted text-foreground transition-all duration-300 border border-muted-foreground/10 flex items-center justify-center shrink-0"
+                                    onClick={() => {
+                                      setSelectedCandidate(candidate);
+                                      handleDeleteClick(candidate);
+                                    }}
+                                  >
+                                    <Trash className="h-4 w-4 shrink-0" />
+                                  </Button>
+                                )} />
 
-                            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-                              <div className="text-sm font-semibold">Delete</div>
-                            </HoverCardContent>
-                          </HoverCard> */}
-                        </div>
-                      )}
+                                  <HoverCardContent className="w-fit px-3 py-1.5 text-xs " side="top">
+                                <div className="">Delete</div>
+                              </HoverCardContent>
+                            </HoverCard> */}
+                          </div>
+                        );
+                      }}
                     />
                   </div>
                 )}
@@ -358,6 +458,15 @@ export default function JobCandidates() {
         message={deleteMessage}
         isLoading={isDeleting}
         error={deleteError}
+      />
+      <ProjectSubmissionDialog
+        isOpen={isProjectSubmissionOpen}
+        onOpenChange={setIsProjectSubmissionOpen}
+        candidateName={selectedCandidate ? `${selectedCandidate.first_name || ""} ${selectedCandidate.last_name || ""}`.trim() : ""}
+        candidateId={selectedCandidate?.id}
+        stageId={selectedCandidate?.current_stage?.stage_id}
+        job={job}
+        onSuccess={() => fetchData()}
       />
     </AppPageShell>
   );

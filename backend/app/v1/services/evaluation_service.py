@@ -1,6 +1,8 @@
 import json
 import logging
 import uuid
+import asyncio
+import numpy as np
 from typing import Any, Dict, List
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +23,7 @@ from app.v1.services.evaluation.agent import evaluation_agent
 from app.v1.core.config import settings
 from app.v1.core.observability import get_tracer
 from opentelemetry.trace import StatusCode
+from openinference.semconv.trace import SpanAttributes, OpenInferenceSpanKindValues
 
 logger = logging.getLogger(__name__)
 tracer = get_tracer("hiring-platform.evaluation")
@@ -39,14 +42,18 @@ class EvaluationService:
         Traced in Phoenix as 'hiring-platform.evaluate-candidate-stage'.
         """
         with tracer.start_as_current_span("evaluate-candidate-stage") as span:
+            span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, OpenInferenceSpanKindValues.CHAIN.value)
             span.set_attribute("candidate_stage_id", str(candidate_stage_id))
+            span.set_attribute(SpanAttributes.INPUT_VALUE, str(candidate_stage_id))
             try:
                 result = await self._run_evaluation(db, candidate_stage_id, span)
                 span.set_status(StatusCode.OK)
+                span.set_attribute(SpanAttributes.OUTPUT_VALUE, json.dumps(result))
                 return result
             except Exception as e:
                 span.set_status(StatusCode.ERROR, str(e))
                 span.record_exception(e)
+                span.set_attribute(SpanAttributes.OUTPUT_VALUE, f"Evaluation failed: {str(e)}")
                 raise e
 
     async def _run_evaluation(
@@ -154,6 +161,9 @@ class EvaluationService:
             # Config structure in JSONB: {"active_criteria": [{"id": "...", "weight": 20}, ...]}
             config = cs.job_stage.config or {}
             active_criteria_configs = config.get("active_criteria", [])
+            if not active_criteria_configs:
+                # Fallback to evaluation_criteria key if active_criteria is empty or missing
+                active_criteria_configs = config.get("evaluation_criteria", [])
             logger.info(f"Initial active_criteria_configs from stage config: {len(active_criteria_configs)}")
 
         if not active_criteria_configs:
@@ -173,6 +183,21 @@ class EvaluationService:
                 {"id": str(r[0].id), "weight": float(r[1]), "obj": r[0]} for r in rows
             ]
         
+        # Normalize active_criteria_configs to a list of dicts to handle name strings and dicts uniformly
+        normalized_configs = []
+        for c in active_criteria_configs:
+            if isinstance(c, str):
+                normalized_configs.append({"id": c, "weight": 10.0})
+            elif isinstance(c, dict):
+                normalized_configs.append({
+                    "id": str(c.get("id") or c.get("name") or ""),
+                    "weight": float(c.get("weight", 10.0)),
+                    "obj": c.get("obj")
+                })
+            else:
+                logger.warning(f"Unexpected item in active_criteria_configs: {c}")
+        active_criteria_configs = normalized_configs
+
         logger.info(f"Final active_criteria_configs: {[c.get('id') for c in active_criteria_configs]}")
 
         # 3. EMBEDDING PHASE (Signals)
@@ -188,8 +213,6 @@ class EvaluationService:
         from app.v1.core.embeddings import embedding_service
         
         # We can run transcript sentence embedding and JD/Resume embedding in parallel
-        import asyncio
-        import numpy as np
         
         # Start sentence embedding
         t_vectors_task = asyncio.to_thread(embedding_service.encode_transcript_batch, t_sentences) if t_sentences else asyncio.sleep(0, [])
@@ -224,7 +247,20 @@ class EvaluationService:
             criterion = c_config.get("obj")
             
             if not criterion:
-                criterion = await db.get(Criterion, uuid.UUID(criterion_id))
+                try:
+                    criterion = await db.get(Criterion, uuid.UUID(criterion_id))
+                except ValueError:
+                    # Fallback for plain text name strings saved as IDs
+                    search_term = criterion_id.lower().strip()
+                    if "communication" in search_term:
+                        search_term = "communication"
+                    elif "tech-stack" in search_term or "tech stack" in search_term or "tech_stack" in search_term:
+                        search_term = "tech stack"
+                    
+                    result = await db.execute(
+                        select(Criterion).where(func.lower(Criterion.name) == search_term)
+                    )
+                    criterion = result.scalar_one_or_none()
             
             if criterion:
                 criteria_objs[criterion_id] = criterion
@@ -274,10 +310,29 @@ class EvaluationService:
         criteria_names = [obj.name for obj in criteria_objs.values()]
         logger.info(f"Invoking LLM for synthesis. Criteria: {criteria_names}")
         
-        # Build enriched JD text including skills
-        skills_list = [s.name for s in job.skills]
-        skills_str = ", ".join(skills_list) if skills_list else "None listed"
-        full_jd_text = f"TITLE: {job.title}\n\nDESCRIPTION:\n{job.jd_text or ''}\n\nREQUIRED SKILLS:\n{skills_str}"
+        # Build enriched JD text including skills and their normalized weightages
+        from sqlalchemy import text
+        job_skills_query = text("SELECT skill_id, weightage FROM job_skills WHERE job_id = :job_id")
+        job_skills_res = await db.execute(job_skills_query, {"job_id": job.id})
+        raw_weights = {str(row[0]): float(row[1]) for row in job_skills_res.fetchall()}
+        
+        total_weight = sum(raw_weights.values())
+        normalized_weights = {}
+        if total_weight > 0:
+            for s_id, w in raw_weights.items():
+                normalized_weights[s_id] = (w / total_weight) * 100
+        else:
+            # Fallback if no weights or total is 0
+            for s_id in raw_weights.keys():
+                normalized_weights[s_id] = 100.0 / len(raw_weights) if len(raw_weights) > 0 else 0.0
+
+        skills_list = []
+        for s in job.skills:
+            w_pct = normalized_weights.get(str(s.id), 0.0)
+            skills_list.append(f"{s.name} (Weight: {w_pct:.2f}%)")
+            
+        skills_str = "\n".join([f"- {s}" for s in skills_list]) if skills_list else "None listed"
+        full_jd_text = f"TITLE: {job.title}\n\nDESCRIPTION:\n{job.jd_text or ''}\n\nREQUIRED SKILLS (Normalized Weightages):\n{skills_str}"
 
         # Option to skip resume context in LLM synthesis for testing/privacy
         resume_to_send = resume_summary
@@ -291,6 +346,8 @@ class EvaluationService:
         logger.info(f"EVIDENCE USED: {json.dumps(evidence_snippets, indent=2)}")
         logger.info(f"--- LLM USER PROMPT END ---")
 
+        is_panel = cs.job_stage.config.get("is_panel_interview", False) if cs.job_stage.config else False
+
         final_report = await evaluation_agent.synthesize_evaluation(
             transcript_text=transcript.clean_transcript_text,
             jd_text=full_jd_text,
@@ -298,6 +355,7 @@ class EvaluationService:
             calculated_scores=calculated_scores,
             evidence_snippets=evidence_snippets,
             criteria_names=criteria_names,
+            is_panel_interview=is_panel,
         )
 
         # 7. RESTRUCTURE AND STORE PHASE
@@ -317,12 +375,14 @@ class EvaluationService:
         for key, details in criteria_map.items():
             # Robust matching: compare normalized versions
             criterion_name_match = None
+            matched_criterion_obj = None
             normalized_key = str(key).lower().replace(" ", "").replace("_", "")
             
-            for crit_name in criteria_names:
-                normalized_crit = str(crit_name).lower().replace(" ", "").replace("_", "")
+            for crit_id, crit_obj in criteria_objs.items():
+                normalized_crit = str(crit_obj.name).lower().replace(" ", "").replace("_", "")
                 if normalized_crit == normalized_key:
-                    criterion_name_match = crit_name
+                    criterion_name_match = crit_obj.name
+                    matched_criterion_obj = crit_obj
                     break
             
             if criterion_name_match:
@@ -330,25 +390,56 @@ class EvaluationService:
                     "score": details.get("score", 0) if isinstance(details, dict) else 0,
                     "reasoning": details.get("reasoning", "") if isinstance(details, dict) else str(details),
                     "confidence": details.get("confidence", 0.0) if isinstance(details, dict) else 0.0,
-                    "evidence": evidence_snippets.get(criterion_name_match, [])
+                    "evidence": evidence_snippets.get(criterion_name_match, []),
+                    "prompt_text": matched_criterion_obj.prompt_text if matched_criterion_obj else None
                 }
             else:
                 logger.warning(f"Could not map LLM criteria key '{key}' back to any active criteria.")
+
+        # Ensure all expected criteria are present even if LLM skipped them
+        for crit_id, crit_obj in criteria_objs.items():
+            if crit_obj.name not in structured_evaluation_data:
+                logger.warning(f"LLM missed expected criterion '{crit_obj.name}'. Filling with default 0.")
+                structured_evaluation_data[crit_obj.name] = {
+                    "score": 0,
+                    "reasoning": "Criterion was skipped or not evaluated by the AI.",
+                    "confidence": 0.0,
+                    "evidence": evidence_snippets.get(crit_obj.name, []),
+                    "prompt_text": crit_obj.prompt_text
+                }
 
         # Calculate overall score
         criteria_scores = [v["score"] for v in structured_evaluation_data.values()]
         avg_score = sum(criteria_scores) / len(criteria_scores) if criteria_scores else 0.0
 
+        # Prepare highlights, including any potential errors
+        error_msg = final_report.get("error", "")
+
+        if error_msg:
+            # Raise an exception so the Celery task marks the stage as failed without saving an Evaluation record
+            raise ValueError(f"AI Synthesis Error: {error_msg}")
+
         # Pass/Fail Logic
         is_passed = avg_score >= 3.5
         result_status = "pass" if is_passed else "fail"
         
-        # Prepare highlights, including any potential errors
-        error_msg = final_report.get("error", "")
+        # Extract arrays with fallback if model ignored strict instructions
+        strengths = final_report.get("strengths", [])
+        if not strengths or len(strengths) == 0:
+            strengths = ["See overall summary for details on candidate strengths."]
+            
+        weaknesses = final_report.get("weaknesses", [])
+        if not weaknesses or len(weaknesses) == 0:
+            weaknesses = ["See overall summary for details on candidate weaknesses."]
+            
+        suggested_followups = final_report.get("suggested_followups", [])
+        if not suggested_followups or len(suggested_followups) == 0:
+            suggested_followups = ["No specific follow-up questions were generated by the AI."]
+
         highlights = {
-            "strengths": final_report.get("strengths", []),
-            "weaknesses": final_report.get("weaknesses", []),
-            "suggested_followups": final_report.get("suggested_followups", []),
+            "strengths": strengths,
+            "weaknesses": weaknesses,
+            "suggested_followups": suggested_followups,
             "overall_summary": final_report.get("overall_summary", error_msg),
             "recommendation": f"{result_status.upper()} - {final_report.get('recommendation', final_report.get('overall_summary', error_msg))}"
         }
@@ -377,8 +468,9 @@ class EvaluationService:
         )
         db.add(ev)
 
-        # Update candidate stage results, but DO NOT mark as completed/failed.
-        # Status should only be changed by explicit HR decision.
+        # Update candidate stage results, and mark as completed so the frontend knows the AI evaluation is done.
+        # HR decisions are handled by the separate HrDecision service.
+        cs.status = "completed"
         cs.evaluation_data = {
             "signals": signals,
             "report": structured_evaluation_data,
@@ -388,8 +480,19 @@ class EvaluationService:
             "is_passed": is_passed,
             "threshold": 3.5,
         }
+        
+        if error_msg:
+            cs.status = "failed"
+            cs.evaluation_data["error"] = error_msg
 
         await db.commit()
+
+        # Invalidate job cache immediately after evaluation is committed
+        try:
+            from app.v1.services.admin.system_service import system_service
+            await system_service.invalidate_job_cache(cs.job_stage.job_id)
+        except Exception as cache_err:
+            logger.warning(f"Failed to clear job cache after transcript evaluation: {cache_err}")
 
         # Phoenix span mein final result record karo
         if span:

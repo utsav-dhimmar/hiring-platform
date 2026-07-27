@@ -42,18 +42,7 @@ class DocumentParser:
 
     @staticmethod
     def extract_text(file_path: str | Path) -> str:
-        """Extract text from a given file path based on its extension.
-
-        Args:
-            file_path: Absolute or relative path to the document file.
-
-        Returns:
-            The extracted text as a single string.
-
-        Raises:
-            FileNotFoundError: If the file does not exist.
-            ValueError: If the file format is unsupported.
-        """
+        """Extract text from a PDF or DOCX document."""
         # Robust path resolution for Windows/Unix compatibility
         path = resolve_storage_path(file_path).resolve()
         
@@ -89,6 +78,24 @@ class DocumentParser:
             return docx2txt.process(str(file_path))
         except Exception as e:
             raise RuntimeError(f"Error parsing DOCX: {str(e)}")
+
+    @staticmethod
+    def extract_text_docling(file_path: str | Path) -> str:
+        """Extract text from a document using Docling to preserve markdown structure and tables."""
+        from docling.document_converter import DocumentConverter
+        
+        # Robust path resolution for Windows/Unix compatibility
+        path = resolve_storage_path(file_path).resolve()
+        
+        if not path.is_file():
+            raise FileNotFoundError(f"File not found or is not a file: {path}")
+
+        try:
+            converter = DocumentConverter()
+            result = converter.convert(str(path))
+            return result.document.export_to_markdown()
+        except Exception as e:
+            raise RuntimeError(f"Error parsing document with Docling: {str(e)}")
 
 
 class ResumeLLMExtractor:

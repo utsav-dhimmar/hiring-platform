@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.v1.db.session import get_db
+from app.v1.dependencies import check_permission
 from app.v1.db.models.candidate_stages import CandidateStage
 from app.v1.db.models.candidates import Candidate
 from app.v1.db.models.files import File as DBFile
@@ -44,7 +45,8 @@ async def update_transcript(
     transcript.clean_transcript_text = transcript_in.transcript_text
     
     # Update hash to reflect changes
-    salt_text = transcript_in.transcript_text + f"\n\n[Edit Salt: {uuid.uuid4()}]"
+    from app.v1.utils.uuid import UUIDHelper
+    salt_text = transcript_in.transcript_text + f"\n\n[Edit Salt: {UUIDHelper.generate_uuid7()}]"
     transcript.transcript_hash = hashlib.sha256(salt_text.encode('utf-8')).hexdigest()
     
     await db.flush()
@@ -70,34 +72,17 @@ async def update_transcript(
     return {"message": "Transcript updated, but no evaluation was found to re-trigger."}
 
 
-@router.post("/upload/{candidate_stage_id}", include_in_schema=False)
-async def upload_transcript(
-    candidate_stage_id: uuid.UUID,
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Standard multipart upload for transcripts.
-    """
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file provided")
-    
-    # Existing file upload logic (simplified for this task)
-    content = await file.read()
-    ext = f".{file.filename.split('.')[-1].lower()}"
-    filename = file.filename
-    
-    # Start processing...
-    from app.v1.services.transcript_tasks import process_transcript_task
-    # Save temp file or process directly
-    # For now, let's keep it consistent with the user's needs.
-    return {"message": "File upload started"}
+
+
+from app.v1.utils.stage import get_stage_required_inputs
+
 
 @router.post("/upload-path/{candidate_stage_id}")
 async def upload_transcript_path(
     candidate_stage_id: uuid.UUID,
     files: List[UploadFile] = File(...),
     db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(check_permission("candidates:access")),
 ):
     """
     Upload one or more transcript files (docx, pdf, txt) for a specific candidate stage.
@@ -118,6 +103,23 @@ async def upload_transcript_path(
     if not current_stage:
         raise HTTPException(status_code=404, detail="Candidate stage not found")
 
+    # Validate that the stage requires a transcript input
+    await db.refresh(current_stage, ["job_stage"])
+    if current_stage.job_stage:
+        await db.refresh(current_stage.job_stage, ["template"])
+        config = current_stage.job_stage.config or {}
+        if not config and current_stage.job_stage.template:
+            config = current_stage.job_stage.template.default_config or {}
+        
+        template_name = current_stage.job_stage.template.name if current_stage.job_stage.template else None
+        required_inputs = get_stage_required_inputs(config, template_name)
+        if "transcript" not in required_inputs:
+            raise HTTPException(
+                status_code=400,
+                detail=f"This stage is not configured for Transcript upload (required inputs: {required_inputs})."
+            )
+
+
     # 2. Ensure upload directory exists
     upload_dir = resolve_storage_path(settings.TRANSCRIPT_UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -130,7 +132,8 @@ async def upload_transcript_path(
             continue
             
         # Create a unique filename to avoid collisions
-        unique_filename = f"{uuid.uuid4()}_{f.filename}"
+        from app.v1.utils.uuid import UUIDHelper
+        unique_filename = f"{UUIDHelper.generate_uuid7()}_{f.filename}"
         file_path = upload_dir / unique_filename
         
         content = await f.read()
@@ -145,8 +148,12 @@ async def upload_transcript_path(
     if not file_infos:
         raise HTTPException(status_code=400, detail="No valid files uploaded")
 
-    # 4. Trigger merged background processing
-    process_transcript_task.delay(str(candidate_stage_id), file_infos)
+    # 4. Set stage status to "processing" so evaluation polling returns 202
+    current_stage.status = "processing"
+    await db.commit()
+
+    # 5. Trigger merged background processing
+    process_transcript_task.delay(str(candidate_stage_id), file_infos, str(current_user.id))
 
     return {
         "message": f"Processing started for {len(file_infos)} files. They will be merged into a single transcript.",

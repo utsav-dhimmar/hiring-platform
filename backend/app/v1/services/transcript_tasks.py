@@ -2,6 +2,7 @@ import uuid
 import asyncio
 import hashlib
 import os
+import time
 import logging
 from app.v1.core.celery_app import celery_app
 from sqlalchemy import select
@@ -22,8 +23,28 @@ from app.v1.core.storage import resolve_storage_path
 
 logger = logging.getLogger(__name__)
 
+async def run_with_cleanup(coro):
+    try:
+        return await coro
+    finally:
+        try:
+            from litellm.llms.custom_httpx.async_client_cleanup import close_litellm_async_clients
+            await close_litellm_async_clients()
+        except Exception:
+            pass
+        try:
+            from app.v1.core.cache import cache
+            await cache.close()
+        except Exception:
+            pass
+        try:
+            from app.v1.db.session import engine
+            await engine.dispose()
+        except Exception:
+            pass
+
 @celery_app.task(name="process_transcript_task")
-def process_transcript_task(candidate_stage_id_str: str, file_infos: list[dict]):
+def process_transcript_task(candidate_stage_id_str: str, file_infos: list[dict], uploader_id_str: str | None = None):
     """
     Celery task to process one or more uploaded transcript files.
     1. Reads each file from disk.
@@ -56,8 +77,13 @@ def process_transcript_task(candidate_stage_id_str: str, file_infos: list[dict])
 
                 candidate_id = current_stage.candidate_id
                 
-                # Fetch first user as owner
-                first_user_result = await db.execute(select(User).limit(1))
+                # Fetch the correct user as owner, or fallback to first user
+                if uploader_id_str:
+                    uploader_id = uuid.UUID(uploader_id_str)
+                    first_user_result = await db.execute(select(User).where(User.id == uploader_id))
+                else:
+                    first_user_result = await db.execute(select(User).limit(1))
+                    
                 first_user = first_user_result.scalar_one_or_none()
                 if not first_user:
                     logger.error("No users found to assign as file owner")
@@ -65,6 +91,10 @@ def process_transcript_task(candidate_stage_id_str: str, file_infos: list[dict])
 
                 all_dialogues = []
                 primary_file_id = None
+                
+                is_panel = False
+                if current_stage.job_stage and current_stage.job_stage.config:
+                    is_panel = current_stage.job_stage.config.get("is_panel_interview", False)
                 
                 # 1. Process each file
                 for idx, info in enumerate(file_infos):
@@ -82,7 +112,7 @@ def process_transcript_task(candidate_stage_id_str: str, file_infos: list[dict])
                         content = f.read()
 
                     # 2. Parse
-                    processed_data = process_transcript_file(content, ext)
+                    processed_data = process_transcript_file(content, ext, keep_speakers=is_panel)
                     all_dialogues.extend(processed_data.get("dialogues", []))
 
                     # 3. Save File entry
@@ -107,10 +137,12 @@ def process_transcript_task(candidate_stage_id_str: str, file_infos: list[dict])
 
                 # 4. Merge and finalize
                 # Reconstruct clean text from merged dialogues
-                clean_text = "\n\n".join([d["text"] for d in all_dialogues])
+                if is_panel:
+                    clean_text = "\n\n".join([f"{d['speaker']}: {d['text']}" for d in all_dialogues])
+                else:
+                    clean_text = "\n\n".join([d["text"] for d in all_dialogues])
                 
                 # Hash for duplicates
-                import time
                 salt_text = clean_text + f"\n\n[Merge Salt: {time.time()}]"
                 transcript_hash = hashlib.sha256(salt_text.encode('utf-8')).hexdigest()
 
@@ -174,6 +206,18 @@ def process_transcript_task(candidate_stage_id_str: str, file_infos: list[dict])
             except Exception as e:
                 logger.error(f"Transcript processing failed: {e}")
                 await db.rollback()
+                
+                try:
+                    stage = await db.get(CandidateStage, candidate_stage_id)
+                    if stage:
+                        stage.status = "failed"
+                        eval_data = dict(stage.evaluation_data or {})
+                        eval_data["error"] = str(e)
+                        stage.evaluation_data = eval_data
+                        await db.commit()
+                except Exception as inner_e:
+                    logger.error(f"Failed to update stage status to failed: {inner_e}")
+                    
                 raise
 
-    return loop.run_until_complete(run_processing())
+    return loop.run_until_complete(run_with_cleanup(run_processing()))

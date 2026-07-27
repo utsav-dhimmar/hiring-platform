@@ -7,10 +7,24 @@ from app.v1.db.session import async_session_maker, init_db
 
 STAGE_TEMPLATES = [
     {
+        "name": "Resume Screening",
+        "description": "Initial automated screening of the resume against the job description and required skills.",
+        "is_default": True,
+        "default_order": 1,
+        "default_config": {
+            "evaluation_criteria": [
+                "Overall Fit",
+                "Skills Match",
+                "Experience Match"
+            ],
+        },
+    },
+    {
         "name": "HR Screening Round",
         "description": "Initial HR call to evaluate communication, confidence, and cultural fit.",
+        "is_default": True,
+        "default_order": 2,
         "default_config": {
-            "type": "audio",
             "evaluation_criteria": [
                 "Communication skill",
                 "Confidence",
@@ -24,29 +38,36 @@ STAGE_TEMPLATES = [
     {
         "name": "Technical Practical Round",
         "description": "Video-based round evaluating coding tasks, system design, and practical implementation.",
+        "is_default": True,
+        "default_order": 3,
         "default_config": {
-            "type": "video",
             "evaluation_criteria": [
-                "Problem-solving ability",
-                "Logical thinking",
-                "Code structure clarity",
-                "Debug approach",
-                "Implementation accuracy",
+                "performance",
+                "architecture",
+                "code_quality",
+                "correctness",
+                "security",
+                "documentation",
             ],
         },
     },
     {
         "name": "Technical + HR Panel Evaluation",
         "description": "Final panel interview focusing on technical depth and behavioral attributes.",
+        "is_default": True,
+        "default_order": 4,
         "default_config": {
-            "type": "audio",
+            "is_panel_interview": True,
             "evaluation_criteria": [
                 "Ethics & Confidence",
                 "Technical Skills",
                 "Skill articulation",
                 "Detail-oriented thinking",
                 "Attitude & behavior",
+                "Smartness (problem solving ability)",
+                "Positivity",
                 "Professionalism",
+                "Ability to take challenges",
             ],
         },
     },
@@ -54,7 +75,6 @@ STAGE_TEMPLATES = [
         "name": "CTO Interview",
         "description": "Strategic leadership and architecture discussion for senior positions.",
         "default_config": {
-            "type": "audio",
             "evaluation_criteria": [
                 "Strategic thinking",
                 "System architecture ability",
@@ -80,6 +100,10 @@ async def ensure_stages(session) -> list[StageTemplate]:
             # Update existing template if description or config changed
             existing.description = template_data["description"]
             existing.default_config = template_data["default_config"]
+            if "is_default" in template_data:
+                existing.is_default = template_data["is_default"]
+            if "default_order" in template_data:
+                existing.default_order = template_data["default_order"]
             templates.append(existing)
             continue
 
@@ -87,6 +111,8 @@ async def ensure_stages(session) -> list[StageTemplate]:
             name=name,
             description=template_data["description"],
             default_config=template_data["default_config"],
+            is_default=template_data.get("is_default", False),
+            default_order=template_data.get("default_order", None),
         )
         session.add(template)
         templates.append(template)

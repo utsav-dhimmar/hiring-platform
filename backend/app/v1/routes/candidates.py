@@ -3,6 +3,8 @@ API routes for candidate-related operations in version 1.
 """
 
 import uuid
+import os
+import traceback
 from datetime import datetime
 from typing import Any
 
@@ -25,7 +27,12 @@ from app.v1.services.hr_decision_service import hr_decision_service
 from app.v1.services.job_stats_service import job_stats_service
 from app.v1.services.admin.candidate_service import candidate_admin_service
 from app.v1.schemas.job_stats import JobStatsResponse
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File as FastAPIFile, UploadFile, status
+from fastapi.responses import FileResponse, RedirectResponse
+from app.v1.db.models.candidates import Candidate
+from app.v1.core.storage import resolve_storage_path
+from app.v1.schemas.upload import CandidateTaskRead, JobCandidateSkillsRead
+from app.v1.services.admin.candidate_task_service import candidate_task_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
@@ -60,7 +67,6 @@ async def get_job_stats(
         )
     except Exception as e:
         print(f"Error in get_job_stats: {e}")
-        import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal server error")
 
@@ -70,10 +76,11 @@ async def search_candidates(
     query: str | None = Query(None, description="General search query (name, email)"),
     job: str | None = Query(None, description="Job name or UUID"),
     hr_decision: list[str] | None = Query(None, description="Latest HR decision (passed, failed, maybe)"),
-    hr_score: list[int] | None = Query(None, description="Filter by HR score rating(s): 1 to 5"),
+    hr_score: list[float] | None = Query(None, description="Filter by HR score rating(s): 1 to 5"),
     city: list[str] | None = Query(None, description="City/Location name(s)"),
     result: list[str] | None = Query(None, description="AI screening result: 'passed', 'failed', or 'pending'"),
     stage_id: list[str] | None = Query(None, description="Hiring pipeline stage name(s) or ID(s)"),
+    test_email_sent: bool | None = Query(None, description="Filter for test paper email sent status (strictly for Technical Practical Round stage)"),
     db: AsyncSession = Depends(get_db),
     user: UserRead = Depends(check_permission("candidates:access")),
     start_date: datetime | None = Query(None),
@@ -91,6 +98,7 @@ async def search_candidates(
         city=city,
         result=result,
         stage_id=stage_id,
+        test_email_sent=test_email_sent,
         start_date=start_date,
         end_date=end_date,
         skip=skip, 
@@ -107,7 +115,7 @@ async def get_job_candidates(
     limit: int = Query(100, ge=1, le=500),
     query: str | None = Query(None, description="Search candidates by first name, last name, or email"),
     hr_decision: list[str] | None = Query(None, description="Filter by HR decision: 'pass', 'fail', or 'May Be'"),
-    hr_score: list[int] | None = Query(None, description="Filter by HR score rating(s): 1 to 5"),
+    hr_score: list[float] | None = Query(None, description="Filter by HR score rating(s): 1 to 5"),
     jd_version: list[int] | None = Query(None, description="Filter by original JD version number(s)"),
     start_date: datetime | None = Query(None),
     end_date: datetime | None = Query(None),
@@ -115,6 +123,7 @@ async def get_job_candidates(
     stage_id: list[str] | None = Query(None, description="Filter by specific stage ID(s) or name(s)"),
     city: list[str] | None = Query(None, description="Filter by candidate city/location(s)"),
     result: list[str] | None = Query(None, description="AI result filter: 'passed', 'failed', 'pending'"),
+    test_email_sent: bool | None = Query(None, description="Filter for test paper email sent status (strictly for Technical Practical Round stage)"),
 ) -> Any:
     """Get all candidates for a specific job, with optional searching and filtering."""
     return await admin_service.get_candidates_for_job(
@@ -132,6 +141,7 @@ async def get_job_candidates(
         stage_id=stage_id,
         city=city,
         result=result,
+        test_email_sent=test_email_sent,
     )
 
 
@@ -288,3 +298,125 @@ async def get_candidate_timeline(
         job_id=job_id,
         query=q
     )
+
+
+@router.post(
+    "/{candidate_id}/task",
+    response_model=CandidateTaskRead,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_candidate_task(
+    candidate_id: uuid.UUID,
+    task_file: UploadFile = FastAPIFile(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("candidates:decide")),
+) -> Any:
+    """Upload a candidate-specific task PDF/DOCX and trigger required skills extraction."""
+    candidate = await candidate_task_service.upload_and_extract_candidate_task_skills(
+        db=db,
+        candidate_id=candidate_id,
+        task_file=task_file,
+    )
+    return {
+        "task_file_path": candidate.task_file_path,
+        "task_skills": candidate.task_skills,
+        "is_custom_task": True if candidate.task_file_path else False
+    }
+
+
+@router.get(
+    "/{candidate_id}/task",
+    response_model=CandidateTaskRead,
+    status_code=status.HTTP_200_OK,
+)
+async def read_candidate_task(
+    candidate_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("candidates:access")),
+) -> Any:
+    """Retrieve only the task PDF file path, extracted skills, and custom flag for a candidate."""
+    return await candidate_task_service.get_candidate_task_skills(
+        db=db,
+        candidate_id=candidate_id,
+    )
+
+
+@router.delete(
+    "/{candidate_id}/task",
+    status_code=status.HTTP_200_OK,
+)
+async def delete_candidate_task(
+    candidate_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("candidates:decide")),
+) -> dict[str, str]:
+    """Delete the candidate-specific task PDF and revert back to default job task."""
+    await candidate_task_service.delete_candidate_task_skills(
+        db=db,
+        candidate_id=candidate_id,
+    )
+    return {"message": "Candidate custom task deleted successfully."}
+
+
+@router.get(
+    "/{candidate_id}/jobs/{job_id}/skills",
+    response_model=JobCandidateSkillsRead,
+    status_code=status.HTTP_200_OK,
+)
+async def get_job_and_candidate_task_skills(
+    candidate_id: uuid.UUID,
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("candidates:access")),
+) -> Any:
+    """Retrieve job standard skills and custom/fallback task skills for a candidate and job."""
+    return await candidate_task_service.get_candidate_and_job_skills(
+        db=db,
+        candidate_id=candidate_id,
+        job_id=job_id,
+    )
+
+
+@router.get(
+    "/{candidate_id}/task/file",
+    status_code=status.HTTP_200_OK,
+)
+async def download_candidate_task_file(
+    candidate_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserRead = Depends(check_permission("candidates:access")),
+) -> Any:
+    """
+    Download/view the candidate's custom task file.
+    Returns FileResponse/RedirectResponse if candidate's custom task exists, otherwise returns None (null).
+    """
+    # 1. Fetch Candidate from DB
+    candidate = await db.get(Candidate, candidate_id)
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+
+    # 2. Get task file path (only custom task, no fallback)
+    task_file_path = candidate.task_file_path
+    if not task_file_path:
+        return None
+
+    # 4. Resolve local file path
+    abs_path = resolve_storage_path(task_file_path)
+    if not abs_path.is_file():
+        return None
+
+    filename = os.path.basename(task_file_path)
+    media_type = "application/octet-stream"
+    if filename.lower().endswith(".pdf"):
+        media_type = "application/pdf"
+    elif filename.lower().endswith(".docx"):
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    elif filename.lower().endswith(".doc"):
+        media_type = "application/msword"
+
+    return FileResponse(
+        path=abs_path,
+        filename=filename,
+        media_type=media_type
+    )
+

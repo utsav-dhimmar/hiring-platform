@@ -26,7 +26,8 @@ interface CandidateSearchTableProps {
   nameFilter?: string;
   onNameFilterChange?: (value: string) => void;
   showJobContext?: boolean;
-  onFiltersChange?: (filters: CandidateActiveFilters) => void;
+  filters: CandidateActiveFilters;
+  setFilters: (filters: Partial<CandidateActiveFilters>) => void;
   // onShowAnalysisDetails: (candidate: CandidateResponse) => void;
   onDelete: (candidate: CandidateResponse) => void;
 }
@@ -40,7 +41,8 @@ const CandidateSearchTable = ({
   nameFilter,
   onNameFilterChange,
   showJobContext = false,
-  onFiltersChange,
+  filters,
+  setFilters
   // onDelete
 }: CandidateSearchTableProps): ReactElement => {
   return (
@@ -54,7 +56,8 @@ const CandidateSearchTable = ({
       nameFilter={nameFilter}
       onNameFilterChange={onNameFilterChange}
       showJobContext={showJobContext}
-      onFiltersChange={onFiltersChange}
+      filters={filters}
+      setFilters={setFilters}
       renderActions={(candidate) => (
         <div className="flex items-center gap-2">
           <HoverCard>
@@ -64,15 +67,15 @@ const CandidateSearchTable = ({
                   {...props}
                   variant="outline"
                   size="sm"
-                  className="h-9 w-9 p-0 rounded-xl border border-muted-foreground/10 hover:bg-muted transition-all duration-300 flex items-center justify-center shrink-0"
+                  className="h-9 w-9 p-0 rounded-xl border border-muted-foreground/10 hover:bg-gray-200/60 flex items-center justify-center shrink-0"
                   onClick={() => onShowMore(candidate)}
                 >
                   <Info className="h-4 w-4 shrink-0" />
                 </Button>
               )}
             />
-            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-              <div className="text-sm font-semibold">Candidate Info</div>
+            <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="top">
+              Candidate Info
             </HoverCardContent>
           </HoverCard>
           {/* <HoverCard>
@@ -82,15 +85,15 @@ const CandidateSearchTable = ({
                   {...props}
                   variant="outline"
                   size="sm"
-                  className="h-9 w-9 p-0 rounded-xl border border-muted-foreground/10 hover:bg-muted transition-all duration-300 flex items-center justify-center shrink-0"
+                  className="h-9 w-9 p-0 rounded-xl border border-muted-foreground/10 hover:bg-gray-200/60 flex items-center justify-center shrink-0"
                   onClick={() => onDelete(candidate)}
                 >
                   <Trash className="h-4 w-4 shrink-0" />
                 </Button>
               )}
             />
-            <HoverCardContent side="top" className="w-auto p-2 min-w-0">
-              <div className="text-sm font-semibold">Delete</div>
+            <HoverCardContent className="w-fit px-3 py-1.5 text-xs" side="top">
+              Delete
             </HoverCardContent>
           </HoverCard> */}
         </div>

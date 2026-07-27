@@ -60,6 +60,8 @@ interface DataTableProps<TData, TValue> {
   totalCount?: number;
   resultCount?: number;
   entityName?: string;
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: OnChangeFn<Record<string, boolean>>;
 }
 
 
@@ -84,13 +86,17 @@ export function DataTable<TData, TValue>({
   totalCount,
   resultCount,
   entityName,
+  rowSelection,
+  onRowSelectionChange,
 }: DataTableProps<TData, TValue>) {
 
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState<string>("");
-  const [rowSelection, setRowSelection] = useState({});
+  const [internalRowSelection, setInternalRowSelection] = useState({});
+  const finalRowSelection = rowSelection !== undefined ? rowSelection : internalRowSelection;
+  const handleRowSelectionChange = onRowSelectionChange !== undefined ? onRowSelectionChange : setInternalRowSelection;
   const [internalPagination, setInternalPagination] = useState<PaginationState>({
     pageIndex,
     pageSize,
@@ -134,7 +140,7 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: handleRowSelectionChange as any,
     // Add server-side pagination config
     manualPagination: isServerSide,
     pageCount: pageCount,
@@ -144,7 +150,7 @@ export function DataTable<TData, TValue>({
       columnFilters,
       columnVisibility,
       globalFilter,
-      rowSelection,
+      rowSelection: finalRowSelection,
       pagination: paginationState,
     },
   });
@@ -214,7 +220,7 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className="px-1">
+                    <TableHead key={header.id} className="px-1 font-semibold text-base">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}
@@ -262,14 +268,14 @@ export function DataTable<TData, TValue>({
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={cn(
-                  "inline-flex items-center gap-2 h-9 w-[75px] justify-between px-3 rounded-xl border border-input bg-background text-sm font-medium cursor-pointer transition-colors hover:bg-muted/50 disabled:opacity-50 "
+                  "inline-flex items-center gap-2 h-9 w-18.75 justify-between px-3 rounded-xl border border-input bg-background text-sm font-medium cursor-pointer transition-colors hover:bg-muted/50 disabled:opacity-50 "
                 )}
                 disabled={!data.length}
               >
                 {table.getState().pagination.pageSize}
                 <ChevronDown className="h-3.5 w-3.5 opacity-60" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="min-w-[75px]">
+              <DropdownMenuContent align="center" className="min-w-18.75">
                 {[10, 20, 30, 40, 50].map((pageSize) => (
                   <DropdownMenuItem
                     key={pageSize}

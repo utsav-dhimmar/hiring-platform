@@ -23,6 +23,11 @@ from app.v1.core.resume_executor import (
 from app.v1.db.session import init_db
 from app.v1.core.observability import setup_phoenix_tracing
 
+try:
+    from github_code_evaluator.app.main import app as evaluator_app
+except ImportError:
+    evaluator_app = None
+
 setup_logging(debug=settings.DEBUG)
 logger = get_logger(__name__)
 
@@ -52,13 +57,20 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down application")
 
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from app.v1.core.rate_limit import limiter
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     debug=settings.DEBUG,
     lifespan=lifespan,
 )
 
-app.add_middleware(GlobalErrorHandlerMiddleware)  # ty:ignore[invalid-argument-type]
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,  # ty:ignore[invalid-argument-type]
@@ -66,9 +78,47 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 app.include_router(api_router, prefix="/api/v1")
+
+if evaluator_app:
+    app.mount("/evaluator", evaluator_app)
+
+
+# Custom OpenAPI schema generator to fix Swagger UI file upload picker for array fields
+from fastapi.openapi.utils import get_openapi
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        openapi_version=app.openapi_version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    def fix_octet_stream_schemas(d) -> None:
+        if isinstance(d, dict):
+            if d.get("type") == "string" and d.get("contentMediaType") == "application/octet-stream":
+                d.pop("contentMediaType", None)
+                d["format"] = "binary"
+            else:
+                for v in d.values():
+                    fix_octet_stream_schemas(v)
+        elif isinstance(d, list):
+            for item in d:
+                fix_octet_stream_schemas(item)
+
+    fix_octet_stream_schemas(openapi_schema)
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 
 @app.get("/")
@@ -81,4 +131,7 @@ async def root():
     return {"message": f"Welcome to {settings.PROJECT_NAME}"}
 
 # Trigger Uvicorn reload for new settings
+
+
+app.add_middleware(GlobalErrorHandlerMiddleware)  # ty:ignore[invalid-argument-type]
 

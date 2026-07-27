@@ -1,30 +1,24 @@
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Filter, Calendar as CalendarIcon, ChevronDown, X, } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Filter, Star } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-  DropdownMenuGroup,
-} from "@/components/ui/dropdown-menu";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
 import { Separator } from "@/components/ui/separator";
-import { FILTER_DISPLAY_LIMIT } from "@/constants";
-import { useMemo } from "react";
-// import { DateDisplay } from "../shared";
+import { useMemo, useState } from "react";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter
+} from "@/components/ui/sheet";
+import { CollapsibleFilterSection, CheckboxListFilter } from "@/components/shared/FilterComponents";
+import type { Job } from "@/types/job";
+
 
 interface CandidateTableFiltersProps {
   nameFilter: string;
@@ -53,7 +47,7 @@ interface CandidateTableFiltersProps {
   setJobSearch: (value: string) => void;
   stageFilter: string[];
   setStageFilter: (value: string[]) => void;
-  stageOptions: string[];
+  stageOptions: { id: string; name: string }[];
   hrDecisionOptions: { value: string; label: string }[];
   resultOptions: { value: string; label: string }[];
   hasActiveFilters: boolean;
@@ -73,6 +67,12 @@ interface CandidateTableFiltersProps {
   activitySessionOptions?: [number, { start_date: string; end_date: string }][];
   hrScoreFilter?: number[];
   setHrScoreFilter?: (value: number[]) => void;
+  testEmailSentFilter?: string;
+  setTestEmailSentFilter?: (value: string | undefined) => void;
+  isTestPaperFilterEnabled?: boolean;
+  job?: Job | null;
+  /** Optional action buttons rendered right-aligned inside the filter bar */
+  actions?: React.ReactNode;
 }
 
 export const CandidateTableFilters = ({
@@ -90,11 +90,9 @@ export const CandidateTableFilters = ({
   resultFilter,
   setResultFilter,
   locationOptions,
-  locationSearch,
-  setLocationSearch,
+  // setLocationSearch,
   jobOptions,
-  jobSearch,
-  setJobSearch,
+  // setJobSearch,
   stageFilter,
   setStageFilter,
   stageOptions,
@@ -105,17 +103,71 @@ export const CandidateTableFilters = ({
   resultCount,
   totalCount,
   minDate,
-  availableJobs,
   showLocationFilter = true,
-  // activitySession,
-  // setActivitySession,
   activitySearch,
-  // setActivitySearch,
   activitySessionOptions,
   hrScoreFilter = [],
   setHrScoreFilter = () => { },
+  testEmailSentFilter,
+  setTestEmailSentFilter = () => { },
+  isTestPaperFilterEnabled = false,
+  // job
+  actions,
 }: CandidateTableFiltersProps) => {
 
+  const [hoverValue, setHoverValue] = useState<number | null>(0);
+  // const res = useJobTask(job?.id)
+
+
+  // Queries for assigned task paper & predefined templates
+  /*
+  const { data: assignedPaper } = useJobAssignedTask(job?.id);
+  const { data: predefinedPapers } = useQuestionSetPapers({
+    jobId: job?.id,
+    options: { enabled: !!job?.id }
+  });
+
+  // Find matching predefined paper by comparing the task file path
+  const matchingPredefinedPaper = useMemo(() => {
+    if (!assignedPaper?.task_file_path || !predefinedPapers) return null;
+    return predefinedPapers.find(p => p.task_file_path === assignedPaper.task_file_path);
+  }, [assignedPaper?.task_file_path, predefinedPapers]);
+
+  // Hook to download the task file
+  const { refetch: downloadFile, loading: isDownloading } = useDownloadPaperTaskFile(
+    matchingPredefinedPaper?.id,
+    { enabled: false }
+  );
+
+  const handleViewTaskPaper = async () => {
+    if (!assignedPaper) {
+      toast.error("No default question paper is assigned to this job.");
+      return;
+    }
+    if (!assignedPaper.task_file_path) {
+      toast.error("The assigned question paper does not have an associated task file.");
+      return;
+    }
+    if (!matchingPredefinedPaper) {
+      toast.error("Could not find the predefined template for the assigned question paper.");
+      return;
+    }
+
+    try {
+      toast.info("Downloading task file...");
+      const { data: blob } = await downloadFile();
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      } else {
+        toast.error("Failed to download the task file.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to download the task file.");
+    }
+  };
+  */
   // @ts-ignore
   const _filteredActivityOptions = useMemo(() => {
     if (!activitySessionOptions) return [];
@@ -129,598 +181,361 @@ export const CandidateTableFilters = ({
     });
   }, [activitySessionOptions, activitySearch]);
 
-  const normalStyle = "inline-flex items-center justify-between gap-2 h-10 px-3 rounded-xl border text-sm cursor-pointer select-none transition-all"
+  const formattedJobOptions = useMemo(() => {
+    return jobOptions.map((j) => ({
+      id: j.id,
+      label: j.title,
+    }));
+  }, [jobOptions]);
+
+  const formattedLocationOptions = useMemo(() => {
+    return locationOptions.map((l) => ({ id: l, label: l }));
+  }, [locationOptions]);
+
+  const formattedHrDecisionOptions = useMemo(() => {
+    return hrDecisionOptions.map((d) => ({ id: d.value, label: d.label }));
+  }, [hrDecisionOptions]);
+
+  const formattedResultOptions = useMemo(() => {
+    return resultOptions.map((d) => ({ id: d.value, label: d.label }));
+  }, [resultOptions]);
+
+  const formattedStageOptions = useMemo(() => {
+    return stageOptions.map((s) => ({ id: s.id, label: s.name }));
+  }, [stageOptions]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (jobFilter.length > 0) count++;
+    if (locationFilter.length > 0) count++;
+    if (hrDecisionFilter.length > 0) count++;
+    if (resultFilter.length > 0) count++;
+    if (hrScoreFilter.length > 0) count++;
+    if (stageFilter.length > 0) count++;
+    if (testEmailSentFilter !== undefined) count++;
+    if (dateRange?.from || dateRange?.to) count++;
+    return count;
+  }, [
+    jobFilter,
+    locationFilter,
+    hrDecisionFilter,
+    resultFilter,
+    hrScoreFilter,
+    stageFilter,
+    testEmailSentFilter,
+    dateRange,
+  ]);
+
   return (
     <div className="flex flex-col gap-4 p-2 bg-muted/20 rounded-2xl border border-muted-foreground/10 overflow-hidden">
-      <div className="flex flex-col lg:flex-row items-start gap-4 w-full">
-        {/* All Filters Area */}
-        <div className="flex flex-wrap items-center gap-2 flex-1">
+      <div className="flex flex-col lg:flex-row items-center gap-4 w-full">
+        {/* Search & Filter Trigger Area */}
+        <div className="flex flex-wrap items-center gap-2 flex-1 w-full lg:w-auto">
           {/* Search Field */}
-          <div className="relative w-full lg:w-[320px] group">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
+          <div className="relative w-10/12 lg:w-[320px] group">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search name or email…"
               value={nameFilter}
               onChange={(e) => setNameFilter(e.target.value)}
-              className="pl-10 h-10 rounded-xl text-sm w-full bg-background"
+              className="pl-10 h-10 rounded-xl text-base w-full bg-background"
             />
           </div>
 
-          {/* Job dropdown */}
-          {showJobContext && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  normalStyle,
-                  "w-[140px]",
-                  jobFilter.length > 0
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                )}
-              >
-                <span className="truncate mr-auto text-left">
-                  {jobFilter.length === 0
-                    ? "All Jobs"
-                    : jobFilter.length <= FILTER_DISPLAY_LIMIT
-                      ? jobFilter.map(id => availableJobs.find(j => j.id === id)?.title || "Job").join(", ")
-                      : `${jobFilter.slice(0, FILTER_DISPLAY_LIMIT).map(id => availableJobs.find(j => j.id === id)?.title || "Job").join(", ")} and ${jobFilter.length - FILTER_DISPLAY_LIMIT} more`}
+          {/* Sheet Trigger */}
+          <Sheet>
+            <SheetTrigger type="button" className={cn(buttonVariants({ variant: "outline" }), "rounded-xl gap-2 px-3 border border-muted-foreground/20 hover:bg-muted/10 bg-background transition-all cursor-pointer")}>
+
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              {activeFilterCount > 0 && (
+                <span className="flex items-center justify-center bg-primary text-primary-foreground text-xs font-bold rounded-full min-w-5 h-5 px-1 ml-1 animate-in zoom-in duration-200">
+                  {activeFilterCount}
                 </span>
-                <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[240px] p-2 rounded-xl shadow-xl">
-                <div className="px-1 pb-2">
-                  <div className="relative">
-                    <Input
-                      placeholder="Search jobs..."
-                      value={jobSearch}
-                      onChange={(e) => setJobSearch(e.target.value)}
-                      className="h-9 rounded-lg text-xs pl-2"
-                      onKeyDown={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                </div>
-                {/* <DropdownMenuSeparator /> */}
-                <div className="max-h-auto overflow-y-auto custom-scrollbar">
-                  <DropdownMenuGroup>
-                    {jobOptions.length === 0 ? (
-                      <div className="px-2 py-4 text-xs text-center text-muted-foreground">
-                        No jobs found "{jobSearch}"
-                      </div>
-                    ) : (
-                      <>
-                        {jobOptions.slice(0, FILTER_DISPLAY_LIMIT).map((j) => (
-                          <DropdownMenuCheckboxItem
-                            key={j.id}
-                            checked={jobFilter.includes(j.id)}
-                            onSelect={(e) => e.preventDefault()}
-                            onClick={() =>
-                              setJobFilter(
-                                jobFilter.includes(j.id)
-                                  ? jobFilter.filter((v) => v !== j.id)
-                                  : [...jobFilter, j.id]
-                              )
-                            }
-                            className="rounded-lg truncate pr-1"
-                          >
-                            <HoverCard>
-                              <HoverCardTrigger delay={10} closeDelay={10}>
-                                <div className="truncate w-full">
-                                  <span className="capitalize truncate">
-                                    {j.title}
-                                  </span>
-                                </div>
-                              </HoverCardTrigger>
-                              <HoverCardContent className="w-64 p-2 rounded-lg" side="right" sideOffset={40}>
-                                <div className="text-sm font-medium mb-0.5 capitalize">{j.title}</div>
-                              </HoverCardContent>
-                            </HoverCard>
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                        {jobOptions.length > FILTER_DISPLAY_LIMIT && (
-                          <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
-                            And {jobOptions.length - FILTER_DISPLAY_LIMIT} more jobs...
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </DropdownMenuGroup>
-                </div>
-                {jobFilter.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setJobFilter([])}
-                      className="rounded-lg"
-                    >
-                      Clear jobs
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {/* Location dropdown */}
-          {showLocationFilter && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  normalStyle,
-                  "w-[130px]",
-                  locationFilter.length > 0
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                )}
-              >
-                <span className="truncate text-left">
-                  {locationFilter.length === 0
-                    ? "Locations"
-                    : locationFilter.length <= FILTER_DISPLAY_LIMIT
-                      ? locationFilter.join(", ")
-                      : `${locationFilter.slice(0, FILTER_DISPLAY_LIMIT).join(", ")} and ${locationFilter.length - FILTER_DISPLAY_LIMIT} more`}
-                </span>
-                <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[160px] p-2 rounded-xl shadow-xl">
-                <div className="px-1 pb-2">
-                  <div className="relative">
-                    <Input
-                      placeholder="Search locations..."
-                      value={locationSearch}
-                      onChange={(e) => setLocationSearch(e.target.value)}
-                      className="h-9 rounded-lg text-xs pl-2"
-                      onKeyDown={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <div className="max-h-auto overflow-y-auto custom-scrollbar">
-                  <DropdownMenuGroup>
-                    {locationOptions.length === 0 ? (
-                      <div className="px-2 py-4 text-xs text-center text-muted-foreground">
-                        No locations found "{locationSearch}"
-                      </div>
-                    ) : (
-                      <>
-                        {locationOptions.slice(0, FILTER_DISPLAY_LIMIT).map((l) => (
-                          <DropdownMenuCheckboxItem
-                            key={l}
-                            checked={locationFilter.includes(l)}
-                            onSelect={(e) => e.preventDefault()}
-                            onClick={() =>
-                              setLocationFilter(
-                                locationFilter.includes(l)
-                                  ? locationFilter.filter((v) => v !== l)
-                                  : [...locationFilter, l]
-                              )
-                            }
-                            className="rounded-lg pl-2 pr-6"
-                          >
-                            {l}
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                        {locationOptions.length > FILTER_DISPLAY_LIMIT && (
-                          <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
-                            And {locationOptions.length - FILTER_DISPLAY_LIMIT} more locations...
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </DropdownMenuGroup>
-                </div>
-                {locationFilter.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setLocationFilter([])}
-                      className="rounded-lg"
-                    >
-                      Clear locations
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {/* HR Decision multi-select dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                normalStyle,
-                "w-[130px]",
-                hrDecisionFilter.length > 0
-                  ? "border-primary/30 bg-primary/5 text-primary"
-                  : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
-            >
-              <span className="truncate">
-                {hrDecisionFilter.length === 0
-                  ? "Decisions"
-                  : hrDecisionFilter.length === 1
-                    ? hrDecisionOptions.find((d) => d.value === hrDecisionFilter[0])?.label ?? hrDecisionFilter[0]
-                    : `${hrDecisionFilter.length} Decisions`}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-fit min-w-[130px] rounded-xl shadow-lg p-1">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1.5">HR Decision</DropdownMenuLabel>
-                {hrDecisionOptions.length === 0 ? (
-                  <div className="px-2 py-4 text-xs text-center text-muted-foreground">
-                    No decisions in current data
-                  </div>
-                ) : hrDecisionOptions.map((d) => (
-                  <DropdownMenuCheckboxItem
-                    key={d.value}
-                    checked={hrDecisionFilter.includes(d.value)}
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={() =>
-                      setHrDecisionFilter(
-                        hrDecisionFilter.includes(d.value)
-                          ? hrDecisionFilter.filter((v) => v !== d.value)
-                          : [...hrDecisionFilter, d.value]
-                      )
-                    }
-                    className="rounded-lg pl-2 pr-6"
-                  >
-                    {d.label}
-                  </DropdownMenuCheckboxItem>
-                ))}
-                {hrDecisionFilter.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setHrDecisionFilter([])}
-                      className="rounded-lg"
-                    >
-                      Clear selection
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
-          {/* resume screening result dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                normalStyle,
-                "w-[130px]",
-                resultFilter.length > 0
-                  ? "border-primary/30 bg-primary/5 text-primary"
-                  : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              <span className="truncate">
-                {resultFilter.length === 0
-                  ? "AI Result"
-                  : resultFilter.length === 1
-                    ? resultOptions.find((d) => d.value === resultFilter[0])?.label ?? resultFilter[0]
-                    : `${resultFilter.length} Results`}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-fit min-w-[130px] rounded-xl shadow-lg p-1">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1.5">AI Result</DropdownMenuLabel>
-                {resultOptions.length === 0 ? (
-                  <div className="px-2 py-4 text-xs text-center text-muted-foreground">
-                    No results in current data
-                  </div>
-                ) : resultOptions.map((d) => (
-                  <DropdownMenuCheckboxItem
-                    key={d.value}
-                    checked={resultFilter.includes(d.value)}
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={() =>
-                      setResultFilter(
-                        resultFilter.includes(d.value)
-                          ? resultFilter.filter((v) => v !== d.value)
-                          : [...resultFilter, d.value]
-                      )
-                    }
-                    className="rounded-lg pl-2 pr-6"
-                  >
-                    {d.label}
-                  </DropdownMenuCheckboxItem>
-                ))}
-                {resultFilter.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setResultFilter([])}
-                      className="rounded-lg"
-                    >
-                      Clear selection
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </SheetTrigger>
 
-          {/* Score Rating multi-select dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                normalStyle,
-                "w-[130px]",
-                hrScoreFilter.length > 0
-                  ? "border-primary/30 bg-primary/5 text-primary"
-                  : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              <span className="truncate">
-                {hrScoreFilter.length === 0
-                  ? "Score Rating"
-                  : hrScoreFilter.length === 1
-                    ? `Score: ${hrScoreFilter[0]}`
-                    : `${hrScoreFilter.length} Ratings`}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-fit min-w-[130px] rounded-xl shadow-lg p-1">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1.5">Score Rating</DropdownMenuLabel>
-                {[1, 2, 3, 4, 5].map((score) => (
-                  <DropdownMenuCheckboxItem
-                    key={score}
-                    checked={hrScoreFilter.includes(score)}
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={() =>
-                      setHrScoreFilter(
-                        hrScoreFilter.includes(score)
-                          ? hrScoreFilter.filter((v) => v !== score)
-                          : [...hrScoreFilter, score]
-                      )
-                    }
-                    className="rounded-lg pl-2 pr-6"
-                  >
-                    {score}
-                  </DropdownMenuCheckboxItem>
-                ))}
-                {hrScoreFilter.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setHrScoreFilter([])}
-                      className="rounded-lg"
-                    >
-                      Clear selection
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Stages multi-select dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                normalStyle,
-                "w-[130px]",
-                stageFilter.length > 0
-                  ? "border-primary/30 bg-primary/5 text-primary"
-                  : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              <span className="truncate">
-                {stageFilter.length === 0
-                  ? "Stages"
-                  : stageFilter.length === 1
-                    ? stageFilter[0]
-                    : `${stageFilter.length} Stages`}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-fit min-w-[130px] rounded-xl shadow-lg p-1">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1.5">Stages</DropdownMenuLabel>
-                {stageOptions.length === 0 ? (
-                  <div className="px-2 py-4 text-xs text-center text-muted-foreground">
-                    No stages available
-                  </div>
-                ) : (
-                  <div className="max-h-[240px] overflow-y-auto custom-scrollbar">
-                    {stageOptions.map((s) => (
-                      <DropdownMenuCheckboxItem
-                        key={s}
-                        checked={stageFilter.includes(s)}
-                        onSelect={(e) => e.preventDefault()}
-                        onClick={() =>
-                          setStageFilter(
-                            stageFilter.includes(s)
-                              ? stageFilter.filter((v) => v !== s)
-                              : [...stageFilter, s]
-                          )
-                        }
-                        className="rounded-lg pl-2 pr-6"
-                      >
-                        {s}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </div>
-                )}
-                {stageFilter.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setStageFilter([])}
-                      className="rounded-lg"
-                    >
-                      Clear selection
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Hiring Activity multi-select dropdown */}
-          {/* {activitySessionOptions && activitySessionOptions.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  "inline-flex items-center justify-between gap-2 h-10 px-3 w-[160px] rounded-xl border text-xs  cursor-pointer select-none transition-all",
-                  activitySession.length > 0
-                    ? "border-primary/30 bg-primary/5 text-primary"
-                    : "border-input bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                )}
-              >
-                <span className="truncate">
-                  {activitySession.length === 0
-                    ? "Hiring Cycle"
-                    : activitySession.length === 1
-                      ? `Activity ${activitySession[0]}`
-                      : `${activitySession.length} Activities`}
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-[220px] p-2 rounded-xl shadow-lg">
-                <div className="px-1 pb-2">
-                  <div className="relative">
-                    <Input
-                      placeholder="Search activity ids"
-                      value={activitySearch}
-                      onChange={(e) => setActivitySearch(e.target.value)}
-                      className="h-9 rounded-lg text-xs pl-2"
-                      onKeyDown={(e) => e.stopPropagation()}
-                    />
-                  </div>
+            <SheetContent className="w-full sm:max-w-md flex flex-col h-full p-0 bg-background border-l shadow-2xl" showCloseButton={false}>
+              {/* Header */}
+              <SheetHeader className="px-3 py-2 border-b border-muted/20 flex flex-row items-center justify-between shrink-0">
+                <div className="flex items-center gap-1">
+                  <Filter className="h-4.5 w-4.5 text-primary" />
+                  <SheetTitle className="font-semibold text-base text-foreground">
+                    Filters
+                  </SheetTitle>
                 </div>
-                <DropdownMenuSeparator />
-                <div className="max-h-auto overflow-y-auto custom-scrollbar">
-                  <DropdownMenuGroup>
-                    {filteredActivityOptions.length === 0 ? (
-                      <div className="px-2 py-4 text-xs text-center text-muted-foreground">
-                        No activities found "{activitySearch}"
-                      </div>
-                    ) : (
-                      <>
-                        {filteredActivityOptions.reverse().slice(0, FILTER_DISPLAY_LIMIT).map(([sessionId, dates]) => (
-                          <DropdownMenuCheckboxItem
-                            key={sessionId}
-                            checked={activitySession.includes(String(sessionId))}
-                            onSelect={(e) => e.preventDefault()}
-                            onClick={() =>
-                              setActivitySession(
-                                activitySession.includes(String(sessionId))
-                                  ? activitySession.filter((v) => v !== String(sessionId))
-                                  : [...activitySession, String(sessionId)]
-                              )
-                            }
-                            className="rounded-lg my-0.5"
-                          >
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-medium text-xs">Activity {sessionId}</span>
-                              <span className="text-[10px] text-muted-foreground">
-                                {dates.start_date ? <DateDisplay date={dates.start_date} className="text-[10px]" /> : "N/A"} - {dates.end_date ? <DateDisplay date={dates.end_date} className="text-[10px]" /> : "Present"}
-                              </span>
-                            </div>
-                          </DropdownMenuCheckboxItem>
-                        ))}
-                        {filteredActivityOptions.length > FILTER_DISPLAY_LIMIT && (
-                          <div className="px-2 py-2 text-xs text-muted-foreground italic text-center border-t border-muted/50 mt-1">
-                            And {filteredActivityOptions.length - FILTER_DISPLAY_LIMIT} more activities...
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </DropdownMenuGroup>
-                </div>
-                {activitySession.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuCheckboxItem
-                      checked={false}
-                      onClick={() => setActivitySession([])}
-                      className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg"
-                    >
-                      Clear selection
-                    </DropdownMenuCheckboxItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )} */}
-
-          {/* Date range picker */}
-          <div className="flex items-center gap-1.5 px-3 h-10 w-fit rounded-xl border border-input text-sm bg-background hover:bg-muted/30 transition-colors">
-            <Popover>
-              <PopoverTrigger
-                className={cn(
-                  "inline-flex items-center justify-between w-full h-full font-normal rounded-md bg-transparent focus-visible:outline-none",
-                  !dateRange?.from && "text-muted-foreground"
-                )}
-              >
-                <div className="flex items-center truncate">
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 shrink-0 opacity-60" />
-                  <span className="truncate">
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
-                        </>
-                      ) : (
-                        format(dateRange.from, "LLL dd, y")
-                      )
-                    ) : (
-                      "Applied date range"
-                    )}
-                  </span>
-                </div>
-                <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0 ml-1" />
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-auto p-0 rounded-2xl border bg-popover shadow-2xl overflow-hidden"
-                align="start"
-              >
-                <Calendar
-                  required
-                  autoFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  numberOfMonths={1}
-                  disabled={{ after: new Date(), before: minDate }}
-                  buttonVariant="ghost"
-                  captionLayout="label"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Clear Button */}
-          {hasActiveFilters && (
-            <HoverCard>
-              <HoverCardTrigger delay={10} closeDelay={100}
-                render={
+                {hasActiveFilters && (
                   <Button
-                    variant="ghost"
+                    variant="destructive"
                     size="sm"
-                    className="h-10 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all"
-                    onClick={clearFilters}
-                  >
-                    <X className="h-4 w-4" />
+                    onClick={clearFilters}>
+                    Clear All
                   </Button>
-                }
-              />
-              <HoverCardContent className="flex items-center justify-center w-auto h-auto p-3 rounded-2xl border bg-popover shadow-2xl overflow-hidden">
-                <div className="font-medium text-sm">Clear all filters</div>
-              </HoverCardContent>
-            </HoverCard>
+                )}
+              </SheetHeader>
+
+              {/* Scrollable Filters */}
+              <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                {/* Jobs Filter */}
+                {showJobContext && (
+                  <CollapsibleFilterSection title="Jobs" count={jobFilter.length}>
+                    <CheckboxListFilter
+                      options={formattedJobOptions}
+                      selectedValues={jobFilter}
+                      onChange={setJobFilter}
+                      idPrefix="job"
+                      emptyText="No jobs found"
+                    />
+                  </CollapsibleFilterSection>
+                )}
+
+                {/* Locations Filter */}
+                {showLocationFilter && (
+                  <CollapsibleFilterSection title="Locations" count={locationFilter.length}>
+                    <CheckboxListFilter
+                      options={formattedLocationOptions}
+                      selectedValues={locationFilter}
+                      onChange={setLocationFilter}
+                      idPrefix="location"
+                      emptyText="No locations found"
+                    />
+                  </CollapsibleFilterSection>
+                )}
+
+
+                {/* HR Decisions Filter */}
+                <CollapsibleFilterSection title="HR Decisions" count={hrDecisionFilter.length}>
+                  <CheckboxListFilter
+                    options={formattedHrDecisionOptions}
+                    selectedValues={hrDecisionFilter}
+                    onChange={setHrDecisionFilter}
+                    idPrefix="decision"
+                    showSearchMore={false}
+                  />
+                </CollapsibleFilterSection>
+
+                {/* AI Results Filter */}
+                <CollapsibleFilterSection title="AI Resume Screening" count={resultFilter.length}>
+                  <CheckboxListFilter
+                    options={formattedResultOptions}
+                    selectedValues={resultFilter}
+                    onChange={setResultFilter}
+                    idPrefix="result"
+                    showSearchMore={false}
+                  />
+                </CollapsibleFilterSection>
+
+                {/* Score Rating Filter */}
+                <CollapsibleFilterSection title="Score Rating" count={hrScoreFilter.length}>
+                  <div className="flex items-center justify-center py-2.5">
+                    <div
+                      className="flex items-center gap-1 cursor-pointer"
+                      onMouseLeave={() => setHoverValue(null)}
+                    >
+                      {Array.from({ length: 5 }).map((_, index) => {
+                        const starValue = index + 1;
+                        const activeValue = hoverValue !== null ? hoverValue : (hrScoreFilter[0] ?? 0);
+                        let fillType: "full" | "half" | "empty" = "empty";
+
+                        if (activeValue >= starValue) {
+                          fillType = "full";
+                        } else if (activeValue === starValue - 0.5) {
+                          fillType = "half";
+                        }
+
+                        const leftVal = Math.max(1, starValue - 0.5);
+                        const rightVal = starValue;
+
+                        return (
+                          <div
+                            key={index}
+                            className="relative w-8 h-8 select-none transition-transform active:scale-95 duration-100"
+                          >
+                            {/* Left half hit zone */}
+                            <div
+                              className="absolute top-0 left-0 w-1/2 h-full cursor-pointer z-10"
+                              onMouseEnter={() => setHoverValue(leftVal)}
+                              onClick={() => {
+                                if (hrScoreFilter.includes(leftVal)) {
+                                  setHrScoreFilter([]);
+                                } else {
+                                  setHrScoreFilter([leftVal]);
+                                }
+                              }}
+                            />
+                            {/* Right half hit zone */}
+                            <div
+                              className="absolute top-0 right-0 w-1/2 h-full cursor-pointer z-10"
+                              onMouseEnter={() => setHoverValue(rightVal)}
+                              onClick={() => {
+                                if (hrScoreFilter.includes(rightVal)) {
+                                  setHrScoreFilter([]);
+                                } else {
+                                  setHrScoreFilter([rightVal]);
+                                }
+                              }}
+                            />
+
+                            {/* Background empty star */}
+                            <Star className="w-8 h-8 text-muted-foreground/30 fill-none" />
+
+                            {/* Full star overlay */}
+                            {fillType === "full" && (
+                              <Star className="absolute top-0 left-0 w-8 h-8 text-[#E17100] fill-[#FFB900]" />
+                            )}
+
+                            {/* Half star overlay */}
+                            {fillType === "half" && (
+                              <Star
+                                className="absolute top-0 left-0 w-8 h-8 text-[#E17100] fill-[#FFB900]"
+                                style={{ clipPath: "inset(0 50% 0 0)" }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="min-w-7">
+                      {(hrScoreFilter.length > 0 || hoverValue !== null) && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-[#F9EBE1] text-[#E17100] text-xs font-bold min-w-7 text-center">
+                          {(hoverValue !== null ? hoverValue : hrScoreFilter[0]).toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                </CollapsibleFilterSection>
+
+                {/* Stages Filter */}
+                <CollapsibleFilterSection title="Stages" count={stageFilter.length}>
+                  <CheckboxListFilter
+                    options={formattedStageOptions}
+                    selectedValues={stageFilter}
+                    onChange={setStageFilter}
+                    idPrefix="stage"
+                    emptyText="No stages available"
+                    searchPlaceholder="Search more stages..."
+                  />
+                </CollapsibleFilterSection>
+
+                {/* Test Email Filter */}
+                <CollapsibleFilterSection title="Test Email Status" count={testEmailSentFilter !== undefined ? 1 : 0}>
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant={"outline"}
+                      disabled={!isTestPaperFilterEnabled}
+                      onClick={() =>
+                        setTestEmailSentFilter(
+                          testEmailSentFilter === "sent" ? undefined : "sent"
+                        )
+                      }
+                      className={cn(
+                        testEmailSentFilter === "sent"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-input bg-transparent text-muted-foreground",
+                        !isTestPaperFilterEnabled &&
+                        "opacity-50 cursor-not-allowed pointer-events-none"
+                      )}
+                    >
+                      Sent
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={"outline"}
+                      disabled={!isTestPaperFilterEnabled}
+                      onClick={() =>
+                        setTestEmailSentFilter(
+                          testEmailSentFilter === "not_sent" ? undefined : "not_sent"
+                        )
+                      }
+                      className={cn(
+                        testEmailSentFilter === "not_sent"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-input bg-transparent text-muted-foreground",
+                        !isTestPaperFilterEnabled &&
+                        "opacity-50 cursor-not-allowed pointer-events-none"
+                      )}
+                    >
+                      Not Sent
+                    </Button>
+                  </div>
+                  {!isTestPaperFilterEnabled && (
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Enable by selecting a Technical Practical stage and "Pending" status.
+                    </p>
+                  )}
+                </CollapsibleFilterSection>
+
+                {/* Applied Date Range Filter */}
+                <CollapsibleFilterSection
+                  title={
+                    <span className="flex items-center gap-2">
+                      Applied Date Range
+                      {dateRange?.from && (
+                        <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full truncate">
+                          {format(dateRange.from, "MMM d")}
+                          {dateRange.to ? ` - ${format(dateRange.to, "MMM d")}` : ""}
+                        </span>
+                      )}
+                    </span>
+                  }
+                  titleClassName="max-w-[85%]"
+                >
+                  <div className="flex justify-center rounded-xl mt-1">
+                    <Calendar
+                      required
+                      autoFocus={false}
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={1}
+                      disabled={{ after: new Date(), before: minDate }}
+                      buttonVariant="ghost"
+                      captionLayout="label"
+                      className="w-full rounded-xl"
+                    />
+                  </div>
+                </CollapsibleFilterSection>
+              </div>
+
+              <SheetFooter>
+                {/* Footer */}
+                <SheetClose
+                  render={
+                    <Button>
+                      {hasActiveFilters ? <span>Apply & Close</span> : <span>Close</span>}
+                    </Button>
+                  }
+                />
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+          {/* {job ? <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="rounded-xl gap-2 px-3 border border-muted-foreground/20 hover:bg-muted/10 bg-background transition-all cursor-pointer"
+              onClick={handleViewTaskPaper}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : (
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+
+          </div> : null} */}
+          {/* Actions slot (e.g. Reanalyze All button) */}
+          {actions && (
+            <div className="shrink-0 flex items-center">
+              {actions}
+            </div>
           )}
         </div>
+
+
 
         {/* Result Count Area (Anchored Right) */}
         <div className="shrink-0 lg:ml-auto text-xs font-medium flex items-center gap-2 p-2 border rounded-xl bg-background/50 h-10 self-start">
